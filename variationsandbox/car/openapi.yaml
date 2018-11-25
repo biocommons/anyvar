@@ -1,31 +1,33 @@
 openapi: 3.0.0
 info:
-  title: Variation Sandbox
-  description: example variation sandbox
+  title: ClinGen Allele Registry wrapper
+  description: >-
+    Wraps the ClinGen Allele Registry (CAR) to return VMC structures
+    rather than CAR native structures.
   version: 0.0.0
 
 servers:
-  - url: http://localhost:9090/v0
+  - url: http://localhost:9090/car
 
 paths:
-  /variation:
-    post:
-      summary: create a variation instance
+  /ca:
+    get:
+      summary: search for a canonical allele
       responses:
-        "201":
-          description: go to town
+        "200":
+          description: found; variation returned
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Variation"
 
-  /variation/{id}:
+  /ca/{id}:
     get:
       summary: gets a variation instance by id
       parameters:
         - name: id
           in: path
-          description: variation id
+          description: canonical allele id
           required: true
           schema:
             type: string

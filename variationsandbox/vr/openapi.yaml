@@ -1,0 +1,51 @@
+openapi: 3.0.0
+info:
+  title: Variation Sandbox
+  description: example variation sandbox
+  version: 0.0.0
+
+servers:
+  - url: http://localhost:9090/vr
+
+paths:
+  /variation:
+    post:
+      summary: create a variation instance
+      responses:
+        "201":
+          description: go to town
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Variation"
+
+  /variation/{id}:
+    get:
+      summary: gets a variation instance by id
+      parameters:
+        - name: id
+          in: path
+          description: variation id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: found; variation returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Variation"
+                
+
+components:
+  schemas:
+    Variation:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: enum
+          enum: [hgvs-allele, hgvs-haplotype, hgvs-genotype, car-id, car-hgvs, vcf, rsid-alt, text]
+
