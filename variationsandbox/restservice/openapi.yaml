@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
-  title: Variation Registry
-  description: example variation registry
+  title: Variation Sandbox
+  description: example variation sandbox
   version: 0.0.0
 
 servers:
