@@ -10,9 +10,15 @@ servers:
   - url: http://localhost:9090/car
 
 paths:
-  /ca:
+  /allele:
     get:
       summary: search for a canonical allele
+      tags: [ClinGen]
+      parameters:
+        - name: hgvs
+          in: query
+          schema:
+            type: string
       responses:
         "200":
           description: found; variation returned
@@ -21,7 +27,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Variation"
 
-  /ca/{id}:
+  /allele/{id}:
     get:
       summary: gets a variation instance by id
       parameters:
