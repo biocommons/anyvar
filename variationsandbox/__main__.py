@@ -32,7 +32,10 @@ and path component in openapi spec -- all must agree."""
     subservices.append(prefix)
 
 
-app = connexion.App(__name__, debug=True)
+app = connexion.App(__name__,
+                    debug=True,
+                    # server="tornado",
+                    )
 _add_subservice(app, "car")
 _add_subservice(app, "vr")
 

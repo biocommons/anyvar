@@ -19,13 +19,10 @@ paths:
           in: query
           schema:
             type: string
+          example: NC_000010.11:g.87894077C>T
       responses:
         "200":
           description: found; variation returned
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Variation"
 
   /allele/{id}:
     get:
@@ -40,20 +37,3 @@ paths:
       responses:
         "200":
           description: found; variation returned
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Variation"
-                
-
-components:
-  schemas:
-    Variation:
-      type: object
-      properties:
-        id:
-          type: string
-        type:
-          type: enum
-          enum: [hgvs-allele, hgvs-haplotype, hgvs-genotype, car-id, car-hgvs, vcf, rsid-alt, text]
-
