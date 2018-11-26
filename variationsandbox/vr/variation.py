@@ -1,9 +1,19 @@
 from connexion import NoContent
 
+from vmc.extra.bundlemanager import BundleManager
+
+bm = BundleManager()
+
 def post(body):
-    v = {"blah": 1}
-    return v, 201
+    defn = body.pop("definition")
+    fmt = body.pop("format")
+    if fmt == "hgvs_allele":
+        a = bm.add_hgvs_allele(defn)
+        return a.as_dict(), 201
+    return "unsupported format ({})".format(fmt), 400
 
 def get(id):
-    v = {"id": id}
-    return v
+    if id not in bm.alleles:
+        return NoContent, 404
+
+    return bm.alleles[id].as_dict(), 200

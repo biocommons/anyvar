@@ -10,17 +10,41 @@ servers:
 paths:
   /variation:
     post:
+      tags:
+        - "variation"
       summary: create a variation instance
       responses:
-        "201":
-          description: go to town
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Variation"
+        200:
+          description: this is a 200
+        201:
+          description: this is a 201
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                definition:
+                  description: >-
+                    variation definition, interpreted according to format
+                  type: string
+                  example: NC_000010.11:g.87894077C>T
+                format:
+                  description: format of variation definition
+                  type: string
+                  enum:
+                    - "hgvs_allele"
+                    - "hgvs_haplotype"
+                    - "hgvs_genotype"
+                  example: "hgvs_allele"
+              required:
+                - definition
+                - format
 
   /variation/{id}:
     get:
+      tags:
+        - "variation"
       summary: gets a variation instance by id
       parameters:
         - name: id
