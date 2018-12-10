@@ -1,7 +1,13 @@
+import logging
+import sys
+
 import connexion
 from connexion.resolver import RestyResolver
 from jinja2 import Template
 from pkg_resources import resource_filename
+
+
+_logger = logging.getLogger(__name__)
 
 
 jinja_template = Template("""
@@ -25,9 +31,12 @@ jinja_template = Template("""
 
 subservices = []
 def _add_subservice(app, prefix):
-    """adds subservice to app. `prefix` refers to directory, module name,
-and path component in openapi spec -- all must agree."""
+    """adds subservice to app. `prefix` refers to three components:
+    module name, and path component in openapi spec.
+
+    """
     fn = resource_filename(__name__, prefix + "/openapi.yaml")
+    fn = "/home/reece/projects/variation-sandbox/variationsandbox/" + prefix + "/openapi.yaml"
     app.add_api(fn, resolver=RestyResolver("variationsandbox." + prefix))
     subservices.append(prefix)
 
@@ -43,5 +52,7 @@ _add_subservice(app, "vr")
 def index():
     return jinja_template.render(subservices=subservices)
 
-# e.g., http://0.0.0.0:9090/v0/ui/
-app.run(port=9090)
+
+if __name__ == "__main__":
+    # e.g., http://0.0.0.0:9090/v0/ui/
+    app.run(port=9000)

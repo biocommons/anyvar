@@ -5,19 +5,125 @@ info:
   version: 0.0.0
 
 servers:
-  - url: http://localhost:9090/vr
+  - url: http://localhost:9000/vr
 
 paths:
+  /sequence/{id}:
+    get:
+      tags:
+        - "sequence"
+      summary: >-
+        A character string of Residues that represents a biological
+        sequence using the conventional sequence order (5'-to-3' for
+        nucleic acid sequences, and amino-to-carboxyl for amino acid
+        sequences). IUPAC ambiguity codes are permitted in Sequences.
+      parameters:
+        - name: id
+          in: path
+          description: sequence id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sequence:
+                    type: string
+                    example: CATSARELAME
+
+  /location/{id}:
+    get:
+      tags:
+        - "location"
+      summary: >-
+        An identifiable position or region on a Sequence, defined by
+        Sequence Id and an Interval.
+      parameters:
+        - name: id
+          in: path
+          description: sequence id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Location"
+
+  /allele:
+    post:
+      tags:
+        - "allele"
+      summary: >-
+        An Allele is a specific, single, and contiguous Sequence at a
+        Location. Each alternative Sequence may be empty, shorter,
+        longer, or the same length as the interval (e.g., due to one or
+        more indels).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                definition:
+                  description: >-
+                    Allele definition, interpreted according to format
+                  type: string
+                  example: NC_000010.11:g.87894077C>T
+                format:
+                  description: format of definition
+                  type: string
+                  enum:
+                    - "hgvs"
+                  example: "hgvs"
+              required:
+                - definition
+                - format
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Allele"
+                
+  /allele/{id}:
+    get:
+      tags:
+        - "allele"
+      summary: >-
+        An Allele is a specific, single, and contiguous Sequence at a
+        Location. Each alternative Sequence may be empty, shorter,
+        longer, or the same length as the interval (e.g., due to one or
+        more indels).
+      parameters:
+        - name: id
+          in: path
+          description: sequence id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Allele"
+
   /variation:
     post:
       tags:
         - "variation"
       summary: create a variation instance
-      responses:
-        200:
-          description: this is a 200
-        201:
-          description: this is a 201
       requestBody:
         content:
           application/json:
@@ -40,12 +146,15 @@ paths:
               required:
                 - definition
                 - format
+      responses:
+        200:
+          description: this is a 200
 
   /variation/{id}:
     get:
       tags:
         - "variation"
-      summary: gets a variation instance by id
+      summary: gets a variation instance by id, may return any supported type of variation
       parameters:
         - name: id
           in: path
@@ -64,6 +173,41 @@ paths:
 
 components:
   schemas:
+    Allele:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "GA_9IQxBPDC59B--y645TDCZv9ueavkGkUp"
+        location_id:
+          type: string
+          example: "GL_tnVGwWWN0L_fEYK4hGF1Tzm7JULAkm2Z"
+        state:
+          type: string
+          example: "T"
+
+    Interval:
+      type: object
+      properties:
+        start:
+          type: integer
+          example: 87894076
+        end:
+          type: integer
+          example: 87894077
+
+    Location:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "GL_tnVGwWWN0L_fEYK4hGF1Tzm7JULAkm2Z"
+        sequence_id:
+          type: string
+          example: "GS_ss8r_wB0-b9r44TQTMmVTI92884QvBiB"
+        interval:
+          $ref: "#/components/schemas/Interval"
+
     Variation:
       type: object
       properties:

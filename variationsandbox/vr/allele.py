@@ -12,7 +12,7 @@ def post(body):
         "data": None,
     }
     
-    if fmt == "hgvs_allele":
+    if fmt == "hgvs":
         a = bm.add_hgvs_allele(defn)
         result["messages"].append("Allele normalized; shifted 7 residues")
         result["id"] = a.id
