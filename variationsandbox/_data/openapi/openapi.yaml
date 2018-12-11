@@ -1,10 +1,39 @@
 openapi: 3.0.0
 info:
-  title: Variation Sandbox
-  description: example variation sandbox
+  title: GA4GH Variation Registry
+  description: >-
+    This site is a proof-of-concept interface for GA4GH variation
+    registration services.  Variation registration means: parsing,
+    normalizing, storing, and retrieving descriptions of variation.
+    Computed identifiers, based on the VMC computed digest, are used
+    as variation keys.
+  contact:
+    name: Reece Hart
+    email: reecehart@gmail.com
   version: 0.0.0
 
 paths:
+  /info:
+    get:
+      tags: ["general"]
+      description: >-
+        Provides system information. May be used to ping system status.
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  dependencies:
+                    biocommons.seqrepo:
+                      instance_directory: /usr/local/share/seqrepo/latest
+                      version: "0.4.2"
+                    hgvs:
+                      version: "1.2.4"
+                  version: "0.0.0"
+
   /sequence/{id}:
     get:
       tags:
