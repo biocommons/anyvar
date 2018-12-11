@@ -4,9 +4,6 @@ info:
   description: example variation sandbox
   version: 0.0.0
 
-servers:
-  - url: http://localhost:9000/vr
-
 paths:
   /sequence/{id}:
     get:
@@ -170,6 +167,34 @@ paths:
               schema:
                 $ref: "#/components/schemas/Variation"
                 
+  /variationset:
+    get:
+      summary: search for a canonical allele
+      tags: [ClinGen]
+      parameters:
+        - name: hgvs
+          in: query
+          schema:
+            type: string
+          example: NC_000010.11:g.87894077C>T
+      responses:
+        "200":
+          description: found; variation returned
+
+  /variationset/{id}:
+    get:
+      summary: gets a variation instance by id
+      parameters:
+        - name: id
+          in: path
+          description: canonical variationset id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: found; variation returned
+
 
 components:
   schemas:
