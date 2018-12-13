@@ -36,8 +36,7 @@ paths:
 
   /sequence/{id}:
     get:
-      tags:
-        - "sequence"
+      tags: ["sequence"]
       summary: >-
         A character string of Residues that represents a biological
         sequence using the conventional sequence order (5'-to-3' for
@@ -64,8 +63,7 @@ paths:
 
   /location/{id}:
     get:
-      tags:
-        - "location"
+      tags: ["location"]
       summary: >-
         An identifiable position or region on a Sequence, defined by
         Sequence Id and an Interval.
@@ -86,8 +84,7 @@ paths:
 
   /allele:
     post:
-      tags:
-        - "allele"
+      tags: ["allele"]
       summary: >-
         An Allele is a specific, single, and contiguous Sequence at a
         Location. Each alternative Sequence may be empty, shorter,
@@ -123,8 +120,7 @@ paths:
                 
   /allele/{id}:
     get:
-      tags:
-        - "allele"
+      tags: ["allele"]
       summary: >-
         An Allele is a specific, single, and contiguous Sequence at a
         Location. Each alternative Sequence may be empty, shorter,
@@ -147,8 +143,7 @@ paths:
 
   /variation:
     post:
-      tags:
-        - "variation"
+      tags: ["variation"]
       summary: create a variation instance
       requestBody:
         content:
@@ -178,8 +173,7 @@ paths:
 
   /variation/{id}:
     get:
-      tags:
-        - "variation"
+      tags: ["variation"]
       summary: gets a variation instance by id, may return any supported type of variation
       parameters:
         - name: id
@@ -199,7 +193,7 @@ paths:
   /variationset:
     get:
       summary: search for a canonical allele
-      tags: [ClinGen]
+      tags: ["ClinGen"]
       parameters:
         - name: hgvs
           in: query
@@ -223,7 +217,6 @@ paths:
       responses:
         "200":
           description: found; variation returned
-
 
 components:
   schemas:
@@ -269,5 +262,5 @@ components:
           type: string
         type:
           type: enum
-          enum: [hgvs-allele, hgvs-haplotype, hgvs-genotype, car-id, car-hgvs, vcf, rsid-alt, text]
+          enum: ["hgvs-allele", "hgvs-haplotype", "hgvs-genotype", "car-id", "car-hgvs", "vcf", "rsid-alt", "text"]
 

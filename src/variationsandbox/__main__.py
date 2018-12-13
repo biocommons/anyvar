@@ -13,7 +13,7 @@ _logger = logging.getLogger(__name__)
 app = connexion.App(__name__,
                     debug=True,
                     )
-fn = resource_filename(__name__, "/_data/openapi/openapi.yaml")
+fn = resource_filename(__name__, "/openapi.yaml")
 app.add_api(fn, resolver=RestyResolver("variationsandbox"))
 
 
