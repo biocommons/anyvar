@@ -19,6 +19,10 @@ sets, human text.
 * `/vr/variation/` (POST)
 * `/vr/variation/:id` (GET)
 
+## Location Polymorphism
+
+* `/location/` (POST)
+
 
 # Caveats
 This is a sandbox. The code and code structure are a messy.  I'm
@@ -42,7 +46,7 @@ python3.6 -mvenv venv/3.6
 source venv/3.6/bin/activate
 pip install -U setuptools pip
 pip install -e '.[dev]'
-python -m variationsandbox.restapi
+python -m variationsandbox
 
 # then open http://0.0.0.0:9090/v0/ui/
 ```

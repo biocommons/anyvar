@@ -1,4 +1,5 @@
 openapi: 3.0.0
+
 info:
   title: GA4GH Variation Registry
   description: >-
@@ -11,6 +12,14 @@ info:
     name: Reece Hart
     email: reecehart@gmail.com
   version: 0.0.0
+
+tags:
+  - name: general
+  - name: variation
+  - name: internal
+    description: >-
+      Internal endpoints are exposed only for testing. They will not
+      be exposed in production.
 
 paths:
   /info:
@@ -26,66 +35,102 @@ paths:
               schema:
                 type: object
                 example:
+                  version: "0.0.0"
                   dependencies:
                     biocommons.seqrepo:
                       instance_directory: /usr/local/share/seqrepo/latest
                       version: "0.4.2"
                     hgvs:
                       version: "1.2.4"
-                  version: "0.0.0"
+                    bioutils:
+                      version: "0.4.2"
 
-  /sequence/{id}:
+  /variation:
+    post:
+      tags: ["variation"]
+      description: create a variation instance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                definition:
+                  description: >-
+                    variation definition, interpreted according to format
+                  type: string
+                  example: NC_000010.11:g.87894077C>T
+                format:
+                  description: format of variation definition
+                  type: string
+                  enum:
+                    - "hgvs_allele"
+                    - "hgvs_haplotype"
+                    - "hgvs_genotype"
+                  example: "hgvs_allele"
+              required:
+                - definition
+                - format
+      responses:
+        200:
+          description: this is a 200
+
+  /variation/{id}:
     get:
-      tags: ["sequence"]
-      summary: >-
-        A character string of Residues that represents a biological
-        sequence using the conventional sequence order (5'-to-3' for
-        nucleic acid sequences, and amino-to-carboxyl for amino acid
-        sequences). IUPAC ambiguity codes are permitted in Sequences.
+      tags: ["variation"]
+      description: gets a variation instance by id, may return any supported type of variation
       parameters:
         - name: id
           in: path
-          description: sequence id
+          description: variation id
           required: true
           schema:
             type: string
       responses:
-        200:
-          description: OK
+        "200":
+          description: found; variation returned
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  sequence:
-                    type: string
-                    example: CATSARELAME
-
-  /location/{id}:
+                $ref: "#/components/schemas/Variation"
+                
+  /variationset:
     get:
-      tags: ["location"]
-      summary: >-
-        An identifiable position or region on a Sequence, defined by
-        Sequence Id and an Interval.
+      description: search for a canonical allele
+      tags: ["ClinGen"]
+      parameters:
+        - name: hgvs
+          in: query
+          schema:
+            type: string
+          example: NC_000010.11:g.87894077C>T
+      responses:
+        "200":
+          description: found; variation returned
+
+  /variationset/{id}:
+    get:
+      description: gets a variation instance by id
+      tags: ["ClinGen"]
       parameters:
         - name: id
           in: path
-          description: sequence id
+          description: canonical variationset id
           required: true
           schema:
             type: string
       responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Location"
+        "200":
+          description: found; variation returned
 
+
+
+  # ######################################################################
+  # INTERNAL
   /allele:
     post:
-      tags: ["allele"]
-      summary: >-
+      tags: ["internal"]
+      description: >-
         An Allele is a specific, single, and contiguous Sequence at a
         Location. Each alternative Sequence may be empty, shorter,
         longer, or the same length as the interval (e.g., due to one or
@@ -120,8 +165,8 @@ paths:
                 
   /allele/{id}:
     get:
-      tags: ["allele"]
-      summary: >-
+      tags: ["internal"]
+      description: >-
         An Allele is a specific, single, and contiguous Sequence at a
         Location. Each alternative Sequence may be empty, shorter,
         longer, or the same length as the interval (e.g., due to one or
@@ -141,82 +186,104 @@ paths:
               schema:
                 $ref: "#/components/schemas/Allele"
 
-  /variation:
-    post:
-      tags: ["variation"]
-      summary: create a variation instance
+  /location/{id}:
+    get:
+      tags: ["internal"]
+      description: >-
+        An identifiable position or region on a Sequence, defined by
+        Sequence Id and an Interval.
+      parameters:
+        - name: id
+          in: path
+          description: sequence id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Location"
+
+  /positions:
+    get:
+      tags: ["internal"]
+      description: >-
+        Return positions
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Position"
+  
+    put:
+      tags: ["internal"]
+      description: create a position instance
       requestBody:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                definition:
-                  description: >-
-                    variation definition, interpreted according to format
-                  type: string
-                  example: NC_000010.11:g.87894077C>T
-                format:
-                  description: format of variation definition
-                  type: string
-                  enum:
-                    - "hgvs_allele"
-                    - "hgvs_haplotype"
-                    - "hgvs_genotype"
-                  example: "hgvs_allele"
-              required:
-                - definition
-                - format
+              $ref: '#/components/schemas/Position'
+            examples:
+              Simple:
+                value:
+                  type: Interval
+                  start: 22
+                  end: 33
+              BaseOffset:
+                value:
+                  type: Interval
+                  start: 50
+                  start_offset: -6
+                  end: 60
+                  end_offset: 7
+              RangedInterval:
+                value:
+                  type: RangedInterval
+                  start:
+                    start: 100
+                    end: 110
+                  end:
+                    start: 200
+                    end: 210
+
       responses:
         200:
-          description: this is a 200
-
-  /variation/{id}:
-    get:
-      tags: ["variation"]
-      summary: gets a variation instance by id, may return any supported type of variation
-      parameters:
-        - name: id
-          in: path
-          description: variation id
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: found; variation returned
+          description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Variation"
-                
-  /variationset:
-    get:
-      summary: search for a canonical allele
-      tags: ["ClinGen"]
-      parameters:
-        - name: hgvs
-          in: query
-          schema:
-            type: string
-          example: NC_000010.11:g.87894077C>T
-      responses:
-        "200":
-          description: found; variation returned
+                $ref: "#/components/schemas/Position"
 
-  /variationset/{id}:
+  /positions/{id}:
+    description: >-
+      Return a single position
     get:
-      summary: gets a variation instance by id
+      tags: ["internal"]
       parameters:
         - name: id
           in: path
-          description: canonical variationset id
+          description: position id
           required: true
           schema:
             type: string
       responses:
-        "200":
-          description: found; variation returned
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Position"
+
+
+
+
 
 components:
   schemas:
@@ -233,15 +300,91 @@ components:
           type: string
           example: "T"
 
+    Position:
+      description: >-
+        A Position represents a span of sequence.  Positions are
+        always represented by contiguous spans using interbase
+        coordinates.
+      oneOf:
+      - $ref: '#/components/schemas/Interval'
+      - $ref: '#/components/schemas/NestedInterval'
+      - $ref: '#/components/schemas/RangedInterval'
+
     Interval:
-      type: object
-      properties:
+      allOf:
+        - $ref: '#/components/x-bases/PositionBase'
+        - type: object
+          properties:
+            type:
+              enum: ["Interval"]
+            start:
+              type: integer
+              nullable: true
+            end:
+              type: integer
+              nullable: true
+            start_offset:
+              type: integer
+              nullable: true
+              default: 0
+            end_offset:
+              type: integer
+              nullable: true
+              default: 0
+          additionalProperties: false
+          required:
+            - start
+            - end
+          example:
+            type: "Interval"
+            start: 11
+            end: 22
+          discriminator:
+            propertyName: type
+
+    NestedInterval:
+      allOf:
+        - $ref: '#/components/x-bases/PositionBase'
+        - type: object
+          properties:
+            type:
+              enum: ["NestedInterval"]
+            inner:
+              $ref: '#/components/schemas/Interval'
+            outer:
+              $ref: '#/components/schemas/Interval'
+      example:
+        type: NestedInterval
+        outer:
+          type: Interval
+          start: 20
+          end: 39
+        inner:
+          type: Interval
+          start: 29
+          end: 30
+      
+    RangedInterval:
+      allOf:
+        - $ref: '#/components/x-bases/PositionBase'
+        - type: object
+          properties:
+            type:
+              enum: ["RangedInterval"]
+            start:
+              $ref: '#/components/schemas/Interval'
+            end:
+              $ref: '#/components/schemas/Interval'
+      example:
+        type: RangedInterval
         start:
-          type: integer
-          example: 87894076
+          type: Interval
+          start: 20
+          end: 29
         end:
-          type: integer
-          example: 87894077
+          type: Interval
+          start: 30
+          end: 39
 
     Location:
       type: object
@@ -252,8 +395,8 @@ components:
         sequence_id:
           type: string
           example: "GS_ss8r_wB0-b9r44TQTMmVTI92884QvBiB"
-        interval:
-          $ref: "#/components/schemas/Interval"
+        position:
+          $ref: "#/components/schemas/Position"
 
     Variation:
       type: object
@@ -264,3 +407,16 @@ components:
           type: enum
           enum: ["hgvs-allele", "hgvs-haplotype", "hgvs-genotype", "car-id", "car-hgvs", "vcf", "rsid-alt", "text"]
 
+  x-bases:
+    # x-bases stores reusable base definitions of schemas
+    # They are not intended to be used in isolation.
+    PositionBase:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: ["Interval", "NestedInterval", "RangedInterval"]
+      required:
+        - type
+      discriminator:
+        propertyName: type
