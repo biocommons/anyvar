@@ -1,9 +1,7 @@
-from requests import get, post, put
-
 import pytest
 
 
-base_url = "http://localhost:5000/positions/"
+base_url = "/positions"
 
 tests = {
     "PIgWDzCiuWewlIJiVR": {
@@ -52,27 +50,26 @@ tests = {
 
 
 @pytest.mark.parametrize("id", tests.keys())
-def test_00_put(id):
-    resp = put(base_url, json=tests[id])
+def test_00_put(client, id):
+    resp = client.put(base_url, json=tests[id])
     assert resp.status_code == 200
 
-    j = resp.json()
+    j = resp.json
     assert j["data"]["id"] == id
     
 
-
 @pytest.mark.parametrize("id", tests.keys())
-def test_10_get(id):
-    resp = get(base_url + id)
+def test_10_get(client, id):
+    resp = client.get(base_url + "/" + id)
     assert resp.status_code == 200
 
-    j = resp.json()
+    j = resp.json
     assert j["data"] == tests[id]
     
 
-def test_20_search():
-    resp = get(base_url)
+def test_20_search(client):
+    resp = client.get(base_url)
     assert resp.status_code == 200
 
-    j = resp.json()
+    j = resp.json
     assert j["data"] == tests
