@@ -1,22 +1,20 @@
 openapi: 3.0.0
 
 info:
-  title: GA4GH Variation Registry
+  title: Variation Sandbox
   description: >-
     This site is a proof-of-concept interface for GA4GH variation
-    registration services.  Variation registration means: parsing,
-    normalizing, storing, and retrieving descriptions of variation.
-    Computed identifiers, based on the VMC computed digest, are used
-    as variation keys.
+    parsing, normalization, validation, identification, and
+    registration services.
   contact:
     name: Reece Hart
     email: reecehart@gmail.com
   version: 0.0.0
 
 tags:
-  - name: general
-  - name: variation
-  - name: internal
+  - name: General
+  - name: Variation
+  - name: Internal
     description: >-
       Internal endpoints are exposed only for testing. They will not
       be exposed in production.
@@ -24,7 +22,7 @@ tags:
 paths:
   /info:
     get:
-      tags: ["general"]
+      tags: ["General"]
       description: >-
         Provides system information. May be used to ping system status.
       responses:
@@ -33,21 +31,17 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                example:
-                  version: "0.0.0"
-                  dependencies:
-                    biocommons.seqrepo:
-                      instance_directory: /usr/local/share/seqrepo/latest
-                      version: "0.4.2"
-                    hgvs:
-                      version: "1.2.4"
-                    bioutils:
-                      version: "0.4.2"
+                $ref: "#/components/schemas/Info"
+        400:
+          description: blah
+          content:
+            application/json:
+              schema:
+                $ref: "http://jsonapi.org/schema#definitions/error"
 
   /variation:
     post:
-      tags: ["variation"]
+      tags: ["Variation"]
       description: create a variation instance
       requestBody:
         content:
@@ -77,7 +71,7 @@ paths:
 
   /variation/{id}:
     get:
-      tags: ["variation"]
+      tags: ["Variation"]
       description: gets a variation instance by id, may return any supported type of variation
       parameters:
         - name: id
@@ -94,6 +88,10 @@ paths:
               schema:
                 $ref: "#/components/schemas/Variation"
                 
+
+  # ######################################################################
+  # ClinGen experiments
+
   /variationset:
     get:
       description: search for a canonical allele
@@ -126,7 +124,7 @@ paths:
 
 
   # ######################################################################
-  # INTERNAL
+  # INTERNAL ENDPOINTS FOR TESTING
   /allele:
     post:
       tags: ["internal"]
@@ -283,10 +281,24 @@ paths:
 
 
 
-
+# ######################################################################
+# COMPONENTS
 
 components:
   schemas:
+    Info:
+      type: object
+      example:
+        version: "0.0.0"
+        dependencies:
+          biocommons.seqrepo:
+            instance_directory: /usr/local/share/seqrepo/latest
+            version: "0.4.2"
+          hgvs:
+            version: "1.2.4"
+          bioutils:
+            version: "0.4.2"
+
     Allele:
       type: object
       properties:
