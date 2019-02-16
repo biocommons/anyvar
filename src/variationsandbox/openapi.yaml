@@ -40,9 +40,33 @@ paths:
                 $ref: "http://jsonapi.org/schema#definitions/error"
 
   /variation:
-    post:
+    put:
       tags: ["Variation"]
-      description: create a variation instance
+      summary: Create an instance of sequence variation.
+      description: >-
+        Creates an instance of sequence variation and returns a
+        deterministically computed identifier.
+        
+        Requests with variant definitions that normalize to the same
+        interal variant result in only one record and the same
+        computed id is always returned.  That is, this endpoint is
+        idempotent, irrespective of the input definition format.
+
+        Alleles within haplotypes, and haplotypes withing genotypes,
+        are subjected to canonical ordering rules. Therefore, the
+        computed id of an haplotype in invariant with respect to the
+        order of the defined alleles. The same invariance holds for
+        genotypes and their component haplotypes.
+
+        The following input formats are permitted:
+
+          * HGVS
+          * ISCN
+          * SPDI
+          * gnomad (`1-55516888-G-GA`)
+          * beacon (`13 : 32936732 G > C`)
+          * text (`c.1105G>A`, `brca1`, `IVS7+1037T>C`, `46, XX; t(9;22)(q13;q22)`)
+
       requestBody:
         content:
           application/json:
@@ -51,23 +75,47 @@ paths:
               properties:
                 definition:
                   description: >-
-                    variation definition, interpreted according to format
+                    Creates a variation instance from the provided
+                    `definition` parameter, which is interpreted
+                    according to `format` parameter.
+
+                    By default, the format is inferred from structure.
+                    When inferred, the variation will be created as a
+                    text record if other methods fail.  If format is
+                    not auto and the variant cannot be parsed
+                    appropriately, an error is returned.
                   type: string
-                  example: NC_000010.11:g.87894077C>T
                 format:
-                  description: format of variation definition
+                  description: Expected format of the definition. 
                   type: string
                   enum:
-                    - "hgvs_allele"
-                    - "hgvs_haplotype"
-                    - "hgvs_genotype"
-                  example: "hgvs_allele"
-              required:
-                - definition
-                - format
+                    - auto
+                    - gnomad
+                    - hgvs
+                    - spdi
+                    - text (incl. beacon and iscn)
+                  default: auto
+                normalize:
+                  description: Normalize the allele in the specified direction.
+                  type: string
+                  enum:
+                    - right
+                    - left
+                    - none
+                  default: right
+            examples:
+              hgvs-allele:
+                value:
+                  definition: "NC_000010.11:g.87894077C>T"
+                  format: "hgvs_allele"
       responses:
         200:
-          description: this is a 200
+          description: OK
+        400:
+          description: The variation could not be parsed or is otherwise invalid.
+        501:
+          description: The requested resource or operation is not
+          currently supported. It may be supported in the future.
 
   /variation/{id}:
     get:
@@ -127,7 +175,7 @@ paths:
   # INTERNAL ENDPOINTS FOR TESTING
   /allele:
     post:
-      tags: ["internal"]
+      tags: ["Internal"]
       description: >-
         An Allele is a specific, single, and contiguous Sequence at a
         Location. Each alternative Sequence may be empty, shorter,
@@ -163,7 +211,7 @@ paths:
                 
   /allele/{id}:
     get:
-      tags: ["internal"]
+      tags: ["Internal"]
       description: >-
         An Allele is a specific, single, and contiguous Sequence at a
         Location. Each alternative Sequence may be empty, shorter,
@@ -186,7 +234,7 @@ paths:
 
   /location/{id}:
     get:
-      tags: ["internal"]
+      tags: ["Internal"]
       description: >-
         An identifiable position or region on a Sequence, defined by
         Sequence Id and an Interval.
@@ -207,7 +255,7 @@ paths:
 
   /positions:
     get:
-      tags: ["internal"]
+      tags: ["Internal"]
       description: >-
         Return positions
       responses:
@@ -221,7 +269,7 @@ paths:
                   $ref: "#/components/schemas/Position"
   
     put:
-      tags: ["internal"]
+      tags: ["Internal"]
       description: create a position instance
       requestBody:
         content:
@@ -263,7 +311,7 @@ paths:
     description: >-
       Return a single position
     get:
-      tags: ["internal"]
+      tags: ["Internal"]
       parameters:
         - name: id
           in: path
