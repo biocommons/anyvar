@@ -2,11 +2,13 @@ from connexion import NoContent
 
 from ._backend import bm
 
-
 def put(body):
     request = body
+
     defn = request.pop("definition")
     fmt = request.pop("format")
+    nmlz = request.pop("normalize")
+
     result = {
         "messages": [],
         "data": None,

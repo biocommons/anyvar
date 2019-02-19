@@ -1,11 +1,10 @@
 openapi: 3.0.0
 
 info:
-  title: Variation Sandbox
+  title: AnyVar
   description: >-
-    This site is a proof-of-concept interface for GA4GH variation
-    parsing, normalization, validation, identification, and
-    registration services.
+    Provides REST-based validation, normalization, identification, and
+    registration of any biological variation.
   contact:
     name: Reece Hart
     email: reecehart@gmail.com
@@ -85,6 +84,7 @@ paths:
                     not auto and the variant cannot be parsed
                     appropriately, an error is returned.
                   type: string
+                  example: "NC_000010.11:g.87894077C>T"
                 format:
                   description: Expected format of the definition. 
                   type: string
@@ -103,19 +103,15 @@ paths:
                     - left
                     - none
                   default: right
-            examples:
-              hgvs-allele:
-                value:
-                  definition: "NC_000010.11:g.87894077C>T"
-                  format: "hgvs_allele"
       responses:
         200:
           description: OK
         400:
           description: The variation could not be parsed or is otherwise invalid.
         501:
-          description: The requested resource or operation is not
-          currently supported. It may be supported in the future.
+          description: >-
+            The requested resource or operation is not currently
+            supported. It may be supported in the future.
 
   /variation/{id}:
     get:
@@ -349,6 +345,7 @@ components:
 
     Allele:
       type: object
+      description: VMC Allele definition
       properties:
         id:
           type: string
@@ -383,14 +380,6 @@ components:
             end:
               type: integer
               nullable: true
-            start_offset:
-              type: integer
-              nullable: true
-              default: 0
-            end_offset:
-              type: integer
-              nullable: true
-              default: 0
           additionalProperties: false
           required:
             - start

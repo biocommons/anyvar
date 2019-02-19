@@ -1,7 +1,7 @@
 import pytest
 import connexion
 
-from variationsandbox.app import create_app
+from anyvar.app import create_app
 
 
 @pytest.fixture(scope="module")

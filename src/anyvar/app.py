@@ -7,7 +7,7 @@ from pkg_resources import resource_filename
 def create_app(debug=False):
     cxapp = connexion.App(__name__, debug=debug)
     fn = resource_filename(__name__, "/openapi.yaml")
-    cxapp.add_api(fn, resolver=RestyResolver("variationsandbox"))
+    cxapp.add_api(fn, resolver=RestyResolver("anyvar"))
 
     @cxapp.route('/')
     def index():
