@@ -13,6 +13,9 @@ info:
 tags:
   - name: General
   - name: Variation
+    description: A single endpoint for all classes of variation
+  - name: Variation Sets
+    description: Immutable sets of variation
   - name: Internal
     description: >-
       Internal endpoints are exposed only for testing. They will not
@@ -139,7 +142,7 @@ paths:
   /variationset:
     get:
       description: search for a canonical allele
-      tags: ["ClinGen"]
+      tags: ["Variation Sets"]
       parameters:
         - name: hgvs
           in: query
@@ -153,7 +156,7 @@ paths:
   /variationset/{id}:
     get:
       description: gets a variation instance by id
-      tags: ["ClinGen"]
+      tags: ["Variation Sets"]
       parameters:
         - name: id
           in: path
