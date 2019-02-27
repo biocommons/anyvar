@@ -1,5 +1,19 @@
 # anyvar
-Sandbox to implement various proof-of-concept variation REST services
+
+**WORK IN PROGRESS • descriptions are mostly aspirational**
+
+Python library and REST interface to validation, normalize, project,
+identify, and register variation of these types:
+
+* Alleles specified by HGVS, SPDI, beacon, or gnomad formats
+* Haplotypes (composed of Alleles)
+* Genotypes (composed of Haplotypes)
+* Copy Number Variation
+* Translocations
+* Unparsed text variation
+
+All types are assigned computed identifiers based on a digest.
+
 
 
 # Developer installation
