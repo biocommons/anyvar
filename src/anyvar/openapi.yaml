@@ -242,7 +242,7 @@ paths:
   ###########################################################################
   # Locations
   
-  /location/{id}:
+  /locations/{id}:
     get:
       tags: ["Locations"]
       description: >-
