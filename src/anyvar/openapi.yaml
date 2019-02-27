@@ -3,8 +3,9 @@ openapi: 3.0.0
 info:
   title: AnyVar
   description: >-
-    Provides REST-based validation, normalization, identification, and
-    registration of any biological variation.
+    AnyVar aspires to provide REST-based validation, normalization,
+    identification, and registration of any biological variation.
+
   contact:
     name: Reece Hart
     email: reecehart@gmail.com
@@ -13,15 +14,24 @@ info:
 tags:
   - name: General
   - name: Variation
-    description: A single endpoint for all classes of variation
+    description: A single endpoint for all classes of primitive Variation
+  - name: Variation Subtypes
+    description: Endpoints for specific variation types
   - name: Variation Sets
-    description: Immutable sets of variation
+    description: Sets of Variation primitives
+  - name: Locations
+    description: >-
+      Where Variation occurs
   - name: Internal
     description: >-
       Internal endpoints are exposed only for testing. They will not
       be exposed in production.
 
+
 paths:
+  ###########################################################################
+  # General
+
   /info:
     get:
       tags: ["General"]
@@ -34,13 +44,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Info"
-        400:
-          description: blah
-          content:
-            application/json:
-              schema:
-                $ref: "http://jsonapi.org/schema#definitions/error"
 
+
+  ###########################################################################
+  # Variation
+  
   /variation:
     put:
       tags: ["Variation"]
@@ -62,18 +70,17 @@ paths:
 
         The following input formats are permitted:
 
+          * text (`c.1105G>A`, `brca1`, `IVS7+1037T>C`, `46, XX; t(9;22)(q13;q22)`)
           * HGVS
           * ISCN
           * SPDI
           * gnomad (`1-55516888-G-GA`)
           * beacon (`13 : 32936732 G > C`)
-          * text (`c.1105G>A`, `brca1`, `IVS7+1037T>C`, `46, XX; t(9;22)(q13;q22)`)
 
       requestBody:
         content:
           application/json:
             schema:
-              type: object
               properties:
                 definition:
                   description: >-
@@ -96,7 +103,7 @@ paths:
                     - gnomad
                     - hgvs
                     - spdi
-                    - text (incl. beacon and iscn)
+                    - text
                   default: auto
                 normalize:
                   description: Normalize the allele in the specified direction.
@@ -136,45 +143,12 @@ paths:
                 $ref: "#/components/schemas/Variation"
                 
 
-  # ######################################################################
-  # ClinGen experiments
-
-  /variationset:
-    get:
-      description: search for a canonical allele
-      tags: ["Variation Sets"]
-      parameters:
-        - name: hgvs
-          in: query
-          schema:
-            type: string
-          example: NC_000010.11:g.87894077C>T
-      responses:
-        "200":
-          description: found; variation returned
-
-  /variationset/{id}:
-    get:
-      description: gets a variation instance by id
-      tags: ["Variation Sets"]
-      parameters:
-        - name: id
-          in: path
-          description: canonical variationset id
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: found; variation returned
-
-
-
-  # ######################################################################
-  # INTERNAL ENDPOINTS FOR TESTING
+  ###########################################################################
+  # Variation Subtypes
+  
   /allele:
-    post:
-      tags: ["Internal"]
+    put:
+      tags: ["Variation Subtypes"]
       description: >-
         An Allele is a specific, single, and contiguous Sequence at a
         Location. Each alternative Sequence may be empty, shorter,
@@ -210,7 +184,7 @@ paths:
                 
   /allele/{id}:
     get:
-      tags: ["Internal"]
+      tags: ["Variation Subtypes"]
       description: >-
         An Allele is a specific, single, and contiguous Sequence at a
         Location. Each alternative Sequence may be empty, shorter,
@@ -231,9 +205,46 @@ paths:
               schema:
                 $ref: "#/components/schemas/Allele"
 
+
+  ###########################################################################
+  # Variation Sets
+  
+  /variationsets:
+    get:
+      description: search for a canonical allele
+      tags: ["Variation Sets"]
+      parameters:
+        - name: hgvs
+          in: query
+          schema:
+            type: string
+          example: NC_000010.11:g.87894077C>T
+      responses:
+        "200":
+          description: found; variation returned
+
+  /variationsets/{id}:
+    get:
+      description: gets a variation instance by id
+      tags: ["Variation Sets"]
+      parameters:
+        - name: id
+          in: path
+          description: canonical variationset id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: found; variation returned
+
+
+  ###########################################################################
+  # Locations
+  
   /location/{id}:
     get:
-      tags: ["Internal"]
+      tags: ["Locations"]
       description: >-
         An identifiable position or region on a Sequence, defined by
         Sequence Id and an Interval.
@@ -252,11 +263,14 @@ paths:
               schema:
                 $ref: "#/components/schemas/Location"
 
+
+  # ######################################################################
+  # INTERNAL ENDPOINTS FOR TESTING
+
   /positions:
     get:
       tags: ["Internal"]
-      description: >-
-        Return positions
+      description: Return positions
       responses:
         200:
           description: OK
@@ -307,9 +321,9 @@ paths:
                 $ref: "#/components/schemas/Position"
 
   /positions/{id}:
-    description: >-
-      Return a single position
     get:
+      description: >-
+        Return a single position
       tags: ["Internal"]
       parameters:
         - name: id
@@ -327,25 +341,11 @@ paths:
                 $ref: "#/components/schemas/Position"
 
 
-
 # ######################################################################
 # COMPONENTS
 
 components:
   schemas:
-    Info:
-      type: object
-      example:
-        version: "0.0.0"
-        dependencies:
-          biocommons.seqrepo:
-            instance_directory: /usr/local/share/seqrepo/latest
-            version: "0.4.2"
-          hgvs:
-            version: "1.2.4"
-          bioutils:
-            version: "0.4.2"
-
     Allele:
       type: object
       description: VMC Allele definition
@@ -360,15 +360,18 @@ components:
           type: string
           example: "T"
 
-    Position:
-      description: >-
-        A Position represents a span of sequence.  Positions are
-        always represented by contiguous spans using interbase
-        coordinates.
-      oneOf:
-      - $ref: '#/components/schemas/Interval'
-      - $ref: '#/components/schemas/NestedInterval'
-      - $ref: '#/components/schemas/RangedInterval'
+    Info:
+      type: object
+      example:
+        version: "0.0.0"
+        dependencies:
+          biocommons.seqrepo:
+            instance_directory: /usr/local/share/seqrepo/latest
+            version: "0.4.2"
+          hgvs:
+            version: "1.2.4"
+          bioutils:
+            version: "0.4.2"
 
     Interval:
       allOf:
@@ -394,6 +397,18 @@ components:
           discriminator:
             propertyName: type
 
+    Location:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "GL_tnVGwWWN0L_fEYK4hGF1Tzm7JULAkm2Z"
+        sequence_id:
+          type: string
+          example: "GS_ss8r_wB0-b9r44TQTMmVTI92884QvBiB"
+        position:
+          $ref: "#/components/schemas/Position"
+
     NestedInterval:
       allOf:
         - $ref: '#/components/x-bases/PositionBase'
@@ -416,6 +431,16 @@ components:
           start: 29
           end: 30
       
+    Position:
+      description: >-
+        A Position represents a span of sequence.  Positions are
+        always represented by contiguous spans using interbase
+        coordinates.
+      oneOf:
+      - $ref: '#/components/schemas/Interval'
+      - $ref: '#/components/schemas/NestedInterval'
+      - $ref: '#/components/schemas/RangedInterval'
+
     RangedInterval:
       allOf:
         - $ref: '#/components/x-bases/PositionBase'
@@ -437,18 +462,6 @@ components:
           type: Interval
           start: 30
           end: 39
-
-    Location:
-      type: object
-      properties:
-        id:
-          type: string
-          example: "GL_tnVGwWWN0L_fEYK4hGF1Tzm7JULAkm2Z"
-        sequence_id:
-          type: string
-          example: "GS_ss8r_wB0-b9r44TQTMmVTI92884QvBiB"
-        position:
-          $ref: "#/components/schemas/Position"
 
     Variation:
       type: object

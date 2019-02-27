@@ -4,18 +4,17 @@ from flask import redirect
 from pkg_resources import resource_filename
 
 
-def create_app(debug=False):
-    cxapp = connexion.App(__name__, debug=debug)
-    fn = resource_filename(__name__, "/openapi.yaml")
-    cxapp.add_api(fn, resolver=RestyResolver("anyvar"))
 
-    @cxapp.route('/')
-    def index():
-        return redirect("/ui")
+spec_dir = "." # "_data/openapi"
+spec_fn = resource_filename(__name__, spec_dir + "/openapi.yaml")
+app = connexion.FlaskApp(__name__, debug=True)
+app.add_api(spec_fn, resolver=RestyResolver("anyvar"))
 
-    return cxapp
+@app.route('/')
+def index():
+    return redirect("/ui")
 
 
 if __name__ == "__main__":
-    cxapp = create_app(debug=True)
-    cxapp.run(host="localhost")
+    app.run(host="localhost",
+        extra_files=[spec_fn])
