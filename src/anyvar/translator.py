@@ -17,7 +17,6 @@ class Translator:
         self.seqrepo = SeqRepo(root_dir="/usr/local/share/seqrepo/latest/")
         self.hdp = connect()
         self.hgvs_parser = Parser()
-        _logger.warn("initialized translator")
 
     
     def info(self):

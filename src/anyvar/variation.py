@@ -1,6 +1,7 @@
 from connexion import NoContent
 
-from ._backend import bm
+from .globals import bm
+
 
 def put(body):
     request = body
