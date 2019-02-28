@@ -1,8 +1,6 @@
 import re
 
 
-
-
 format_regexps = {
     "hgvs": [
         # just the accession and variant type
@@ -17,8 +15,12 @@ format_regexps = {
         r"^\d+-\d+-\w*-\w*$",
     ],
     "beacon": [
-        
+        # 13 : 32936732 G > C
+        r"\d+\s*:\s*\d+\s*\w+\s*>\s*\w+",
     ],
+    "text": [
+        r"\w",
+        ]
 }
 
 format_regexps = {
@@ -64,3 +66,14 @@ def infer_plausible_formats(o):
                    if any(e.match(o) for e in exprs))
 
     raise RuntimeError("Cannot infer format of a " + type(o))
+
+
+
+def create_variation(definition, validation_level="relaxed", normalize="right", accept_formats=None):
+    """Given a arbitrary object, attempt to parse into a known format. 
+
+    """
+
+    plausible_formats = plausible_formats(definition)
+    
+    

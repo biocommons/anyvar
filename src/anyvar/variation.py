@@ -7,7 +7,7 @@ def put(body):
 
     defn = request.pop("definition")
     fmt = request.pop("format")
-    nmlz = request.pop("normalize")
+    norm = request.pop("normalize")
 
     result = {
         "messages": [],
