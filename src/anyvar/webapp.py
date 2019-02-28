@@ -4,9 +4,9 @@ from flask import redirect
 from pkg_resources import resource_filename
 
 
-spec_dir = "."
-spec_fn = resource_filename(__name__, spec_dir + "/openapi.yaml")
-cxapp = connexion.FlaskApp(__name__, debug=True)
+spec_dir = resource_filename(__name__, ".")
+spec_fn = spec_dir + "/webapp.yaml"
+cxapp = connexion.App(__name__, debug=True, specification_dir=spec_dir)
 cxapp.add_api(spec_fn,
             validate_responses=True,
             strict_validation=True,

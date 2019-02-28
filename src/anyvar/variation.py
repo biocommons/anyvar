@@ -1,14 +1,15 @@
 from connexion import NoContent
 
-from .globals import bm
+from .globals import bm, translator
 
 
 def put(body):
     request = body
 
     defn = request.pop("definition")
-    fmt = request.pop("format")
+    fmt = request.pop("accept_formats")
     norm = request.pop("normalize")
+    val = request.pop("validate")
 
     result = {
         "messages": [],

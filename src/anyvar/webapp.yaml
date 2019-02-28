@@ -463,6 +463,16 @@ components:
           start: 30
           end: 39
 
+    TextVariation:
+      type: object
+      allOf:
+        - $ref: '#/components/x-bases/IdentifiableObject'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: ["TextVariation"]
+
     Variation:
       type: object
       properties:
@@ -475,6 +485,12 @@ components:
   x-bases:
     # x-bases stores reusable base definitions of schemas
     # They are not intended to be used in isolation.
+    IdentifiableObject:
+      type: object
+      properties:
+        id:
+          type: string
+
     PositionBase:
       type: object
       properties:
@@ -485,3 +501,4 @@ components:
         - type
       discriminator:
         propertyName: type
+        
