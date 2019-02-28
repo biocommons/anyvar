@@ -1,33 +1,35 @@
 from connexion import NoContent
 
-from .globals import bm, translator
+from .globals import get_bm, get_translator
 
 
 def put(body):
-    request = body
+    translator = get_translator()
+    bm = get_bm()
 
-    defn = request.pop("definition")
-    fmt = request.pop("accept_formats")
-    norm = request.pop("normalize")
-    val = request.pop("validate")
+    request = body
 
     result = {
         "messages": [],
         "data": None,
     }
-    
-    if fmt == "hgvs_allele":
-        a = bm.add_hgvs_allele(defn)
-        result["messages"].append("Allele normalized; shifted 7 residues")
-        result["id"] = a.id
-        result["data"] = a.as_dict()
+
+    tv = translator.create_text_variation(request["definition"])
+    av = translator.create_allele(request["definition"])
+
+    if av["data"]:
+        result = av
+        result["messages"].append("text variation id:" + tv["id"])
     else:
-        return "unsupported format ({})".format(fmt), 400
+        result = tv
+        result["messages"] += av["messages"]
 
     return result, 201
 
 
 def get(id):
+    bm = get_bm()
+
     # as hgvs too?
     if id not in bm.alleles:
         return NoContent, 404

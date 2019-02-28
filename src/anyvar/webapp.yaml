@@ -95,7 +95,7 @@ paths:
                     appropriately, an error is returned.
                   type: string
                   example: "NC_000010.11:g.87894077C>T"
-                format:
+                accepted_format:
                   description: Expected format of the definition. 
                   type: string
                   enum:
@@ -116,6 +116,10 @@ paths:
       responses:
         200:
           description: OK
+          content:
+            application/json:
+              schema:
+                type: object
         400:
           description: The variation could not be parsed or is otherwise invalid.
         501:
@@ -135,12 +139,8 @@ paths:
           schema:
             type: string
       responses:
-        "200":
-          description: found; variation returned
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Variation"
+        200:
+          description: OK
                 
 
   ###########################################################################
@@ -220,7 +220,7 @@ paths:
             type: string
           example: NC_000010.11:g.87894077C>T
       responses:
-        "200":
+        200:
           description: found; variation returned
 
   /variationsets/{id}:
@@ -235,7 +235,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        200:
           description: found; variation returned
 
 
@@ -480,7 +480,8 @@ components:
           type: string
         type:
           type: enum
-          enum: ["hgvs-allele", "hgvs-haplotype", "hgvs-genotype", "car-id", "car-hgvs", "vcf", "rsid-alt", "text"]
+          enum: ["Text", "SequenceVariation"]
+
 
   x-bases:
     # x-bases stores reusable base definitions of schemas
@@ -502,3 +503,11 @@ components:
       discriminator:
         propertyName: type
         
+    ResponseTemplate:
+      type: object
+      properties:
+        messages:
+          type: array
+          items: string
+        data:
+          type: object

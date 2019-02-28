@@ -1,9 +1,10 @@
 from connexion import NoContent
 
-from .globals import bm
-
+from .globals import get_bm
 
 def put(body):
+    bm = get_bm()
+
     request = body
     defn = request.pop("definition")
     fmt = request.pop("format")
@@ -24,6 +25,8 @@ def put(body):
 
 
 def get(id):
+    bm = get_bm()
+
     # as hgvs too?
     if id not in bm.alleles:
         return NoContent, 404

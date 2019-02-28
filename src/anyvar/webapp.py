@@ -19,4 +19,5 @@ def index():
 
 if __name__ == "__main__":
     cxapp.run(host="localhost",
-            extra_files=[spec_fn])
+              extra_files=[spec_fn],
+              processes=1)
