@@ -36,7 +36,7 @@ paths:
     get:
       tags: ["General"]
       description: >-
-        Provides system information. May be used to ping system status.
+        System status check and configuration
       responses:
         200:
           description: OK
@@ -44,6 +44,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Info"
+
+
+  ###########################################################################
+  # test
+  
+  /test/{id}:
+    get:
+      tags: ["Testing"]
+      description: test of external reference
+      parameters:
+        - name: id
+          in: path
+          description: variation id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "http://localhost:5000/vmc.json#/definitions/Allele"
+  
 
 
   ###########################################################################
@@ -394,8 +418,6 @@ components:
             type: "Interval"
             start: 11
             end: 22
-          discriminator:
-            propertyName: type
 
     Location:
       type: object
@@ -472,6 +494,14 @@ components:
             type:
               type: string
               enum: ["TextVariation"]
+            definition:
+              type: string
+              description: >-
+                The textual representation of variation as provided by the client.
+            parsed_variation_id:
+              type: string
+              description: Id for parsed variation, if exists
+              
 
     Variation:
       type: object
@@ -500,8 +530,6 @@ components:
           enum: ["Interval", "NestedInterval", "RangedInterval"]
       required:
         - type
-      discriminator:
-        propertyName: type
         
     ResponseTemplate:
       type: object
