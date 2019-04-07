@@ -36,6 +36,7 @@ from flask import Flask, redirect
 
 from vmc import schema_path
 
+from anyvar.uidoc import redoc_template, rapidoc_template
 
 
 def start_vmc_server(port=5000):
@@ -58,20 +59,27 @@ if __name__ == "__main__":
     cxapp.add_api(spec_fn,
                   validate_responses=True,
                   strict_validation=True,
-                  resolver=RestyResolver("anyvar"))
-
-    @cxapp.route('/')
-    def index():
-        return redirect("/ui")
+                  resolver=RestyResolver("anyvar.routes"))
 
     @cxapp.route("/vmc.json")
     def vmc_schema():
         schema = open(schema_path).read()
         return schema, 200, {"Content-Type": "application/json; charset=utf-8"}
 
+    @cxapp.route('/redoc')
+    def redoc():
+        return redoc_template, 200
+
+    @cxapp.route('/rapidoc')
+    def rapidoc():
+        return rapidoc_template, 200
+
+    @cxapp.route('/')
+    def index():
+        return redirect("/ui")
 
     p.terminate()
-    
+
     cxapp.run(host="localhost",
               extra_files=[spec_fn, schema_path],
               processes=1)

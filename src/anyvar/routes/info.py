@@ -1,8 +1,8 @@
 from connexion import NoContent
 
-from . import __version__
+from .. import __version__
 
-from .globals import get_translator
+from ..globals import get_translator
 
 import hgvs
 import biocommons.seqrepo

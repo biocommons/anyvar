@@ -46,29 +46,6 @@ paths:
                 $ref: "#/components/schemas/Info"
 
 
-  ###########################################################################
-  # test
-  
-  /test/{id}:
-    get:
-      tags: ["Testing"]
-      description: test of external reference
-      parameters:
-        - name: id
-          in: path
-          description: variation id
-          required: true
-          schema:
-            type: string
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "http://localhost:5000/vmc.json#/definitions/Allele"
-  
-
 
   ###########################################################################
   # Variation
@@ -94,12 +71,12 @@ paths:
 
         The following input formats are permitted:
 
-          * text (`c.1105G>A`, `brca1`, `IVS7+1037T>C`, `46, XX; t(9;22)(q13;q22)`)
+          * Text (any descriptive text that purports to represent variation)
+          * Beacon (`13 : 32936732 G > C`)
           * HGVS
           * ISCN
           * SPDI
-          * gnomad (`1-55516888-G-GA`)
-          * beacon (`13 : 32936732 G > C`)
+          * gnomAD (`1-55516888-G-GA`)
 
       requestBody:
         content:
@@ -119,24 +96,15 @@ paths:
                     appropriately, an error is returned.
                   type: string
                   example: "NC_000010.11:g.87894077C>T"
-                accepted_format:
-                  description: Expected format of the definition. 
-                  type: string
-                  enum:
-                    - auto
-                    - gnomad
-                    - hgvs
-                    - spdi
-                    - text
-                  default: auto
                 normalize:
                   description: Normalize the allele in the specified direction.
                   type: string
                   enum:
-                    - right
-                    - left
-                    - none
-                  default: right
+                    - RIGHT
+                    - LEFT
+                    - SPDI
+                    - NONE
+                  default: RIGHT
       responses:
         200:
           description: OK
@@ -144,6 +112,7 @@ paths:
             application/json:
               schema:
                 type: object
+                  
         400:
           description: The variation could not be parsed or is otherwise invalid.
         501:
@@ -204,7 +173,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Allele"
+                $ref: "http://localhost:5000/vmc.json#/definitions/Allele"
                 
   /allele/{id}:
     get:
@@ -227,7 +196,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Allele"
+                $ref: "http://localhost:5000/vmc.json#/definitions/Allele"
 
 
   ###########################################################################
@@ -285,7 +254,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Location"
+                $ref: "http://localhost:5000/vmc.json#/definitions/Location"
 
 
   # ######################################################################
@@ -303,7 +272,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Position"
+                  $ref: "http://localhost:5000/vmc.json#/definitions/Position"
   
     put:
       tags: ["Internal"]
@@ -312,7 +281,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Position'
+              $ref: 'http://localhost:5000/vmc.json#/definitions/Position'
             examples:
               Simple:
                 value:
@@ -342,7 +311,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Position"
+                $ref: "http://localhost:5000/vmc.json#/definitions/Position"
 
   /positions/{id}:
     get:
@@ -362,7 +331,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Position"
+                $ref: "http://localhost:5000/vmc.json#/definitions/Position"
 
 
 # ######################################################################
@@ -370,20 +339,6 @@ paths:
 
 components:
   schemas:
-    Allele:
-      type: object
-      description: VMC Allele definition
-      properties:
-        id:
-          type: string
-          example: "GA_9IQxBPDC59B--y645TDCZv9ueavkGkUp"
-        location_id:
-          type: string
-          example: "GL_tnVGwWWN0L_fEYK4hGF1Tzm7JULAkm2Z"
-        state:
-          type: string
-          example: "T"
-
     Info:
       type: object
       example:
@@ -397,145 +352,9 @@ components:
           bioutils:
             version: "0.4.2"
 
-    Interval:
-      allOf:
-        - $ref: '#/components/x-bases/PositionBase'
-        - type: object
-          properties:
-            type:
-              enum: ["Interval"]
-            start:
-              type: integer
-              nullable: true
-            end:
-              type: integer
-              nullable: true
-          additionalProperties: false
-          required:
-            - start
-            - end
-          example:
-            type: "Interval"
-            start: 11
-            end: 22
-
-    Location:
-      type: object
-      properties:
-        id:
-          type: string
-          example: "GL_tnVGwWWN0L_fEYK4hGF1Tzm7JULAkm2Z"
-        sequence_id:
-          type: string
-          example: "GS_ss8r_wB0-b9r44TQTMmVTI92884QvBiB"
-        position:
-          $ref: "#/components/schemas/Position"
-
-    NestedInterval:
-      allOf:
-        - $ref: '#/components/x-bases/PositionBase'
-        - type: object
-          properties:
-            type:
-              enum: ["NestedInterval"]
-            inner:
-              $ref: '#/components/schemas/Interval'
-            outer:
-              $ref: '#/components/schemas/Interval'
-      example:
-        type: NestedInterval
-        outer:
-          type: Interval
-          start: 20
-          end: 39
-        inner:
-          type: Interval
-          start: 29
-          end: 30
-      
-    Position:
-      description: >-
-        A Position represents a span of sequence.  Positions are
-        always represented by contiguous spans using interbase
-        coordinates.
-      oneOf:
-      - $ref: '#/components/schemas/Interval'
-      - $ref: '#/components/schemas/NestedInterval'
-      - $ref: '#/components/schemas/RangedInterval'
-
-    RangedInterval:
-      allOf:
-        - $ref: '#/components/x-bases/PositionBase'
-        - type: object
-          properties:
-            type:
-              enum: ["RangedInterval"]
-            start:
-              $ref: '#/components/schemas/Interval'
-            end:
-              $ref: '#/components/schemas/Interval'
-      example:
-        type: RangedInterval
-        start:
-          type: Interval
-          start: 20
-          end: 29
-        end:
-          type: Interval
-          start: 30
-          end: 39
-
-    TextVariation:
-      type: object
-      allOf:
-        - $ref: '#/components/x-bases/IdentifiableObject'
-        - type: object
-          properties:
-            type:
-              type: string
-              enum: ["TextVariation"]
-            definition:
-              type: string
-              description: >-
-                The textual representation of variation as provided by the client.
-            parsed_variation_id:
-              type: string
-              description: Id for parsed variation, if exists
-              
-
-    Variation:
-      type: object
-      properties:
-        id:
-          type: string
-        type:
-          type: enum
-          enum: ["Text", "SequenceVariation"]
-
-
-  x-bases:
-    # x-bases stores reusable base definitions of schemas
-    # They are not intended to be used in isolation.
-    IdentifiableObject:
-      type: object
-      properties:
-        id:
-          type: string
-
-    PositionBase:
-      type: object
-      properties:
-        type:
-          type: string
-          enum: ["Interval", "NestedInterval", "RangedInterval"]
-      required:
-        - type
-        
-    ResponseTemplate:
-      type: object
-      properties:
-        messages:
-          type: array
-          items: string
-        data:
-          type: object
+    # External references -- necessary for definitions to show up in
+    # generated docs
+    ### TODO: Does following inclusion of section include all defs?
+    ### $ref: "http://localhost:5000/vmc.json#/definitions/"
+    Allele:
+      $ref: "http://localhost:5000/vmc.json#/definitions/Allele"

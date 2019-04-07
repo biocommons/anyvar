@@ -1,6 +1,6 @@
 from connexion import NoContent
 
-from .globals import get_bm
+from ..globals import get_bm
 
 
 def get(id):

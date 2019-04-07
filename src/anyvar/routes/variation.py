@@ -1,6 +1,6 @@
 from connexion import NoContent
 
-from .globals import get_bm, get_translator
+from ..globals import get_bm, get_translator
 
 
 def put(body):
