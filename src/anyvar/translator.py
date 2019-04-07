@@ -46,12 +46,12 @@ _id_functions = {
 
 
 class Translator:
-    def __init__(self, hdp=None, id_function="computed"):
+    def __init__(self, vbm, hdp=None, id_function="computed"):
         # hdp + assemblymapper
         self.seqrepo = biocommons.seqrepo.SeqRepo(seqrepo_instance_path)        
         self.hdp = connect()
         self.hgvs_parser = hgvs.parser.Parser()
-        #self.bm = vmc_bm
+        self.vbm = vbm
 
     def info(self):
         return {
@@ -64,7 +64,6 @@ class Translator:
                 "dataprovider": str(self.hdp),
                 },
             }
-
 
     def from_hgvs(self, hgvs):
         """parse and add the hgvs_allele to the bundle"""
@@ -138,14 +137,11 @@ class Translator:
             "messages": [],
             }
 
-        try:
-            a = self.bm.add_hgvs_allele(defn)
-            result["messages"].append("parsed as HGVS allele")
-            result["data"] = a.as_dict()
-            result["id"] = vmc_identifer("GA", result["data"])
-            result["type"] = "allele"
-        except Exception as e:
-            result["messages"].append("hgvs parser: " + str(e))
+        a = self.vbm.add_hgvs_allele(defn)
+        result["messages"].append("parsed as HGVS allele")
+        result["data"] = a.as_dict()
+        result["id"] = vmc_identifer("GA", result["data"])
+        result["type"] = "allele"
 
         return result
 
