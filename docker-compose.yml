@@ -1,0 +1,21 @@
+version: "3"
+
+services:
+  anyvar:
+    image: reece/anyvar:dev
+    expose:
+      - "5000"
+    ports:
+      - "5000:5000"
+    volumes:
+      - seqrepo:/usr/local/share/seqrepo
+    depends_on:
+      - seqrepo
+
+  seqrepo:
+    image: biocommons/seqrepo
+    volumes:
+      - seqrepo:/usr/local/share/seqrepo
+
+volumes:
+  seqrepo:

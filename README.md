@@ -14,22 +14,36 @@ identify, and register variation of these types:
 
 All types are assigned computed identifiers based on a digest.
 
+See https://docs.google.com/spreadsheets/d/1_oi_BBRE71PE8FpVqTwKnh5uibsTG2pp2ZaHxsekotg/edit
 
 
 # Developer installation
 
-```
-# Clone the repo. Then:
+    git clone https://github.com/ga4gh/vmc-python.git
+    cd anyvar
+    python3 -mvenv venv
+    source venvbin/activate
+    pip install -U setuptools pip
+    pip install -e '.[dev]'
+    python -m anyvar
 
-cd anyvar
-python3.7 -mvenv venv/3.7
-source venv/3.7/bin/activate
-pip install -U setuptools pip
-pip install -e '.[dev]'
-python -m anyvar
+In another terminal:
 
-# then open http://localhost:5000/v0/ui/
-```
+    curl http://localhost:5000/info
 
 
-See https://docs.google.com/spreadsheets/d/1_oi_BBRE71PE8FpVqTwKnh5uibsTG2pp2ZaHxsekotg/edit
+# Docker images
+
+**IMPORTANT:** The docker images are brand new. They should be the
+easiest way to kick tires.
+
+Download `docker-compose.yml` from the repo.  Then, type:
+
+	docker-compose up
+
+Warning: This will download approximately 10GB of sequence data to use
+for normalization and accession matching.
+
+In another terminal:
+
+    curl http://localhost:5000/info

@@ -25,7 +25,7 @@ from .utils.digest import vmc_identifer
 _logger = logging.getLogger(__name__)
 
 SEQREPO_ROOT_DIR = os.environ.get("SEQREPO_ROOT_DIR", "/usr/local/share/seqrepo")
-SEQREPO_INSTANCE_NAME = os.environ.get("SEQREPO_INSTANCE", "latest")
+SEQREPO_INSTANCE_NAME = os.environ.get("SEQREPO_INSTANCE", "2018-08-21")
 seqrepo_instance_path = os.path.join(SEQREPO_ROOT_DIR, SEQREPO_INSTANCE_NAME)
 
 

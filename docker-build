@@ -1,0 +1,33 @@
+#!/bin/bash -e
+# ./docker-build <tag>
+# docker run -it reece/anyvar
+# curl http://localhost:5000/info
+
+imagename=reece/anyvar
+
+eq="============================================================================"
+e () { echo "$eq"; echo "+ $@"; $@; }
+
+
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 tag [build options]" 1>&2
+    exit 1
+fi
+
+tag="$1"
+shift
+
+dtag="$tag"
+if [ "$tag" = "master" ]; then
+    dtag=dev
+fi
+
+
+e hg up "$tag"
+e docker build -t $imagename:$dtag "$@" .
+e docker push $imagename:$dtag
+
+if echo "$z" | grep -Pq '^\d+\.\d+\.\d+'; then
+    e docker tag $imagename:$dtag $imagename:latest 
+    e docker push $imagename:latest 
+fi

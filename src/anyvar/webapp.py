@@ -53,7 +53,7 @@ if __name__ == "__main__":
     p = Process(target=start_vmc_server)
     p.start()
     
-    spec_dir = resource_filename(__name__, ".")
+    spec_dir = resource_filename(__name__, "_data")
     spec_fn = spec_dir + "/webapp.yaml"
     cxapp = connexion.App(__name__, debug=True, specification_dir=spec_dir)
     cxapp.add_api(spec_fn,
@@ -80,6 +80,6 @@ if __name__ == "__main__":
 
     p.terminate()
 
-    cxapp.run(host="localhost",
+    cxapp.run(host="0.0.0.0",
               extra_files=[spec_fn, schema_path],
               processes=1)
