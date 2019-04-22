@@ -6,7 +6,10 @@ import datetime
 import functools
 import logging
 import os
+import shelve
+import json
 import uuid
+import zlib
 
 import biocommons.seqrepo
 
@@ -45,13 +48,43 @@ _id_functions = {
 
 
 
+
+class Storage:
+    """Super simple key-value storage for GA4GH VR objects"""
+
+    def __init__(self, filename):
+        self._db = shelve.open(filename)
+    
+    def __setitem__(self, name, value):
+        name = str(name)        # in case str-like
+        d = value.as_dict()
+        j = json.dumps(d)
+        e = j.encode("utf-8")
+        c = zlib.compress(e)
+        self._db[name] = c
+        
+    @functools.lru_cache()
+    def __getitem__(self, name):
+        name = str(name)        # in case str-like
+        data = json.loads(zlib.decompress(self._db[name]).decode("UTF-8"))
+        typ = data["type"]
+        vo = vmc.models[typ](**data)
+        return vo
+
+    def __delitem__(self, name):
+        del self._db[name]
+
+    def __del__(self):
+        self._db.close()
+
+
 class Manager:
-    def __init__(self, hdp=None, id_function="computed"):
+    def __init__(self, hdp=None, filename=None, id_function="computed"):
         # hdp + assemblymapper
         self.seqrepo = biocommons.seqrepo.SeqRepo(seqrepo_instance_path)        
         self.hdp = connect()
         self.hgvs_parser = hgvs.parser.Parser()
-        self.storage = {}
+        self.storage = Storage(filename) if filename else {}
         self._id_function = vmc.computed_id
 
 

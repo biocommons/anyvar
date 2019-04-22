@@ -15,6 +15,9 @@ from .manager import Manager
 import hgvs.parser
 
 
+anyvar_db_fn = "/tmp/anyvar"
+
+
 def _get_g(k, fn):
     """fetch a global singleton, creating with `fn` on first invocation"""
     v = getattr(current_app, k, None)
@@ -27,5 +30,5 @@ def get_hgvs_parser():
     return get_vmc_manager().hgvs_parser
     
 def get_vmc_manager():
-    return _get_g("_vmc_manager", lambda: Manager())
+    return _get_g("_vmc_manager", lambda: Manager(filename=anyvar_db_fn))
     
