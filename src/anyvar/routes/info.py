@@ -2,7 +2,7 @@ from connexion import NoContent
 
 from .. import __version__
 
-from ..globals import get_translator
+from ..globals import get_vmc_manager
 
 import hgvs
 import biocommons.seqrepo
@@ -10,9 +10,9 @@ import biocommons.seqrepo
 
 
 def search():
-    translator = get_translator()
+    vm = get_vmc_manager()
 
     return {
         "version": __version__,
-        "translator": translator.info(),
+        "translator": vm.info(),
         }, 200

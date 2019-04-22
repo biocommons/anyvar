@@ -13,24 +13,20 @@ info:
 
 tags:
   - name: General
-  - name: Variation
-    description: A single endpoint for all classes of primitive Variation
-  - name: Variation Subtypes
-    description: Endpoints for specific variation types
-  - name: Variation Sets
-    description: Sets of Variation primitives
   - name: Locations
     description: >-
       Where Variation occurs
-  - name: Internal
-    description: >-
-      Internal endpoints are exposed only for testing. They will not
-      be exposed in production.
+  - name: Variation
+    description: All classes of primitive Variation
+  - name: Variation Set
+    description: Sets of Variation
+  - name: Variation Subtypes
+    description: Specific subtypes of variation
 
 
 paths:
   ###########################################################################
-  # General
+  # Info
 
   /info:
     get:
@@ -96,15 +92,6 @@ paths:
                     appropriately, an error is returned.
                   type: string
                   example: "NC_000010.11:g.87894077C>T"
-                normalize:
-                  description: Normalize the allele in the specified direction.
-                  type: string
-                  enum:
-                    - RIGHT
-                    - LEFT
-                    - SPDI
-                    - NONE
-                  default: RIGHT
       responses:
         200:
           description: OK
@@ -134,11 +121,60 @@ paths:
       responses:
         200:
           description: OK
-                
+
 
   ###########################################################################
-  # Variation Subtypes
+  # Text
   
+  /text:
+    put:
+      tags: ["Variation Subtypes"]
+      description: >-
+        Create an instance of unparsed text variation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                definition:
+                  description: >-
+                    Allele definition, interpreted according to format
+                  type: string
+                  example: NC_000010.11:g.87894077C>T
+              required:
+                - definition
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "http://localhost:5000/vmc.json#/definitions/Text"
+                
+  /text/{id}:
+    get:
+      tags: ["Variation Subtypes"]
+      description: >-
+        Return text variation
+      parameters:
+        - name: id
+          in: path
+          description: Text variation id
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "http://localhost:5000/vmc.json#/definitions/Text"
+    
+  ###########################################################################
+  # Allele
+
   /allele:
     put:
       tags: ["Variation Subtypes"]
@@ -162,18 +198,33 @@ paths:
                   description: format of definition
                   type: string
                   enum:
-                    - "hgvs"
-                  example: "hgvs"
+                    - ga4gh
+                    - beacon
+                    - gnomad
+                    - hgvs
+                    - spdi
+                  default: hgvs
+                  example: hgvs
+                normalize:
+                  description: Normalize the allele in the specified direction.
+                  type: string
+                  enum:
+                    - voca
+                    - right
+                    - left
+                    - none
+                  default: right
+                  example: right
               required:
                 - definition
-                - format
       responses:
         200:
           description: OK
           content:
             application/json:
               schema:
-                $ref: "http://localhost:5000/vmc.json#/definitions/Allele"
+                type: object
+                # $ref: "http://localhost:5000/vmc.json#/definitions/Allele"
                 
   /allele/{id}:
     get:
@@ -196,16 +247,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "http://localhost:5000/vmc.json#/definitions/Allele"
+                type: object
+                # $ref: "http://localhost:5000/vmc.json#/definitions/Allele"
 
+
+                
 
   ###########################################################################
   # Variation Sets
   
-  /variationsets:
+  /variationset:
     get:
       description: search for a canonical allele
-      tags: ["Variation Sets"]
+      tags: ["Variation Set"]
       parameters:
         - name: hgvs
           in: query
@@ -216,10 +270,10 @@ paths:
         200:
           description: found; variation returned
 
-  /variationsets/{id}:
+  /variationset/{id}:
     get:
       description: gets a variation instance by id
-      tags: ["Variation Sets"]
+      tags: ["Variation Set"]
       parameters:
         - name: id
           in: path
@@ -256,82 +310,6 @@ paths:
               schema:
                 $ref: "http://localhost:5000/vmc.json#/definitions/Location"
 
-
-  # ######################################################################
-  # INTERNAL ENDPOINTS FOR TESTING
-
-  /positions:
-    get:
-      tags: ["Internal"]
-      description: Return positions
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "http://localhost:5000/vmc.json#/definitions/Position"
-  
-    put:
-      tags: ["Internal"]
-      description: create a position instance
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: 'http://localhost:5000/vmc.json#/definitions/Position'
-            examples:
-              Simple:
-                value:
-                  type: Interval
-                  start: 22
-                  end: 33
-              BaseOffset:
-                value:
-                  type: Interval
-                  start: 50
-                  start_offset: -6
-                  end: 60
-                  end_offset: 7
-              RangedInterval:
-                value:
-                  type: RangedInterval
-                  start:
-                    start: 100
-                    end: 110
-                  end:
-                    start: 200
-                    end: 210
-
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "http://localhost:5000/vmc.json#/definitions/Position"
-
-  /positions/{id}:
-    get:
-      description: >-
-        Return a single position
-      tags: ["Internal"]
-      parameters:
-        - name: id
-          in: path
-          description: position id
-          required: true
-          schema:
-            type: string
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "http://localhost:5000/vmc.json#/definitions/Position"
 
 
 # ######################################################################

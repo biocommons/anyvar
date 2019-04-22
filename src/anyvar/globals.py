@@ -10,6 +10,10 @@ from flask import current_app
 from vmc.extra.bundlemanager import BundleManager
 from .translator import Translator
 
+from .manager import Manager
+
+import hgvs.parser
+
 
 def _get_g(k, fn):
     """fetch a global singleton, creating with `fn` on first invocation"""
@@ -19,8 +23,9 @@ def _get_g(k, fn):
         setattr(current_app, k, v)
     return v
 
-def get_bm():
-    return _get_g("_vmc_bundlemanager", BundleManager)
+def get_hgvs_parser():
+    return get_vmc_manager().hgvs_parser
     
-def get_translator():
-    return _get_g("_translator", lambda: Translator(get_bm()))
+def get_vmc_manager():
+    return _get_g("_vmc_manager", lambda: Manager())
+    

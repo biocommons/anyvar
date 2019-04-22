@@ -1,11 +1,11 @@
 from connexion import NoContent
 
-from ..globals import get_bm, get_translator
+from ..globals import get_vmc_manager
 
 
 def put(body):
     translator = get_translator()
-    bm = get_bm()
+    vm = get_vmc_manager()
 
     request = body
 
@@ -28,10 +28,10 @@ def put(body):
 
 
 def get(id):
-    bm = get_bm()
+    vm = get_vmc_manager()
 
     # as hgvs too?
-    if id not in bm.alleles:
+    if id not in vm.alleles:
         return NoContent, 404
 
-    return bm.alleles[id].as_dict(), 200
+    return vm.storage[id].as_dict(), 200
