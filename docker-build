@@ -27,7 +27,8 @@ e hg up "$tag"
 e docker build -t $imagename:$dtag "$@" .
 e docker push $imagename:$dtag
 
-if echo "$z" | grep -Pq '^\d+\.\d+\.\d+'; then
+
+if echo "$tag" | grep -Pq '^\d+\.\d+\.\d+'; then
     e docker tag $imagename:$dtag $imagename:latest 
     e docker push $imagename:latest 
 fi
