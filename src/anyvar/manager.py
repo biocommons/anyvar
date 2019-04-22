@@ -68,6 +68,17 @@ class Manager:
             }
 
 
+    def add_ga4gh_allele(self, defn):
+        allele = vmc.models.Allele(**defn)
+        allele.id = self._id_function(alle)
+        self.storage[allele.id] = allele
+
+        location = vmc.models.Location(a.location)
+        location.id = self._id_function(location)
+        self.storage[location.id] = location
+        return allele
+
+
     def add_hgvs_allele(self, hgvs_expr):
         """parse and add the hgvs_allele to the bundle"""
         sv = self.hgvs_parser.parse_hgvs_variant(hgvs_expr)

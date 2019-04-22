@@ -257,18 +257,42 @@ paths:
   # Variation Sets
   
   /variationset:
-    get:
-      description: search for a canonical allele
+    put:
       tags: ["Variation Set"]
-      parameters:
-        - name: hgvs
-          in: query
-          schema:
-            type: string
-          example: NC_000010.11:g.87894077C>T
+      description: >-
+        What do *you* think a VariationSet should be?
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                definition:
+                  description: >-
+                    Allele definition, interpreted according to format
+                  type: object
+                  example:
+                    member_ids:
+                      - VMC:GX_zQuUXqiP_YpP_uODT4PcfNIYoOPdYjC-
+                      - VMC:GX_jzmI29gA7-Rs7pRkeCj0mOp1Zsxan2Sc
+                      - VMC:GX_3NoEdRUAnX2AMdug2XoisbEi-GR7wB1x
+                      - VMC:GX_OWpaUYPJgLq8ZTPDbyCId6cgYPWjtrRK
+                      - VMC:GX_ltc3Iah3Iy5X_A06NGMla76bmPGSbMj9
+                      - VMC:GX_yss8NB_TDAnwyWX7ImXKTnroBYAN_d1O
+                      - VMC:GX_X3t0_U_rG5EfNUEYZb3zmulRYcdZ9RD2
+                      - VMC:GX_bD4JRdGKbwCOKh3ou8fPS2i9gD1Ojf7z
+                      - VMC:GX_1DHFMjTlO0Ju1cg5sa8vP2o1HSPiSR7t
+                      - VMC:GX_TvaAqwD_MduWohVGP4i2Tze4bieA-Kny
+              required:
+                - definition
       responses:
         200:
-          description: found; variation returned
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                # $ref: "http://localhost:5000/vmc.json#/definitions/Allele"
 
   /variationset/{id}:
     get:

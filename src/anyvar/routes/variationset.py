@@ -1,20 +1,33 @@
-from connexion import NoContent
+from ..globals import get_vmc_manager
 
-from vmc.extra.alleleregistry import AlleleRegistryClient
+import vmc
 
 
-arc = AlleleRegistryClient(
-    base_url="http://reg.test.genome.network",
-    login="testuser",
-    password="testuser"
-    )
+def put(body):
+    request = body
+    defn = request.pop("definition")
+
+    vm = get_vmc_manager()
+
+    messages = []
+
+    if "members" in defn:
+        return {"messages": ["unsupported"]}, 400
+
+    if "member_ids" in defn:
+        vs = vmc.models.VariationSet(member_ids=defn["member_ids"])
+        vs.id = vmc.computed_id(vs)
+        vm.storage[vs.id] = vs
+    
+    result = {
+        "messages": messages,
+        "data": vs.as_dict(),
+    }
+    
+    return result, 200
 
 
 def get(id):
-    d = arc.get_allele_by_id(id=id)
-    return d, 200
+    vm = get_vmc_manager()
+    return vm.storage[id].as_dict(), 200
 
-# hgvs = "NC_000010.11:g.87894077C>T"
-def search(hgvs):
-    d = arc.get_allele_by_hgvs(hgvs=hgvs)
-    return d, 200

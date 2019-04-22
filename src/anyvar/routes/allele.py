@@ -17,7 +17,7 @@ def put(body):
     vm = get_vmc_manager()
 
     if fmt == "ga4gh":
-        a = vmc.models.Allele(**defn)
+        a = vm.add_ga4gh_allele(defn)
     elif fmt == "hgvs":
         a = vm.add_hgvs_allele(defn)
     elif fmt == "beacon":
