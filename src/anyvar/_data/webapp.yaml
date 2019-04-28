@@ -343,6 +343,9 @@ components:
   schemas:
     Info:
       type: object
+      properties:
+        version:
+          type: string
       example:
         version: "0.0.0"
         dependencies:
@@ -356,7 +359,10 @@ components:
 
     # External references -- necessary for definitions to show up in
     # generated docs
-    ### TODO: Does following inclusion of section include all defs?
-    ### $ref: "http://localhost:5000/vmc.json#/definitions/"
+    # >>> import vmc
+    # >>> import json
+    # >>> j = json.load(open(vmc.schema_path))
+    # >>> print("\n".join([f"{k}:\n  $ref: \"http://localhost:5000/vmc.json#/definitions/{k}\"" for k in j["definitions"].keys()]))
+    
     Allele:
       $ref: "http://localhost:5000/vmc.json#/definitions/Allele"

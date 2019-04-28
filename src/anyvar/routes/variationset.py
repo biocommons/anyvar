@@ -1,13 +1,13 @@
-from ..globals import get_vmc_manager
-
 import vmc
+
+from ..globals import get_manager
 
 
 def put(body):
     request = body
     defn = request.pop("definition")
 
-    vm = get_vmc_manager()
+    m = get_manager()
 
     messages = []
 
@@ -17,7 +17,7 @@ def put(body):
     if "member_ids" in defn:
         vs = vmc.models.VariationSet(member_ids=defn["member_ids"])
         vs.id = vmc.computed_id(vs)
-        vm.storage[vs.id] = vs
+        m.storage.variationsets[vs.id] = vs
     
     result = {
         "messages": messages,
@@ -28,6 +28,6 @@ def put(body):
 
 
 def get(id):
-    vm = get_vmc_manager()
-    return vm.storage[id].as_dict(), 200
+    m = get_manager()
+    return m.storage.variationsets[id].as_dict(), 200
 

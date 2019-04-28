@@ -1,20 +1,17 @@
 from connexion import NoContent
 
-from ..globals import get_vmc_manager
+from ..globals import get_manager
 
 
 def get(id):
-    # if id not in (sr instance)
-    #     return NoContent, 404
+    m = get_manager()
 
-    vm = get_vmc_manager()
-
-    if id not in vm.storage:
+    if id not in m.storage.locations:
         return NoContent, 404
 
-    return vm.storage[id].as_dict(), 200
+    return m.storage.locations[id].as_dict(), 200
 
 
 def search(body):
-    vm = get_vmc_manager()
-    return [vm.storage[id] for id in vm.storage.keys() if id.startswith("VMC:GL")], 404
+    m = get_manager()
+    return [m.storage.locations[id] for id in vm.storage.locations], 200

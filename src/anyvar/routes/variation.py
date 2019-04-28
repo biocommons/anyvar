@@ -1,7 +1,5 @@
 from connexion import NoContent
 
-from ..globals import get_vmc_manager
-
 
 def put(body):
     translator = get_translator()

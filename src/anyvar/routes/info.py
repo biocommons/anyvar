@@ -1,18 +1,16 @@
 from connexion import NoContent
 
-from .. import __version__
-
-from ..globals import get_vmc_manager
-
-import hgvs
-import biocommons.seqrepo
+import anyvar
+import vmc
 
 
 
 def search():
-    vm = get_vmc_manager()
+    rv = {
+        "version": anyvar.__version__,
+        "vmc-python": {
+            "version": vmc.__version__
+        },
+    }
 
-    return {
-        "version": __version__,
-        "translator": vm.info(),
-        }, 200
+    return rv, 200
