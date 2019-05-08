@@ -3,7 +3,7 @@ from connexion import NoContent
 
 def put(body):
     translator = get_translator()
-    vm = get_vmc_manager()
+    vm = get_manager()
 
     request = body
 
@@ -26,9 +26,8 @@ def put(body):
 
 
 def get(id):
-    vm = get_vmc_manager()
+    vm = get_manager()
 
-    # as hgvs too?
     if id not in vm.alleles:
         return NoContent, 404
 
