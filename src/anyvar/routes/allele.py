@@ -24,7 +24,12 @@ def put(body):
 
 def get(id):
     m = get_manager()
-    a = m.get_allele(id)
+
+    try:
+        a = m.get_allele(id)
+    except KeyError as e:
+        return None, 404
+        
     result = {
         "messages": [],
         "data": a.as_dict()
