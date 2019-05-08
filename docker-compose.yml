@@ -5,9 +5,9 @@ services:
     # add appropriate tag (try "master" or "Sprint3")
     image: reece/anyvar
     expose:
-      - "80"
+      - "5000"
     ports:
-      - "80:80"
+      - "5000:5000"
     volumes:
       - seqrepo:/usr/local/share/seqrepo
     depends_on:
