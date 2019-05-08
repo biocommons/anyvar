@@ -14,6 +14,6 @@ COPY src /app/src
 WORKDIR /app
 RUN python3 setup.py install
 
-EXPOSE 5000
+EXPOSE 80
 
 CMD ["python3", "-m", "anyvar"]

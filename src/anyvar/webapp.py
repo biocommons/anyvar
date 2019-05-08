@@ -13,10 +13,10 @@ is up, so you can't serve subschemas via connexion initially.
 
 So, the startup process below is:
 
-  1. start a flask app on :5000 to serve /vr.json
+  1. start a flask app on :80 to serve /vr.json
 
   2. create the connexion app with the openapi schema.  Connexion
-     validates using vr.json on :5000.
+     validates using vr.json on :80.
 
   3. shutdown the flask app.
 
@@ -39,18 +39,24 @@ from ga4gh.vr import schema_path
 from anyvar.uidoc import redoc_template, rapidoc_template
 
 
-def start_vr_server(port=5000):
+default_port = 80
+
+
+
+def start_vr_server(port):
     app = Flask(__name__)
+
     @app.route('/vr.json')
     def vr_schema():
         schema = open(schema_path).read()
         return schema, 200, {"Content-Type": "application/json; charset=utf-8"}
-    app.run()
+
+    app.run(port=port)
 
 
 
 if __name__ == "__main__":
-    p = Process(target=start_vr_server)
+    p = Process(target=lambda: start_vr_server(default_port))
     p.start()
     
     spec_dir = resource_filename(__name__, "_data")
@@ -81,5 +87,6 @@ if __name__ == "__main__":
     p.terminate()
 
     cxapp.run(host="0.0.0.0",
+              port=default_port,
               extra_files=[spec_fn, schema_path],
               processes=1)

@@ -29,7 +29,7 @@ See https://docs.google.com/spreadsheets/d/1_oi_BBRE71PE8FpVqTwKnh5uibsTG2pp2ZaH
 
 In another terminal:
 
-    curl http://localhost:5000/info
+    curl http://localhost/info
 
 
 # Docker images
@@ -46,4 +46,4 @@ for normalization and accession matching.
 
 In another terminal:
 
-    curl http://localhost:5000/info
+    curl http://localhost/info

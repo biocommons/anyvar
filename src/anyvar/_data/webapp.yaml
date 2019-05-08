@@ -150,7 +150,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "http://localhost:5000/vr.json#/definitions/Text"
+                $ref: "http://localhost/vr.json#/definitions/Text"
                 
   /text/{id}:
     get:
@@ -170,7 +170,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "http://localhost:5000/vr.json#/definitions/Text"
+                $ref: "http://localhost/vr.json#/definitions/Text"
     
   ###########################################################################
   # Allele
@@ -224,7 +224,7 @@ paths:
             application/json:
               schema:
                 type: object
-                # $ref: "http://localhost:5000/vr.json#/definitions/Allele"
+                # $ref: "http://localhost/vr.json#/definitions/Allele"
                 
   /allele/{id}:
     get:
@@ -248,7 +248,7 @@ paths:
             application/json:
               schema:
                 type: object
-                # $ref: "http://localhost:5000/vr.json#/definitions/Allele"
+                # $ref: "http://localhost/vr.json#/definitions/Allele"
 
 
                 
@@ -292,7 +292,7 @@ paths:
             application/json:
               schema:
                 type: object
-                # $ref: "http://localhost:5000/vr.json#/definitions/Allele"
+                # $ref: "http://localhost/vr.json#/definitions/Allele"
 
   /variationset/{id}:
     get:
@@ -332,7 +332,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "http://localhost:5000/vr.json#/definitions/Location"
+                $ref: "http://localhost/vr.json#/definitions/Location"
 
 
 
@@ -362,7 +362,7 @@ components:
     # >>> import ga4gh.vr
     # >>> import json
     # >>> j = json.load(open(ga4gh.vr.schema_path))
-    # >>> print("\n".join([f"{k}:\n  $ref: \"http://localhost:5000/vr.json#/definitions/{k}\"" for k in j["definitions"].keys()]))
+    # >>> print("\n".join([f"{k}:\n  $ref: \"http://localhost/vr.json#/definitions/{k}\"" for k in j["definitions"].keys()]))
     
     Allele:
-      $ref: "http://localhost:5000/vr.json#/definitions/Allele"
+      $ref: "http://localhost/vr.json#/definitions/Allele"
