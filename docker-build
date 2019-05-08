@@ -9,26 +9,13 @@ eq="============================================================================
 e () { echo "$eq"; echo "+ $@"; $@; }
 
 
-if [ $# -lt 1 ]; then
-    echo "Usage: $0 tag [build options]" 1>&2
-    exit 1
-fi
-
-tag="$1"
+tag="${1:-master}"
 shift
 
-dtag="$tag"
-if [ "$tag" = "master" ]; then
-    dtag=dev
-fi
-
-
 e hg up "$tag"
-e docker build -t $imagename:$dtag "$@" .
-e docker push $imagename:$dtag
 
+e docker build -t $imagename:$tag "$@" .
+e docker tag $imagename:$tag $imagename:latest 
+e docker push $imagename:$tag
+e docker push $imagename:latest 
 
-if echo "$tag" | grep -Pq '^\d+\.\d+\.\d+'; then
-    e docker tag $imagename:$dtag $imagename:latest 
-    e docker push $imagename:latest 
-fi

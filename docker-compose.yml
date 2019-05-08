@@ -2,7 +2,8 @@ version: "3"
 
 services:
   anyvar:
-    image: reece/anyvar:dev
+    # add appropriate tag (try "master" or "Sprint3")
+    image: reece/anyvar
     expose:
       - "5000"
     ports:
