@@ -42,7 +42,7 @@ Docker images
 .. note:: The authoritative source for version tags is the
 	  repository. When commit is tagged, that tag is automatically
 	  used as the Python `__version__`, the docker image tag, and
-	  the version reported at the /info endpoint.
+	  the version reported at the `/info` endpoint.
 
 
 Without local data (limited functionality)
@@ -67,6 +67,7 @@ Either way, check for a heartbeat
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 ::
+
    curl http://localhost:5000/info
 
 should show something like::
