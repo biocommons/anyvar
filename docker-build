@@ -9,13 +9,12 @@ eq="============================================================================
 e () { echo "$eq"; echo "+ $@"; $@; }
 
 
-tag="${1:-master}"
-shift
-
-e hg up "$tag"
+tag=$(hg id -t)
+if [ "$tag" = "tip" ]; then
+    tag=master
+fi
 
 e docker build -t $imagename:$tag "$@" .
 e docker tag $imagename:$tag $imagename:latest 
-e docker push $imagename:$tag
 e docker push $imagename:latest 
 
