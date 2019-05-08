@@ -7,7 +7,9 @@ import ga4gh.vr
 
 def search():
     rv = {
-        "version": anyvar.__version__,
+        "anyvar": {
+            "version": anyvar.__version__,
+            },
         "ga4gh.vr": {
             "version": ga4gh.vr.__version__
         },

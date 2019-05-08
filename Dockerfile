@@ -1,16 +1,13 @@
-# For now, postgresql libs are required, so
-# 
 FROM ubuntu:18.10
 
 RUN apt update && apt upgrade -y && apt install -y \
     curl \
+    mercurial \
     python3-pip
 
 RUN pip3 install -U setuptools pip
 
-COPY setup.cfg setup.py /app/
-COPY src /app/src
-
+COPY . /app/
 WORKDIR /app
 RUN python3 setup.py install
 

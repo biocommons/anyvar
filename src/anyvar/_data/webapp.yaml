@@ -343,19 +343,12 @@ components:
   schemas:
     Info:
       type: object
-      properties:
-        version:
-          type: string
       example:
-        version: "0.0.0"
         dependencies:
-          biocommons.seqrepo:
-            instance_directory: /usr/local/share/seqrepo/latest
-            version: "0.4.2"
-          hgvs:
-            version: "1.2.4"
-          bioutils:
-            version: "0.4.2"
+          anyvar:
+            version: "1.2.3"
+          ga4gh.vr:
+            version: "0.2.0"
 
     # External references -- necessary for definitions to show up in
     # generated docs
