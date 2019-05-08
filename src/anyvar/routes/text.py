@@ -1,7 +1,5 @@
 from connexion import NoContent
 
-import vmc
-
 from ..globals import get_manager
 
 

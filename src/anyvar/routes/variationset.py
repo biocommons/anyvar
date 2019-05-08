@@ -1,4 +1,4 @@
-import vmc
+import ga4gh.vr
 
 from ..globals import get_manager
 
@@ -15,8 +15,8 @@ def put(body):
         return {"messages": ["unsupported"]}, 400
 
     if "member_ids" in defn:
-        vs = vmc.models.VariationSet(member_ids=defn["member_ids"])
-        vs.id = vmc.computed_id(vs)
+        vs = ga4gh.vr.models.VariationSet(member_ids=defn["member_ids"])
+        vs.id = ga4gh.vr.computed_id(vs)
         m.storage.variationsets[vs.id] = vs
     
     result = {

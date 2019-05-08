@@ -1,15 +1,15 @@
 from connexion import NoContent
 
 import anyvar
-import vmc
+import ga4gh.vr
 
 
 
 def search():
     rv = {
         "version": anyvar.__version__,
-        "vmc-python": {
-            "version": vmc.__version__
+        "ga4gh.vr": {
+            "version": ga4gh.vr.__version__
         },
     }
 

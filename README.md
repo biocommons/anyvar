@@ -19,10 +19,10 @@ See https://docs.google.com/spreadsheets/d/1_oi_BBRE71PE8FpVqTwKnh5uibsTG2pp2ZaH
 
 # Developer installation
 
-    git clone https://github.com/ga4gh/vmc-python.git
+    git clone https://github.com/reece/anyvar.git
     cd anyvar
     python3 -mvenv venv
-    source venvbin/activate
+    source venv/bin/activate
     pip install -U setuptools pip
     pip install -e '.[dev]'
     python -m anyvar

@@ -12,7 +12,7 @@ from .manager import Manager
 from .storage import AnyVarStorage
 
 
-anyvar_db_fn = os.path.expanduser("~/tmp/anyvar")
+anyvar_db_fn = os.path.expanduser("/tmp/anyvar")
 
 
 def _get_g(k, fn):

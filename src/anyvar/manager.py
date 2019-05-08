@@ -1,11 +1,11 @@
-"""manages a VMC bundle and provides helpful a helpful interface to
+"""manages a GA4GH.VR bundle and provides helpful a helpful interface to
 it"""
 
 
 import logging
 
-import vmc
-from vmc.extras.translator import Translator
+import ga4gh.vr
+from ga4gh.vr.extras.translator import Translator
 
 
 _logger = logging.getLogger(__name__)
@@ -18,19 +18,19 @@ class Manager:
 
 
     def add_allele(self, allele):
-        allele.id = vmc.computed_id(allele)
+        allele.id = ga4gh.vr.computed_id(allele)
         self.storage.alleles[allele.id] = allele
         self.add_location(allele.location)
         _logger.warn(f"Added Allele {allele.id}")
         return allele
 
     def add_location(self, location):
-        location.id = vmc.computed_id(location)
+        location.id = ga4gh.vr.computed_id(location)
         self.storage.locations[location.id] = location
         return location
 
     def add_text(self, text):
-        text.id = vmc.computed_id(text)
+        text.id = ga4gh.vr.computed_id(text)
         self.storage.texts[text.id] = text
         return text
 
@@ -50,7 +50,7 @@ class Manager:
         t = self.translator
 
         if fmt == "ga4gh":
-            a = vmc.models.Allele(**defn)
+            a = ga4gh.vr.models.Allele(**defn)
         elif fmt == "beacon":
             a = t.from_beacon(defn)
         elif fmt == "hgvs":
@@ -66,5 +66,5 @@ class Manager:
     
 
     def translate_text(self, defn):
-        t = vmc.models.Text(definition=defn)
+        t = ga4gh.vr.models.Text(definition=defn)
         return t

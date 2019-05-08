@@ -13,14 +13,14 @@ is up, so you can't serve subschemas via connexion initially.
 
 So, the startup process below is:
 
-  1. start a flask app on :5000 to serve /vmc.json
+  1. start a flask app on :5000 to serve /vr.json
 
   2. create the connexion app with the openapi schema.  Connexion
-     validates using vmc.json on :5000.
+     validates using vr.json on :5000.
 
   3. shutdown the flask app.
 
-  4. add a route for /vmc.json (and /ui) to the connexion app.
+  4. add a route for /vr.json (and /ui) to the connexion app.
 
   5. start the connexion app
 
@@ -34,15 +34,15 @@ import connexion
 from connexion.resolver import RestyResolver
 from flask import Flask, redirect
 
-from vmc import schema_path
+from ga4gh.vr import schema_path
 
 from anyvar.uidoc import redoc_template, rapidoc_template
 
 
-def start_vmc_server(port=5000):
+def start_vr_server(port=5000):
     app = Flask(__name__)
-    @app.route('/vmc.json')
-    def vmc_schema():
+    @app.route('/vr.json')
+    def vr_schema():
         schema = open(schema_path).read()
         return schema, 200, {"Content-Type": "application/json; charset=utf-8"}
     app.run()
@@ -50,7 +50,7 @@ def start_vmc_server(port=5000):
 
 
 if __name__ == "__main__":
-    p = Process(target=start_vmc_server)
+    p = Process(target=start_vr_server)
     p.start()
     
     spec_dir = resource_filename(__name__, "_data")
@@ -61,8 +61,8 @@ if __name__ == "__main__":
                   strict_validation=True,
                   resolver=RestyResolver("anyvar.routes"))
 
-    @cxapp.route("/vmc.json")
-    def vmc_schema():
+    @cxapp.route("/vr.json")
+    def vr_schema():
         schema = open(schema_path).read()
         return schema, 200, {"Content-Type": "application/json; charset=utf-8"}
 

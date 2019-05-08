@@ -7,8 +7,8 @@ import shelve
 import json
 import zlib
 
-import vmc
-from vmc.utils import is_vr_instance
+import ga4gh.vr
+from ga4gh.vr.utils import is_vr_instance
 
 
 _logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ class Storage:
         self._db = shelve.open(filename)
     
     def __setitem__(self, name, value):
-        assert is_vr_instance(value), "VMC/VR object value required"
+        assert is_vr_instance(value), "ga4gh.vr object value required"
         name = str(name)        # in case str-like
         d = value.as_dict()
         j = json.dumps(d)
@@ -37,7 +37,7 @@ class Storage:
         name = str(name)        # in case str-like
         data = json.loads(zlib.decompress(self._db[name]).decode("UTF-8"))
         typ = data["type"]
-        vo = vmc.models[typ](**data)
+        vo = ga4gh.vr.models[typ](**data)
         return vo
 
     def __contains__(self, name):
