@@ -28,5 +28,5 @@ def _create_Manager():
     return Manager(storage=storage)
 
 def get_manager():
-    return _get_g("_vmc_manager", _create_Manager)
+    return _get_g("_vr_manager", _create_Manager)
     

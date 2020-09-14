@@ -49,5 +49,7 @@ services:
 
 volumes:
   seqrepo_vol:
+    external: true
   uta_vol:
+    external: true
   anyvar_redis_vol:

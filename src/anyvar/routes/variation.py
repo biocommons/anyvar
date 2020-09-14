@@ -2,8 +2,8 @@ from connexion import NoContent
 
 
 def put(body):
-    translator = get_translator()
     vm = get_manager()
+    translator = get_translator()
 
     request = body
 

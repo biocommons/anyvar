@@ -32,7 +32,7 @@ The full functionality of *anyvar* requires external services:
     instance to a new volume:
 
 		$ docker run --rm \
-		  -v anyvar_seqrepo_vol:/usr/local/share/seqrepo  \
+		  -v seqrepo_vol:/usr/local/share/seqrepo  \
 		  -v /usr/local/share/seqrepo:/tmp/seqrepo \
 		  alpine \
 		  cp -av /tmp/seqrepo /usr/local/share/
@@ -40,7 +40,7 @@ The full functionality of *anyvar* requires external services:
 	b. Otherwise, do this:
 
 		$ docker run --rm \
-		-v anyvar_seqrepo_vol:/usr/local/share/seqrepo \
+		-v seqrepo_vol:/usr/local/share/seqrepo \
 		biocommons/seqrepo:latest
 
 Then, type:

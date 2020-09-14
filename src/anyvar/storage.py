@@ -8,7 +8,7 @@ import json
 import zlib
 
 import ga4gh.vr
-from ga4gh.vr.utils import is_vr_instance
+from ga4gh.core import is_class as is_vr_instance
 
 
 _logger = logging.getLogger(__name__)
