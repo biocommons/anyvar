@@ -1,7 +1,9 @@
-"""manages a GA4GH.VR bundle and provides helpful a helpful interface to
-it"""
+"""full-service interface to converting, validating, and registering
+biological sequence variation
 
+"""
 
+import collections.abc
 import logging
 
 from ga4gh.core import ga4gh_identify
@@ -13,11 +15,14 @@ from ga4gh.vr.extras.translator import Translator
 _logger = logging.getLogger(__name__)
 
 
-class Manager:
-    def __init__(self, storage, dataproxy):
-        self.dataproxy = dataproxy
+class AnyVar:
+    def __init__(self, /, data_proxy, storage):
+        if not isinstance(storage, collections.abc.MutableMapping):
+            _logger.warning("AnyVar(storage=) should be a mutable mapping; you're on your own")
+
+        self.data_proxy = data_proxy
         self.storage = storage
-        self.translator = Translator(data_proxy=dataproxy)
+        self.translator = Translator(data_proxy=data_proxy)
 
     # TODO: instead of storing in separate "silos" (see storage), just
     # store in one.
@@ -51,6 +56,7 @@ class Manager:
     def get_text(self, id):
         return self.storage.texts[id]
 
+    
 
     def translate_allele(self, defn, fmt=None):
         t = self.translator
@@ -74,3 +80,7 @@ class Manager:
     def translate_text(self, defn):
         t = ga4gh.vr.models.Text(definition=defn)
         return t
+
+
+if __name__ == "__main__":
+    from ga4gh.vr.dataproxy import 
