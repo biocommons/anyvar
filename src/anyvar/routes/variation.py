@@ -1,9 +1,11 @@
 from connexion import NoContent
 
+from ..globals import get_manager
+
 
 def put(body):
     vm = get_manager()
-    translator = get_translator()
+    translator = vm.translator
 
     request = body
 

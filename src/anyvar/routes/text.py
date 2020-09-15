@@ -5,16 +5,16 @@ from ..globals import get_manager
 
 def put(body):
     m = get_manager()
-    
+
     request = body
     defn = request.pop("definition")
     
-    t = m.translate_text(defn=defn)
-    m.add_text(t)
+    v = m.translate_text(defn)
+    m.add_text(v)
 
     result = {
         "messages": [],
-        "data": t.as_dict()
+        "data": v.as_dict()
     }
     
     return result, 200

@@ -8,7 +8,7 @@ import json
 import zlib
 
 import ga4gh.vr
-from ga4gh.core import is_class as is_vr_instance
+from ga4gh.core import is_pjs_instance
 
 
 _logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ class Storage:
         self._db = shelve.open(filename)
     
     def __setitem__(self, name, value):
-        assert is_vr_instance(value), "ga4gh.vr object value required"
+        assert is_pjs_instance(value), "ga4gh.vr object value required"
         name = str(name)        # in case str-like
         d = value.as_dict()
         j = json.dumps(d)

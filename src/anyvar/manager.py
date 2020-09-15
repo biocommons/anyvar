@@ -4,7 +4,9 @@ it"""
 
 import logging
 
+from ga4gh.core import ga4gh_identify
 import ga4gh.vr
+
 from ga4gh.vr.extras.translator import Translator
 
 
@@ -12,26 +14,30 @@ _logger = logging.getLogger(__name__)
 
 
 class Manager:
-    def __init__(self, storage):
-        self.translator = Translator()
+    def __init__(self, storage, dataproxy):
+        self.dataproxy = dataproxy
         self.storage = storage
+        self.translator = Translator(data_proxy=dataproxy)
 
+    # TODO: instead of storing in separate "silos" (see storage), just
+    # store in one.
+    # Also, use vr_enref to do this, which will recurse for us.
 
     def add_allele(self, allele):
-        allele.id = ga4gh.vr.computed_id(allele)
-        self.storage.alleles[allele.id] = allele
+        allele._id = ga4gh_identify(allele)
+        self.storage.alleles[allele._id] = allele
         self.add_location(allele.location)
-        _logger.warn(f"Added Allele {allele.id}")
+        _logger.info(f"Added Allele {allele._id}")
         return allele
 
     def add_location(self, location):
-        location.id = ga4gh.vr.computed_id(location)
-        self.storage.locations[location.id] = location
+        location._id = ga4gh_identify(location)
+        self.storage.locations[location._id] = location
         return location
 
     def add_text(self, text):
-        text.id = ga4gh.vr.computed_id(text)
-        self.storage.texts[text.id] = text
+        text._id = ga4gh_identify(text)
+        self.storage.texts[text._id] = text
         return text
 
 

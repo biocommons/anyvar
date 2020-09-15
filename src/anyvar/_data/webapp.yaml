@@ -150,7 +150,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "http://localhost:5000/vr.json#/definitions/Text"
+                type: object
+                # $ref: "http://localhost:5000/vr.json#/definitions/Text"
                 
   /text/{id}:
     get:
@@ -170,7 +171,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "http://localhost:5000/vr.json#/definitions/Text"
+                type: object
+                # $ref: "http://localhost:5000/vr.json#/definitions/Text"
     
   ###########################################################################
   # Allele
