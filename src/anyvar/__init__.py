@@ -4,8 +4,10 @@ import logging
 
 import pkg_resources
 
+_logger = logging.getLogger(__name__)
 
-_logger = logging.getLogger()
+__all__ = "AnyVar".split()
+
 
 try:
     __version__ = pkg_resources.get_distribution(__name__).version
@@ -14,3 +16,6 @@ except pkg_resources.DistributionNotFound:
     __version__ = "unknown"
 finally:
     del pkg_resources
+
+
+from .anyvar import AnyVar
