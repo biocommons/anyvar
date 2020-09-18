@@ -1,30 +1,24 @@
 from connexion import NoContent
 
-from ..globals import get_manager
+from ..globals import get_anyvar
 
 
 def put(body):
-    m = get_manager()
-
+    av = get_anyvar()
     request = body
     defn = request.pop("definition")
-    
-    v = m.translate_text(defn)
-    m.add_text(v)
-
+    v = av.put_text(defn)
     result = {
         "messages": [],
         "data": v.as_dict()
     }
-    
     return result, 200
 
 
 def get(id):
-    m = get_manager()
+    av = get_anyvar()
     result = {
         "messages": [],
-        "data": m.get_text(id).as_dict()
+        "data": av.get_object(id).as_dict()
     }
-    
     return result, 200

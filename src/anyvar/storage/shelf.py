@@ -16,7 +16,7 @@ _logger = logging.getLogger(__name__)
 silos = "locations alleles haplotypes genotypes variationsets relations texts".split()
 
 
-class Storage:
+class ShelfStorage(collections.abc.MutableMapping):
     """Super simple key-value storage for GA4GH VR objects"""
 
     def __init__(self, filename):

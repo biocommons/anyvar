@@ -1,10 +1,10 @@
 from connexion import NoContent
 
-from ..globals import get_manager
+from ..globals import get_anyvar
 
 
 def put(body):
-    vm = get_manager()
+    av = get_anyvar()
     translator = vm.translator
 
     request = body
@@ -28,7 +28,7 @@ def put(body):
 
 
 def get(id):
-    vm = get_manager()
+    av = get_anyvar()
 
     if id not in vm.alleles:
         return NoContent, 404

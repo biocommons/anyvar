@@ -1,13 +1,13 @@
 import ga4gh.vr
 
-from ..globals import get_manager
+from ..globals import get_anyvar
 
 
 def put(body):
     request = body
     defn = request.pop("definition")
 
-    m = get_manager()
+    av = get_anyvar()
 
     messages = []
 
@@ -28,6 +28,6 @@ def put(body):
 
 
 def get(id):
-    m = get_manager()
+    av = get_anyvar()
     return m.storage.variationsets[id].as_dict(), 200
 

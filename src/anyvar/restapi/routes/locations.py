@@ -1,17 +1,17 @@
 from connexion import NoContent
 
-from ..globals import get_manager
+from ..globals import get_anyvar
 
 
 def get(id):
-    m = get_manager()
+    av = get_anyvar()
 
-    if id not in m.storage.locations:
+    if id not in av.storage.locations:
         return NoContent, 404
 
     return m.storage.locations[id].as_dict(), 200
 
 
 def search(body):
-    m = get_manager()
-    return [m.storage.locations[id] for id in vm.storage.locations], 200
+    av = get_anyvar()
+    return [av.storage.locations[id] for id in av.storage.locations], 200

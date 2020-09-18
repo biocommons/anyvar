@@ -27,6 +27,9 @@ So, the startup process below is:
 """
 
 
+import coloredlogs
+
+
 from multiprocessing import Process
 from pkg_resources import resource_filename
 
@@ -36,7 +39,7 @@ from flask import Flask, redirect
 
 from ga4gh.vr import schema_path
 
-from anyvar.uidoc import redoc_template, rapidoc_template
+from .uidoc import redoc_template, rapidoc_template
 
 
 def start_vr_server(port=5000):
@@ -50,6 +53,8 @@ def start_vr_server(port=5000):
 
 
 if __name__ == "__main__":
+    coloredlogs.install(level="INFO")
+
     p = Process(target=start_vr_server)
     p.start()
     
@@ -59,7 +64,7 @@ if __name__ == "__main__":
     cxapp.add_api(spec_fn,
                   validate_responses=True,
                   strict_validation=True,
-                  resolver=RestyResolver("anyvar.routes"))
+                  resolver=RestyResolver("anyvar.restapi.routes"))
 
     @cxapp.route("/vr.json")
     def vr_schema():

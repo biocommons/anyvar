@@ -67,13 +67,3 @@ def infer_plausible_formats(o):
 
     raise RuntimeError("Cannot infer format of a " + type(o))
 
-
-
-def create_variation(definition, validation_level="relaxed", normalize="right", accept_formats=None):
-    """Given a arbitrary object, attempt to parse into a known format. 
-
-    """
-
-    plausible_formats = plausible_formats(definition)
-    
-    

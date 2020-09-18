@@ -11,11 +11,10 @@ from flask import current_app
 from biocommons.seqrepo import SeqRepo
 from ga4gh.vr.dataproxy import SeqRepoDataProxy
 
-from .manager import Manager
-from .storage import AnyVarStorage
+from ..anyvar import AnyVar
+from ..storage.shelf import ShelfStorage
 
-
-anyvar_db_fn = os.path.expanduser("/tmp/anyvar")
+anyvar_db_fn = os.path.expanduser("/tmp/anyvar.db")
 
 
 def _get_g(k, fn):
@@ -26,14 +25,16 @@ def _get_g(k, fn):
         setattr(current_app, k, v)
     return v
 
-def _create_Manager():
+
+def _create_anyvar():
     """the Manager is really just a bundle of stuff used frequently in the app
 
     """
-    storage = AnyVarStorage(anyvar_db_fn)
+    storage = ShelfStorage(anyvar_db_fn)
     seqrepo_dir = os.environ.get("SEQREPO_DIR", "/usr/local/share/seqrepo/latest")
-    dataproxy = SeqRepoDataProxy(SeqRepo(seqrepo_dir))
-    return Manager(storage=storage, dataproxy=dataproxy)
+    data_proxy = SeqRepoDataProxy(SeqRepo(seqrepo_dir))
+    return AnyVar(object_store=storage, data_proxy=data_proxy)
 
-def get_manager():
-    return _get_g("_vr_manager", _create_Manager)
+
+def get_anyvar():
+    return _get_g("_anyvar", _create_anyvar)

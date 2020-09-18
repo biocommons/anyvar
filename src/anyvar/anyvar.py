@@ -8,7 +8,8 @@ import logging
 
 from ga4gh.core import ga4gh_identify
 from ga4gh.vr import models, vr_deref, vr_enref
-from ga4gh.vr.extras.translator import Translator
+
+from .translator import Translator
 
 
 _logger = logging.getLogger(__name__)
@@ -21,37 +22,52 @@ class AnyVar:
 
         self.data_proxy = data_proxy
         self.object_store = object_store
-        self.translator = Translator(data_proxy=data_proxy)
+        self.translator = Translator(
+            data_proxy=data_proxy,
+            normalize=True,
+            identify=True
+        )
+
 
     def put_object(self, vo):
         v = vr_enref(vo, self.object_store)
-        return str(v._id)
+        _id = str(v._id)
+        _logger.info(f"stored object {_id}")
+        return _id
 
     def get_object(self, id, deref=False):
         v = self.object_store[id]
         return vr_deref(v, self.object_store) if deref else v
-    
-    def translate_allele(self, defn, fmt=None):
+
+    def put_allele(self, defn, fmt):
+        v = self.translate_allele(defn, fmt)
+        self.put_object(v)
+        return v
+
+    def put_text(self, defn):
+        v = self.translate_text(defn)
+        self.put_object(v)
+        return v
+
+    def translate_allele(self, defn, fmt):
         t = self.translator
 
         if fmt == "ga4gh":
-            a = models.Allele(**defn)
+            v = models.Allele(**defn)
         elif fmt == "beacon":
-            a = t.from_beacon(defn)
+            v = t.from_beacon(defn)
         elif fmt == "hgvs":
-            a = t.from_hgvs(defn)
+            v = t.from_hgvs(defn)
         elif fmt == "gnomad":
-            a = t.from_gnomad(defn)
+            v = t.from_gnomad(defn)
         elif fmt == "spdi":
-            a = t.from_spdi(defn)
+            v = t.from_spdi(defn)
         else:
             raise ValueError(f"unsupported format ({fmt})")
-
-        return a
+        return v
 
     def translate_text(self, defn):
-        t = models.Text(definition=defn)
-        return t
+        return models.Text(definition=defn)
 
 
 if __name__ == "__main__":

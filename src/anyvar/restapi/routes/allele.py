@@ -1,6 +1,6 @@
 from connexion import NoContent
 
-from ..globals import get_manager
+from ..globals import get_anyvar
 
 
 def put(body):
@@ -10,29 +10,28 @@ def put(body):
 
     messages = []
 
-    m = get_manager()
-    a = m.translate_allele(defn=defn, fmt=fmt)
-    m.add_allele(a)
-    
+    av = get_anyvar()
+    v = av.put_allele(defn=defn, fmt=fmt)
+
     result = {
         "messages": messages,
-        "data": a.as_dict(),
+        "data": v.as_dict(),
     }
-    
+
     return result, 200
 
 
 def get(id):
-    m = get_manager()
+    av = get_anyvar()
 
     try:
-        a = m.get_allele(id)
-    except KeyError as e:
+        v = av.get_object(id, deref=True)
+    except KeyError:
         return None, 404
-        
+
     result = {
         "messages": [],
-        "data": a.as_dict()
+        "data": v.as_dict()
     }
-    
+
     return result, 200
