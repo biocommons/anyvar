@@ -11,7 +11,7 @@ __all__ = "AnyVar".split()
 
 try:
     __version__ = pkg_resources.get_distribution(__name__).version
-    _logger.warning(f"Package {__name__} version = {__version__}")
+    _logger.info(f"Package {__name__} version = {__version__}")
 except pkg_resources.DistributionNotFound:
     __version__ = "unknown"
 finally:

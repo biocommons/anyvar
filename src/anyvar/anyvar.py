@@ -31,8 +31,7 @@ class AnyVar:
 
     def put_object(self, vo):
         v = vr_enref(vo, self.object_store)
-        _id = str(v._id)
-        _logger.info(f"stored object {_id}")
+        _id = ga4gh_identify(v)
         return _id
 
     def get_object(self, id, deref=False):
@@ -46,8 +45,7 @@ class AnyVar:
 
     def put_text(self, defn):
         v = self.translate_text(defn)
-        self.put_object(v)
-        return v
+        return self.put_object(v)
 
     def translate_allele(self, defn, fmt):
         t = self.translator

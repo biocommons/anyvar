@@ -1,12 +1,7 @@
 import gzip
 import logging
-import os
 
 import lxml.etree as le
-import smart_open
-
-
-assert os.environ["USER"] == "reece", "This file is in extras for Reece's convenience. You shouldn't be using it. Go away."
 
 
 _logger = logging.getLogger()
