@@ -8,13 +8,10 @@ imagename=reece/anyvar
 eq="============================================================================"
 e () { echo "$eq"; echo "+ $@"; $@; }
 
-
-tag=$(hg id -t)
-if [ "$tag" = "tip" ]; then
-    tag=master
-fi
+tag=$(git describe --tags)
 
 e docker build -t $imagename:$tag "$@" .
+e docker push $imagename:$tag
+
 e docker tag $imagename:$tag $imagename:latest 
 e docker push $imagename:latest 
-
