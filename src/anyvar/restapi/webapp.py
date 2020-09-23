@@ -26,17 +26,15 @@ So, the startup process below is:
 
 """
 
-
-import coloredlogs
-
-
 from multiprocessing import Process
 from pkg_resources import resource_filename
+import time
+
+import coloredlogs
 
 import connexion
 from connexion.resolver import RestyResolver
 from flask import Flask, redirect
-
 from ga4gh.vr import schema_path
 
 from .uidoc import redoc_template, rapidoc_template

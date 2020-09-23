@@ -8,7 +8,6 @@ Variation Representation standards:
 * Unparsed text variation
 * [future] Copy Number Variation
 * [future] Genotypes (composed of Haplotypes)
-* [future] Haplotypes (composed of Alleles)
 * [future] Structural Variation/Translocations/Fusions
 
 All types are assigned computed, digest-based identifiers based on the
@@ -87,3 +86,12 @@ Then, start the server with:
 In another terminal:
 
     curl http://localhost:5000/info
+
+
+## Other juicy notes
+
+```
+$ docker volume create anyvar_redis_vol
+$ docker run --name anyvar_redis -v anyvar_redis_vol:/data -d redis redis-server --appendonly yes
+$ python3 -m anyvar.restapi
+```

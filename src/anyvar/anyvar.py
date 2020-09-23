@@ -9,7 +9,7 @@ import logging
 from ga4gh.core import ga4gh_identify
 from ga4gh.vr import models, vr_deref, vr_enref
 
-from .translator import Translator
+from anyvar.translator import Translator
 
 
 _logger = logging.getLogger(__name__)
@@ -84,5 +84,3 @@ if __name__ == "__main__":
 
     v2 = av.get_object(vid, deref=True)
     assert v == v2              # roundtrip test
-    
-    

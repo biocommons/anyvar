@@ -50,9 +50,16 @@ if __name__ == "__main__":
 
     cv_fn = sys.argv[1]
     cvrec_gen = (cvrec for cvrec in ClinvarParser(cv_fn) if cvrec.hgvs_expressions)
-    pbar = tqdm.tqdm(firstn(cvrec_gen, 1000))
+    pbar = tqdm.tqdm(cvrec_gen, unit="VCVs")
+    n_hgvs = 0
+    n_cvrec = 0
+    n_exc = 0
     for cvrec in pbar:
         #_logger.info(f"{cvrec.accession}; {cvrec.record_type}; {len(cvrec.hgvs_expressions)} hgvs expressions")
+        n_cvrec += 1
+        n_hgvs += len(cvrec.hgvs_expressions)
+        if n_cvrec % 10 == 0:
+            pbar.set_description(f"{n_hgvs} hgvs expressions")
         for he in cvrec.hgvs_expressions:
             try:
                 v = tlr.from_hgvs(he)
@@ -61,3 +68,4 @@ if __name__ == "__main__":
             _id = av.put_object(v)
             #_logger.info(f"stored {_id} for {he}")
 
+    _logger.info(f"{n_hgvs} hgvs expressions in {n_cvrec} clinvar records")

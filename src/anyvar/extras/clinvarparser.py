@@ -62,7 +62,8 @@ class ClinvarParser:
         self.current_only = current_only
 
     def __iter__(self):
-        yield from (va for va in (VariationArchive(e) for _, e in self._xp) if not self.current_only or va.is_current)
+        yield from (va for va in (VariationArchive(e) for _, e in self._xp)
+                    if not self.current_only or va.is_current)
 
 
 def clinvar_open(fp):
