@@ -20,6 +20,6 @@ def get(id):
     av = get_anyvar()
     result = {
         "messages": [],
-        "data": av.get_object(id).as_dict()
+        "data": av.get_object(id, deref=True).as_dict()
     }
     return result, 200

@@ -417,7 +417,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "file:vr.json#/definitions/Location"
+                type: object
+                # This seems to be working: $ref: "file:vr.json#/definitions/Location"
 
 
 

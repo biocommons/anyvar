@@ -29,8 +29,9 @@ def put(body):
 
 def get(id):
     av = get_anyvar()
-
-    if id not in vm.alleles:
+    try:
+        v = av.get_object(id, deref=True)
+        return v.as_dict(), 200
+    except KeyError:
         return NoContent, 404
 
-    return vm.storage[id].as_dict(), 200
