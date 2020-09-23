@@ -2,6 +2,7 @@
 
 """
 
+import logging
 from pkg_resources import resource_filename
 from tempfile import TemporaryDirectory
 
@@ -15,14 +16,7 @@ from .uidoc import redoc_template, rapidoc_template
 from .utils import replace_dollar_ref
 
 
-
-def start_vr_server(port=5000):
-    app = Flask(__name__)
-    @app.route('/vr.json')
-    def vr_schema():
-        schema = open(schema_path).read()
-        return schema, 200, {"Content-Type": "application/json; charset=utf-8"}
-    app.run()
+_logger = logging.getLogger(__name__)
 
 
 def generate_openapi_yaml():
@@ -34,7 +28,7 @@ def generate_openapi_yaml():
         "vr.json": schema_path
         }
     spec_dir = resource_filename(__name__, "_data")
-    spec_fn = spec_dir + "/webapp.yaml"
+    spec_fn = spec_dir + "/openapi.yaml"
     return replace_dollar_ref(open(spec_fn).read(), ref_map)
 
 
@@ -44,6 +38,7 @@ if __name__ == "__main__":
     tmpdir = TemporaryDirectory()
     openapi_fn = tmpdir.name + "/openapi.yaml"
     open(openapi_fn, "w").write(generate_openapi_yaml())
+    _logger.info(f"Wrote {openapi_fn}")
 
     cxapp = connexion.App(__name__, debug=True, specification_dir=tmpdir.name)
     cxapp.add_api(openapi_fn,
