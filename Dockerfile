@@ -1,16 +1,9 @@
-FROM ubuntu:18.10
-
-RUN apt update && apt upgrade -y && apt install -y \
-    curl \
-    mercurial \
-    python3-pip
-
-RUN pip3 install -U setuptools pip
+FROM biocommons/dockerbase:1.0
 
 COPY . /app/
 WORKDIR /app
 RUN python3 setup.py install
 
-EXPOSE 5000
+EXPOSE 5001
 
-CMD ["python3", "-m", "anyvar"]
+CMD ["python3", "-m", "anyvar.restapi"]
