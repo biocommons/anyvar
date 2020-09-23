@@ -13,6 +13,9 @@ info:
 
 tags:
   - name: General
+  - name: Sequences
+    description: >-
+      Sequence and sequence metadata
   - name: Locations
     description: >-
       Where Variation occurs
@@ -41,6 +44,86 @@ paths:
               schema:
                 $ref: "#/components/schemas/Info"
 
+
+  ###########################################################################
+  # Sequences
+
+  /sequence/{alias}:
+    get:
+      summary: Retrieve a sequence by any alias
+      description: >-
+        Retrieve a reference sequence using a hash function
+      tags:
+        - Sequences
+      parameters:
+        - in: path
+          name: alias
+          description: Any sequence alias or hash
+          required: true
+          schema:
+            type: string
+          example: refseq:NM_000551.3
+        - in: query
+          name: start
+          description: >-
+            Optional; specifies start of requested sequence
+            using interbase coordinates (numerically equivalent to
+            0-based, right-open).
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+        - in: query
+          name: end
+          description: >-
+            Optional; specifies end of requested sequence
+            using interbase coordinates (numerically equivalent to
+            0-based, right-open).
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+      responses:
+        200:
+          description: >-
+            Successful retrieval of sequence. Returned as a single string with
+            no line breaks
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: >-
+                  MSSPTPPGGQRTLQKRKQGSSQKVAASAPKKNTNSNNSILKIYSDEATGLRVDPLVVLFLAVGFIFSVVALHVISKVAGKLF
+        404:
+          description: NOT FOUND; sequence does not exist
+        422:
+          description: UNPROCESSABLE ENTITY; request was understood, but is invalid
+
+  /sequence-metadata/{alias}:
+    get:
+      summary: Get reference metadata from a hash
+      description: Retrieve a metadata about a reference sequence using a hash identifier
+      tags:
+        - Sequences
+      parameters:
+        - in: path
+          name: alias
+          required: true
+          description: The identifier to use. Should be a checksum hash
+          schema:
+            type: string
+          example: GRCh38:1
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Metadata"
+        404:
+          description: NOT FOUND; sequence does not exist
+        422:
+          description: UNPROCESSABLE ENTITY; request was understood, but is invalid
 
 
   ###########################################################################
@@ -361,3 +444,69 @@ components:
     
     Allele:
       $ref: "file:vr.json#/definitions/Allele"
+
+    Metadata:
+      type: object
+      description: Holds information about a sequence checksum
+      properties:
+        metadata:
+          type: object
+          properties:
+            length:
+              type: integer
+              format: int64
+              description: An decimal integer of the length of the reference sequence
+            aliases:
+              type: array
+              items:
+                type: string
+            alphabet:
+              type: string
+              nullable: true
+            added:
+              type: string
+              nullable: true
+          required:
+            - length
+            - aliases
+            - alphabet
+            - added
+      example:
+        metadata:
+          aliases:
+          - GRCh38:1
+          - GRCh38:chr1
+          - GRCh38.p1:1
+          - GRCh38.p1:chr1
+          - GRCh38.p10:1
+          - GRCh38.p10:chr1
+          - GRCh38.p11:1
+          - GRCh38.p11:chr1
+          - GRCh38.p12:1
+          - GRCh38.p12:chr1
+          - GRCh38.p2:1
+          - GRCh38.p2:chr1
+          - GRCh38.p3:1
+          - GRCh38.p3:chr1
+          - GRCh38.p4:1
+          - GRCh38.p4:chr1
+          - GRCh38.p5:1
+          - GRCh38.p5:chr1
+          - GRCh38.p6:1
+          - GRCh38.p6:chr1
+          - GRCh38.p7:1
+          - GRCh38.p7:chr1
+          - GRCh38.p8:1
+          - GRCh38.p8:chr1
+          - GRCh38.p9:1
+          - GRCh38.p9:chr1
+          - MD5:6aef897c3d6ff0c78aff06ac189178dd
+          - RefSeq:NC_000001.11
+          - SEGUID:FCUd6VJ6uikS/VWLbhGdVmj2rOA
+          - SHA1:14251de9527aba2912fd558b6e119d5668f6ace0
+          - VMC:GS_Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO
+          - genbank:CM000663.2
+          length: 248956422
+          alphabet: ACGMNRT
+          added: 2016-08-27T21:17:00Z
+    

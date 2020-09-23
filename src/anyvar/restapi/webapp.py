@@ -1,28 +1,4 @@
-"""start anyvar development app
-
-Starting AnyVar for development is tricky for a couple of reasons.
-
-Connexion and underlying libraries don't support local *file* `$ref`s,
-but using http refs does work. 
-
-Practically, this means that splitting a schema into components
-requires using a local development server for the $ref'd components.
-
-Furthermore, connexion validates the openapi schema before the server
-is up, so you can't serve subschemas via connexion initially.
-
-So, the startup process below is:
-
-  1. start a flask app on :5000 to serve /vr.json
-
-  2. create the connexion app with the openapi schema.  Connexion
-     validates using vr.json on :5000.
-
-  3. shutdown the flask app.
-
-  4. add a route for /vr.json (and /ui) to the connexion app.
-
-  5. start the connexion app
+"""anyvar prototype app
 
 """
 

@@ -26,15 +26,27 @@ def _get_g(k, fn):
     return v
 
 
+
+def _create_seqrepo():
+    """the Manager is really just a bundle of stuff used frequently in the app
+
+    """
+    seqrepo_dir = os.environ.get("SEQREPO_DIR", "/usr/local/share/seqrepo/latest")
+    return SeqRepo(seqrepo_dir)
+
+def get_seqrepo():
+    return _get_g("_seqrepo", _create_seqrepo)
+
+
 def _create_anyvar():
     """the Manager is really just a bundle of stuff used frequently in the app
 
     """
     storage = ShelfStorage(anyvar_db_fn)
-    seqrepo_dir = os.environ.get("SEQREPO_DIR", "/usr/local/share/seqrepo/latest")
-    data_proxy = SeqRepoDataProxy(SeqRepo(seqrepo_dir))
+    sr = get_seqrepo()
+    data_proxy = SeqRepoDataProxy(sr)
     return AnyVar(object_store=storage, data_proxy=data_proxy)
-
 
 def get_anyvar():
     return _get_g("_anyvar", _create_anyvar)
+
