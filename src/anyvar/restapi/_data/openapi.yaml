@@ -442,38 +442,38 @@ components:
     # >>> j = json.load(open(ga4gh.vr.schema_path))
     # >>> print("\n".join([f"{k}:\n  $ref: \"file:vr.json#/definitions/{k}\"" for k in j["definitions"].keys()]))
     
-    Allele:
-      $ref: "file:vr.json#/definitions/Allele"
-    CURIE:
-      $ref: "file:vr.json#/definitions/CURIE"
-    ChromosomeLocation:
-      $ref: "file:vr.json#/definitions/ChromosomeLocation"
-    Cytoband:
-      $ref: "file:vr.json#/definitions/Cytoband"
-    CytobandInterval:
-      $ref: "file:vr.json#/definitions/CytobandInterval"
-    DateTime:
-      $ref: "file:vr.json#/definitions/DateTime"
-    Haplotype:
-      $ref: "file:vr.json#/definitions/Haplotype"
-    Location:
-      $ref: "file:vr.json#/definitions/Location"
-    SequenceInterval:
-      $ref: "file:vr.json#/definitions/SequenceInterval"
-    SequenceLocation:
-      $ref: "file:vr.json#/definitions/SequenceLocation"
-    SequenceState:
-      $ref: "file:vr.json#/definitions/SequenceState"
-    SimpleInterval:
-      $ref: "file:vr.json#/definitions/SimpleInterval"
-    State:
-      $ref: "file:vr.json#/definitions/State"
-    Text:
-      $ref: "file:vr.json#/definitions/Text"
-    Variation:
-      $ref: "file:vr.json#/definitions/Variation"
-    VariationSet:
-      $ref: "file:vr.json#/definitions/VariationSet"
+    # Allele:
+    #   $ref: "file:vr.json#/definitions/Allele"
+    # CURIE:
+    #   $ref: "file:vr.json#/definitions/CURIE"
+    # ChromosomeLocation:
+    #   $ref: "file:vr.json#/definitions/ChromosomeLocation"
+    # Cytoband:
+    #   $ref: "file:vr.json#/definitions/Cytoband"
+    # CytobandInterval:
+    #   $ref: "file:vr.json#/definitions/CytobandInterval"
+    # DateTime:
+    #   $ref: "file:vr.json#/definitions/DateTime"
+    # Haplotype:
+    #   $ref: "file:vr.json#/definitions/Haplotype"
+    # Location:
+    #   $ref: "file:vr.json#/definitions/Location"
+    # SequenceInterval:
+    #   $ref: "file:vr.json#/definitions/SequenceInterval"
+    # SequenceLocation:
+    #   $ref: "file:vr.json#/definitions/SequenceLocation"
+    # SequenceState:
+    #   $ref: "file:vr.json#/definitions/SequenceState"
+    # SimpleInterval:
+    #   $ref: "file:vr.json#/definitions/SimpleInterval"
+    # State:
+    #   $ref: "file:vr.json#/definitions/State"
+    # Text:
+    #   $ref: "file:vr.json#/definitions/Text"
+    # Variation:
+    #   $ref: "file:vr.json#/definitions/Variation"
+    # VariationSet:
+    #   $ref: "file:vr.json#/definitions/VariationSet"
 
 
     Metadata:

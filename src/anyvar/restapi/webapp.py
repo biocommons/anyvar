@@ -24,23 +24,26 @@ def generate_openapi_yaml():
 
     """
 
-    ref_map = {
-        "vr.json": schema_path
-        }
     spec_dir = resource_filename(__name__, "_data")
     spec_fn = spec_dir + "/openapi.yaml"
+    ref_map = {
+        "vr.json": schema_path,
+        # jsonapi isn't implemented yet
+        # "jsonapi.json": spec_dir + "/jsonapi.json",
+        }
     return replace_dollar_ref(open(spec_fn).read(), ref_map)
 
 
 if __name__ == "__main__":
     coloredlogs.install(level="INFO")
 
-    tmpdir = TemporaryDirectory()
-    openapi_fn = tmpdir.name + "/openapi.yaml"
+    td = TemporaryDirectory()
+    tmpdir = td.name
+    openapi_fn = tmpdir + "/openapi.yaml"
     open(openapi_fn, "w").write(generate_openapi_yaml())
     _logger.info(f"Wrote {openapi_fn}")
 
-    cxapp = connexion.App(__name__, debug=True, specification_dir=tmpdir.name)
+    cxapp = connexion.App(__name__, debug=True, specification_dir=tmpdir)
     cxapp.add_api(openapi_fn,
                   validate_responses=True,
                   strict_validation=True,
