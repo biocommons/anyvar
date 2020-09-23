@@ -334,7 +334,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "http://localhost:5000/vr.json#/definitions/Location"
+                $ref: "file:vr.json#/definitions/Location"
 
 
 
@@ -360,4 +360,4 @@ components:
     # >>> print("\n".join([f"{k}:\n  $ref: \"http://localhost:5000/vr.json#/definitions/{k}\"" for k in j["definitions"].keys()]))
     
     Allele:
-      $ref: "http://localhost:5000/vr.json#/definitions/Allele"
+      $ref: "file:vr.json#/definitions/Allele"
