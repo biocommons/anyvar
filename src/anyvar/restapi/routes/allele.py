@@ -11,11 +11,12 @@ def put(body):
     messages = []
 
     av = get_anyvar()
-    v = av.put_allele(defn=defn, fmt=fmt)
+    v = av.create_allele(defn=defn, fmt=fmt)
+    id = av.put_object(v)
 
     result = {
+        "object": v.as_dict(),
         "messages": messages,
-        "data": v.as_dict(),
     }
 
     return result, 200

@@ -28,7 +28,6 @@ class AnyVar:
             identify=True
         )
 
-
     def put_object(self, vo):
         v = vr_enref(vo, self.object_store)
         _id = ga4gh_identify(v)
@@ -38,16 +37,8 @@ class AnyVar:
         v = self.object_store[id]
         return vr_deref(v, self.object_store) if deref else v
 
-    def put_allele(self, defn, fmt):
-        v = self.translate_allele(defn, fmt)
-        self.put_object(v)
-        return v
 
-    def put_text(self, defn):
-        v = self.translate_text(defn)
-        return self.put_object(v)
-
-    def translate_allele(self, defn, fmt):
+    def create_allele(self, defn, fmt):
         t = self.translator
 
         if fmt == "ga4gh":
@@ -64,7 +55,7 @@ class AnyVar:
             raise ValueError(f"unsupported format ({fmt})")
         return v
 
-    def translate_text(self, defn):
+    def create_text(self, defn):
         return models.Text(definition=defn)
 
 
