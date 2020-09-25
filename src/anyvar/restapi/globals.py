@@ -8,8 +8,7 @@ import os
 
 from flask import current_app
 
-from biocommons.seqrepo import SeqRepo
-from ga4gh.vr.dataproxy import SeqRepoDataProxy
+from ga4gh.vr.dataproxy import create_dataproxy, _DataProxy
 
 from ..anyvar import AnyVar
 from ..storage import create_storage
@@ -27,15 +26,8 @@ def _get_g(k, fn):
     return v
 
 
-def _create_seqrepo():
-    """the Manager is really just a bundle of stuff used frequently in the app
-
-    """
-    seqrepo_dir = os.environ.get("SEQREPO_DIR", "/usr/local/share/seqrepo/latest")
-    return SeqRepo(seqrepo_dir)
-
-def get_seqrepo():
-    return _get_g("_seqrepo", _create_seqrepo)
+def get_dataproxy() -> _DataProxy:
+    return _get_g("_dataproxy", create_dataproxy)  # config: GA4GH_VR_DATAPROXY_URI
 
 
 def _create_anyvar():
@@ -43,9 +35,8 @@ def _create_anyvar():
 
     """
 
-    storage = create_storage()  # taken from ANYVAR_STORAGE_URI
-    sr = get_seqrepo()
-    data_proxy = SeqRepoDataProxy(sr)
+    storage = create_storage()       # config: ANYVAR_STORAGE_URI
+    data_proxy = get_dataproxy()     
     return AnyVar(object_store=storage, data_proxy=data_proxy)
 
 def get_anyvar():
