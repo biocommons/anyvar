@@ -2,6 +2,9 @@ import bz2
 import collections.abc
 import json
 
+import ga4gh.vr
+
+
 class RedisObjectStore(collections.abc.MutableMapping):
     """Provides Redis-backed storage of VR objects
     
@@ -14,7 +17,7 @@ class RedisObjectStore(collections.abc.MutableMapping):
 
     """
 
-    def __init__(self, redis, models):
+    def __init__(self, redis, models=ga4gh.vr.models):
         self._enc = "utf-8"
         self.redis = redis
         self.models = models

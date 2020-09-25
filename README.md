@@ -55,8 +55,12 @@ will change as the product matures.
 *AnyVar* should run without configuration.  The following environment
 variables provide additional configuration:
 
-* `SEQREPO_DIR` 
-* `ANYVAR_STORAGE` (not yet implemented)
+* `SEQREPO_DIR` is the SeqRepo root directory
+
+* `ANYVAR_STORAGE_URI` configures storage used for AnyVar.  Examples
+  are `memory:`, `file:///tmp/anyvar.dbm/` for shelf storage at
+  `/tmp/anyvar.dbm`, or `redis:///15` for redis database 15 on
+  localhost.
 
 
 ## Developer installation

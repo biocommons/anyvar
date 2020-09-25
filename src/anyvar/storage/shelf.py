@@ -21,8 +21,12 @@ class ShelfStorage(collections.abc.MutableMapping):
 
     def __init__(self, filename):
         _logger.debug(f"Opening {filename}")
-        self._db = shelve.open(filename)
+        self._fn = filename
+        self._db = shelve.open(self._fn)
     
+    def __repr__(self):
+        return f"{self.__class__.__module__}.{self.__class__.__qualname__} filename={self._fn}>"
+
     def __setitem__(self, name, value):
         assert is_pjs_instance(value), "ga4gh.vr object value required"
         name = str(name)        # in case str-like
@@ -33,7 +37,6 @@ class ShelfStorage(collections.abc.MutableMapping):
         self._db[name] = c
         
     def __getitem__(self, name):
-        _logger.debug(f"Fetching {name}")
         name = str(name)        # in case str-like
         data = json.loads(zlib.decompress(self._db[name]).decode("UTF-8"))
         typ = data["type"]
@@ -61,14 +64,3 @@ class ShelfStorage(collections.abc.MutableMapping):
         return self._db.keys()
 
 
-class AnyVarStorage:
-    def __init__(self, directory):
-        def _mk_silo(silo):
-            fn = os.path.join(directory, silo)
-            return Storage(fn)
-            
-        os.makedirs(directory, exist_ok=True)
-
-        for silo in silos:
-            _logger.info(f"Making silo {silo}")
-            self.__setattr__(silo, _mk_silo(silo))
