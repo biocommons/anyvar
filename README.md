@@ -55,12 +55,22 @@ will change as the product matures.
 *AnyVar* should run without configuration.  The following environment
 variables provide additional configuration:
 
-* `SEQREPO_DIR` is the SeqRepo root directory
+* `GA4GH_VR_DATAPROXY_URI` is a URI used to instantiate a
+  `ga4gh.vr.dataproxy` instance. See
+  `ga4gh.vr.dataproxy.create_dataproxy()` for permissible values.
 
 * `ANYVAR_STORAGE_URI` configures storage used for AnyVar.  Examples
   are `memory:`, `file:///tmp/anyvar.dbm/` for shelf storage at
   `/tmp/anyvar.dbm`, or `redis:///15` for redis database 15 on
   localhost.
+
+Example:
+
+```
+    $ export GA4GH_VR_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/latest
+    $ export ANYVAR_STORAGE_URI="redis:///15"
+```
+
 
 
 ## Developer installation
