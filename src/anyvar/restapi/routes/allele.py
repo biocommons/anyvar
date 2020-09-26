@@ -11,7 +11,7 @@ def put(body):
     messages = []
 
     av = get_anyvar()
-    v = av.create_allele(defn=defn, fmt=fmt)
+    v = av.translator.translate_from(var=defn, fmt=fmt)
     id = av.put_object(v)
 
     result = {

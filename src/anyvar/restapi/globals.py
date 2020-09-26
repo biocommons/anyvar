@@ -27,7 +27,7 @@ def _get_g(k, fn):
 
 
 def get_dataproxy() -> _DataProxy:
-    return _get_g("_dataproxy", create_dataproxy)  # config: GA4GH_VR_DATAPROXY_URI
+    return _get_g("_dataproxy", create_dataproxy)
 
 
 def _create_anyvar():

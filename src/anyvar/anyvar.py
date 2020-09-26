@@ -7,9 +7,8 @@ import collections.abc
 import logging
 
 from ga4gh.core import ga4gh_identify
-from ga4gh.vr import models, vr_deref, vr_enref
-
-from anyvar.translator import Translator
+from ga4gh.vrs import models, vr_deref, vr_enref
+from ga4gh.vrs.extras.translator import Translator
 
 
 _logger = logging.getLogger(__name__)
@@ -38,25 +37,10 @@ class AnyVar:
         return vr_deref(v, self.object_store) if deref else v
 
 
-    def create_allele(self, defn, fmt):
-        t = self.translator
-
-        if fmt == "ga4gh":
-            v = models.Allele(**defn)
-        elif fmt == "beacon":
-            v = t.from_beacon(defn)
-        elif fmt == "hgvs":
-            v = t.from_hgvs(defn)
-        elif fmt == "gnomad":
-            v = t.from_gnomad(defn)
-        elif fmt == "spdi":
-            v = t.from_spdi(defn)
-        else:
-            raise ValueError(f"unsupported format ({fmt})")
-        return v
-
     def create_text(self, defn):
-        return models.Text(definition=defn)
+        vo = models.Text(definition=defn)
+        vo._id = ga4gh_identify(vo)
+        return vo
 
 
 if __name__ == "__main__":

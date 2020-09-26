@@ -1,4 +1,5 @@
-import ga4gh.vr
+from ga4gh.core import ga4gh_identify
+from ga4gh.vrs import models
 
 from ..globals import get_anyvar
 
@@ -15,13 +16,13 @@ def put(body):
         return {"messages": ["unsupported"]}, 400
 
     if "member_ids" in defn:
-        vs = ga4gh.vr.models.VariationSet(member_ids=defn["member_ids"])
-        vs.id = ga4gh.vr.computed_id(vs)
-        m.storage.variationsets[vs.id] = vs
-    
+        vo = models.VariationSet(members=defn["member_ids"])
+        vo._id = ga4gh_identify(vo)
+        av.put_object(vo)
+            
     result = {
         "messages": messages,
-        "data": vs.as_dict(),
+        "data": vo.as_dict(),
     }
     
     return result, 200
@@ -29,5 +30,5 @@ def put(body):
 
 def get(id):
     av = get_anyvar()
-    return m.storage.variationsets[id].as_dict(), 200
+    return av.get_object(id).as_dict(), 200
 

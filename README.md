@@ -55,9 +55,9 @@ will change as the product matures.
 *AnyVar* should run without configuration.  The following environment
 variables provide additional configuration:
 
-* `GA4GH_VR_DATAPROXY_URI` is a URI used to instantiate a
-  `ga4gh.vr.dataproxy` instance. See
-  `ga4gh.vr.dataproxy.create_dataproxy()` for permissible values.
+* `GA4GH_VRS_DATAPROXY_URI` is a URI used to instantiate a
+  `ga4gh.vrs.dataproxy` instance. See
+  `ga4gh.vrs.dataproxy.create_dataproxy()` for permissible values.
 
 * `ANYVAR_STORAGE_URI` configures storage used for AnyVar.  Examples
   are `memory:`, `file:///tmp/anyvar.dbm/` for shelf storage at

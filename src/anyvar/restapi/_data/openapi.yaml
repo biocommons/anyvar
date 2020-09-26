@@ -21,10 +21,10 @@ tags:
       Where Variation occurs
   - name: Variation
     description: All classes of primitive Variation
-  - name: Variation Set
-    description: Sets of Variation
-  - name: Variation Subtypes
-    description: Specific subtypes of variation
+  #- name: Variation Subtypes
+  #  description: Specific subtypes of variation
+  #- name: Variation Set
+  #  description: Sets of Variation
 
 
 paths:
@@ -129,71 +129,69 @@ paths:
   ###########################################################################
   # Variation
   
-  /variation:
-    put:
-      tags: ["Variation"]
-      summary: Create an instance of sequence variation.
-      description: >-
-        Creates an instance of sequence variation and returns a
-        deterministically computed identifier.
-        
-        Requests with variant definitions that normalize to the same
-        interal variant result in only one record and the same
-        computed id is always returned.  That is, this endpoint is
-        idempotent, irrespective of the input definition format.
-
-        Alleles within haplotypes, and haplotypes withing genotypes,
-        are subjected to canonical ordering rules. Therefore, the
-        computed id of an haplotype in invariant with respect to the
-        order of the defined alleles. The same invariance holds for
-        genotypes and their component haplotypes.
-
-        The following input formats are permitted:
-
-          * Text (any descriptive text that purports to represent variation)
-          * Beacon (`13 : 32936732 G > C`)
-          * HGVS
-          * ISCN
-          * SPDI
-          * gnomAD (`1-55516888-G-GA`)
-
-      requestBody:
-        content:
-          application/json:
-            schema:
-              properties:
-                definition:
-                  description: >-
-                    Creates a variation instance from the provided
-                    `definition` parameter, which is interpreted
-                    according to `format` parameter.
-
-                    By default, the format is inferred from structure.
-                    When inferred, the variation will be created as a
-                    text record if other methods fail.  If format is
-                    not auto and the variant cannot be parsed
-                    appropriately, an error is returned.
-                  type: string
-                  example: "NC_000010.11:g.87894077C>T"
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                  
-        400:
-          description: The variation could not be parsed or is otherwise invalid.
-        501:
-          description: >-
-            The requested resource or operation is not currently
-            supported. It may be supported in the future.
+  # /variation:
+  #   put:
+  #     tags: ["Variation"]
+  #     summary: Create an instance of sequence variation.
+  #     description: >-
+  #       Creates an instance of sequence variation and returns a
+  #       deterministically computed identifier.
+  #       
+  #       Requests with variant definitions that normalize to the same
+  #       interal variant result in only one record and the same
+  #       computed id is always returned.  That is, this endpoint is
+  #       idempotent, irrespective of the input definition format.
+  # 
+  #       Alleles within haplotypes, and haplotypes withing genotypes,
+  #       are subjected to canonical ordering rules. Therefore, the
+  #       computed id of an haplotype in invariant with respect to the
+  #       order of the defined alleles. The same invariance holds for
+  #       genotypes and their component haplotypes.
+  # 
+  #       The following input formats are permitted:
+  # 
+  #         * Text (any descriptive text that purports to represent variation)
+  #         * ISCN
+  # 
+  #     requestBody:
+  #       content:
+  #         application/json:
+  #           schema:
+  #             properties:
+  #               definition:
+  #                 description: >-
+  #                   Creates a variation instance from the provided
+  #                   `definition` parameter, which is interpreted
+  #                   according to `format` parameter.
+  # 
+  #                   By default, the format is inferred from structure.
+  #                   When inferred, the variation will be created as a
+  #                   text record if other methods fail.  If format is
+  #                   not auto and the variant cannot be parsed
+  #                   appropriately, an error is returned.
+  #                 type: string
+  #                 example: "NC_000010.11:g.87894077C>T"
+  #     responses:
+  #       200:
+  #         description: OK
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #                 
+  #       400:
+  #         description: The variation could not be parsed or is otherwise invalid.
+  #       501:
+  #         description: >-
+  #           The requested resource or operation is not currently
+  #           supported. It may be supported in the future.
 
   /variation/{id}:
     get:
       tags: ["Variation"]
-      description: gets a variation instance by id, may return any supported type of variation
+      description: >-
+        Gets a variation instance by id, may return any supported type
+        of variation
       parameters:
         - name: id
           in: path
@@ -211,7 +209,7 @@ paths:
   
   /text:
     put:
-      tags: ["Variation Subtypes"]
+      tags: ["Variation"]
       description: >-
         Create an instance of unparsed text variation
       requestBody:
@@ -238,7 +236,7 @@ paths:
                 
   /text/{id}:
     get:
-      tags: ["Variation Subtypes"]
+      tags: ["Variation"]
       description: >-
         Return text variation
       parameters:
@@ -262,7 +260,7 @@ paths:
 
   /allele:
     put:
-      tags: ["Variation Subtypes"]
+      tags: ["Variation"]
       description: >-
         An Allele is a specific, single, and contiguous Sequence at a
         Location. Each alternative Sequence may be empty, shorter,
@@ -313,16 +311,24 @@ paths:
                 
   /allele/{id}:
     get:
-      tags: ["Variation Subtypes"]
+      tags: ["Variation"]
       description: >-
         An Allele is a specific, single, and contiguous Sequence at a
         Location. Each alternative Sequence may be empty, shorter,
         longer, or the same length as the interval (e.g., due to one or
         more indels).
+        
+        The following formats are accepted: 
+
+          * Beacon (`13 : 32936732 G > C`)
+          * HGVS
+          * SPDI
+          * gnomAD (`1-55516888-G-GA`)
+
       parameters:
         - name: id
           in: path
-          description: sequence id
+          description: object id
           required: true
           schema:
             type: string
@@ -341,58 +347,58 @@ paths:
   ###########################################################################
   # Variation Sets
   
-  /variationset:
-    put:
-      tags: ["Variation Set"]
-      description: >-
-        What do *you* think a VariationSet should be?
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                definition:
-                  description: >-
-                    Allele definition, interpreted according to format
-                  type: object
-                  example:
-                    member_ids:
-                      - ga4gh:GX_zQuUXqiP_YpP_uODT4PcfNIYoOPdYjC-
-                      - ga4gh:GX_jzmI29gA7-Rs7pRkeCj0mOp1Zsxan2Sc
-                      - ga4gh:GX_3NoEdRUAnX2AMdug2XoisbEi-GR7wB1x
-                      - ga4gh:GX_OWpaUYPJgLq8ZTPDbyCId6cgYPWjtrRK
-                      - ga4gh:GX_ltc3Iah3Iy5X_A06NGMla76bmPGSbMj9
-                      - ga4gh:GX_yss8NB_TDAnwyWX7ImXKTnroBYAN_d1O
-                      - ga4gh:GX_X3t0_U_rG5EfNUEYZb3zmulRYcdZ9RD2
-                      - ga4gh:GX_bD4JRdGKbwCOKh3ou8fPS2i9gD1Ojf7z
-                      - ga4gh:GX_1DHFMjTlO0Ju1cg5sa8vP2o1HSPiSR7t
-                      - ga4gh:GX_TvaAqwD_MduWohVGP4i2Tze4bieA-Kny
-              required:
-                - definition
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                # $ref: "http://localhost:5000/vr.json#/definitions/Allele"
-
-  /variationset/{id}:
-    get:
-      description: gets a variation instance by id
-      tags: ["Variation Set"]
-      parameters:
-        - name: id
-          in: path
-          description: canonical variationset id
-          required: true
-          schema:
-            type: string
-      responses:
-        200:
-          description: found; variation returned
+  # /variationset:
+  #   put:
+  #     tags: ["Variation"]
+  #     description: >-
+  #       What do *you* think a VariationSet should be?
+  #     requestBody:
+  #       content:
+  #         application/json:
+  #           schema:
+  #             type: object
+  #             properties:
+  #               definition:
+  #                 description: >-
+  #                   Allele definition, interpreted according to format
+  #                 type: object
+  #                 example:
+  #                   member_ids:
+  #                     - ga4gh:VA.zQuUXqiP_YpP_uODT4PcfNIYoOPdYjC-
+  #                     - ga4gh:VA.jzmI29gA7-Rs7pRkeCj0mOp1Zsxan2Sc
+  #                     - ga4gh:VA.3NoEdRUAnX2AMdug2XoisbEi-GR7wB1x
+  #                     - ga4gh:VA.OWpaUYPJgLq8ZTPDbyCId6cgYPWjtrRK
+  #                     - ga4gh:VA.ltc3Iah3Iy5X_A06NGMla76bmPGSbMj9
+  #                     - ga4gh:VA.yss8NB_TDAnwyWX7ImXKTnroBYAN_d1O
+  #                     - ga4gh:VA.X3t0_U_rG5EfNUEYZb3zmulRYcdZ9RD2
+  #                     - ga4gh:VA.bD4JRdGKbwCOKh3ou8fPS2i9gD1Ojf7z
+  #                     - ga4gh:VA.1DHFMjTlO0Ju1cg5sa8vP2o1HSPiSR7t
+  #                     - ga4gh:VA.TvaAqwD_MduWohVGP4i2Tze4bieA-Kny
+  #             required:
+  #               - definition
+  #     responses:
+  #       200:
+  #         description: OK
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               # $ref: "http://localhost:5000/vr.json#/definitions/Allele"
+  # 
+  # /variationset/{id}:
+  #   get:
+  #     description: gets a variation instance by id
+  #     tags: ["Variation"]
+  #     parameters:
+  #       - name: id
+  #         in: path
+  #         description: canonical variationset id
+  #         required: true
+  #         schema:
+  #           type: string
+  #     responses:
+  #       200:
+  #         description: found; variation returned
 
 
   ###########################################################################
