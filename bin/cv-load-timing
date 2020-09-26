@@ -8,8 +8,8 @@ from biocommons.seqrepo import SeqRepo
 from bioutils.exceptions import BioutilsError
 import coloredlogs
 import redis
-from ga4gh.vr import models
-from ga4gh.vr.dataproxy import SeqRepoDataProxy
+from ga4gh.vrs import models
+from ga4gh.vrs.dataproxy import SeqRepoDataProxy
 from hgvs.exceptions import HGVSParseError
 import tqdm
 

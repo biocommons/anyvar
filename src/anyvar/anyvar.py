@@ -46,7 +46,7 @@ class AnyVar:
 if __name__ == "__main__":
     import os
     from biocommons.seqrepo import SeqRepo
-    from ga4gh.vr.dataproxy import SeqRepoDataProxy
+    from ga4gh.vrs.dataproxy import SeqRepoDataProxy
 
     seqrepo_dir = os.environ.get("SEQREPO_DIR", "/usr/local/share/seqrepo/latest")
     data_proxy = SeqRepoDataProxy(SeqRepo(root_dir=seqrepo_dir))

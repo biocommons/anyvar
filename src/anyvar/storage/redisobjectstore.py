@@ -2,7 +2,7 @@ import bz2
 import collections.abc
 import json
 
-import ga4gh.vr
+import ga4gh.vrs
 
 
 class RedisObjectStore(collections.abc.MutableMapping):
@@ -17,7 +17,7 @@ class RedisObjectStore(collections.abc.MutableMapping):
 
     """
 
-    def __init__(self, redis, models=ga4gh.vr.models):
+    def __init__(self, redis, models=ga4gh.vrs.models):
         self._enc = "utf-8"
         self.redis = redis
         self.models = models
@@ -69,7 +69,7 @@ class RedisObjectStore(collections.abc.MutableMapping):
 if __name__ == "__main__":
     import redis
     from ga4gh.core import ga4gh_identify
-    from ga4gh.vr import models
+    from ga4gh.vrs import models
 
 
     ros = RedisObjectStore(redis=redis.Redis(db=15), models=models)

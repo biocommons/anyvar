@@ -439,14 +439,14 @@ components:
         dependencies:
           anyvar:
             version: "1.2.3"
-          ga4gh.vr:
+          ga4gh.vrs:
             version: "0.2.0"
 
     # External references -- necessary for definitions to show up in
     # generated docs
-    # >>> import ga4gh.vr
+    # >>> import ga4gh.vrs
     # >>> import json
-    # >>> j = json.load(open(ga4gh.vr.schema_path))
+    # >>> j = json.load(open(ga4gh.vrs.schema_path))
     # >>> print("\n".join([f"{k}:\n  $ref: \"file:vr.json#/definitions/{k}\"" for k in j["definitions"].keys()]))
     
     # Allele:

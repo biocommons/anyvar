@@ -10,7 +10,7 @@ import coloredlogs
 import connexion
 from connexion.resolver import RestyResolver
 from flask import Flask, redirect
-from ga4gh.vr import schema_path
+from ga4gh.vrs import schema_path
 
 from .uidoc import redoc_template, rapidoc_template
 from .utils import replace_dollar_ref

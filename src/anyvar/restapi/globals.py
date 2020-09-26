@@ -8,7 +8,7 @@ import os
 
 from flask import current_app
 
-from ga4gh.vr.dataproxy import create_dataproxy, _DataProxy
+from ga4gh.vrs.dataproxy import create_dataproxy, _DataProxy
 
 from ..anyvar import AnyVar
 from ..storage import create_storage

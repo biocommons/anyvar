@@ -67,7 +67,7 @@ variables provide additional configuration:
 Example:
 
 ```
-    $ export GA4GH_VR_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/latest
+    $ export GA4GH_VRS_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/latest
     $ export ANYVAR_STORAGE_URI="redis:///15"
 ```
 
@@ -143,7 +143,7 @@ Verify that *anyvar* is running like this:
       "anyvar": {
         "version": "0.1.2.dev0+d20190508"
       },
-      "ga4gh.vr": {
+      "ga4gh.vrs": {
         "version": "0.2.0"
       }
     }

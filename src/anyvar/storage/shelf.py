@@ -7,7 +7,7 @@ import shelve
 import json
 import zlib
 
-import ga4gh.vr
+import ga4gh.vrs
 from ga4gh.core import is_pjs_instance
 
 
@@ -17,7 +17,7 @@ silos = "locations alleles haplotypes genotypes variationsets relations texts".s
 
 
 class ShelfStorage(collections.abc.MutableMapping):
-    """Super simple key-value storage for GA4GH VR objects"""
+    """Super simple key-value storage for GA4GH VRS objects"""
 
     def __init__(self, filename):
         _logger.debug(f"Opening {filename}")
@@ -28,7 +28,7 @@ class ShelfStorage(collections.abc.MutableMapping):
         return f"{self.__class__.__module__}.{self.__class__.__qualname__} filename={self._fn}>"
 
     def __setitem__(self, name, value):
-        assert is_pjs_instance(value), "ga4gh.vr object value required"
+        assert is_pjs_instance(value), "ga4gh.vrs object value required"
         name = str(name)        # in case str-like
         d = value.as_dict()
         j = json.dumps(d)
@@ -40,7 +40,7 @@ class ShelfStorage(collections.abc.MutableMapping):
         name = str(name)        # in case str-like
         data = json.loads(zlib.decompress(self._db[name]).decode("UTF-8"))
         typ = data["type"]
-        vo = ga4gh.vr.models[typ](**data)
+        vo = ga4gh.vrs.models[typ](**data)
         return vo
 
     def __contains__(self, name):

@@ -1,7 +1,7 @@
 from connexion import NoContent
 
 import anyvar
-import ga4gh.vr
+import ga4gh.vrs
 
 
 
@@ -10,8 +10,8 @@ def search():
         "anyvar": {
             "version": anyvar.__version__,
             },
-        "ga4gh.vr": {
-            "version": ga4gh.vr.__version__
+        "ga4gh.vrs": {
+            "version": ga4gh.vrs.__version__
         },
     }
 
