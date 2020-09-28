@@ -34,6 +34,7 @@ paths:
   /info:
     get:
       tags: ["General"]
+      summary: Check system status and versions
       description: >-
         System status check and configuration
       responses:
@@ -189,6 +190,7 @@ paths:
   /variation/{id}:
     get:
       tags: ["Variation"]
+      summary: Retrieve any VRS object using a VRS identifier
       description: >-
         Gets a variation instance by id, may return any supported type
         of variation
@@ -210,6 +212,7 @@ paths:
   /text:
     put:
       tags: ["Variation"]
+      summary: Create a new Text allele and identifier
       description: >-
         Create an instance of unparsed text variation
       requestBody:
@@ -237,6 +240,7 @@ paths:
   /text/{id}:
     get:
       tags: ["Variation"]
+      summary: Retrieve Text variation by VRS identifier
       description: >-
         Return text variation
       parameters:
@@ -261,6 +265,7 @@ paths:
   /allele:
     put:
       tags: ["Variation"]
+      summary: Create a new allele from VRS, HGVS, SPDI, or gnomAD formats
       description: >-
         An Allele is a specific, single, and contiguous Sequence at a
         Location. Each alternative Sequence may be empty, shorter,
@@ -312,6 +317,7 @@ paths:
   /allele/{id}:
     get:
       tags: ["Variation"]
+      summary: Retrieve an allele from VRS identifier
       description: >-
         An Allele is a specific, single, and contiguous Sequence at a
         Location. Each alternative Sequence may be empty, shorter,
@@ -407,6 +413,7 @@ paths:
   /locations/{id}:
     get:
       tags: ["Locations"]
+      summary: Retrieve location by VRS location identfier
       description: >-
         An identifiable position or region on a Sequence, defined by
         Sequence Id and an Interval.
