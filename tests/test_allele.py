@@ -5,7 +5,7 @@ from anyvar import run
 from parameterized import parameterized
 import os
 
-base_url = "/variation"
+base_url = '/allele'
 
 content_type = "application/json"
 
@@ -17,7 +17,7 @@ with open(file_object) as f:
     tests = json.load(f)
 
 
-class TestVariation(unittest.TestCase):
+class TestAllele(unittest.TestCase):
     # could also be set up globally outside of this class
     @classmethod
     def setUpClass(cls):
@@ -25,16 +25,15 @@ class TestVariation(unittest.TestCase):
 
     @parameterized.expand(tests.keys())
     def test_00_put(self, id):
-        # we need to first create the allele before the next couple of tests can work with it.
         params = json.dumps(tests[id]["params"])
-        response = self.app.put("/allele", params=params, content_type=content_type)
+        response = self.app.put(base_url, params=params, content_type=content_type)
         assert response.status_code == 200
 
         self.assertDictEqual(response.json, tests[id]["response"])
 
     @parameterized.expand(tests.keys())
-    def test_10_get(self, id):
-        response = self.app.get(base_url + "/" + id)
-        assert response.status_code == 200
+    def test_10_get(self,  id):
+        resp = self.app.get(base_url + "/" + id)
+        assert resp.status_code == 200
 
-        self.assertDictEqual(response.json, tests[id]["response"]["object"])
+        self.assertDictEqual( resp.json["data"], tests[id]["response"]["object"])

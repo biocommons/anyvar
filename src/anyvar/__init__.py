@@ -19,3 +19,4 @@ finally:
 
 
 from .anyvar import AnyVar
+from .restapi.webapp import run

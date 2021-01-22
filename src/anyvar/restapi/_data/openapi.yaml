@@ -447,7 +447,7 @@ components:
           anyvar:
             version: "1.2.3"
           ga4gh.vrs:
-            version: "0.2.0"
+            version: "0.6.2"
 
     # External references -- necessary for definitions to show up in
     # generated docs

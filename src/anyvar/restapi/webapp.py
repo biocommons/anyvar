@@ -3,18 +3,19 @@
 """
 
 import logging
+
 from pkg_resources import resource_filename
-from tempfile import TemporaryDirectory
 
 import coloredlogs
-import connexion
-from connexion.resolver import RestyResolver
-from flask import Flask, redirect
 from ga4gh.vrs import schema_path
 
 from .uidoc import redoc_template, rapidoc_template
 from .utils import replace_dollar_ref
 
+from tempfile import TemporaryDirectory
+import connexion
+from connexion.resolver import RestyResolver
+from flask import redirect
 
 _logger = logging.getLogger(__name__)
 
@@ -34,8 +35,7 @@ def generate_openapi_yaml():
     return replace_dollar_ref(open(spec_fn).read(), ref_map)
 
 
-if __name__ == "__main__":
-    coloredlogs.install(level="INFO")
+def run(actually_run=True):
 
     td = TemporaryDirectory()
     tmpdir = td.name
@@ -61,5 +61,14 @@ if __name__ == "__main__":
     def index():
         return redirect("/ui")
 
-    cxapp.run(host="0.0.0.0",
-              processes=1)
+    if actually_run:
+        cxapp.run(host="0.0.0.0",
+                  processes=1)
+    else:
+        return cxapp.app
+
+
+if __name__ == "__main__":
+    coloredlogs.install(level="INFO")
+    run()
+

@@ -13,7 +13,13 @@ PKGD=$(subst .,/,${PKG})
 PYV:=3.8
 VEDIR=venv/${PYV}
 
-
+UNAME = $(shell uname)
+ifeq (${UNAME},Darwin)
+    _XRM_R:=
+else
+    _XRM_R:=r
+endif
+XRM=xargs -0${_XRM_R} rm
 
 ############################################################################
 #= BASIC USAGE
@@ -66,7 +72,7 @@ install-extras:
 #=> test: execute tests
 .PHONY: test
 test:
-	python setup.py pytest
+	python -m pytest tests
 
 #=> tox: execute tests via tox
 .PHONY: tox
@@ -97,14 +103,14 @@ docs: develop
 #=> clean: remove temporary and backup files
 .PHONY: clean
 clean:
-	find . \( -name \*~ -o -name \*.bak \) -print0 | xargs -0r rm
+	find . \( -name \*~ -o -name \*.bak \) -print0 | ${XRM}
 
 #=> cleaner: remove files and directories that are easily rebuilt
 .PHONY: cleaner
 cleaner: clean
-	rm -fr .cache *.egg-info .pytest_cache build dist doc/_build htmlcov
-	find . \( -name \*.pyc -o -name \*.orig -o -name \*.rej \) -print0 | xargs -0r rm
-	find . -name __pycache__ -print0 | xargs -0r rm -fr
+	rm -rf .cache *.egg-info .pytest_cache build dist doc/_build htmlcov
+	find . \( -name \*.pyc -o -name \*.orig -o -name \*.rej \) -print0 | ${XRM} -fr
+	find . -name __pycache__ -print0 | ${XRM} -fr
 
 #=> cleanest: remove files and directories that require more time/network fetches to rebuild
 .PHONY: cleanest
