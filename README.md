@@ -64,13 +64,19 @@ variables provide additional configuration:
   `/tmp/anyvar.dbm`, or `redis:///15` for redis database 15 on
   localhost.
 
-Example:
+Example for running with REST API:
 
 ```
-    $ export GA4GH_VRS_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/latest
+    $ export GA4GH_VRS_DATAPROXY_URI=https://services.genomicmedlab.org/seqrepo
     $ export ANYVAR_STORAGE_URI="redis:///15"
 ```
 
+Example for running with local SeqRepo:
+
+```
+    $ export SEQREPO_DIR=seqrepo+file:///usr/local/share/seqrepo/latest
+    $ export ANYVAR_STORAGE_URI="redis:///15"
+```
 
 
 ## Developer installation
