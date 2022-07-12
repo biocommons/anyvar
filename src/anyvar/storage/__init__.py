@@ -52,6 +52,10 @@ def create_storage(uri=None):
         from .redisobjectstore import RedisObjectStore
         storage = RedisObjectStore(redis.Redis.from_url(uri))
 
+    elif parsed_uri.scheme == "postgres":
+        from .postgres import PostgresObjectStore
+        storage = PostgresObjectStore(uri)
+
     else:
         raise ValueError(f"URI scheme {parsed_uri.scheme} is not implemented")
 
