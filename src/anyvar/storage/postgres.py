@@ -62,15 +62,6 @@ class PostgresObjectStore:
     def keys(self):
         return self._db.keys()
 
-    def t(ga4gh_accession_id, start, stop):
-        """_summary_
-
-        Args:
-            ga4gh_accession_id (_type_): _description_
-            start (_type_): _description_
-            stop (_type_): _description_
-        """
-
     def find_alleles(self, ga4gh_accession_id, start, stop):
         """Find all alleles that were registered that are in 1 genomic region
 
