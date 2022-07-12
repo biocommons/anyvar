@@ -7,7 +7,7 @@ import collections.abc
 import logging
 
 from ga4gh.core import ga4gh_identify
-from ga4gh.vrs import models, vr_deref, vr_enref
+from ga4gh.vrs import models, vrs_deref, vrs_enref
 from ga4gh.vrs.extras.translator import Translator
 
 
@@ -28,13 +28,13 @@ class AnyVar:
         )
 
     def put_object(self, vo):
-        v = vr_enref(vo, self.object_store)
+        v = vrs_enref(vo, self.object_store)
         _id = ga4gh_identify(v)
         return _id
 
     def get_object(self, id, deref=False):
         v = self.object_store[id]
-        return vr_deref(v, self.object_store) if deref else v
+        return vrs_deref(v, self.object_store) if deref else v
 
 
     def create_text(self, defn):
@@ -46,10 +46,14 @@ class AnyVar:
 if __name__ == "__main__":
     import os
     from biocommons.seqrepo import SeqRepo
-    from ga4gh.vrs.dataproxy import SeqRepoDataProxy
+    from ga4gh.vrs.dataproxy import SeqRepoRESTDataProxy, SeqRepoDataProxy
 
-    seqrepo_dir = os.environ.get("SEQREPO_DIR", "/usr/local/share/seqrepo/latest")
-    data_proxy = SeqRepoDataProxy(SeqRepo(root_dir=seqrepo_dir))
+    if "SEQREPO_DIR" in os.environ:
+        seqrepo_dir = os.environ.get("SEQREPO_DIR", "/usr/local/share/seqrepo/latest")
+        data_proxy = SeqRepoDataProxy(SeqRepo(root_dir=seqrepo_dir))
+    else:
+        seqrepo_url = os.environ.get("GA4GH_VRS_DATAPROXY_URI", "https://services.genomicmedlab.org/seqrepo")
+        data_proxy = SeqRepoRESTDataProxy(base_url=seqrepo_url)
     object_store = {}
          
     av = AnyVar(data_proxy=data_proxy, object_store=object_store)
