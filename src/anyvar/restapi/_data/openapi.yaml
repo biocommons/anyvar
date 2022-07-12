@@ -129,7 +129,7 @@ paths:
 
   ###########################################################################
   # Variation
-  
+
   # /variation:
   #   put:
   #     tags: ["Variation"]
@@ -137,23 +137,23 @@ paths:
   #     description: >-
   #       Creates an instance of sequence variation and returns a
   #       deterministically computed identifier.
-  #       
+  #
   #       Requests with variant definitions that normalize to the same
   #       interal variant result in only one record and the same
   #       computed id is always returned.  That is, this endpoint is
   #       idempotent, irrespective of the input definition format.
-  # 
+  #
   #       Alleles within haplotypes, and haplotypes withing genotypes,
   #       are subjected to canonical ordering rules. Therefore, the
   #       computed id of an haplotype in invariant with respect to the
   #       order of the defined alleles. The same invariance holds for
   #       genotypes and their component haplotypes.
-  # 
+  #
   #       The following input formats are permitted:
-  # 
+  #
   #         * Text (any descriptive text that purports to represent variation)
   #         * ISCN
-  # 
+  #
   #     requestBody:
   #       content:
   #         application/json:
@@ -164,7 +164,7 @@ paths:
   #                   Creates a variation instance from the provided
   #                   `definition` parameter, which is interpreted
   #                   according to `format` parameter.
-  # 
+  #
   #                   By default, the format is inferred from structure.
   #                   When inferred, the variation will be created as a
   #                   text record if other methods fail.  If format is
@@ -179,7 +179,7 @@ paths:
   #           application/json:
   #             schema:
   #               type: object
-  #                 
+  #
   #       400:
   #         description: The variation could not be parsed or is otherwise invalid.
   #       501:
@@ -208,7 +208,7 @@ paths:
 
   ###########################################################################
   # Text
-  
+
   /text:
     put:
       tags: ["Variation"]
@@ -236,7 +236,7 @@ paths:
               schema:
                 type: object
                 # $ref: "http://localhost:5000/vr.json#/definitions/Text"
-                
+
   /text/{id}:
     get:
       tags: ["Variation"]
@@ -258,7 +258,7 @@ paths:
               schema:
                 type: object
                 # $ref: "http://localhost:5000/vr.json#/definitions/Text"
-    
+
   ###########################################################################
   # Allele
 
@@ -313,7 +313,7 @@ paths:
               schema:
                 type: object
                 # $ref: "http://localhost:5000/vr.json#/definitions/Allele"
-                
+
   /allele/{id}:
     get:
       tags: ["Variation"]
@@ -323,8 +323,8 @@ paths:
         Location. Each alternative Sequence may be empty, shorter,
         longer, or the same length as the interval (e.g., due to one or
         more indels).
-        
-        The following formats are accepted: 
+
+        The following formats are accepted:
 
           * Beacon (`13 : 32936732 G > C`)
           * HGVS
@@ -348,11 +348,11 @@ paths:
                 # $ref: "http://localhost:5000/vr.json#/definitions/Allele"
 
 
-                
+
 
   ###########################################################################
   # Variation Sets
-  
+
   # /variationset:
   #   put:
   #     tags: ["Variation"]
@@ -390,7 +390,7 @@ paths:
   #             schema:
   #               type: object
   #               # $ref: "http://localhost:5000/vr.json#/definitions/Allele"
-  # 
+  #
   # /variationset/{id}:
   #   get:
   #     description: gets a variation instance by id
@@ -409,7 +409,7 @@ paths:
 
   ###########################################################################
   # Locations
-  
+
   /locations/{id}:
     get:
       tags: ["Locations"]
@@ -466,6 +466,35 @@ paths:
                 items:
                   type: object
 
+  #######################################################################
+  # Summary Statistics
+
+  /summary_statistics/{vartype}:
+    get:
+      tags: ["Statistics"]
+      summary: Summary Statistics for Variations in anyvar
+      description: Output summary statistics
+      parameters:
+        - name: vartype
+          in: path
+          description: variation type
+          required: true
+          schema:
+            type: string
+            default: all
+            enum:
+              - substitution
+              - deletion
+              - insertion
+              - all
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: integer
+
 
 # ######################################################################
 # COMPONENTS
@@ -487,7 +516,7 @@ components:
     # >>> import json
     # >>> j = json.load(open(ga4gh.vrs.schema_path))
     # >>> print("\n".join([f"{k}:\n  $ref: \"file:vr.json#/definitions/{k}\"" for k in j["definitions"].keys()]))
-    
+
     # Allele:
     #   $ref: "file:vr.json#/definitions/Allele"
     # CURIE:
@@ -586,4 +615,4 @@ components:
           length: 248956422
           alphabet: ACGMNRT
           added: 2016-08-27T21:17:00Z
-    
+

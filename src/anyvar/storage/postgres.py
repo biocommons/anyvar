@@ -54,7 +54,20 @@ class PostgresObjectStore:
         self._db.close()
 
     def __len__(self):
-        return self._db.__len__()
+        data = self.conn._fetchone(f"select count(*) as c from vrs_objects where vrs_object ->> 'type' = 'Allele'")
+        return data[0]
+
+    def deletion_count(self):
+        data = self.conn._fetchone(f"select count(*) as c from vrs_objects where length(vrs_object -> 'state' ->> 'sequence') = 0")
+        return data[0]
+
+    def substitution_count(self):
+        data = self.conn._fetchone(f"select count(*) as c from vrs_objects where length(vrs_object -> 'state' ->> 'sequence') = 1")
+        return data[0]
+
+    def insertion_count(self):
+        data = self.conn._fetchone(f"select count(*) as c from vrs_objects where length(vrs_object -> 'state' ->> 'sequence') > 1")
+        return data[0]
 
     def __iter__(self):
         return self._db.__iter__()
