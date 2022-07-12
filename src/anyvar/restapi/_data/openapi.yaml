@@ -448,6 +448,7 @@ paths:
           required: true
           schema:
             type: string
+            default: all
             enum:
               - substitution
               - deletion
