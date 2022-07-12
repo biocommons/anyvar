@@ -20,7 +20,7 @@ class PostgresClient:
         url = _parse_url(db_url)
         #if url.schema is None:
          #   raise Exception("No schema name provided in {url}".format(url=url))
-        if url.scheme != "postgres":
+        if url.scheme != "postgresql":
             raise Exception("Only Postgres databases supported for now")
         self.application_name = application_name
         self.pooling = pooling

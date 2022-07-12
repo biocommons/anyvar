@@ -13,7 +13,7 @@ according to the GA4GH Variation Representation standards.
 * [future] Structural Variation/Translocations/Fusions
 
 All types are assigned computed, digest-based identifiers based on the
-underlying data. 
+underlying data.
 
 
 ## Architecture
@@ -67,8 +67,8 @@ variables provide additional configuration:
 Example for running with REST API:
 
 ```
-    $ export GA4GH_VRS_DATAPROXY_URI=https://services.genomicmedlab.org/seqrepo
-    $ export ANYVAR_STORAGE_URI="redis:///15"
+    $ export GA4GH_VRS_DATAPROXY_URI=seqrepo+https://services.genomicmedlab.org/seqrepo
+    $ export ANYVAR_STORAGE_URI=postgres://postgres:postgres@localhost/anyvar_db
 ```
 
 Example for running with local SeqRepo:
@@ -114,7 +114,15 @@ $ docker run --name anyvar_redis -v anyvar_redis_vol:/data -d redis redis-server
 $ python3 -m anyvar.restapi
 ```
 
+### Setting up Postgres
 
+A Postgres-backed *AnyVar* installation may use any Postgres instance, local
+or remote.  The following instructions are for using a docker-based
+Postgres instance.
+
+First, run the commands in (README-pg.md)[src/anyvar/storage/README-pg.md]. This will create and start a local Postgres docker instance.
+
+Next, run the commands in (postgres_init.sql)[src/anyvar/storage/postgres_init.sql]. This will create the `anyvar` user with the appropriate permissions and create the `anyvar_db` database.
 
 ## Deployment
 
