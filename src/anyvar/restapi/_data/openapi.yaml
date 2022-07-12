@@ -433,6 +433,34 @@ paths:
                 type: object
                 # This seems to be working: $ref: "file:vr.json#/definitions/Location"
 
+  #######################################################################
+  # Summary Statistics
+
+  /summary_statistics/{vartype}:
+    get:
+      tags: ["Statistics"]
+      summary: Summary Statistics for Variations in anyvar
+      description: Output summary statistics
+      parameters:
+        - name: vartype
+          in: path
+          description: variation type
+          required: true
+          schema:
+            type: string
+            default: all
+            enum:
+              - substitution
+              - deletion
+              - insertion
+              - all
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: integer
 
 
 # ######################################################################
