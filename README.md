@@ -64,18 +64,24 @@ variables provide additional configuration:
   `/tmp/anyvar.dbm`, or `redis:///15` for redis database 15 on
   localhost.
 
-Example for running with REST API:
+Example for running with public SeqRepo REST API with Redis as a data store:
 
 ```
     $ export GA4GH_VRS_DATAPROXY_URI=seqrepo+https://services.genomicmedlab.org/seqrepo
-    $ export ANYVAR_STORAGE_URI=postgres://postgres:postgres@localhost/anyvar_db
+    $ export ANYVAR_STORAGE_URI="redis:///15"
 ```
 
-Example for running with local SeqRepo:
+Example for running with local SeqRepo with Redis as a datastore:
 
 ```
     $ export SEQREPO_DIR=seqrepo+file:///usr/local/share/seqrepo/latest
     $ export ANYVAR_STORAGE_URI="redis:///15"
+```
+
+The above two examples used Redis as the data store. To use a Postgres instance, set `ANYVAR_STORAGE_URI` to the following:
+
+```
+    $ export ANYVAR_STORAGE_URI=postgres://postgres:postgres@localhost/anyvar_db
 ```
 
 
