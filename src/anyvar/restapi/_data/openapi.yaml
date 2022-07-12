@@ -433,6 +433,38 @@ paths:
                 type: object
                 # This seems to be working: $ref: "file:vr.json#/definitions/Location"
 
+  /find_alleles:
+    get:
+      tags: ["Find Alleles"]
+      summary: Retrieve alleles that are registered in one genomic region
+      parameters:
+        - name: accession
+          in: query
+          description: Sequence accession
+          required: true
+          schema:
+            type: string
+        - name: start
+          in: query
+          description: start position for genomic region
+          required: true
+          schema:
+            type: integer
+        - name: stop
+          in: query
+          description: stop position for genomic region
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
 
 
 # ######################################################################
