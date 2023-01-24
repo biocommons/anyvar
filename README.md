@@ -81,7 +81,7 @@ Example for running with local SeqRepo with Redis as a datastore:
 The above two examples used Redis as the data store. To use a Postgres instance, set `ANYVAR_STORAGE_URI` to the following:
 
 ```
-    $ export ANYVAR_STORAGE_URI=postgres://postgres:postgres@localhost/anyvar_db
+    $ export ANYVAR_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_db
 ```
 
 

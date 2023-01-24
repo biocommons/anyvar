@@ -75,4 +75,30 @@ class PostgresObjectStore:
     def keys(self):
         return self._db.keys()
 
+    def find_alleles(self, ga4gh_accession_id, start, stop):
+        """Find all alleles that were registered that are in 1 genomic region
+
+        Args:
+            ga4gh_accession_id (str): ga4gh accession for sequence identifier
+            start (int): Start genomic region to query
+            stop (iint): Stop genomic region to query
+
+        Returns:
+            A list of VRS Alleles that have locations referenced as identifiers
+        """
+        query_str = (
+            """
+            SELECT vrs_object FROM vrs_objects
+            WHERE vrs_object->>'location' IN (
+                SELECT vrs_id FROM vrs_objects
+                WHERE CAST (vrs_object->'interval'->'start'->>'value' as INTEGER) >= %s
+                AND CAST (vrs_object->'interval'->'end'->>'value' as INTEGER) <= %s
+                AND vrs_object->>'sequence_id' = %s
+            )
+            """
+        )
+
+        data = self.conn._fetchall(query_str, [start, stop, ga4gh_accession_id])
+        return [vrs_object[0] for vrs_object in data if vrs_object]
+
 
