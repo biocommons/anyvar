@@ -55,10 +55,10 @@ if __name__ == "__main__":
         seqrepo_url = os.environ.get("GA4GH_VRS_DATAPROXY_URI", "https://services.genomicmedlab.org/seqrepo")
         data_proxy = SeqRepoRESTDataProxy(base_url=seqrepo_url)
     object_store = {}
-         
+
     av = AnyVar(data_proxy=data_proxy, object_store=object_store)
-    
-    v = av.translate_allele("NM_000551.3:c.1A>T", fmt="hgvs")
+
+    v = av.translator.translate_from("NM_000551.3:c.1A>T", fmt="hgvs")
     vid = av.put_object(v)
 
     v2 = av.get_object(vid, deref=True)
