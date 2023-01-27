@@ -30,7 +30,8 @@
         },
         "type": "Allele"
       }
-    }
+    },
+    "location_id": "ga4gh:VSL.r-OjdTzcMoOWJymchrLt_ufNFLEWB_4y"
   },
   "ga4gh:VA.PDHSCeQVYwBh-vQOEzeVCkC80qGGMoR0": {
     "params": {
@@ -63,6 +64,7 @@
         },
         "type": "Allele"
       }
-    }
+    },
+    "location_id": "ga4gh:VSL.0walyb5XpXwnONQARujAfkMwtCFVAkXs"
   }
 }

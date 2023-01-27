@@ -38,7 +38,7 @@ object storage, both specified as abstract interfaces.
 * A storage interface for object storage.  *AnyVar* must instantiated
   with a storage object that satisfies a
   `collections.abc.MutableMapping` interface.  Three backends are
-  common: 1) a `dict`, for emphemeral in-memory storage; 2)
+  common: 1) a `dict`, for ephemeral in-memory storage; 2)
   `anyvar.storage.shelf`, a dbm-based persistent storage mechanism
   that does not incur additional dependencies; 3)
   `anyvar.storage.redisobjectstore`, a Redis-backed storage interface
@@ -174,4 +174,24 @@ the Python `__version__`, the docker image tag, and the version
 reported at the `/info` endpoint.
 
 
+## Testing
 
+Run with `pytest`:
+
+```shell
+% pytest
+```
+
+or the Makefile target:
+
+```shell
+% make test
+```
+
+By default, tests will use the "in-memory" storage backend. An alternative endpoint can be specified via the environment variable `ANYVAR_TEST_STORAGE_URI`, eg:
+
+```shell
+% export ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_test_db
+```
+
+Currently, there is some interdependency between test modules -- namely, tests that rely on reading data from storage assume that the data from `test_variation` has been uploaded. A pytest hook ensures correct test order, but some test modules may not be able to pass when run in isolation.
