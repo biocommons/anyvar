@@ -13,7 +13,7 @@ _logger = logging.getLogger("anyvar_api")
 
 
 def generate_openapi_yaml():
-    """Replace relative files in $ref with local file paths and write to temporary file
+    """Replace relative files in $ref with local file paths
 
     """
     with importlib.resources.path("anyvar.restapi._data", "openapi.yaml") as p:
