@@ -13,7 +13,13 @@ PKGD=$(subst .,/,${PKG})
 PYV:=3.8
 VEDIR=venv/${PYV}
 
-
+UNAME = $(shell uname)
+ifeq (${UNAME},Darwin)
+    _XRM_R:=
+else
+    _XRM_R:=r
+endif
+XRM=xargs -0${_XRM_R} rm
 
 ############################################################################
 #= BASIC USAGE
@@ -66,13 +72,7 @@ install-extras:
 #=> test: execute tests
 .PHONY: test
 test:
-	python setup.py pytest
-
-#=> tox: execute tests via tox
-.PHONY: tox
-tox:
-	tox
-
+	python -m pytest tests
 
 ############################################################################
 #= UTILITY TARGETS
@@ -97,14 +97,14 @@ docs: develop
 #=> clean: remove temporary and backup files
 .PHONY: clean
 clean:
-	find . \( -name \*~ -o -name \*.bak \) -print0 | xargs -0r rm
+	find . \( -name \*~ -o -name \*.bak \) -print0 | ${XRM}
 
 #=> cleaner: remove files and directories that are easily rebuilt
 .PHONY: cleaner
 cleaner: clean
-	rm -fr .cache *.egg-info .pytest_cache build dist doc/_build htmlcov
-	find . \( -name \*.pyc -o -name \*.orig -o -name \*.rej \) -print0 | xargs -0r rm
-	find . -name __pycache__ -print0 | xargs -0r rm -fr
+	rm -rf .cache *.egg-info .pytest_cache build dist doc/_build htmlcov
+	find . \( -name \*.pyc -o -name \*.orig -o -name \*.rej \) -print0 | ${XRM} -fr
+	find . -name __pycache__ -print0 | ${XRM} -fr
 
 #=> cleanest: remove files and directories that require more time/network fetches to rebuild
 .PHONY: cleanest
@@ -114,13 +114,13 @@ cleanest: cleaner
 
 ## <LICENSE>
 ## Copyright 2016 Source Code Committers
-## 
+##
 ## Licensed under the Apache License, Version 2.0 (the "License");
 ## you may not use this file except in compliance with the License.
 ## You may obtain a copy of the License at
-## 
+##
 ##     http://www.apache.org/licenses/LICENSE-2.0
-## 
+##
 ## Unless required by applicable law or agreed to in writing, software
 ## distributed under the License is distributed on an "AS IS" BASIS,
 ## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.

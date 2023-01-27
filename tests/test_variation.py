@@ -1,37 +1,55 @@
-import pytest
+"""Test variation endpoints"""
+
+def test_put_allele(client, alleles):
+    for allele_id, allele in alleles.items():
+        resp = client.put("/allele", json=allele["params"])
+        assert resp.status_code == 200
+        assert resp.json["object"]["_id"] == allele_id
 
 
-base_url = "/variation"
+def test_get_allele(client, alleles):
+    for allele_id, allele in alleles.items():
+        resp = client.get(f"/allele/{allele_id}")
+        assert resp.status_code == 200
+        assert resp.json["data"] == allele["allele_response"]["object"]
 
-tests = {
-    "PIgWDzCiuWewlIJiVR": {
-        "data": 
-
-    }
-}
+    # TODO raises KeyError
+    # bad_resp = client.get("/allele/ga4gh:VA.invalid7DSM9KE3Z0LntAukLqm0K2ENn")
+    # assert bad_resp.status_code == 404
 
 
-@pytest.mark.parametrize("id", tests.keys())
-def test_00_put(client, id):
-    resp = client.put(base_url, json=tests[id])
-    assert resp.status_code == 200
+def test_put_text(client, text_alleles):
+    for allele_id, allele in text_alleles.items():
+        resp = client.put("/text", json=allele["params"])
+        assert resp.status_code == 200
+        assert resp.json["object"]["_id"] == allele_id
 
-    j = resp.json
-    assert j["data"]["id"] == id
-    
 
-@pytest.mark.parametrize("id", tests.keys())
-def test_10_get(client, id):
-    resp = client.get(base_url + "/" + id)
-    assert resp.status_code == 200
+def test_get_text(client, text_alleles):
+    for text_allele_id, allele in text_alleles.items():
+        resp = client.get(f"/text/{text_allele_id}")
+        assert resp.status_code == 200
+        assert resp.json["data"] == allele["response"]["object"]
 
-    j = resp.json
-    assert j["data"] == tests[id]
-    
+    # TODO raises KeyError
+    # bad_resp = client.get("/text/ga4gh:VT.invalidto2X0cRI1RfWhYG5roEacUbWJ")
+    # assert bad_resp.status_code == 404
 
-def test_20_search(client):
-    resp = client.get(base_url)
-    assert resp.status_code == 200
 
-    j = resp.json
-    assert j["data"] == tests
+def test_get_variation_by_id(client, alleles, text_alleles):
+    for allele_id, allele in alleles.items():
+        resp = client.get(f"/variation/{allele_id}")
+        assert resp.status_code == 200
+        assert resp.json == allele["allele_response"]["object"]
+    for text_allele_id, allele in text_alleles.items():
+        resp = client.get(f"/variation/{text_allele_id}")
+        assert resp.status_code == 200
+        assert resp.json == allele["response"]["object"]
+
+    # TODO raises KeyError
+    # bad_resp = client.get("/variation/ga4gh:VA.invalid7DSM9KE3Z0LntAukLqm0K2ENn")
+    # assert bad_resp.status_code == 404
+
+    # TODO raises KeyError
+    # bad_resp = client.get("/text/ga4gh:VT.invalidto2X0cRI1RfWhYG5roEacUbWJ")
+    # assert bad_resp.status_code == 404
