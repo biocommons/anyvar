@@ -37,3 +37,13 @@ def test_sequence(client, chr_1, vhl):
     resp = client.get("/sequence/refseq%3ANM_000551.3")
     assert resp.status_code == 200
     assert resp.text == vhl["sequence"]
+
+    # TODO 500 error if incorrect casing -- should fix
+    # resp = client.get("/sequence/grch38%3a1?start=10000&end=10010")
+    # assert resp.status_code == 200
+    # assert resp.text == vhl["sequence"]
+
+    # TODO 500 error if unrecognized sequence ID -- should fix
+    # resp = client.get("/sequence/not_a_real_seq?start=10000")
+    # assert resp.status_code == 200
+    # assert resp.text == vhl["sequence"]
