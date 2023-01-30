@@ -12,7 +12,7 @@ from ga4gh.vrs import schema_path
 _logger = logging.getLogger("anyvar_api")
 
 
-def generate_openapi_yaml():
+def generate_openapi_yaml() -> str:
     """Replace relative files in $ref with local file paths
 
     """
