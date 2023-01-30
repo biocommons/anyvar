@@ -1,50 +1,24 @@
 """anyvar prototype app
 
 """
-
-import logging
-from pkg_resources import resource_filename
-from tempfile import TemporaryDirectory
-
 import coloredlogs
 import connexion
 from connexion.resolver import RestyResolver
 from flask import Flask, redirect
-from ga4gh.vrs import schema_path
 
+from anyvar.restapi.utils import get_tmp_openapi_yaml
 from .uidoc import redoc_template, rapidoc_template
-from .utils import replace_dollar_ref
 
 
-_logger = logging.getLogger(__name__)
-
-
-def generate_openapi_yaml():
-    """Replace relative files in $ref with local file paths and write to temporary file
+def create_app() -> Flask:
+    """Construct Flask app instance. Uses generated schema stashed in tempfile.
 
     """
-
-    spec_dir = resource_filename(__name__, "_data")
-    spec_fn = spec_dir + "/openapi.yaml"
-    ref_map = {
-        "vr.json": schema_path,
-        # jsonapi isn't implemented yet
-        # "jsonapi.json": spec_dir + "/jsonapi.json",
-        }
-    return replace_dollar_ref(open(spec_fn).read(), ref_map)
-
-
-if __name__ == "__main__":
     coloredlogs.install(level="INFO")
+    spec_fn = get_tmp_openapi_yaml()
 
-    td = TemporaryDirectory()
-    tmpdir = td.name
-    openapi_fn = tmpdir + "/openapi.yaml"
-    open(openapi_fn, "w").write(generate_openapi_yaml())
-    _logger.info(f"Wrote {openapi_fn}")
-
-    cxapp = connexion.App(__name__, debug=True, specification_dir=tmpdir)
-    cxapp.add_api(openapi_fn,
+    cxapp = connexion.App(__name__, debug=True, specification_dir=spec_fn.parent)
+    cxapp.add_api(spec_fn,
                   validate_responses=True,
                   strict_validation=True,
                   resolver=RestyResolver("anyvar.restapi.routes"))
@@ -61,5 +35,9 @@ if __name__ == "__main__":
     def index():
         return redirect("/ui")
 
-    cxapp.run(host="0.0.0.0",
-              processes=1)
+    return cxapp.app  # type: ignore
+
+
+if __name__ == "__main__":
+    cxapp = create_app()
+    cxapp.run(host="0.0.0.0", processes=1)

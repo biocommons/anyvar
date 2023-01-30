@@ -1,16 +1,43 @@
+"""Provide miscellaneous helper functions for AnyVar web app"""
+import logging
+from pathlib import Path
 import re
+import importlib.resources
+import tempfile
+from typing import Generator
+
+from ga4gh.vrs import schema_path
 
 
-def replace_dollar_ref(openapi_yaml, ref_map):
-    """replace $ref values with filesystem paths
+_logger = logging.getLogger("anyvar_api")
 
-    The resolver used by connexion doesn't handle relative paths in
-    files. This function replaces all $ref values that have a
-    corresponding entry in ref_map.
 
-      $ref: "file:///vr.json#/definitions/Allele"
+def generate_openapi_yaml() -> str:
+    """Replace relative files in $ref with local file paths
 
     """
-
+    with importlib.resources.path("anyvar.restapi._data", "openapi.yaml") as p:
+        spec_fn = p
+    ref_map = {
+        "vr.json": schema_path,
+        # TODO: jsonapi isn't implemented yet
+        # "jsonapi.json": spec_dir + "/jsonapi.json",
+    }
     ref_re = re.compile(r"""^(\s+\$ref:\s+["']file:)(\w[^#]+)(#)""", re.MULTILINE)
-    return ref_re.sub(lambda m: m.group(1) + "//" + ref_map[m.group(2)] + m.group(3), openapi_yaml)
+    with open(spec_fn) as spec_f:
+        finished_spec = ref_re.sub(lambda m: m.group(1) + "//" + ref_map[m.group(2)] + m.group(3), spec_f.read())
+
+    return finished_spec
+
+
+def get_tmp_openapi_yaml() -> Path:
+    """Stand up a complete OpenAPI specification file in a temporary location.
+
+    """
+    openapi_fn = Path(tempfile.gettempdir()) / "openapi.yaml"
+    with open(openapi_fn, "w") as f:
+        f.write(generate_openapi_yaml())
+
+    _logger.info(f"Wrote {openapi_fn}")
+
+    return openapi_fn
