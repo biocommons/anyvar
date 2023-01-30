@@ -10,7 +10,7 @@ from anyvar.restapi.webapp import create_app
 
 def pytest_collection_modifyitems(items):
     """Modify test items in place to ensure test modules run in a given order.
-    When creating new test modules, be sure to add them here.
+
     """
     MODULE_ORDER = [
         "test_variation",
@@ -19,6 +19,8 @@ def pytest_collection_modifyitems(items):
         "test_sequence",
         "test_find"
     ]
+    # remember to add new test modules to the order constant:
+    assert len(MODULE_ORDER) == len(list(Path(__file__).parent.rglob("test_*.py")))
     items.sort(key=lambda i: MODULE_ORDER.index(i.module.__name__))
 
 
