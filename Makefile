@@ -44,7 +44,7 @@ venv/%:
 #=> develop: install package in develop mode
 .PHONY: develop
 develop:
-	pip install -e .[dev]
+	pip install -e .[dev,test]
 
 #=> devready: create venv, install prerequisites, install pkg in develop mode
 .PHONY: devready
@@ -59,11 +59,6 @@ devready:
 .PHONY: bdist bdist_egg bdist_wheel build build_sphinx sdist install
 bdist bdist_egg bdist_wheel build sdist install: %:
 	python setup.py $@
-
-.PHONY: install-extras
-install-extras:
-	pip install -e .[extras]
-
 
 ############################################################################
 #= TESTING
