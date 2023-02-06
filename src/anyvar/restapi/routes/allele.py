@@ -1,4 +1,5 @@
-from connexion import NoContent
+"""Get or retrieve allele object in storage."""
+from anyvar.translate.translate import TranslationException
 
 from ..globals import get_anyvar
 
@@ -11,7 +12,15 @@ def put(body):
     messages = []
 
     av = get_anyvar()
-    v = av.translator.translate_from(var=defn, fmt=fmt)
+    try:
+        v = av.translator.translate_from(var=defn, fmt=fmt)
+    except TranslationException:
+        result = {
+            "object": None,
+            "messages": [f"Unable to translate {defn}"]
+        }
+        return result, 200
+
     id = av.put_object(v)
 
     result = {

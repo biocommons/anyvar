@@ -30,15 +30,14 @@ def get_dataproxy() -> _DataProxy:
     return _get_g("_dataproxy", create_dataproxy)
 
 
-def _create_anyvar():
+def _create_anyvar() -> AnyVar:
     """the Manager is really just a bundle of stuff used frequently in the app
 
     """
 
     storage = create_storage()       # config: ANYVAR_STORAGE_URI
-    data_proxy = get_dataproxy()     
-    return AnyVar(object_store=storage, data_proxy=data_proxy)
+    data_proxy = get_dataproxy()
+    return AnyVar(object_store=storage)
 
-def get_anyvar():
+def get_anyvar() -> AnyVar:
     return _get_g("_anyvar", _create_anyvar)
-
