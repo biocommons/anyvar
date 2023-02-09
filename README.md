@@ -55,6 +55,8 @@ will change as the product matures.
 *AnyVar* should run without configuration.  The following environment
 variables provide additional configuration:
 
+* `ANYVAR_VARIATION_NORMALIZER_URI` is a URI used to connect to a [Variation Normalizer](https://github.com/cancervariants/variation-normalization/) instance.
+
 * `GA4GH_VRS_DATAPROXY_URI` is a URI used to instantiate a
   `ga4gh.vrs.dataproxy` instance. See
   `ga4gh.vrs.dataproxy.create_dataproxy()` for permissible values.
@@ -64,16 +66,18 @@ variables provide additional configuration:
   `/tmp/anyvar.dbm`, or `redis:///15` for redis database 15 on
   localhost.
 
-Example for running with public SeqRepo REST API with Redis as a data store:
+Example for running with public REST APIs with Redis as a data store:
 
 ```
+    $ export ANYVAR_VARIATION_NORMALIZER_URI=https://normalize.cancervariants.org/variation/
     $ export GA4GH_VRS_DATAPROXY_URI=seqrepo+https://services.genomicmedlab.org/seqrepo
     $ export ANYVAR_STORAGE_URI="redis:///15"
 ```
 
-Example for running with local SeqRepo with Redis as a datastore:
+Example for running with local Normalizer and SeqRepo, with Redis as a datastore:
 
 ```
+    $ expoirt ANYVAR_VARIATION_NORMALIZER_URI=https://localhost:8000/variation/
     $ export SEQREPO_DIR=seqrepo+file:///usr/local/share/seqrepo/latest
     $ export ANYVAR_STORAGE_URI="redis:///15"
 ```
