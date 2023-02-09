@@ -20,7 +20,6 @@ from ..translate import _Translator
 anyvar_db_fn = os.path.expanduser("/tmp/anyvar.db")
 
 
-
 def _get_g(key: str, creator_function: Callable) -> Any:
     """Fetch a global singleton, creating with `fn` on first invocation
 
