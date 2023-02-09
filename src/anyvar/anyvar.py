@@ -8,14 +8,15 @@ import logging
 
 from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import models, vrs_deref, vrs_enref
-from ga4gh.vrs.extras.translator import Translator
+
+from anyvar.translate.translate import _Translator
 
 
 _logger = logging.getLogger(__name__)
 
 
 class AnyVar:
-    def __init__(self, /, translator: Translator, object_store: MutableMapping):
+    def __init__(self, /, translator: _Translator, object_store: MutableMapping):
         if not isinstance(object_store, MutableMapping):
             _logger.warning("AnyVar(object_store=) should be a mutable mapping; you're on your own")
 
@@ -30,7 +31,6 @@ class AnyVar:
     def get_object(self, id, deref=False):
         v = self.object_store[id]
         return vrs_deref(v, self.object_store) if deref else v
-
 
     def create_text(self, defn):
         vo = models.Text(definition=defn)

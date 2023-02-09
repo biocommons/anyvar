@@ -1,22 +1,19 @@
-"""Perform translation using the VICC Variation Normalizer."""
-import os
-from typing import Dict, Optional
-
+from typing import Dict
 import requests
 from ga4gh.vrs import models as vrs_models
 
-from anyvar.translate.translate import Translator, TranslatorConnectionException
+from . import _Translator, TranslatorConnectionException
 
 
-class VariationNormalizerRestTranslator(Translator):
+class VariationNormalizerRestTranslator(_Translator):
 
-    def __init__(self, endpoint_uri: Optional[str] = None):
-        if not endpoint_uri:
-            pass
+    def __init__(self, endpoint_uri: str):
+        """Initialize normalizer-based translator.
 
-        # get uri
-        # self.endpoint_base = "http://localhost:8000/variation/"
-        self.endpoint_base = "https://normalize.cancervariants.org/variation/"
+        :param endpoint_uri: base REST endpoint address
+        :raises TranslatorConnectionException: if endpoint doesn't respond to initial query
+        """
+        self.endpoint_base = endpoint_uri
 
         openapi_docs = self.endpoint_base + "openapi.json"
         resp = requests.get(openapi_docs)
@@ -25,13 +22,22 @@ class VariationNormalizerRestTranslator(Translator):
                 f"Failed to get response from Variation Normalizer REST endpoint at {openapi_docs}"
             )
 
-    def translate_from(self, var: str, **kwargs: Dict) -> vrs_models.Allele:
-        """
+    def _send_rest_request(self, request_url: str):
+        """Emit normalization request. Broken out to enable mocking.
 
+        :param request_url: URL containing normalization request parameters
+        """
+        return requests.get(request_url)
+
+    def translate(self, var: str, **kwargs: Dict) -> vrs_models.Allele:
+        """Translate provided variation text into a normalized VRS object.
+
+        :param var: user-provided text object describing or referencing a variation.
+        :raises TranslatorConnectionException: if translation request returns error
         """
 
         req_url = self.endpoint_base + f"normalize?q={var}"
-        resp = requests.get(req_url)
+        resp = self._send_rest_request(req_url)
         if resp.status_code == 404:
             raise TranslatorConnectionException(
                 f"Failed to get response from Variation Normalizer REST endpoint at {req_url}"
@@ -50,6 +56,6 @@ class VariationNormalizerRestTranslator(Translator):
             raise Exception("TODO figure out what exception should get caught")
         variation = resp_json["variation_descriptor"]["variation"]
         if variation["type"] != "Allele":
-            raise Exception  # TODO more specific
+            raise NotImplementedError("AnyVar currently only supports Allele storage")
 
         return vrs_models.Allele(**variation)

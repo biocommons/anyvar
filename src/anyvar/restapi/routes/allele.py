@@ -7,13 +7,12 @@ from ..globals import get_anyvar
 def put(body):
     request = body
     defn = request.pop("definition")
-    fmt = request.pop("format")
 
     messages = []
 
     av = get_anyvar()
     try:
-        v = av.translator.translate_from(var=defn, fmt=fmt)
+        v = av.translator.translate(var=defn)
     except TranslationException:
         result = {
             "object": None,
@@ -25,6 +24,7 @@ def put(body):
 
     result = {
         "object": v.as_dict(),
+        "object_id": id,
         "messages": messages,
     }
 

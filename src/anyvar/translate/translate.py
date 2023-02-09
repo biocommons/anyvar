@@ -3,11 +3,15 @@ from abc import ABC, abstractmethod
 from typing import Dict
 
 
-class Translator(ABC):
+class _Translator(ABC):
 
     @abstractmethod
-    def translate_from(self, var: str, **kwargs: Dict):
+    def translate(self, var: str, **kwargs: Dict):
         raise NotImplementedError
+
+
+class TranslatorSetupException(Exception):
+    """Indicates failure to create translator instance (e.g. invalid params provided)"""
 
 
 class TranslatorConnectionException(Exception):
