@@ -8,26 +8,18 @@ def put(body):
     request = body
     defn = request.pop("definition")
 
-    messages = []
-
     av = get_anyvar()
+    result = {"object": None, "messages": []}
     try:
         v = av.translator.translate(var=defn)
     except TranslationException:
-        result = {
-            "object": None,
-            "messages": [f"Unable to translate {defn}"]
-        }
-        return result, 200
-
-    id = av.put_object(v)
-
-    result = {
-        "object": v.as_dict(),
-        "object_id": id,
-        "messages": messages,
-    }
-
+        result["messages"].append(f"Unable to translate {defn}")
+    except NotImplementedError:
+        result["messages"].append(f"Variation class for {defn} is currently unsupported.")
+    else:
+        v_id = av.put_object(v)
+        result["object"] = v.as_dict()
+        result["object_id"] = v_id
     return result, 200
 
 

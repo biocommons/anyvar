@@ -2,7 +2,7 @@ from typing import Dict
 import requests
 from ga4gh.vrs import models as vrs_models
 
-from . import _Translator, TranslatorConnectionException
+from . import _Translator, TranslatorConnectionException, TranslationException
 
 
 class VariationNormalizerRestTranslator(_Translator):
@@ -53,7 +53,7 @@ class VariationNormalizerRestTranslator(_Translator):
 
         resp_json = resp.json()
         if resp_json.get("warnings"):
-            raise Exception("TODO figure out what exception should get caught")
+            raise TranslationException(f"Unable to normalize {var}.")
         variation = resp_json["variation_descriptor"]["variation"]
         if variation["type"] != "Allele":
             raise NotImplementedError("AnyVar currently only supports Allele storage")
