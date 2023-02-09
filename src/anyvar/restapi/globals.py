@@ -50,7 +50,7 @@ def create_translator(uri: Optional[str] = None) -> _Translator:
         uri = os.environ.get("ANYVAR_VARIATION_NORMALIZER_URI")
         if not uri:
             raise TranslatorSetupException(
-                "No Translator object or URI provided."
+                "No Translator URI provided."
             )
     return VariationNormalizerRestTranslator(uri)
 
