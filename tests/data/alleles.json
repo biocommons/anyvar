@@ -1,15 +1,12 @@
 {
   "ga4gh:VA.vcU3lF97DSM9KE3Z0LntAukLqm0K2ENn": {
-    "params": {
-      "definition": "NC_000010.11:g.87894077C>T",
-      "format": "hgvs",
-      "normalize": "left"
-    },
+    "params": { "definition": "NC_000010.11:g.87894077C>T" },
     "allele_response": {
       "messages": [],
       "object": {
         "_id": "ga4gh:VA.vcU3lF97DSM9KE3Z0LntAukLqm0K2ENn",
         "location": {
+          "_id": "ga4gh:VSL.r-OjdTzcMoOWJymchrLt_ufNFLEWB_4y",
           "interval": {
             "end": {
               "type": "Number",
@@ -33,38 +30,35 @@
     },
     "location_id": "ga4gh:VSL.r-OjdTzcMoOWJymchrLt_ufNFLEWB_4y"
   },
-  "ga4gh:VA.PDHSCeQVYwBh-vQOEzeVCkC80qGGMoR0": {
-    "params": {
-      "definition": "NM_000551.3:c.1A>T",
-      "format": "hgvs",
-      "normalize": "right"
-    },
+  "ga4gh:VA.ZO9HxFHUxoYHyl12HRwPcYG7rKx4A4v1": {
+    "params": { "definition": "NM_000551.3:c.1A>T" },
     "allele_response": {
       "messages": [],
       "object": {
-        "_id": "ga4gh:VA.PDHSCeQVYwBh-vQOEzeVCkC80qGGMoR0",
+        "_id": "ga4gh:VA.ZO9HxFHUxoYHyl12HRwPcYG7rKx4A4v1",
+        "type": "Allele",
         "location": {
+          "_id": "ga4gh:VSL.liaaT1BPSGfxjXXuVLB9v5RuiWHL8S4K",
+          "type": "SequenceLocation",
+          "sequence_id": "ga4gh:SQ.xBKOKptLLDr-k4hTyCetvARn16pDS_rW",
           "interval": {
-            "end": {
-              "type": "Number",
-              "value": 1
-            },
+            "type": "SequenceInterval",
             "start": {
               "type": "Number",
-              "value": 0
+              "value": 70
             },
-            "type": "SequenceInterval"
-          },
-          "sequence_id": "ga4gh:SQ.v_QTc1p-MUYdgrRv4LMT6ByXIOsdw3C_",
-          "type": "SequenceLocation"
+            "end": {
+              "type": "Number",
+              "value": 71
+            }
+          }
         },
         "state": {
-          "sequence": "T",
-          "type": "LiteralSequenceExpression"
-        },
-        "type": "Allele"
+          "type": "LiteralSequenceExpression",
+          "sequence": "T"
+        }
       }
     },
-    "location_id": "ga4gh:VSL.0walyb5XpXwnONQARujAfkMwtCFVAkXs"
+    "location_id": "ga4gh:VSL.liaaT1BPSGfxjXXuVLB9v5RuiWHL8S4K"
   }
 }

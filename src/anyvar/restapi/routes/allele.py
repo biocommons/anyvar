@@ -1,4 +1,5 @@
-from connexion import NoContent
+"""Get or retrieve allele object in storage."""
+from anyvar.translate.translate import TranslationException
 
 from ..globals import get_anyvar
 
@@ -6,19 +7,19 @@ from ..globals import get_anyvar
 def put(body):
     request = body
     defn = request.pop("definition")
-    fmt = request.pop("format")
-
-    messages = []
 
     av = get_anyvar()
-    v = av.translator.translate_from(var=defn, fmt=fmt)
-    id = av.put_object(v)
-
-    result = {
-        "object": v.as_dict(),
-        "messages": messages,
-    }
-
+    result = {"object": None, "messages": []}
+    try:
+        v = av.translator.translate(var=defn)
+    except TranslationException:
+        result["messages"].append(f"Unable to translate {defn}")
+    except NotImplementedError:
+        result["messages"].append(f"Variation class for {defn} is currently unsupported.")
+    else:
+        v_id = av.put_object(v)
+        result["object"] = v.as_dict()
+        result["object_id"] = v_id
     return result, 200
 
 
