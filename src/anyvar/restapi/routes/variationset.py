@@ -19,16 +19,15 @@ def put(body):
         vo = models.VariationSet(members=defn["member_ids"])
         vo._id = ga4gh_identify(vo)
         av.put_object(vo)
-            
+
     result = {
         "messages": messages,
         "data": vo.as_dict(),
     }
-    
+
     return result, 200
 
 
 def get(id):
     av = get_anyvar()
     return av.get_object(id).as_dict(), 200
-

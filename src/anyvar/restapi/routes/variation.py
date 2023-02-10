@@ -5,7 +5,7 @@ from ..globals import get_anyvar
 
 def put(body):
     av = get_anyvar()
-    translator = vm.translator
+    translator = av.translator
 
     request = body
 
@@ -34,4 +34,3 @@ def get(id):
         return v.as_dict(), 200
     except KeyError:
         return NoContent, 404
-

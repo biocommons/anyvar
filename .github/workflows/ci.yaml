@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  style:
+    name: Check style
+    runs-on: 'ubuntu-latest'
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          pythons-version: 3.8
+
+      - name: Install dependencies
+        run: python3 -m pip install ".[dev]"
+
+      - name: Ruff checks
+        run: python3 -m ruff check .
+
+      - name: isort checks
+        run: python3 -m isort --check .

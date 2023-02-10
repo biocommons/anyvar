@@ -8,10 +8,11 @@ import os
 from typing import Any, Callable, Optional
 
 from flask import current_app
-from ga4gh.vrs.dataproxy import create_dataproxy, _DataProxy
-from anyvar.translate.translate import TranslatorSetupException
+from ga4gh.vrs.dataproxy import _DataProxy, create_dataproxy
 
-from anyvar.translate.variation_normalizer import VariationNormalizerRestTranslator
+from anyvar.translate.translate import TranslatorSetupException
+from anyvar.translate.variation_normalizer import \
+    VariationNormalizerRestTranslator
 
 from ..anyvar import AnyVar
 from ..storage import create_storage

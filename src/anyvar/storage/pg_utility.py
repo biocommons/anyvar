@@ -1,11 +1,12 @@
 import contextlib
-import weakref
-import psycopg2
-import hgvs
-from hgvs.dataproviders.uta import _parse_url
 import inspect
 import logging
 import os
+import weakref
+
+import hgvs
+import psycopg2
+from hgvs.dataproviders.uta import _parse_url
 
 _logger = logging.getLogger(__name__)
 
@@ -68,14 +69,18 @@ class PostgresClient:
         self.ensure_schema_exists()
 
     def _create_schema(self):
-        create_sql = "CREATE TABLE vrs_objects (id BIGSERIAL primary key, vrs_id text, vrs_object jsonb);"
+        create_sql = (
+            "CREATE TABLE vrs_objects "
+            "(id BIGSERIAL primary key, vrs_id text, vrs_object jsonb);"
+        )
         self._insert_one(create_sql)
 
     def ensure_schema_exists(self):
         # N.B. On AWS RDS, information_schema.schemata always returns zero rows
         r = self._fetchone(
-            "select exists(SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')"
-            )
+            "select exists("
+            "SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')"
+        )
         if r[0]:
             return
         self._create_schema()

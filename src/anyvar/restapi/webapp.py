@@ -7,7 +7,8 @@ from connexion.resolver import RestyResolver
 from flask import Flask, redirect
 
 from anyvar.restapi.utils import get_tmp_openapi_yaml
-from .uidoc import redoc_template, rapidoc_template
+
+from .uidoc import rapidoc_template, redoc_template
 
 
 def create_app() -> Flask:

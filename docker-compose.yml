@@ -18,7 +18,7 @@ services:
       - seqrepo-rest-service
     #  - uta
     #environment:
-    #  # UTA_DB_URL: 
+    #  # UTA_DB_URL:
     #  # SEQREPO_REST_SERVICE_URL:
 
   redis:
@@ -28,7 +28,7 @@ services:
     volumes:
       - anyvar_redis_vol:/data
 
-  seqrepo-rest-service:    
+  seqrepo-rest-service:
     # Test: curl http://localhost:5000/seqrepo/1/sequence/refseq:NM_000551.3
     expose:
       - 5000
@@ -37,7 +37,7 @@ services:
     image: biocommons/seqrepo-rest-service:latest
     volumes:
       - seqrepo_vol:/usr/local/share/seqrepo
-    
+
   # uta:
   #   # Test:
   #   # psql -XAt postgres://anonymous@localhost/uta -c 'select count(*) from transcript'

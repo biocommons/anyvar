@@ -3,13 +3,13 @@ import logging
 
 import lxml.etree as le
 
-
 _logger = logging.getLogger()
 
 
 class VariationArchive:
     def __init__(self, element):
-        assert element.tag == "VariationArchive", "Expected node type `VariationArchive`"
+        assert element.tag == "VariationArchive", \
+            "Expected node type `VariationArchive`"
         self._element = element
 
     @property
@@ -39,7 +39,7 @@ class VariationArchive:
     @property
     def variation_name(self):
         return self._element.get("VariationName")
-    
+
     @property
     def variation_type(self):
         return self._element.get("VariationType")
@@ -47,7 +47,7 @@ class VariationArchive:
     @property
     def version(self):
         return self._element.get("Version")
-    
+
     @property
     def xrefs(self):
         return [e.attrib for e in self._element.xpath(".//XRefList/XRef")]
@@ -75,4 +75,7 @@ if __name__ == "__main__":
     import sys
     fn = sys.argv[1]
     for va in clinvar_open(fn):
-        print(f"{va.acv}\t{va.variation_name}\t{va.variation_type}\t{len(va.hgvs_expressions)}\t{len(va.xrefs)}")
+        print(
+            f"{va.acv}\t{va.variation_name}\t{va.variation_type}\t"
+            f"{len(va.hgvs_expressions)}\t{len(va.xrefs)}"
+        )

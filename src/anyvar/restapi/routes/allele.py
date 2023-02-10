@@ -15,7 +15,9 @@ def put(body):
     except TranslationException:
         result["messages"].append(f"Unable to translate {defn}")
     except NotImplementedError:
-        result["messages"].append(f"Variation class for {defn} is currently unsupported.")
+        result["messages"].append(
+            f"Variation class for {defn} is currently unsupported."
+        )
     else:
         v_id = av.put_object(v)
         result["object"] = v.as_dict()

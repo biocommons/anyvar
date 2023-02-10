@@ -1,5 +1,6 @@
 """Test sequence lookup and metadata endpoints."""
 import json
+
 import pytest
 
 

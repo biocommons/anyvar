@@ -1,0 +1,16 @@
+[tool.ruff]
+exclude = [
+    "venv",
+    "build",
+    "dist",
+    "tests"
+]
+
+line-length = 88
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401", "E402"]
+"uidoc.py" = ["E501"]
+
+[tool.isort]
+group_by_package = true
