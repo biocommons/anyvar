@@ -1,7 +1,7 @@
-from connexion import NoContent
+from anyvar.storage.postgres import PostgresObjectStore
 
 from ..globals import get_anyvar
-from anyvar.storage.postgres import PostgresObjectStore
+
 
 def get_ga4gh_alias(seqrepo_data_proxy, accession):
     md = seqrepo_data_proxy.get_metadata(accession)

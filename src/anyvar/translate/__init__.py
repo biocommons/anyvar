@@ -1,3 +1,4 @@
 """Provide proxy classes and other tools for translation middleware."""
-from .translate import _Translator, TranslatorConnectionException, TranslatorSetupException, TranslationException
+from .translate import (TranslationException, TranslatorConnectionException,
+                        TranslatorSetupException, _Translator)
 from .variation_normalizer import VariationNormalizerRestTranslator

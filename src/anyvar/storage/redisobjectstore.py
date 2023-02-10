@@ -7,7 +7,7 @@ import ga4gh.vrs
 
 class RedisObjectStore(collections.abc.MutableMapping):
     """Provides Redis-backed storage of VR objects
-    
+
     The intention of this class is to provide a interface that is
     indistinguishable from a dictionary for the purposes of GA4GH
     objects.  In particular, that means that the the value may be a VR
@@ -26,7 +26,7 @@ class RedisObjectStore(collections.abc.MutableMapping):
     def __contains__(self, name):
         name = name if isinstance(name, str) else str(name)
         return self.redis.exists(name)
-    
+
 
     def __delitem__(self, name):
         name = name if isinstance(name, str) else str(name)
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     a0b = ros[a0id]
     assert a0 is not a0b
     assert a0 == a0b
-    
+
     # get Location by id
     a0lb = ros[a0lid]
     assert a0l is not a0lb

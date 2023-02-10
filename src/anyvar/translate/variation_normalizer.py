@@ -1,8 +1,9 @@
 from typing import Dict
+
 import requests
 from ga4gh.vrs import models as vrs_models
 
-from . import _Translator, TranslatorConnectionException, TranslationException
+from . import TranslationException, TranslatorConnectionException, _Translator
 
 
 class VariationNormalizerRestTranslator(_Translator):
@@ -11,7 +12,8 @@ class VariationNormalizerRestTranslator(_Translator):
         """Initialize normalizer-based translator.
 
         :param endpoint_uri: base REST endpoint address
-        :raises TranslatorConnectionException: if endpoint doesn't respond to initial query
+        :raises TranslatorConnectionException: if endpoint doesn't respond to initial
+            query
         """
         self.endpoint_base = endpoint_uri
 
@@ -19,7 +21,8 @@ class VariationNormalizerRestTranslator(_Translator):
         resp = requests.get(openapi_docs)
         if resp.status_code != 200:
             raise TranslatorConnectionException(
-                f"Failed to get response from Variation Normalizer REST endpoint at {openapi_docs}"
+                f"Failed to get response from Variation Normalizer REST endpoint at "
+                f"{openapi_docs}"
             )
 
     def _send_rest_request(self, request_url: str):
@@ -40,7 +43,8 @@ class VariationNormalizerRestTranslator(_Translator):
         resp = self._send_rest_request(req_url)
         if resp.status_code == 404:
             raise TranslatorConnectionException(
-                f"Failed to get response from Variation Normalizer REST endpoint at {req_url}"
+                f"Failed to get response from Variation Normalizer REST endpoint at "
+                f"{req_url}"
             )
         elif resp.status_code == 500:
             raise TranslatorConnectionException(
@@ -48,7 +52,8 @@ class VariationNormalizerRestTranslator(_Translator):
             )
         elif resp.status_code != 200:
             raise TranslatorConnectionException(
-                f"Variation Normalizer REST endpoint returned {resp.status_code} for {var}"
+                f"Variation Normalizer REST endpoint returned {resp.status_code} "
+                f"for {var}"
             )
 
         resp_json = resp.json()

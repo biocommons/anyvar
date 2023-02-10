@@ -26,12 +26,9 @@ rapidoc_template = r"""<!doctype html> <!-- Important: must specify -->
     <script src="https://unpkg.com/rapidoc/dist/rapidoc-min.js"></script>
   </head>
   <body>
-    <rapi-doc 
-      spec-url="/openapi.json" 
+    <rapi-doc
+      spec-url="/openapi.json"
     > </rapi-doc>
-  </body> 
+  </body>
   </html>
 """
-
-
-

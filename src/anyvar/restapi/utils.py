@@ -1,13 +1,11 @@
 """Provide miscellaneous helper functions for AnyVar web app"""
-import logging
-from pathlib import Path
-import re
 import importlib.resources
+import logging
+import re
 import tempfile
-from typing import Generator
+from pathlib import Path
 
 from ga4gh.vrs import schema_path
-
 
 _logger = logging.getLogger("anyvar_api")
 
@@ -23,9 +21,14 @@ def generate_openapi_yaml() -> str:
         # TODO: jsonapi isn't implemented yet
         # "jsonapi.json": spec_dir + "/jsonapi.json",
     }
-    ref_re = re.compile(r"""^(\s+\$ref:\s+["']file:)(\w[^#]+)(#)""", re.MULTILINE)
+    ref_re = re.compile(
+        r"""^(\s+\$ref:\s+["']file:)(\w[^#]+)(#)""", re.MULTILINE
+    )
     with open(spec_fn) as spec_f:
-        finished_spec = ref_re.sub(lambda m: m.group(1) + "//" + ref_map[m.group(2)] + m.group(3), spec_f.read())
+        finished_spec = ref_re.sub(
+            lambda m: m.group(1) + "//" + \
+            ref_map[m.group(2)] + m.group(3), spec_f.read()
+        )
 
     return finished_spec
 

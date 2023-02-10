@@ -1,5 +1,6 @@
 from ..globals import get_anyvar
 
+
 def get(vartype):
     av = get_anyvar()
     if vartype == "substitution":

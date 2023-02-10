@@ -1,10 +1,6 @@
 import logging
 
-from connexion import NoContent
-
 from ..globals import get_dataproxy
-from .utils import get_sequence_ids, problem
-
 
 _logger = logging.getLogger(__name__)
 

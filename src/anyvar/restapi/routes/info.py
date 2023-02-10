@@ -1,8 +1,6 @@
-from connexion import NoContent
-
-import anyvar
 import ga4gh.vrs
 
+import anyvar
 
 
 def search():

@@ -1,14 +1,9 @@
-import collections
-import datetime
-import functools
-import logging
-import os
-import shelve
 import json
-import zlib
+import logging
 
 import ga4gh.vrs
 from ga4gh.core import is_pjs_instance
+
 from .pg_utility import PostgresClient
 
 _logger = logging.getLogger(__name__)
@@ -31,11 +26,16 @@ class PostgresObjectStore:
         name = str(name)  # in case str-like
         d = value.as_dict()
         j = json.dumps(d)
-        self.conn._insert_one(f"insert into vrs_objects (vrs_id, vrs_object) values (%s,%s)", [name, j])
+        self.conn._insert_one(
+            "insert into vrs_objects (vrs_id, vrs_object) values (%s,%s)", [name, j]
+        )
 
     def __getitem__(self, name):
         name = str(name)  # in case str-like
-        data = self.conn._fetchone(f"select vrs_object from vrs_objects where vrs_id = %s", [name])
+        data = self.conn._fetchone(
+            "select vrs_object from vrs_objects where vrs_id = %s",
+            [name]
+        )
         if data:
             data = data[0]
             typ = data["type"]
@@ -54,19 +54,31 @@ class PostgresObjectStore:
         self._db.close()
 
     def __len__(self):
-        data = self.conn._fetchone(f"select count(*) as c from vrs_objects where vrs_object ->> 'type' = 'Allele'")
+        data = self.conn._fetchone(
+            "select count(*) as c from vrs_objects "
+            "where vrs_object ->> 'type' = 'Allele'"
+        )
         return data[0]
 
     def deletion_count(self):
-        data = self.conn._fetchone(f"select count(*) as c from vrs_objects where length(vrs_object -> 'state' ->> 'sequence') = 0")
+        data = self.conn._fetchone(
+            "select count(*) as c from vrs_objects "
+            "where length(vrs_object -> 'state' ->> 'sequence') = 0"
+        )
         return data[0]
 
     def substitution_count(self):
-        data = self.conn._fetchone(f"select count(*) as c from vrs_objects where length(vrs_object -> 'state' ->> 'sequence') = 1")
+        data = self.conn._fetchone(
+            "select count(*) as c from vrs_objects "
+            "where length(vrs_object -> 'state' ->> 'sequence') = 1"
+        )
         return data[0]
 
     def insertion_count(self):
-        data = self.conn._fetchone(f"select count(*) as c from vrs_objects where length(vrs_object -> 'state' ->> 'sequence') > 1")
+        data = self.conn._fetchone(
+            "select count(*) as c from vrs_objects "
+            "where length(vrs_object -> 'state' ->> 'sequence') > 1"
+        )
         return data[0]
 
     def __iter__(self):
@@ -100,5 +112,3 @@ class PostgresObjectStore:
 
         data = self.conn._fetchall(query_str, [start, stop, ga4gh_accession_id])
         return [vrs_object[0] for vrs_object in data if vrs_object]
-
-

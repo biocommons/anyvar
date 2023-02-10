@@ -2,7 +2,6 @@ import logging
 import os
 from urllib.parse import urlparse
 
-
 _logger = logging.getLogger(__name__)
 
 default_storage_uri = "memory:"
@@ -40,7 +39,9 @@ def create_storage(uri=None):
     parsed_uri = urlparse(uri)
 
     if parsed_uri.scheme == "memory":
-        _logger.warning("Using memory storage; stored data will be discarded when process exits")
+        _logger.warning(
+            "Using memory storage; stored data will be discarded when process exits"
+        )
         storage = dict()
 
     elif parsed_uri.scheme in ("", "file"):
@@ -49,6 +50,7 @@ def create_storage(uri=None):
 
     elif parsed_uri.scheme == "redis":
         import redis
+
         from .redisobjectstore import RedisObjectStore
         storage = RedisObjectStore(redis.Redis.from_url(uri))
 
