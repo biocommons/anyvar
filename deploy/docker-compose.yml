@@ -1,0 +1,24 @@
+version: "3.10"
+services:
+  postgres:
+    build: ./postgres/
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust  # TODO
+    volumes:
+      - ./data:/var/lib/postgresql/data
+  dynamodb:
+    build: ./dynamodb/
+    volumes:
+      - ./data:/app/data
+  normalizer:
+    build: ./variation-normalizer/
+    volumes:
+      - ./data:/app/data
+    environment:
+      UTA_DB_URL: postgres://uta_admin@postgres:5432/uta/uta_20210129
+      GENE_NORM_DB_URL: http://dynamodb:8000
+  app:
+    build: ../
+    environment:
+      ANYVAR_STORAGE_URI: postgres://postgres@postgres:5432/anyvar
+
