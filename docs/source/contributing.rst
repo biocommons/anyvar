@@ -15,3 +15,9 @@ Then, start the REST server: ::
 In another shell instance, verify that the server is processing requests: ::
 
     curl http://localhost:5000/info
+
+
+TODO
+
+ * add style things
+ * add testing notes
