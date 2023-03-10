@@ -1,8 +1,9 @@
-FROM biocommons/dockerbase:1.1
+FROM python:3.10
 
 COPY . /app/
 WORKDIR /app
-RUN python3 setup.py install
+RUN python3 -m pip install --upgrade pip
+RUN python3 -m pip install .
 
 EXPOSE 5000
 

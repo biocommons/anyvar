@@ -1,55 +1,46 @@
-# TODO: Migrate to private container network. (This config currently
-# uses host networking, which is fragile in the context of services
-# that compete with any ports used herein.)
-
-version: "3"
+version: "4"
 
 services:
-  anyvar:
-    image: reece/anyvar:latest
-    expose:
-      - 5001
-    ports:
-      - 5001:5000
+  uta:
+    build: ./docker/uta/
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust  # TODO real auth method
     volumes:
-      - seqrepo_vol:/usr/local/share/seqrepo
+      - ./docker/data-uta:/var/lib/postgresql/data
+  dynamodb:
+    build: ./docker/dynamodb/
+    user: root
+    expose:
+      - 8001
+  normalizer:
     depends_on:
-      - redis
-      - seqrepo-rest-service
-    #  - uta
-    #environment:
-    #  # UTA_DB_URL:
-    #  # SEQREPO_REST_SERVICE_URL:
-
-  redis:
-    expose:
-      - 6379
-    image: redis:latest
+      - postgres
+      - dynamodb
     volumes:
-      - anyvar_redis_vol:/data
-
-  seqrepo-rest-service:
-    # Test: curl http://localhost:5000/seqrepo/1/sequence/refseq:NM_000551.3
+      - ./docker/data-normalizer:/app/mounted-data
+    build: ./docker/variation-normalizer/
     expose:
-      - 5000
+      - 8000
+    # ports:
+    #   - 8000:8000
+    environment:
+      UTA_DB_URL: postgres://uta_admin@uta:5432/uta/uta_20210129
+      GENE_NORM_DB_URL: http://dynamodb:8001
+  postgres:
+    image: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: anyvar
+      POSTGRES_HOST_AUTH_METHOD: trust  # TODO real auth method
+    volumes:
+      - ./docker/data-anyvar:/var/lib/postgresql/data
+  app:
+    depends_on:
+      - normalizer
+      - postgres
+    build: .
     ports:
       - 5000:5000
-    image: biocommons/seqrepo-rest-service:latest
-    volumes:
-      - seqrepo_vol:/usr/local/share/seqrepo
-
-  # uta:
-  #   # Test:
-  #   # psql -XAt postgres://anonymous@localhost/uta -c 'select count(*) from transcript'
-  #   # 249909
-  #   image: biocommons/uta:uta_20180821
-  #   volumes:
-  #     - uta_vol:/var/lib/postgresql/data
-
-
-volumes:
-  seqrepo_vol:
-    external: true
-  uta_vol:
-    external: true
-  anyvar_redis_vol:
+    environment:
+      ANYVAR_STORAGE_URI: postgresql://postgres@postgres:5432/anyvar
+      ANYVAR_VARIATION_NORMALIZER_URI: http://normalizer:8000/variation/
