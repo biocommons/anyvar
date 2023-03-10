@@ -1,0 +1,23 @@
+﻿anyvar
+======
+
+.. automodule:: anyvar
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+
