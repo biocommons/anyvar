@@ -18,5 +18,4 @@ finally:
     del pkg_resources
 
 
-from .anyvar import AnyVar
-from .restapi.webapp import create_app
+from .anyvar import AnyVar  # isort:skip

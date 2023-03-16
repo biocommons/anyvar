@@ -3,13 +3,6 @@ from abc import ABC, abstractmethod
 from typing import Dict
 
 
-class _Translator(ABC):
-
-    @abstractmethod
-    def translate(self, var: str, **kwargs: Dict):
-        raise NotImplementedError
-
-
 class TranslatorSetupException(Exception):
     """Indicates failure to create translator instance (e.g. invalid params provided)"""
 
@@ -22,3 +15,10 @@ class TranslatorConnectionException(Exception):
 
 class TranslationException(Exception):
     """Indicates failure to translate provided term into known variation structure."""
+
+
+class _Translator(ABC):
+
+    @abstractmethod
+    def translate(self, var: str, **kwargs: Dict):
+        raise NotImplementedError
