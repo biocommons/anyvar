@@ -125,6 +125,46 @@ class GetVariationResponse(BaseModel):
     messages: List[StrictStr]
     data: Allele
 
+    class Config:
+        """Configure GetVariationResponse class"""
+
+        @staticmethod
+        def schema_extra(
+            schema: Dict[str, Any], model: Type["GetVariationResponse"]
+        ) -> None:
+            """Configure OpenAPI schema"""
+            if "title" in schema.keys():
+                schema.pop("title", None)
+            for prop in schema.get("properties", {}).values():
+                prop.pop("title", None)
+            schema["example"] = {
+                "messages": [],
+                "data": {
+                    "_id": "ga4gh:VA.ZDdoQdURgO2Daj2NxLj4pcDnjiiAsfbO",
+                    "type": "Allele",
+                    "location": {
+                        "_id": "ga4gh:VSL.2cHIgn7iLKk4x9z3zLkSTTFMV0e48DR4",
+                        "type": "SequenceLocation",
+                        "sequence_id": "ga4gh:SQ.cQvw4UsHHRRlogxbWCB8W-mKD4AraM9y",
+                        "interval": {
+                            "type": "SequenceInterval",
+                            "start": {
+                                "type": "Number",
+                                "value": 599
+                            },
+                            "end": {
+                                "type": "Number",
+                                "value": 600
+                            }
+                        }
+                    },
+                    "state": {
+                        "type": "LiteralSequenceExpression",
+                        "sequence": "E"
+                    }
+                }
+            }
+
 
 class SearchResponse(BaseModel):
     """Describe response for the /search endpoint"""

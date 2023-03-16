@@ -4,7 +4,7 @@ from typing import Optional
 
 import ga4gh.vrs
 from fastapi import Body, FastAPI, HTTPException, Query, Request
-from pydantic import StrictInt, StrictStr
+from pydantic import StrictStr
 
 import anyvar
 from anyvar.anyvar import AnyVar
@@ -181,9 +181,9 @@ def get_variation_by_id(
 )
 def search_variations(
     request: Request,
-    accession: StrictStr = Query(..., description="Sequence accession identifier"),
-    start: StrictInt = Query(..., description="Start position for genomic region"),
-    end: StrictInt = Query(..., description="End position for genomic region")
+    accession: str = Query(..., description="Sequence accession identifier"),
+    start: int = Query(..., description="Start position for genomic region"),
+    end: int = Query(..., description="End position for genomic region")
 ):
     """Fetch all registered variations within the provided genomic coordinates.
 
