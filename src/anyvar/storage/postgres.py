@@ -42,7 +42,7 @@ class PostgresObjectStore(_Storage):
         with self.conn.cursor() as cur:
             cur.execute("SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')")  # noqa: E501
             result = cur.fetchone()
-        if result[0]:
+        if result and result[0]:
             return
         self._create_schema()
 
@@ -52,11 +52,13 @@ class PostgresObjectStore(_Storage):
     def __setitem__(self, name: str, value: Any):
         assert is_pjs_instance(value), "ga4gh.vrs object value required"
         name = str(name)  # in case str-like
-        d = value.as_dict()
-        j = json.dumps(d)
-        self.conn._insert_one(
-            "insert into vrs_objects (vrs_id, vrs_object) values (%s,%s)", [name, j]
-        )
+        value_json = json.dumps(value.as_dict())
+        with self.conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO vrs_objects (vrs_id, vrs_object) VALUES (%s, %s);",
+                [name, value_json]
+            )
+
 
     def __getitem__(self, name: str) -> Optional[Any]:
         """Fetch item from DB given key.
@@ -93,7 +95,7 @@ class PostgresObjectStore(_Storage):
                 [name]
             )
             result = cur.fetchone()
-        return result[0]
+        return result[0] if result else False
 
     def __delitem__(self, name: str) -> None:
         """Delete item (not cascading -- doesn't delete referenced items)
@@ -118,11 +120,16 @@ class PostgresObjectStore(_Storage):
         self.close()
 
     def __len__(self):
-        data = self.conn._fetchone(
-            "select count(*) as c from vrs_objects "
-            "where vrs_object ->> 'type' = 'Allele'"
-        )
-        return data[0]
+        with self.conn.cursor() as cur:
+            cur.execute("""
+                SELECT COUNT(*) AS c FROM vrs_objects
+                WHERE vrs_object ->> 'type' = 'Allele';
+            """)
+            result = cur.fetchone()
+        if result:
+            return result[0]
+        else:
+            return 0
 
     def get_variation_count(self, variation_type: VariationStatisticType) -> int:
         """Get total # of registered variations of requested type.
@@ -140,26 +147,41 @@ class PostgresObjectStore(_Storage):
             return self._substitution_count() + self._deletion_count() + \
                 self._insertion_count()
 
-    def _deletion_count(self):
-        data = self.conn._fetchone(
-            "select count(*) as c from vrs_objects "
-            "where length(vrs_object -> 'state' ->> 'sequence') = 0"
-        )
-        return data[0]
+    def _deletion_count(self) -> int:
+        with self.conn.cursor() as cur:
+            cur.execute("""
+                select count(*) as c from vrs_objects
+                where length(vrs_object -> 'state' ->> 'sequence') = 0;
+            """)
+            result = cur.fetchone()
+        if result:
+            return result[0]
+        else:
+            return 0
 
-    def _substitution_count(self):
-        data = self.conn._fetchone(
-            "select count(*) as c from vrs_objects "
-            "where length(vrs_object -> 'state' ->> 'sequence') = 1"
-        )
-        return data[0]
+    def _substitution_count(self) -> int:
+        with self.conn.cursor() as cur:
+            cur.execute("""
+                select count(*) as c from vrs_objects
+                where length(vrs_object -> 'state' ->> 'sequence') = 1;
+            """)
+            result = cur.fetchone()
+        if result:
+            return result[0]
+        else:
+            return 0
 
     def _insertion_count(self):
-        data = self.conn._fetchone(
-            "select count(*) as c from vrs_objects "
-            "where length(vrs_object -> 'state' ->> 'sequence') > 1"
-        )
-        return data[0]
+        with self.conn.cursor() as cur:
+            cur.execute("""
+                select count(*) as c from vrs_objects
+                where length(vrs_object -> 'state' ->> 'sequence') > 1
+            """)
+            result = cur.fetchone()
+        if result:
+            return result[0]
+        else:
+            return 0
 
     def __iter__(self):
         with self.conn.cursor() as cur:
@@ -195,5 +217,7 @@ class PostgresObjectStore(_Storage):
             )
             """
         )
-        data = self.conn._fetchall(query_str, [start, stop, ga4gh_accession_id])
-        return [vrs_object[0] for vrs_object in data if vrs_object]
+        with self.conn.cursor() as cur:
+            cur.execute(query_str, [start, stop, ga4gh_accession_id])
+            results = cur.fetchall()
+        return [vrs_object[0] for vrs_object in results if vrs_object]
