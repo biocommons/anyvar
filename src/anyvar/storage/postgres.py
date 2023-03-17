@@ -1,30 +1,55 @@
 import json
-import logging
+from typing import Any, Optional
 
-import ga4gh.vrs
+import psycopg
 from ga4gh.core import is_pjs_instance
+from ga4gh.vrsatile.pydantic.vrs_models import Allele, Text, VRSTypes
 
 from anyvar.restapi.schema import VariationStatisticType
 
 from . import _Storage
-from .pg_utility import PostgresClient
-
-_logger = logging.getLogger(__name__)
 
 silos = "locations alleles haplotypes genotypes variationsets relations texts".split()
 
 
 class PostgresObjectStore(_Storage):
-    """Super simple key-value storage for GA4GH VRS objects"""
+    """PostgreSQL storage backend. Currently, this is our recommended storage
+    approach.
+    """
 
-    def __init__(self, db_url):
-        self.conn = PostgresClient(db_url=db_url)
-        self.conn._connect()
+    def __init__(self, db_url: str):
+        """Initialize PostgreSQL DB handler.
+
+        :param db_url: libpq connection info URL
+        """
+        self.conn = psycopg.connect(db_url, autocommit=True)
+        self.ensure_schema_exists()
+
+    def _create_schema(self):
+        """Add DB schema."""
+        create_statement = """
+        CREATE TABLE vrs_objects (
+            id BIGSERIAL PRIMARY KEY,
+            vrs_id TEXT,
+            vrs_object JSONB
+        );
+        """
+        with self.conn.cursor() as cur:
+            cur.execute(create_statement)
+
+    def ensure_schema_exists(self):
+        """Check that DB schema is in place."""
+        with self.conn.cursor() as cur:
+            cur.execute("SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')")  # noqa: E501
+            result = cur.fetchone()
+        if result[0]:
+            return
+        self._create_schema()
 
     def __repr__(self):
         return str(self.conn)
 
-    def __setitem__(self, name, value):
+    def __setitem__(self, name: str, value: Any):
         assert is_pjs_instance(value), "ga4gh.vrs object value required"
         name = str(name)  # in case str-like
         d = value.as_dict()
@@ -33,28 +58,64 @@ class PostgresObjectStore(_Storage):
             "insert into vrs_objects (vrs_id, vrs_object) values (%s,%s)", [name, j]
         )
 
-    def __getitem__(self, name):
-        name = str(name)  # in case str-like
-        data = self.conn._fetchone(
-            "select vrs_object from vrs_objects where vrs_id = %s",
-            [name]
-        )
-        if data:
-            data = data[0]
-            typ = data["type"]
-            vo = ga4gh.vrs.models[typ](**data)
-            return vo
+    def __getitem__(self, name: str) -> Optional[Any]:
+        """Fetch item from DB given key.
 
-    def __contains__(self, name):
-        name = str(name)  # in case str-like
-        return self._db.__contains__(name)
+        :param name: key to retrieve VRS object for
+        :return: VRS object if available
+        :raise NotImplementedError: if unsupported VRS object type (this is WIP)
+        """
+        with self.conn.cursor() as cur:
+            cur.execute(
+                "SELECT vrs_object FROM vrs_objects WHERE vrs_id = %s;",
+                [name]
+            )
+            result = cur.fetchone()
+        if result:
+            result = result[0]
+            object_type = result["type"]
+            if object_type == VRSTypes.ALLELE:
+                return Allele(**result)
+            elif object_type == VRSTypes.TEXT:
+                return Text(**result)
+            else:
+                raise NotImplementedError
 
-    def __delitem__(self, name):
+    def __contains__(self, name: str) -> bool:
+        """Check whether VRS objects table contains ID.
+
+        :param name: VRS ID to look up
+        :return: True if ID is contained in vrs objects table
+        """
+        with self.conn.cursor() as cur:
+            cur.execute(
+                "SELECT EXISTS (SELECT 1 FROM vrs_objects WHERE vrs_id = %s);",
+                [name]
+            )
+            result = cur.fetchone()
+        return result[0]
+
+    def __delitem__(self, name: str) -> None:
+        """Delete item (not cascading -- doesn't delete referenced items)
+
+        :param name: key to delete object for
+        """
         name = str(name)  # in case str-like
-        del self._db[name]
+        with self.conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM vrs_objects WHERE vrs_id = %s;",
+                [name]
+            )
+        self.conn.commit()  # TODO I think this is unnecessary
+
+    def close(self):
+        """Terminate connection if necessary."""
+        if self.conn is not None:
+            self.conn.close()
 
     def __del__(self):
-        self._db.close()
+        """Tear down DB instance."""
+        self.close()
 
     def __len__(self):
         data = self.conn._fetchone(
@@ -101,10 +162,16 @@ class PostgresObjectStore(_Storage):
         return data[0]
 
     def __iter__(self):
-        return self._db.__iter__()
+        with self.conn.cursor() as cur:
+            return cur.stream(
+                "SELECT * FROM vrs_objects;"
+            )
 
     def keys(self):
-        return self._db.keys()
+        with self.conn.cursor() as cur:
+            cur.execute("SELECT vrs_id FROM vrs_objects;")
+            result = cur.fetchall()
+        return result
 
     def search_variations(self, ga4gh_accession_id, start, stop):
         """Find all alleles that were registered that are in 1 genomic region
