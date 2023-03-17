@@ -1,22 +1,16 @@
 """Provide core route definitions for REST service."""
-import os
-from typing import Optional
-
 import ga4gh.vrs
 from fastapi import Body, FastAPI, HTTPException, Query, Request
 from pydantic import StrictStr
 
 import anyvar
-from anyvar.anyvar import AnyVar
+from anyvar.anyvar import AnyVar, create_storage, create_translator
 from anyvar.restapi.schema import (AnyVarStatsResponse, EndpointTag,
                                    GetSequenceLocationResponse,
                                    GetVariationResponse, InfoResponse,
                                    RegisterVariationRequest,
                                    RegisterVariationResponse, SearchResponse,
                                    VariationStatisticType)
-from anyvar.storage import create_storage
-from anyvar.translate import (TranslatorSetupException,
-                              VariationNormalizerRestTranslator, _Translator)
 from anyvar.translate.translate import TranslationException
 
 app = FastAPI(
@@ -26,22 +20,6 @@ app = FastAPI(
     swagger_ui_parameters={"tryItOutEnabled": True},
     description="Register and retrieve VRS value objects."
 )
-
-def create_translator(uri: Optional[str] = None) -> _Translator:
-    """Create variation translator middleware.
-
-    Currently accepts REST interface only -- we should at least enable a local
-    proxy instance in the future.
-
-    :param uri: location listening for requests
-    :return: instantiated Translator instance
-    """
-    if not uri:
-        uri = os.environ.get("ANYVAR_VARIATION_NORMALIZER_URI")
-        if not uri:
-            raise TranslatorSetupException("No Translator URI provided.")
-    return VariationNormalizerRestTranslator(uri)
-
 
 @app.on_event("startup")
 async def startup():
@@ -204,7 +182,7 @@ def search_variations(
     alleles = []
     if ga4gh_id:
         try:
-            alleles = av.object_store.find_alleles(ga4gh_id, start, end)
+            alleles = av.object_store.search_variations(ga4gh_id, start, end)
         except NotImplementedError:
             raise HTTPException(
                 status_code=501,
@@ -214,7 +192,8 @@ def search_variations(
     inline_alleles = []
     for allele in alleles:
         inline_alleles.append(av.get_object(allele["_id"], deref=True).asdict())
-    return inline_alleles
+
+    return {"variations": inline_alleles}
 
 
 @app.get(
@@ -240,19 +219,14 @@ def get_stats(
         should block the request from going through in that case
     """
     av = request.app.state.anyvar
-    if variation_type == VariationStatisticType.SUBSTITUTION:
-        out = av.object_store.substitution_count()
-    elif variation_type == VariationStatisticType.DELETION:
-        out = av.object_store.deletion_count()
-    elif variation_type == VariationStatisticType.INSERTION:
-        out = av.object_store.insertion_count()
-    elif variation_type == VariationStatisticType.ALL:
-        out = len(av.object_store)
-    else:
+    try:
+        count = av.object_store.get_variation_count(variation_type)
+    except NotImplementedError:
         raise HTTPException(
-            status_code=404, detail="Unrecognized variation type requested"
+            status_code=501,
+            detail="Stats not available for current storage backend"
         )
     return {
         "variation_type": variation_type,
-        "total_count": out
+        "count": count
     }

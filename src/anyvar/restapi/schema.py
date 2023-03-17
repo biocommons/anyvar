@@ -185,4 +185,4 @@ class AnyVarStatsResponse(BaseModel):
     """Describe response for the /stats endpoint"""
 
     variation_type: VariationStatisticType
-    total_count: StrictInt
+    count: StrictInt

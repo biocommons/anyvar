@@ -1,11 +1,14 @@
 import bz2
-import collections.abc
 import json
 
 import ga4gh.vrs
 
+from anyvar.restapi.schema import VariationStatisticType
 
-class RedisObjectStore(collections.abc.MutableMapping):
+from . import _Storage
+
+
+class RedisObjectStore(_Storage):
     """Provides Redis-backed storage of VR objects
 
     The intention of this class is to provide a interface that is
@@ -62,9 +65,11 @@ class RedisObjectStore(collections.abc.MutableMapping):
         self.redis.set(name, bz2.compress(json.dumps(o.as_dict()).encode(self._enc)))
 
 
+    def search_variations(self, ga4gh_accession_id: str, start: int, stop: int):
+        raise NotImplementedError
 
-
-
+    def get_variation_count(self, variation_type: VariationStatisticType) -> int:
+        raise NotImplementedError
 
 if __name__ == "__main__":
     import redis

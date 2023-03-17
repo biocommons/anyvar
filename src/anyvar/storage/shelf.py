@@ -1,4 +1,3 @@
-import collections
 import json
 import logging
 import shelve
@@ -7,12 +6,16 @@ import zlib
 import ga4gh.vrs
 from ga4gh.core import is_pjs_instance
 
+from anyvar.restapi.schema import VariationStatisticType
+
+from . import _Storage
+
 _logger = logging.getLogger(__name__)
 
 silos = "locations alleles haplotypes genotypes variationsets relations texts".split()
 
 
-class ShelfStorage(collections.abc.MutableMapping):
+class ShelfStorage(_Storage):
     """Super simple key-value storage for GA4GH VRS objects"""
 
     def __init__(self, filename):
@@ -61,3 +64,9 @@ class ShelfStorage(collections.abc.MutableMapping):
 
     def keys(self):
         return self._db.keys()
+
+    def search_variations(self, ga4gh_accession_id: str, start: int, stop: int):
+        raise NotImplementedError
+
+    def get_variation_count(self, variation_type: VariationStatisticType) -> int:
+        raise NotImplementedError

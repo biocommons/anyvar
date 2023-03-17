@@ -4,6 +4,9 @@ import logging
 import ga4gh.vrs
 from ga4gh.core import is_pjs_instance
 
+from anyvar.restapi.schema import VariationStatisticType
+
+from . import _Storage
 from .pg_utility import PostgresClient
 
 _logger = logging.getLogger(__name__)
@@ -11,7 +14,7 @@ _logger = logging.getLogger(__name__)
 silos = "locations alleles haplotypes genotypes variationsets relations texts".split()
 
 
-class PostgresObjectStore:
+class PostgresObjectStore(_Storage):
     """Super simple key-value storage for GA4GH VRS objects"""
 
     def __init__(self, db_url):
@@ -60,21 +63,37 @@ class PostgresObjectStore:
         )
         return data[0]
 
-    def deletion_count(self):
+    def get_variation_count(self, variation_type: VariationStatisticType) -> int:
+        """Get total # of registered variations of requested type.
+
+        :param variation_type: variation type to check
+        :return: total count
+        """
+        if variation_type == VariationStatisticType.SUBSTITUTION:
+            return self._substitution_count()
+        elif variation_type == VariationStatisticType.INSERTION:
+            return self._insertion_count()
+        elif variation_type == VariationStatisticType.DELETION:
+            return self._deletion_count()
+        else:
+            return self._substitution_count() + self._deletion_count() + \
+                self._insertion_count()
+
+    def _deletion_count(self):
         data = self.conn._fetchone(
             "select count(*) as c from vrs_objects "
             "where length(vrs_object -> 'state' ->> 'sequence') = 0"
         )
         return data[0]
 
-    def substitution_count(self):
+    def _substitution_count(self):
         data = self.conn._fetchone(
             "select count(*) as c from vrs_objects "
             "where length(vrs_object -> 'state' ->> 'sequence') = 1"
         )
         return data[0]
 
-    def insertion_count(self):
+    def _insertion_count(self):
         data = self.conn._fetchone(
             "select count(*) as c from vrs_objects "
             "where length(vrs_object -> 'state' ->> 'sequence') > 1"
@@ -87,7 +106,7 @@ class PostgresObjectStore:
     def keys(self):
         return self._db.keys()
 
-    def find_alleles(self, ga4gh_accession_id, start, stop):
+    def search_variations(self, ga4gh_accession_id, start, stop):
         """Find all alleles that were registered that are in 1 genomic region
 
         Args:
@@ -109,6 +128,5 @@ class PostgresObjectStore:
             )
             """
         )
-
         data = self.conn._fetchall(query_str, [start, stop, ga4gh_accession_id])
         return [vrs_object[0] for vrs_object in data if vrs_object]
