@@ -18,7 +18,6 @@ def pytest_collection_modifyitems(items):
         "test_variation",
         "test_general",
         "test_location",
-        "test_sequence",
         "test_find"
     ]
     # remember to add new test modules to the order constant:

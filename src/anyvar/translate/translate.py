@@ -20,5 +20,5 @@ class TranslationException(Exception):
 class _Translator(ABC):
 
     @abstractmethod
-    def translate(self, var: str, **kwargs: Dict):
+    def translate(self, var: str, untranslatable_to_text: bool, **kwargs: Dict):
         raise NotImplementedError

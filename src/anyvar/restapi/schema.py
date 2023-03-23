@@ -1,8 +1,8 @@
 """Provide response definitions to REST API endpoint."""
 from enum import Enum
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, List, Optional, Type, Union
 
-from ga4gh.vrsatile.pydantic.vrs_models import Allele, SequenceLocation
+from ga4gh.vrsatile.pydantic.vrs_models import Allele, SequenceLocation, Text
 from pydantic import BaseModel, StrictInt, StrictStr
 
 
@@ -58,6 +58,7 @@ class RegisterVariationRequest(BaseModel):
     """Describe request structure for variation registration endpoint"""
 
     definition: StrictStr
+    untranslatable_to_text: bool = False
 
     class Config:
         """Configure RegisterVariationRequest class"""
@@ -73,8 +74,8 @@ class RegisterVariationResponse(BaseModel):
     """Describe response for the variation registry endpoint"""
 
     messages: List[str]
-    object: Dict
-    object_id: str
+    object: Optional[Dict]
+    object_id: Optional[str]
 
     class Config:
         """Configure RegisterVariationResponse class"""
@@ -123,7 +124,7 @@ class GetVariationResponse(BaseModel):
 
 
     messages: List[StrictStr]
-    data: Allele
+    data: Union[Allele, Text]
 
     class Config:
         """Configure GetVariationResponse class"""

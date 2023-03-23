@@ -5,4 +5,4 @@ def test_location(client, alleles):
         key = allele["location_id"]
         resp = client.get(f"/locations/{key}")
         assert resp.status_code == 200
-        assert resp.json == allele["allele_response"]["object"]["location"]
+        assert resp.json()["location"] == allele["allele_response"]["object"]["location"]

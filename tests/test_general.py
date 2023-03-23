@@ -3,8 +3,8 @@
 def test_info(client):
     response = client.get("/info")
     assert response.status_code == 200
-    assert "anyvar" in response.json
-    assert "ga4gh.vrs" in response.json
+    assert "anyvar" in response.json()
+    assert "ga4gh_vrs" in response.json()
 
 
 # TODO: this feature is only implemented for the postgres backend

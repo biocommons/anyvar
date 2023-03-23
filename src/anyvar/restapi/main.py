@@ -102,7 +102,10 @@ def register_variation(
         "messages": []
     }
     try:
-        translated_variation = av.translator.translate(var=definition)
+        translated_variation = av.translator.translate(
+            var=definition,
+            untranslatable_to_text=variation.untranslatable_to_text
+        )
     except TranslationException:
         result["messages"].append(f"Unable to translate {definition}")
     except NotImplementedError:
