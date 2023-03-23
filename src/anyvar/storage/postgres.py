@@ -157,6 +157,10 @@ class PostgresObjectStore(_Storage):
                 self._insertion_count()
 
     def _text_count(self) -> int:
+        """Get total # of registered text variations.
+
+        :return: total count
+        """
         with self.conn.cursor() as cur:
             query = """
             SELECT COUNT(1) AS c FROM vrs_objects
