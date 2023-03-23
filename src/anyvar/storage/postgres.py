@@ -144,6 +144,8 @@ class PostgresObjectStore(_Storage):
         :param variation_type: variation type to check
         :return: total count
         """
+        if variation_type == VariationStatisticType.TEXT:
+            return self._text_count()
         if variation_type == VariationStatisticType.SUBSTITUTION:
             return self._substitution_count()
         elif variation_type == VariationStatisticType.INSERTION:
@@ -153,6 +155,19 @@ class PostgresObjectStore(_Storage):
         else:
             return self._substitution_count() + self._deletion_count() + \
                 self._insertion_count()
+
+    def _text_count(self) -> int:
+        with self.conn.cursor() as cur:
+            query = """
+            SELECT COUNT(1) AS c FROM vrs_objects
+            WHERE vrs_object ->> 'type' = 'Text'
+            """
+            cur.execute(query)
+            result = cur.fetchone()
+        if result:
+            return result[0]
+        else:
+            return 0
 
     def _deletion_count(self) -> int:
         with self.conn.cursor() as cur:

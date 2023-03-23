@@ -179,6 +179,7 @@ class VariationStatisticType(str, Enum):
     SUBSTITUTION = "substitution"
     DELETION = "deletion"
     INSERTION = "insertion"
+    TEXT = "text"
     ALL = "all"
 
 
