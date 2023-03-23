@@ -6,7 +6,7 @@ biological sequence variation
 import logging
 import os
 from collections.abc import MutableMapping
-from typing import Optional
+from typing import Dict, Optional
 from urllib.parse import urlparse
 
 from ga4gh.core import ga4gh_identify
@@ -18,7 +18,7 @@ from anyvar.translate.translate import TranslatorSetupException, _Translator
 _logger = logging.getLogger(__name__)
 
 
-def create_storage(uri=None):
+def create_storage(uri: Optional[str] = None) -> _Storage:
     """factory to create storage based on `uri`, the ANYVAR_STORAGE_URI
     environment value, or in-memory storage.
 
@@ -54,7 +54,6 @@ def create_storage(uri=None):
         )
         from anyvar.storage.memory import InMemoryStore
         storage = InMemoryStore()
-        # storage = dict()
 
     elif parsed_uri.scheme in ("", "file"):
         from anyvar.storage.shelf import ShelfStorage
@@ -65,12 +64,12 @@ def create_storage(uri=None):
         import redis
 
         from anyvar.storage.redis import RedisObjectStore
-        storage = RedisObjectStore(redis.Redis.from_url(uri))
+        storage = RedisObjectStore(redis.Redis.from_url(uri))  # type: ignore
 
     elif parsed_uri.scheme == "postgresql":
         from anyvar.storage.postgres import PostgresObjectStore
 
-        storage = PostgresObjectStore(uri)
+        storage = PostgresObjectStore(uri)  # type: ignore
 
     else:
         raise ValueError(f"URI scheme {parsed_uri.scheme} is not implemented")
@@ -101,6 +100,7 @@ def create_translator(uri: Optional[str] = None) -> _Translator:
 
 class AnyVar:
     def __init__(self, /, translator: _Translator, object_store: _Storage):
+        """TODO"""
         if not isinstance(object_store, MutableMapping):
             _logger.warning(
                 "AnyVar(object_store=) should be a mutable mapping; you're on your own"
@@ -109,16 +109,22 @@ class AnyVar:
         self.object_store = object_store
         self.translator = translator
 
-    def put_object(self, vo):
-        v = vrs_enref(vo, self.object_store)
+    def put_object(self, variation_object: Dict) -> Optional[str]:
+        """TODO"""
+        try:
+            v = vrs_enref(variation_object, self.object_store)
+        except ValueError:
+            return None
         _id = ga4gh_identify(v)
         return _id
 
-    def get_object(self, id, deref=False):
-        v = self.object_store[id]
+    def get_object(self, object_id: str, deref: bool = False):
+        """TODO"""
+        v = self.object_store[object_id]
         return vrs_deref(v, self.object_store) if deref else v
 
     def create_text(self, defn):
+        """TODO"""
         vo = models.Text(definition=defn)
         vo._id = ga4gh_identify(vo)
         return vo

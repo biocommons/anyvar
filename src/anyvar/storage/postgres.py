@@ -3,7 +3,8 @@ from typing import Any, Optional
 
 import psycopg
 from ga4gh.core import is_pjs_instance
-from ga4gh.vrsatile.pydantic.vrs_models import Allele, Text, VRSTypes
+from ga4gh.vrs import models
+from ga4gh.vrsatile.pydantic.vrs_models import VRSTypes
 
 from anyvar.restapi.schema import VariationStatisticType
 
@@ -63,6 +64,9 @@ class PostgresObjectStore(_Storage):
     def __getitem__(self, name: str) -> Optional[Any]:
         """Fetch item from DB given key.
 
+        TODO
+         * Remove reliance on VRS-Python models (requires rewriting the enderef module)
+
         :param name: key to retrieve VRS object for
         :return: VRS object if available
         :raise NotImplementedError: if unsupported VRS object type (this is WIP)
@@ -76,10 +80,13 @@ class PostgresObjectStore(_Storage):
         if result:
             result = result[0]
             object_type = result["type"]
+            print(object_type)
             if object_type == VRSTypes.ALLELE:
-                return Allele(**result)
+                return models.Allele(**result)
             elif object_type == VRSTypes.TEXT:
-                return Text(**result)
+                return models.Allele(**result)
+            elif object_type == VRSTypes.SEQUENCE_LOCATION:
+                return models.SequenceLocation(**result)
             else:
                 raise NotImplementedError
 
@@ -108,7 +115,7 @@ class PostgresObjectStore(_Storage):
                 "DELETE FROM vrs_objects WHERE vrs_id = %s;",
                 [name]
             )
-        self.conn.commit()  # TODO I think this is unnecessary
+        self.conn.commit()
 
     def close(self):
         """Terminate connection if necessary."""

@@ -67,7 +67,7 @@ def get_location_by_id(
     :return: complete location object if successful
     :raise HTTPException: if requested location isn't found
     """
-    av = request.app.state.anyvar
+    av: AnyVar = request.app.state.anyvar
     try:
         location = av.get_object(location_id)
     except KeyError:
@@ -75,7 +75,7 @@ def get_location_by_id(
     return {"location": location.as_dict()}
 
 
-@app.post(
+@app.put(
     "/variation",
     response_model=RegisterVariationResponse,
     summary="Register a new variation object",
@@ -95,8 +95,8 @@ def register_variation(
     :return: messages describing translation failure, or object and references if
         successful
     """
+    av: AnyVar = request.app.state.anyvar
     definition = variation.definition
-    av = request.app.state.anyvar
     result = {
         "object": None,
         "messages": []
@@ -135,7 +135,7 @@ def get_variation_by_id(
     :return: VRS variation if successful
     :raise HTTPException: if no variation matches provided ID
     """
-    av = request.app.state.anyvar
+    av: AnyVar = request.app.state.anyvar
 
     try:
         variation = av.get_object(variation_id, deref=True)
@@ -171,7 +171,7 @@ def search_variations(
     :param end: end position for genomic region
     :return: list (possibly empty) of variations in the given region
     """
-    av = request.app.state.anyvar
+    av: AnyVar = request.app.state.anyvar
     try:
         ga4gh_id = av.translator.get_sequence_id(accession)
     except KeyError:
@@ -218,7 +218,7 @@ def get_stats(
     :raise HTTPException: if invalid variation type is requested, although FastAPI
         should block the request from going through in that case
     """
-    av = request.app.state.anyvar
+    av: AnyVar = request.app.state.anyvar
     try:
         count = av.object_store.get_variation_count(variation_type)
     except NotImplementedError:

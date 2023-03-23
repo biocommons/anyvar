@@ -4,8 +4,10 @@ from pathlib import Path
 from typing import Dict
 
 import pytest
+from fastapi.testclient import TestClient
 
-from anyvar.restapi.webapp import create_app
+from anyvar.anyvar import AnyVar, create_storage, create_translator
+from anyvar.restapi.main import app as anyvar_restapi
 
 
 def pytest_collection_modifyitems(items):
@@ -25,25 +27,44 @@ def pytest_collection_modifyitems(items):
 
 
 @pytest.fixture(scope="session")
-def app():
-    """Create app client fixture.
-
-    Uses in-memory store for now. Ideally, CI should be able to set variables
-    to test other major storage options.
-    """
+def client():
+    """Provide API client instance as test fixture"""
     if "ANYVAR_TEST_STORAGE_URI" in os.environ:
         os.environ["ANYVAR_STORAGE_URI"] = os.environ["ANYVAR_TEST_STORAGE_URI"]
     else:
         os.environ["ANYVAR_STORAGE_URI"] = "memory:"
-    app = create_app()
-    app.config.update({"TESTING": True})
 
-    yield app
+    if "ANYVAR_TEST_TRANSLATOR_URI" in os.environ:
+        os.environ["ANYVAR_VARIATION_NORMALIZER_URI"] = \
+            os.environ["ANYVAR_TEST_TRANSLATOR_URI"]
+
+    storage = create_storage()
+    translator = create_translator()
+    anyvar_restapi.state.anyvar = AnyVar(object_store=storage, translator=translator)
+    return TestClient(app=anyvar_restapi)
 
 
-@pytest.fixture(scope="session")
-def client(app):
-    return app.test_client()
+# @pytest.fixture(scope="session")
+# def app():
+#     """Create app client fixture.
+#
+#     Uses in-memory store for now. Ideally, CI should be able to set variables
+#     to test other major storage options.
+#     """
+#     if "ANYVAR_TEST_STORAGE_URI" in os.environ:
+#         os.environ["ANYVAR_STORAGE_URI"] = os.environ["ANYVAR_TEST_STORAGE_URI"]
+#     else:
+#         os.environ["ANYVAR_STORAGE_URI"] = "memory:"
+#
+#     app = create_app()
+#     app.config.update({"TESTING": True})
+#
+#     yield app
+#
+#
+# @pytest.fixture(scope="session")
+# def client(app):
+#     return app.test_client()
 
 
 @pytest.fixture(scope="session")
