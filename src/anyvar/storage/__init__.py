@@ -19,7 +19,6 @@ class _Storage(MutableMapping):
 
         :return: A list of VRS Alleles that have locations referenced as identifiers
         """
-        pass
 
     @abstractmethod
     def get_variation_count(self, variation_type: VariationStatisticType) -> int:
@@ -28,4 +27,7 @@ class _Storage(MutableMapping):
         :param variation_type: variation type to check
         :return: total count
         """
-        pass
+
+    @abstractmethod
+    def wipe_db(self):
+        """Empty database of all stored records."""

@@ -6,14 +6,16 @@ biological sequence variation
 import logging
 import os
 from collections.abc import MutableMapping
-from typing import Dict, Optional
+from typing import Optional
 from urllib.parse import urlparse
 
 from ga4gh.core import ga4gh_identify
-from ga4gh.vrs import models, vrs_deref, vrs_enref
+from ga4gh.vrs import vrs_deref, vrs_enref
 
 from anyvar.storage import DEFAULT_STORAGE_URI, _Storage
-from anyvar.translate.translate import TranslatorSetupException, _Translator
+from anyvar.translate.translate import (DEFAULT_TRANSLATE_URI,
+                                        TranslatorSetupException, _Translator)
+from anyvar.utils.types import VrsPythonObject
 
 _logger = logging.getLogger(__name__)
 
@@ -24,51 +26,15 @@ def create_storage(uri: Optional[str] = None) -> _Storage:
 
     The URI format is one of the following:
 
-    * in-memory dictionary:
-    `memory:`
-    Remaining URI elements ignored, if provided
-
-    * Python shelf (dbm) persistence
-
-    `file:///full/path/to/filename.db`
-    `path/to/filename`
-
-    The `file` scheme permits only full paths.  When scheme is not
-    provided, the path may be absolute or relative.
-
-    * Redis URI
-    `redis://[[username]:[password]]@localhost:6379/0`
-    `unix://[[username]:[password]]@/path/to/socket.sock?db=0`
-
-    The URIs are passed as-is to `redis.Redis.from_url()`
-
+    * PostgreSQL
+    `postgresql://[username]:[password]@[domain]/[database]`
     """
-
     uri = uri or os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
 
     parsed_uri = urlparse(uri)
 
-    if parsed_uri.scheme == "memory":
-        _logger.warning(
-            "Using memory storage; stored data will be discarded when process exits"
-        )
-        from anyvar.storage.memory import InMemoryStore
-        storage = InMemoryStore()
-
-    elif parsed_uri.scheme in ("", "file"):
-        from anyvar.storage.shelf import ShelfStorage
-
-        storage = ShelfStorage(parsed_uri.path)
-
-    elif parsed_uri.scheme == "redis" or parsed_uri.scheme == "unix":
-        import redis
-
-        from anyvar.storage.redis import RedisObjectStore
-        storage = RedisObjectStore(redis.Redis.from_url(uri))  # type: ignore
-
-    elif parsed_uri.scheme == "postgresql":
+    if parsed_uri.scheme == "postgresql":
         from anyvar.storage.postgres import PostgresObjectStore
-
         storage = PostgresObjectStore(uri)  # type: ignore
 
     else:
@@ -88,7 +54,7 @@ def create_translator(uri: Optional[str] = None) -> _Translator:
     :return: instantiated Translator instance
     """
     if not uri:
-        uri = os.environ.get("ANYVAR_VARIATION_NORMALIZER_URI")
+        uri = os.environ.get("ANYVAR_VARIATION_NORMALIZER_URI", DEFAULT_TRANSLATE_URI)
         if not uri:
             raise TranslatorSetupException("No Translator URI provided.")
 
@@ -100,7 +66,12 @@ def create_translator(uri: Optional[str] = None) -> _Translator:
 
 class AnyVar:
     def __init__(self, /, translator: _Translator, object_store: _Storage):
-        """TODO"""
+        """Initialize anyvar instance. It's easiest to use factory methods to create
+        translator and object_store instances but manual construction works too.
+
+        :param translator: Translator instance
+        :param object_store: Object storage instance
+        """
         if not isinstance(object_store, MutableMapping):
             _logger.warning(
                 "AnyVar(object_store=) should be a mutable mapping; you're on your own"
@@ -109,8 +80,12 @@ class AnyVar:
         self.object_store = object_store
         self.translator = translator
 
-    def put_object(self, variation_object: Dict) -> Optional[str]:
-        """TODO"""
+    def put_object(self, variation_object: VrsPythonObject) -> Optional[str]:
+        """Attempt to register variation.
+
+        :param variation_object: complete VRS object
+        :return: Object digest if successful, None otherwise
+        """
         try:
             v = vrs_enref(variation_object, self.object_store)
         except ValueError:
@@ -118,13 +93,13 @@ class AnyVar:
         _id = ga4gh_identify(v)
         return _id
 
-    def get_object(self, object_id: str, deref: bool = False):
-        """TODO"""
+    def get_object(
+        self, object_id: str, deref: bool = False
+    ) -> Optional[VrsPythonObject]:
+        """Retrieve registered variation.
+
+        :param object_id: object identifier
+        :param deref: if True, dereference all IDs contained by the object
+        """
         v = self.object_store[object_id]
         return vrs_deref(v, self.object_store) if deref else v
-
-    def create_text(self, defn):
-        """TODO"""
-        vo = models.Text(definition=defn)
-        vo._id = ga4gh_identify(vo)
-        return vo

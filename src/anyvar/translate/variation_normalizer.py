@@ -1,15 +1,13 @@
+"""Normalize incoming variation descriptions with the VICC Variation Normalizer."""
+from http import HTTPStatus
 from typing import Dict, Optional
 
 import requests
-from ga4gh.vrs import models as vrs_models
-from ga4gh.vrsatile.pydantic.vrs_models import VRSTypes
 
-from . import TranslationException, TranslatorConnectionException, _Translator
+from anyvar.utils.types import VrsPythonVariation, variation_class_map
 
-variation_class_map = {
-    VRSTypes.ALLELE: vrs_models.Allele,
-    VRSTypes.TEXT: vrs_models.Text
-}
+from . import TranslatorConnectionException, _Translator
+
 
 class VariationNormalizerRestTranslator(_Translator):
 
@@ -24,7 +22,7 @@ class VariationNormalizerRestTranslator(_Translator):
 
         openapi_docs = self.endpoint_base + "openapi.json"
         resp = requests.get(openapi_docs)
-        if resp.status_code != 200:
+        if resp.status_code != HTTPStatus.OK:
             raise TranslatorConnectionException(
                 f"Failed to get response from Variation Normalizer REST endpoint at "
                 f"{openapi_docs}"
@@ -47,14 +45,15 @@ class VariationNormalizerRestTranslator(_Translator):
         """
         req_url = self.endpoint_base + f"translate_identifier?identifier={accession_id}&target_namespaces=ga4gh"  # noqa: E501
         resp = self._send_rest_request(req_url)
-        if resp.status_code == 404:
+        if resp.status_code == HTTPStatus.NOT_FOUND:
             raise TranslatorConnectionException(
-                f"Failed to get response from Variation Normalizer REST endpoint at {req_url}")  # noqa: E501
-        elif resp.status_code == 500:
+                f"Failed to get response from Variation Normalizer REST endpoint at {req_url}"  # noqa: E501
+            )
+        elif resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR:
             raise TranslatorConnectionException(
                 f"Variation Normalizer REST endpoint returned server error for {accession_id}"  # noqa: E501
             )
-        elif resp.status_code != 200:
+        elif resp.status_code != HTTPStatus.OK:
             raise TranslatorConnectionException(
                 f"Variation Normalizer REST endpoint returned {resp.status_code} for {accession_id}"  # noqa: E501
             )
@@ -80,29 +79,26 @@ class VariationNormalizerRestTranslator(_Translator):
             return None
         return variation.get("type")
 
-    def translate(
-        self, var: str, untranslatable_to_text: bool, **kwargs: Dict
-    ) -> vrs_models.Allele:
+    def translate(self, var: str, **kwargs: Dict) -> Optional[VrsPythonVariation]:
         """Translate provided variation text into a normalized VRS object.
 
-        :param var: user-provided text object describing or referencing a variation.
-        :param untranslatable_to_text: if True, store un-normalized descriptions
-            as Text objects
+        :param var: user-provided string describing or referencing a variation.
+        :returns: VRS-Python variation object if able to normalize
         :raises TranslatorConnectionException: if translation request returns error
         """
-
-        req_url = self.endpoint_base + f"normalize?q={var}&untranslatable_returns_text=true"  # noqa: E501
+        req_url = self.endpoint_base + f"normalize?q={var}"  # noqa: E501
         resp = self._send_rest_request(req_url)
-        if resp.status_code == 404:
+
+        if resp.status_code == HTTPStatus.NOT_FOUND:
             raise TranslatorConnectionException(
                 f"Failed to get response from Variation Normalizer REST endpoint at "
                 f"{req_url}"
             )
-        elif resp.status_code == 500:
+        elif resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR:
             raise TranslatorConnectionException(
                 f"Variation Normalizer REST endpoint returned server error for {var}"
             )
-        elif resp.status_code != 200:
+        elif resp.status_code != HTTPStatus.OK:
             raise TranslatorConnectionException(
                 f"Variation Normalizer REST endpoint returned {resp.status_code} "
                 f"for {var}"
@@ -111,13 +107,13 @@ class VariationNormalizerRestTranslator(_Translator):
         resp_json = resp.json()
         variation_type = self._safe_check_variation_type(resp_json)
 
-        # TODO -- further narrow scope on when to store variant as text vs not?
-        if variation_type is None or \
-                (not untranslatable_to_text and resp_json.get("warnings")):
-                raise TranslationException(f"Unable to store {var}.")
+        if not variation_type:
+            return None
+
         if variation_type not in variation_class_map:
             raise NotImplementedError(
-                "AnyVar currently only supports Allele and Text storage"
+                "AnyVar currently only supports Allele"
             )
+
         variation = resp_json["variation_descriptor"]["variation"]
         return variation_class_map[variation_type](**variation)

@@ -51,14 +51,13 @@ class InfoResponse(BaseModel):
 class GetSequenceLocationResponse(BaseModel):
     """Describe response for the /locations/ endpoint"""
 
-    location: SequenceLocation
+    location: Optional[SequenceLocation]
 
 
 class RegisterVariationRequest(BaseModel):
     """Describe request structure for variation registration endpoint"""
 
     definition: StrictStr
-    untranslatable_to_text: bool = False
 
     class Config:
         """Configure RegisterVariationRequest class"""
@@ -68,7 +67,6 @@ class RegisterVariationRequest(BaseModel):
                 "definition": "BRAF V600E"
             }
         }
-
 
 class RegisterVariationResponse(BaseModel):
     """Describe response for the variation registry endpoint"""
@@ -117,6 +115,14 @@ class RegisterVariationResponse(BaseModel):
                 },
                 "object_id": "ga4gh:VA.ZDdoQdURgO2Daj2NxLj4pcDnjiiAsfbO"
             }
+
+
+class RegisterVrsVariationResponse(BaseModel):
+    """Describe response for VRS object registration endpoint"""
+
+    messages: List[str]
+    object: Optional[Dict]
+    object_id: Optional[str]
 
 
 class GetVariationResponse(BaseModel):

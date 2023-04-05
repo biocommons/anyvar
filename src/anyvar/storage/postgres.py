@@ -60,11 +60,10 @@ class PostgresObjectStore(_Storage):
                 [name, value_json]
             )
 
-
     def __getitem__(self, name: str) -> Optional[Any]:
         """Fetch item from DB given key.
 
-        TODO
+        Future issues:
          * Remove reliance on VRS-Python models (requires rewriting the enderef module)
 
         :param name: key to retrieve VRS object for
@@ -80,7 +79,6 @@ class PostgresObjectStore(_Storage):
         if result:
             result = result[0]
             object_type = result["type"]
-            print(object_type)
             if object_type == VRSTypes.ALLELE:
                 return models.Allele(**result)
             elif object_type == VRSTypes.TEXT:
@@ -221,7 +219,7 @@ class PostgresObjectStore(_Storage):
             result = cur.fetchall()
         return result
 
-    def search_variations(self, ga4gh_accession_id, start, stop):
+    def search_variations(self, ga4gh_accession_id: str, start: int, stop: int):
         """Find all alleles that were registered that are in 1 genomic region
 
         Args:
@@ -240,10 +238,15 @@ class PostgresObjectStore(_Storage):
                 WHERE CAST (vrs_object->'interval'->'start'->>'value' as INTEGER) >= %s
                 AND CAST (vrs_object->'interval'->'end'->>'value' as INTEGER) <= %s
                 AND vrs_object->>'sequence_id' = %s
-            )
+            );
             """
         )
         with self.conn.cursor() as cur:
             cur.execute(query_str, [start, stop, ga4gh_accession_id])
             results = cur.fetchall()
         return [vrs_object[0] for vrs_object in results if vrs_object]
+
+    def wipe_db(self):
+        """Remove all stored records from vrs_objects table."""
+        with self.conn.cursor() as cur:
+            cur.execute("DELETE FROM vrs_objects;")
