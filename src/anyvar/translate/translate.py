@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from anyvar.utils.types import VrsVariation
+from anyvar.utils.types import VrsPythonVariation
 
 DEFAULT_TRANSLATE_URI = "http://localhost:8000/variation/"
 
@@ -24,7 +24,7 @@ class TranslationException(Exception):
 class _Translator(ABC):
 
     @abstractmethod
-    def translate(self, var: str) -> Optional[VrsVariation]:
+    def translate(self, var: str) -> Optional[VrsPythonVariation]:
         """Translate provided variation text into a normalized VRS object.
 
         :param var: user-provided string describing or referencing a variation.

@@ -5,24 +5,19 @@ from ga4gh.vrs import models
 from ga4gh.vrsatile.pydantic import vrs_models
 
 VrsVariation = Union[
-    vrs_models.Allele, vrs_models.Haplotype, vrs_models.AbsoluteCopyNumber,
-    vrs_models.RelativeCopyNumber, vrs_models.Text, vrs_models.VariationSet
+    vrs_models.Allele,
+    vrs_models.Text,
 ]
 
 VrsPythonVariation = Union[
     models.Allele,
-    models.Haplotype,
-    # models.AbsoluteCopyNumber,
-    # models.RelativeCopyNumber,
     models.Text,
-    models.VariationSet
 ]
 
+# should include all supported VRS Python variation types + location types
 VrsPythonObject = Union[
     models.Allele,
-    models.Haplotype,
     models.Text,
-    models.VariationSet,
     models.SequenceLocation,
 ]
 

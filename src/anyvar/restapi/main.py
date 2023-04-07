@@ -18,6 +18,7 @@ from anyvar.translate.translate import TranslationException
 from anyvar.utils.types import VrsVariation, variation_class_map
 
 app = FastAPI(
+    title="AnyVar",
     version=anyvar.__version__,
     docs_url="/",
     openapi_url="/openapi.json",
