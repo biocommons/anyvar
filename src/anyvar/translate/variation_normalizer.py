@@ -112,7 +112,7 @@ class VariationNormalizerRestTranslator(_Translator):
 
         if variation_type not in variation_class_map:
             raise NotImplementedError(
-                "AnyVar currently only supports Allele"
+                f"{variation_type} isn't supported by AnyVar yet."
             )
 
         variation = resp_json["variation_descriptor"]["variation"]

@@ -8,6 +8,13 @@ def test_put_allele(client, alleles):
         assert resp.status_code == HTTPStatus.OK
         assert resp.json()["object"]["_id"] == allele_id
 
+    resp = client.put("variation", json={"definition": "BRAF amplification"})
+    assert resp.status_code == HTTPStatus.OK
+    resp_json = resp.json()
+    assert resp_json["messages"] == ["Variation class for BRAF amplification is currently unsupported."]
+    assert resp_json["object"] is None
+    assert resp_json["object_id"] is None
+
 
 def test_put_vrs_variation(client, text_alleles):
     for allele_id, allele in text_alleles.items():
@@ -15,6 +22,27 @@ def test_put_vrs_variation(client, text_alleles):
         assert resp.status_code == HTTPStatus.OK
 
         assert resp.json()["object_id"] == allele_id
+
+    resp = client.put("vrs_variation", json={
+        "type": "RelativeCopyNumber",
+        "subject": {
+            "type": "SequenceLocation",
+            "sequence_id": "ga4gh:SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
+            "interval": {
+                "type": "SequenceInterval",
+                "start": {
+                    "type": "Number",
+                    "value": 140713327
+                },
+                "end": {
+                    "type": "Number",
+                    "value": 140924929
+                }
+            }
+        },
+        "relative_copy_class": "high-level gain"
+    })
+    assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
 def test_get_allele(client, alleles):
