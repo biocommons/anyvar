@@ -11,7 +11,6 @@ def test_put_allele(client, alleles):
 
 def test_put_vrs_variation(client, text_alleles):
     for allele_id, allele in text_alleles.items():
-        print(allele["params"])
         resp = client.put("/vrs_variation", json=allele["params"])
         assert resp.status_code == HTTPStatus.OK
 

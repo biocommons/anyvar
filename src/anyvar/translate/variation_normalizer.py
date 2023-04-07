@@ -79,14 +79,14 @@ class VariationNormalizerRestTranslator(_Translator):
             return None
         return variation.get("type")
 
-    def translate(self, var: str, **kwargs: Dict) -> Optional[VrsPythonVariation]:
+    def translate(self, var: str) -> Optional[VrsPythonVariation]:
         """Translate provided variation text into a normalized VRS object.
 
         :param var: user-provided string describing or referencing a variation.
         :returns: VRS-Python variation object if able to normalize
         :raises TranslatorConnectionException: if translation request returns error
         """
-        req_url = self.endpoint_base + f"normalize?q={var}"  # noqa: E501
+        req_url = self.endpoint_base + f"normalize?q={var}"
         resp = self._send_rest_request(req_url)
 
         if resp.status_code == HTTPStatus.NOT_FOUND:

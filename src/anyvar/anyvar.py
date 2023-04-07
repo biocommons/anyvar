@@ -21,8 +21,8 @@ _logger = logging.getLogger(__name__)
 
 
 def create_storage(uri: Optional[str] = None) -> _Storage:
-    """factory to create storage based on `uri`, the ANYVAR_STORAGE_URI
-    environment value, or in-memory storage.
+    """factory to create storage based on `uri` or the ANYVAR_STORAGE_URI environment
+    value.
 
     The URI format is one of the following:
 

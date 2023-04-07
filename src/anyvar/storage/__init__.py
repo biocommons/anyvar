@@ -1,4 +1,4 @@
-DEFAULT_STORAGE_URI = "memory:"
+DEFAULT_STORAGE_URI = "postgresql://postgres@localhost:5432/anyvar"
 
 from abc import abstractmethod
 from collections.abc import MutableMapping

@@ -1,6 +1,6 @@
 """Provide base properties for Translator classes."""
 from abc import ABC, abstractmethod
-from typing import Dict, Optional
+from typing import Optional
 
 from anyvar.utils.types import VrsVariation
 
@@ -24,7 +24,7 @@ class TranslationException(Exception):
 class _Translator(ABC):
 
     @abstractmethod
-    def translate(self, var: str, **kwargs: Dict) -> Optional[VrsVariation]:
+    def translate(self, var: str) -> Optional[VrsVariation]:
         """Translate provided variation text into a normalized VRS object.
 
         :param var: user-provided string describing or referencing a variation.

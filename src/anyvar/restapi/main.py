@@ -135,7 +135,10 @@ def register_variation(
 )
 def register_vrs_object(
     request: Request,
-    variation: VrsVariation = Body(description="Valid VRS object.")
+    variation: VrsVariation = Body(
+        description="Valid VRS object.",
+        example={"type": "Text", "definition": "BCR-ABL1 Fusion"}
+    )
 ):
     """Register a complete VRS object. No additional normalization is performed.
 
