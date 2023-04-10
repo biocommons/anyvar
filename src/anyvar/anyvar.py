@@ -24,7 +24,7 @@ def create_storage(uri: Optional[str] = None) -> _Storage:
     """factory to create storage based on `uri` or the ANYVAR_STORAGE_URI environment
     value.
 
-    The URI format is one of the following:
+    The URI format is as follows:
 
     * PostgreSQL
     `postgresql://[username]:[password]@[domain]/[database]`

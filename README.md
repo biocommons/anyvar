@@ -4,6 +4,34 @@
 generate identifiers, and register biological sequence variation
 according to the GA4GH Variation Representation standards.
 
+## Quickstart
+
+(temporary)
+
+Clone the repo and navigate to it:
+
+```shell
+git clone https://github.com/biocommons/anyvar
+cd anyvar
+```
+
+Point `ANYVAR_STORAGE_URI` to an available PostgreSQL database:
+
+```
+export ANYVAR_STORAGE_URI=postgresql://postgres@localhost:5432/anyvar
+```
+
+Set `ANYVAR_VARIATION_NORMALIZER_URI` to the address of a running Variation Normalizer process:
+
+```
+export ANYVAR_VARIATION_NORMALIZER_URI=http://localhost:7999/variation
+```
+
+Start the AnyVar server:
+```shell
+uvicorn anyvar.restapi.main:app --reload
+```
+
 ## Developer installation
 
     git clone https://github.com/biocommons/anyvar.git

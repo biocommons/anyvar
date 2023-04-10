@@ -63,7 +63,7 @@ def get_info():
 )
 def get_location_by_id(
     request: Request,
-    location_id: StrictStr = Query(..., description="Location VRS ID")
+    location_id: StrictStr = Path(..., description="Location VRS ID")
 ):
     """Retrieve stored location object by ID.
 
