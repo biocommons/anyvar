@@ -8,6 +8,13 @@ def test_put_allele(client, alleles):
         assert resp.status_code == HTTPStatus.OK
         assert resp.json()["object"]["_id"] == allele_id
 
+    # confirm idempotency
+    first_id, first_allele = list(alleles.items())[0]
+    resp = client.put("/variation", json=first_allele["params"])
+    assert resp.status_code == HTTPStatus.OK
+    assert resp.json()["object"]["_id"] == first_id
+
+    # try unsupported variation type
     resp = client.put("variation", json={"definition": "BRAF amplification"})
     assert resp.status_code == HTTPStatus.OK
     resp_json = resp.json()
