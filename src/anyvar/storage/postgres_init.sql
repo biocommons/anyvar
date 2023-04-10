@@ -1,3 +1,3 @@
 CREATE USER anyvar;
-CREATE DATABASE anyvar_db;
+CREATE DATABASE anyvar;
 GRANT ALL PRIVILEGES ON DATABASE anyvar_db TO anyvar;

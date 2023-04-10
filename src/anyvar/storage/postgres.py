@@ -30,8 +30,7 @@ class PostgresObjectStore(_Storage):
         """Add DB schema."""
         create_statement = """
         CREATE TABLE vrs_objects (
-            id BIGSERIAL PRIMARY KEY,
-            vrs_id TEXT,
+            vrs_id TEXT PRIMARY KEY,
             vrs_object JSONB
         );
         """
@@ -56,7 +55,7 @@ class PostgresObjectStore(_Storage):
         value_json = json.dumps(value.as_dict())
         with self.conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO vrs_objects (vrs_id, vrs_object) VALUES (%s, %s);",
+                "INSERT INTO vrs_objects (vrs_id, vrs_object) VALUES (%s, %s) ON CONFLICT DO NOTHING;",  # noqa: E501
                 [name, value_json]
             )
 
