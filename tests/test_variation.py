@@ -1,55 +1,55 @@
 """Test variation endpoints"""
+from http import HTTPStatus
+
 
 def test_put_allele(client, alleles):
     for allele_id, allele in alleles.items():
-        resp = client.put("/allele", json=allele["params"])
-        assert resp.status_code == 200
-        assert resp.json["object"]["_id"] == allele_id
+        resp = client.put("/variation", json=allele["params"])
+        assert resp.status_code == HTTPStatus.OK
+        assert resp.json()["object"]["_id"] == allele_id
+
+    resp = client.put("variation", json={"definition": "BRAF amplification"})
+    assert resp.status_code == HTTPStatus.OK
+    resp_json = resp.json()
+    assert resp_json["messages"] == ["Variation class for BRAF amplification is currently unsupported."]
+    assert resp_json["object"] is None
+    assert resp_json["object_id"] is None
+
+
+def test_put_vrs_variation(client, text_alleles):
+    for allele_id, allele in text_alleles.items():
+        resp = client.put("/vrs_variation", json=allele["params"])
+        assert resp.status_code == HTTPStatus.OK
+
+        assert resp.json()["object_id"] == allele_id
+
+    resp = client.put("vrs_variation", json={
+        "type": "RelativeCopyNumber",
+        "subject": {
+            "type": "SequenceLocation",
+            "sequence_id": "ga4gh:SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
+            "interval": {
+                "type": "SequenceInterval",
+                "start": {
+                    "type": "Number",
+                    "value": 140713327
+                },
+                "end": {
+                    "type": "Number",
+                    "value": 140924929
+                }
+            }
+        },
+        "relative_copy_class": "high-level gain"
+    })
+    assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
 def test_get_allele(client, alleles):
     for allele_id, allele in alleles.items():
-        resp = client.get(f"/allele/{allele_id}")
-        assert resp.status_code == 200
-        assert resp.json["data"] == allele["allele_response"]["object"]
-
-    # TODO raises KeyError
-    # bad_resp = client.get("/allele/ga4gh:VA.invalid7DSM9KE3Z0LntAukLqm0K2ENn")
-    # assert bad_resp.status_code == 404
-
-
-def test_put_text(client, text_alleles):
-    for allele_id, allele in text_alleles.items():
-        resp = client.put("/text", json=allele["params"])
-        assert resp.status_code == 200
-        assert resp.json["object"]["_id"] == allele_id
-
-
-def test_get_text(client, text_alleles):
-    for text_allele_id, allele in text_alleles.items():
-        resp = client.get(f"/text/{text_allele_id}")
-        assert resp.status_code == 200
-        assert resp.json["data"] == allele["response"]["object"]
-
-    # TODO raises KeyError
-    # bad_resp = client.get("/text/ga4gh:VT.invalidto2X0cRI1RfWhYG5roEacUbWJ")
-    # assert bad_resp.status_code == 404
-
-
-def test_get_variation_by_id(client, alleles, text_alleles):
-    for allele_id, allele in alleles.items():
         resp = client.get(f"/variation/{allele_id}")
-        assert resp.status_code == 200
-        assert resp.json == allele["allele_response"]["object"]
-    for text_allele_id, allele in text_alleles.items():
-        resp = client.get(f"/variation/{text_allele_id}")
-        assert resp.status_code == 200
-        assert resp.json == allele["response"]["object"]
+        assert resp.status_code == HTTPStatus.OK
+        assert resp.json()["data"] == allele["allele_response"]["object"]
 
-    # TODO raises KeyError
-    # bad_resp = client.get("/variation/ga4gh:VA.invalid7DSM9KE3Z0LntAukLqm0K2ENn")
-    # assert bad_resp.status_code == 404
-
-    # TODO raises KeyError
-    # bad_resp = client.get("/text/ga4gh:VT.invalidto2X0cRI1RfWhYG5roEacUbWJ")
-    # assert bad_resp.status_code == 404
+    bad_resp = client.get("/allele/ga4gh:VA.invalid7DSM9KE3Z0LntAukLqm0K2ENn")
+    assert bad_resp.status_code == HTTPStatus.NOT_FOUND

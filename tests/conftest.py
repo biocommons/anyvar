@@ -4,8 +4,10 @@ from pathlib import Path
 from typing import Dict
 
 import pytest
+from fastapi.testclient import TestClient
 
-from anyvar.restapi.webapp import create_app
+from anyvar.anyvar import AnyVar, create_storage, create_translator
+from anyvar.restapi.main import app as anyvar_restapi
 
 
 def pytest_collection_modifyitems(items):
@@ -16,8 +18,7 @@ def pytest_collection_modifyitems(items):
         "test_variation",
         "test_general",
         "test_location",
-        "test_sequence",
-        "test_find"
+        "test_search"
     ]
     # remember to add new test modules to the order constant:
     assert len(MODULE_ORDER) == len(list(Path(__file__).parent.rglob("test_*.py")))
@@ -25,25 +26,23 @@ def pytest_collection_modifyitems(items):
 
 
 @pytest.fixture(scope="session")
-def app():
-    """Create app client fixture.
-
-    Uses in-memory store for now. Ideally, CI should be able to set variables
-    to test other major storage options.
-    """
+def client():
+    """Provide API client instance as test fixture"""
     if "ANYVAR_TEST_STORAGE_URI" in os.environ:
-        os.environ["ANYVAR_STORAGE_URI"] = os.environ["ANYVAR_TEST_STORAGE_URI"]
+        storage_uri = os.environ["ANYVAR_TEST_STORAGE_URI"]
     else:
-        os.environ["ANYVAR_STORAGE_URI"] = "memory:"
-    app = create_app()
-    app.config.update({"TESTING": True})
+        storage_uri = "postgresql://postgres@localhost:5432/anyvar_test"
 
-    yield app
+    if "ANYVAR_TEST_TRANSLATOR_URI" in os.environ:
+        translator_uri = os.environ["ANYVAR_TEST_TRANSLATOR_URI"]
+    else:
+        translator_uri = "http://localhost:8000/variation/"
 
-
-@pytest.fixture(scope="session")
-def client(app):
-    return app.test_client()
+    storage = create_storage(uri=storage_uri)
+    storage.wipe_db()
+    translator = create_translator(uri=translator_uri)
+    anyvar_restapi.state.anyvar = AnyVar(object_store=storage, translator=translator)
+    return TestClient(app=anyvar_restapi)
 
 
 @pytest.fixture(scope="session")
@@ -55,12 +54,12 @@ def test_data_dir() -> Path:
 @pytest.fixture(scope="session")
 def alleles(test_data_dir) -> Dict:
     """Provide allele fixture object."""
-    with open(test_data_dir / "alleles.json", "r") as f:
-        return json.load(f)
+    with open(test_data_dir / "variations.json", "r") as f:
+        return json.load(f)["alleles"]
 
 
 @pytest.fixture(scope="session")
 def text_alleles(test_data_dir) -> Dict:
     """Provide allele fixture object."""
-    with open(test_data_dir / "text_alleles.json", "r") as f:
-        return json.load(f)
+    with open(test_data_dir / "variations.json", "r") as f:
+        return json.load(f)["text_alleles"]
