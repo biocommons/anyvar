@@ -18,7 +18,8 @@ def pytest_collection_modifyitems(items):
         "test_variation",
         "test_general",
         "test_location",
-        "test_search"
+        "test_search",
+        "test_vcf"
     ]
     # remember to add new test modules to the order constant:
     assert len(MODULE_ORDER) == len(list(Path(__file__).parent.rglob("test_*.py")))

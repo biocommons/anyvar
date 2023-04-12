@@ -22,6 +22,7 @@ class TranslationException(Exception):
 
 
 class _Translator(ABC):
+    """Base Translator class."""
 
     @abstractmethod
     def translate(self, var: str) -> Optional[VrsPythonVariation]:
@@ -30,6 +31,15 @@ class _Translator(ABC):
         :param var: user-provided string describing or referencing a variation.
         :returns: VRS variation object if able to normalize
         :raises TranslatorConnectionException: if translation request returns error
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def translate_vcf_row(self, coords: str) -> Optional[VrsPythonVariation]:
+        """Translate VCF-like data to a normalized VRS object.
+
+        :param coords: string formatted a la "<chr>-<pos>-<ref>-<alt>"
+        :return: VRS variation (using VRS-Python class) if translation is successful
         """
         raise NotImplementedError
 

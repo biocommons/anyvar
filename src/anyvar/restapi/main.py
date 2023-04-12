@@ -1,12 +1,17 @@
 """Provide core route definitions for REST service."""
+import logging
+import tempfile
 from http import HTTPStatus
 
 import ga4gh.vrs
-from fastapi import Body, FastAPI, HTTPException, Path, Query, Request
+from fastapi import (Body, FastAPI, File, HTTPException, Path, Query, Request,
+                     UploadFile)
+from fastapi.responses import FileResponse
 from pydantic import StrictStr
 
 import anyvar
 from anyvar.anyvar import AnyVar, create_storage, create_translator
+from anyvar.extras.vcf import VcfRegistrar
 from anyvar.restapi.schema import (AnyVarStatsResponse, EndpointTag,
                                    GetSequenceLocationResponse,
                                    GetVariationResponse, InfoResponse,
@@ -14,8 +19,12 @@ from anyvar.restapi.schema import (AnyVarStatsResponse, EndpointTag,
                                    RegisterVariationResponse,
                                    RegisterVrsVariationResponse,
                                    SearchResponse, VariationStatisticType)
-from anyvar.translate.translate import TranslationException
+from anyvar.translate.translate import (TranslationException,
+                                        TranslatorConnectionException)
 from anyvar.utils.types import VrsVariation, variation_class_map
+
+_logger = logging.getLogger(__name__)
+
 
 app = FastAPI(
     title="AnyVar",
@@ -164,6 +173,40 @@ def register_vrs_object(
     result["object"] = variation_object.as_dict()
     result["object_id"] = v_id
     return result
+
+
+@app.put(
+    "/vcf",
+    summary="Register alleles from a VCF",
+    description="Provide a valid VCF. All reference and alternate alleles will be registered with AnyVar. The file is annotated with VRS IDs and returned.",  # noqa: E501
+    tags=[EndpointTag.VARIATIONS]
+)
+async def annotate_vcf(
+    request: Request,
+    vcf: UploadFile = File(..., description="VCF to register and annotate")
+):
+    """Register alleles from a VCF and return a file annotated with VRS IDs.
+
+    :param request: FastAPI request object
+    :param vcf: incoming VCF file object
+    :return: streamed annotated file
+    """
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        temp_file.write(await vcf.read())
+        temp_file.close()
+
+        av: AnyVar = request.app.state.anyvar
+        registrar = VcfRegistrar(av)
+        with tempfile.NamedTemporaryFile(delete=False) as temp_out_file:
+            try:
+                registrar.annotate(temp_file.name, vcf_out=temp_out_file.name)
+            except (TranslatorConnectionException, OSError) as e:
+                _logger.error(f"Encountered error during VCF registration: {e}")
+                return {"error": "VCF registration failed."}
+            except ValueError as e:
+                _logger.error(f"Encountered error during VCF registration: {e}")
+                return {"error": f"Encountered error ({e}) when registering VCF"}
+            return FileResponse(temp_out_file.name)
 
 
 @app.get(
