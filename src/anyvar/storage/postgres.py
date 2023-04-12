@@ -25,6 +25,7 @@ class PostgresObjectStore(_Storage):
         """
         self.conn = psycopg.connect(db_url, autocommit=True)
         self.ensure_schema_exists()
+        self.batch_cursor = None
 
     def _create_schema(self):
         """Add DB schema."""
