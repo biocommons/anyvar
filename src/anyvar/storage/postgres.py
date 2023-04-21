@@ -23,8 +23,10 @@ class PostgresObjectStore(_Storage):
 
         :param db_url: libpq connection info URL
         """
-        self.conn = psycopg.connect(db_url, autocommit=True)
+        self.conn = psycopg.connect(db_url)
+        # self.conn = psycopg.connect(db_url, autocommit=True)
         self.ensure_schema_exists()
+        self.batch_cursor: Optional[psycopg.Cursor] = None
 
     def _create_schema(self):
         """Add DB schema."""
@@ -53,11 +55,12 @@ class PostgresObjectStore(_Storage):
         assert is_pjs_instance(value), "ga4gh.vrs object value required"
         name = str(name)  # in case str-like
         value_json = json.dumps(value.as_dict())
-        with self.conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO vrs_objects (vrs_id, vrs_object) VALUES (%s, %s) ON CONFLICT DO NOTHING;",  # noqa: E501
-                [name, value_json]
-            )
+        insert_query = "INSERT INTO vrs_objects (vrs_id, vrs_object) VALUES (%s, %s) ON CONFLICT DO NOTHING;"  # noqa: E501
+        if not self.batch_cursor:
+            with self.conn.cursor() as cur:
+                cur.execute(insert_query, [name, value_json])
+        else:
+            self.batch_cursor.execute(insert_query, [name, value_json])
 
     def __getitem__(self, name: str) -> Optional[Any]:
         """Fetch item from DB given key.
@@ -249,3 +252,31 @@ class PostgresObjectStore(_Storage):
         """Remove all stored records from vrs_objects table."""
         with self.conn.cursor() as cur:
             cur.execute("DELETE FROM vrs_objects;")
+
+
+class BatchManager:
+    """TODO"""
+
+    def __init__(self, object_store: PostgresObjectStore):
+        """TODO"""
+        self.object_store = object_store
+
+    def __enter__(self):
+        """TODO"""
+        print("entering")
+        # if self.object_store.batch_cursor:
+        #     raise Exception("called out of order")  # TODO
+        self.object_store.batch_cursor = self.object_store.conn.cursor()
+
+    def __exit__(self, exc_type, exc_val, traceback) -> bool:
+        """TODO"""
+        print("exiting")
+        if self.object_store.batch_cursor is None:
+            return True
+            # raise Exception("cursor already closed?")
+        if exc_type:
+            self.object_store.conn.rollback()
+        else:
+            self.object_store.conn.commit()
+        self.object_store.batch_cursor.close()
+        self.object_store.batch_cursor = None
