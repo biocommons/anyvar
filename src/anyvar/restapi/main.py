@@ -19,7 +19,6 @@ from anyvar.restapi.schema import (AnyVarStatsResponse, EndpointTag,
                                    RegisterVariationResponse,
                                    RegisterVrsVariationResponse,
                                    SearchResponse, VariationStatisticType)
-# from anyvar.storage.postgres import BatchManager
 from anyvar.translate.translate import (TranslationException,
                                         TranslatorConnectionException)
 from anyvar.utils.types import VrsVariation, variation_class_map
