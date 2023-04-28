@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Any, Optional
 
 import psycopg
@@ -8,9 +9,12 @@ from ga4gh.vrsatile.pydantic.vrs_models import VRSTypes
 
 from anyvar.restapi.schema import VariationStatisticType
 
-from . import _Storage
+from . import _BatchManager, _Storage
 
 silos = "locations alleles haplotypes genotypes variationsets relations texts".split()
+
+
+_logger = logging.getLogger(__name__)
 
 
 class PostgresObjectStore(_Storage):
@@ -18,15 +22,19 @@ class PostgresObjectStore(_Storage):
     approach.
     """
 
-    def __init__(self, db_url: str):
+    def __init__(self, db_url: str, batch_limit: int = 65536):
         """Initialize PostgreSQL DB handler.
 
         :param db_url: libpq connection info URL
+        :param batch_limit: max size of batch insert queue
         """
-        self.conn = psycopg.connect(db_url)
-        # self.conn = psycopg.connect(db_url, autocommit=True)
+        self.conn = psycopg.connect(db_url, autocommit=True)
         self.ensure_schema_exists()
-        self.batch_cursor: Optional[psycopg.Cursor] = None
+
+        self.batch_manager = PostgresBatchManager
+        self.batch_mode = False
+        self.batch_insert_values = []
+        self.batch_limit = batch_limit
 
     def _create_schema(self):
         """Add DB schema."""
@@ -52,15 +60,23 @@ class PostgresObjectStore(_Storage):
         return str(self.conn)
 
     def __setitem__(self, name: str, value: Any):
+        """Add item to database. If batch mode is on, add item to queue and write only
+        if queue size is exceeded.
+
+        :name: value for `vrs_id` field
+        :value: value for `vrs_object` field
+        """
         assert is_pjs_instance(value), "ga4gh.vrs object value required"
         name = str(name)  # in case str-like
         value_json = json.dumps(value.as_dict())
-        insert_query = "INSERT INTO vrs_objects (vrs_id, vrs_object) VALUES (%s, %s) ON CONFLICT DO NOTHING;"  # noqa: E501
-        if not self.batch_cursor:
+        if self.batch_mode:
+            self.batch_insert_values.append((name, value_json))
+            if len(self.batch_insert_values) > self.batch_limit:
+                self.copy_insert()
+        else:
+            insert_query = "INSERT INTO vrs_objects (vrs_id, vrs_object) VALUES (%s, %s) ON CONFLICT DO NOTHING;"  # noqa: E501
             with self.conn.cursor() as cur:
                 cur.execute(insert_query, [name, value_json])
-        else:
-            self.batch_cursor.execute(insert_query, [name, value_json])
 
     def __getitem__(self, name: str) -> Optional[Any]:
         """Fetch item from DB given key.
@@ -211,9 +227,7 @@ class PostgresObjectStore(_Storage):
 
     def __iter__(self):
         with self.conn.cursor() as cur:
-            return cur.stream(
-                "SELECT * FROM vrs_objects;"
-            )
+            return cur.stream("SELECT * FROM vrs_objects;")
 
     def keys(self):
         with self.conn.cursor() as cur:
@@ -253,30 +267,77 @@ class PostgresObjectStore(_Storage):
         with self.conn.cursor() as cur:
             cur.execute("DELETE FROM vrs_objects;")
 
+    def copy_insert(self):
+        """Perform copy-based insert, enabling much faster writes for large, repeated
+        insert statements, using insert parameters stored in `self.batch_insert_values`.
 
-class BatchManager:
-    """TODO"""
+        Because we may be writing repeated records, we need to handle conflicts, which
+        isn't available for COPY. The workaround (https://stackoverflow.com/a/49836011)
+        is to make a temporary table for each COPY statement, and then handle
+        conflicts when moving data over from that table to vrs_objects.
+        """
+        tmp_statement = "CREATE TEMP TABLE tmp_table (LIKE vrs_objects INCLUDING DEFAULTS);"  # noqa: E501
+        copy_statement = "COPY tmp_table (vrs_id, vrs_object) FROM STDIN;"
+        insert_statement = "INSERT INTO vrs_objects SELECT * FROM tmp_table ON CONFLICT DO NOTHING;"  # noqa: E501
+        drop_statement = "DROP TABLE tmp_table;"
+        from timeit import default_timer as timer
+        start = timer()
+        with self.conn.cursor() as cur:
+            cur.execute(tmp_statement)
+            with cur.copy(copy_statement) as copy:
+                for row in self.batch_insert_values:
+                    copy.write_row(row)
+            cur.execute(insert_statement)
+            cur.execute(drop_statement)
+        self.conn.commit()
+        self.batch_insert_values = []
+        end = timer()
+        print(end - start)
 
-    def __init__(self, object_store: PostgresObjectStore):
-        """TODO"""
-        self.object_store = object_store
+
+class PostgresBatchManager(_BatchManager):
+    """Context manager enabling batch insertion statements via Postgres COPY command.
+
+    Use in cases like VCF ingest when intaking large amounts of data at once.
+    """
+
+    def __init__(self, storage: PostgresObjectStore):
+        """Initialize context manager.
+
+        :param storage: Postgres instance to manage. Should be taken from the active
+        AnyVar instance -- otherwise it won't be able to delay insertions.
+        """
+        if not isinstance(storage, PostgresObjectStore):
+            raise ValueError(
+                "PostgresBatchManager requires a PostgresObjectStore instance"
+            )
+        self._storage = storage
 
     def __enter__(self):
-        """TODO"""
-        print("entering")
-        # if self.object_store.batch_cursor:
-        #     raise Exception("called out of order")  # TODO
-        self.object_store.batch_cursor = self.object_store.conn.cursor()
+        """Enter managed context."""
+        self._storage.batch_insert_values = []
+        self._storage.batch_mode = True
 
-    def __exit__(self, exc_type, exc_val, traceback) -> bool:
-        """TODO"""
-        print("exiting")
-        if self.object_store.batch_cursor is None:
-            return True
-            # raise Exception("cursor already closed?")
-        if exc_type:
-            self.object_store.conn.rollback()
-        else:
-            self.object_store.conn.commit()
-        self.object_store.batch_cursor.close()
-        self.object_store.batch_cursor = None
+    def __exit__(
+        self, exc_type: Optional[type], exc_value: Optional[BaseException],
+        traceback: Optional[Any]
+    ) -> bool:
+        """Handle exit from context management. This method is responsible for
+        committing or rolling back any staged inserts.
+
+        :param exc_type: type of exception encountered, if any
+        :param exc_value: exception value
+        :param traceback: traceback for context of exception
+        :return: True if no exceptions encountered, False otherwise
+        """
+        if exc_type is not None:
+            self._storage.conn.rollback()
+            self._storage.batch_insert_values = []
+            self._storage.batch_mode = False
+            _logger.error(
+                f"Postgres batch manager encountered exception {exc_type}: {exc_value}"
+            )
+            return False
+        self._storage.copy_insert()
+        self._storage.batch_mode = False
+        return True
