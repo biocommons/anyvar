@@ -280,8 +280,6 @@ class PostgresObjectStore(_Storage):
         copy_statement = "COPY tmp_table (vrs_id, vrs_object) FROM STDIN;"
         insert_statement = "INSERT INTO vrs_objects SELECT * FROM tmp_table ON CONFLICT DO NOTHING;"  # noqa: E501
         drop_statement = "DROP TABLE tmp_table;"
-        from timeit import default_timer as timer
-        start = timer()
         with self.conn.cursor() as cur:
             cur.execute(tmp_statement)
             with cur.copy(copy_statement) as copy:
@@ -291,8 +289,6 @@ class PostgresObjectStore(_Storage):
             cur.execute(drop_statement)
         self.conn.commit()
         self.batch_insert_values = []
-        end = timer()
-        print(end - start)
 
 
 class PostgresBatchManager(_BatchManager):
