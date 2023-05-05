@@ -63,8 +63,8 @@ class PostgresObjectStore(_Storage):
         """Add item to database. If batch mode is on, add item to queue and write only
         if queue size is exceeded.
 
-        :name: value for `vrs_id` field
-        :value: value for `vrs_object` field
+        :param name: value for `vrs_id` field
+        :param value: value for `vrs_object` field
         """
         assert is_pjs_instance(value), "ga4gh.vrs object value required"
         name = str(name)  # in case str-like
@@ -302,6 +302,7 @@ class PostgresBatchManager(_BatchManager):
 
         :param storage: Postgres instance to manage. Should be taken from the active
         AnyVar instance -- otherwise it won't be able to delay insertions.
+        :raise ValueError: if `storage` param is not a `PostgresObjectStore` instance
         """
         if not isinstance(storage, PostgresObjectStore):
             raise ValueError(

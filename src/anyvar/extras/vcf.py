@@ -15,7 +15,7 @@ class VcfRegistrar(VCFAnnotator):
     and values in order to enable use of existing AnyVar translator.
     """
 
-    def __init__(self, av: AnyVar):
+    def __init__(self, av: AnyVar) -> None:
         """Initialize VCF processor.
 
         :param av: complete AnyVar instance
@@ -30,16 +30,16 @@ class VcfRegistrar(VCFAnnotator):
         containing the vrs object information.
 
         :param vcf_in: The path for the input VCF file to annotate
-        :param Optional[str] vcf_out: The path for the output VCF file
-        :param Optional[str] vrs_pickle_out: The path for the output VCF pickle file
-        :param str assembly: The assembly used in `vcf_in` data
+        :param vcf_out: The path for the output VCF file
+        :param vrs_pickle_out: The path for the output VCF pickle file
+        :param assembly: The assembly used in `vcf_in` data
         """
         if self.av.object_store.batch_manager:
             storage = self.av.object_store
             with storage.batch_manager(storage):  # type: ignore
                 return super().annotate(vcf_in, vcf_out, vrs_pickle_out, assembly)
         else:
-            return super().annotate(vcf_in, vcf_out, vrs_pickle_out, assembly)
+            super().annotate(vcf_in, vcf_out, vrs_pickle_out, assembly)
 
     def _get_vrs_object(
         self, vcf_coords: str, vrs_data: Dict, vrs_allele_ids: List[str], assembly: str,
