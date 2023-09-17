@@ -52,7 +52,7 @@ Then, start the REST server with:
 
 In another terminal:
 
-    curl http://localhost:5000/info
+    curl http://localhost:8000/info
 
 
 ### Setting up Postgres
