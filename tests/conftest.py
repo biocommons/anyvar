@@ -34,14 +34,9 @@ def client():
     else:
         storage_uri = "postgresql://postgres@localhost:5432/anyvar_test"
 
-    if "ANYVAR_TEST_TRANSLATOR_URI" in os.environ:
-        translator_uri = os.environ["ANYVAR_TEST_TRANSLATOR_URI"]
-    else:
-        translator_uri = "http://localhost:8000/variation/"
-
     storage = create_storage(uri=storage_uri)
     storage.wipe_db()
-    translator = create_translator(uri=translator_uri)
+    translator = create_translator()
     anyvar_restapi.state.anyvar = AnyVar(object_store=storage, translator=translator)
     return TestClient(app=anyvar_restapi)
 
