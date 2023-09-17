@@ -37,7 +37,12 @@ class VrsPythonTranslator(_Translator):
         :returns: VRS variation object if able to normalize
         :raises TranslatorConnectionException: if translation request returns error
         """
-        return self.tlr.translate_from(var)
+        try:
+            return self.tlr.translate_from(var)
+        except ValueError:
+            raise NotImplementedError(
+                f"{var} isn't supported by AnyVar yet."
+            )
 
     def translate_vcf_row(self, coords: str) -> Optional[VrsPythonVariation]:
         """Translate VCF-like data to a normalized VRS object.
