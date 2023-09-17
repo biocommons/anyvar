@@ -44,10 +44,10 @@ class VariationNormalizerRestTranslator(_Translator):
         :param var_normalizer_response: complete response received from normalizer
         :return: type value if exists, None otherwise
         """
-        variation_descriptor = var_normalizer_response.get("variation_descriptor")
-        if not variation_descriptor:
-            return None
-        variation = variation_descriptor.get("variation")
+        # variation_descriptor = var_normalizer_response.get("variation_descriptor")
+        # if not variation_descriptor:
+        #     return None
+        variation = var_normalizer_response.get("variation")
         if not variation:
             return None
         return variation.get("type")
@@ -59,7 +59,7 @@ class VariationNormalizerRestTranslator(_Translator):
         :returns: VRS-Python variation object if able to normalize
         :raises TranslatorConnectionException: if translation request returns error
         """
-        req_url = self.endpoint_base + f"normalize?q={var}"
+        req_url = self.endpoint_base + f"translate_from?variation={var}"
         resp = self._send_rest_request(req_url)
 
         if resp.status_code == HTTPStatus.NOT_FOUND:
@@ -88,7 +88,7 @@ class VariationNormalizerRestTranslator(_Translator):
                 f"{variation_type} isn't supported by AnyVar yet."
             )
 
-        variation = resp_json["variation_descriptor"]["variation"]
+        variation = resp_json["variation"]
         return variation_class_map[variation_type](**variation)
 
     def translate_vcf_row(self, coords: str) -> Optional[VrsPythonVariation]:
