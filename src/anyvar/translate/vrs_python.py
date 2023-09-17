@@ -1,13 +1,14 @@
 """Normalize incoming variation descriptions with the VRS-Python library."""
-from typing import Optional
 from os import environ
+from typing import Optional
 
-from ga4gh.vrs.extras.translator import Translator
-from ga4gh.vrs.dataproxy import _SeqRepoDataProxyBase, SeqRepoDataProxy
 from biocommons.seqrepo import SeqRepo
+from ga4gh.vrs.dataproxy import SeqRepoDataProxy, _SeqRepoDataProxyBase
+from ga4gh.vrs.extras.translator import Translator
+
+from anyvar.utils.types import VrsPythonVariation
 
 from . import _Translator
-from anyvar.utils.types import VrsPythonVariation
 
 SEQREPO_ROOT_DIR = environ.get("SEQREPO_ROOT_DIR", "/usr/local/share/seqrepo/latest")
 
