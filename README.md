@@ -48,11 +48,11 @@ Or, more simply:
 
 Then, start the REST server with:
 
-    python -m anyvar.restapi
+    uvicorn anyvar.restapi.main:app
 
 In another terminal:
 
-    curl http://localhost:5000/info
+    curl http://localhost:8000/info
 
 
 ### Setting up Postgres
@@ -63,7 +63,7 @@ Postgres instance.
 
 First, run the commands in (README-pg.md)[src/anyvar/storage/README-pg.md]. This will create and start a local Postgres docker instance.
 
-Next, run the commands in (postgres_init.sql)[src/anyvar/storage/postgres_init.sql]. This will create the `anyvar` user with the appropriate permissions and create the `anyvar_db` database.
+Next, run the commands in (postgres_init.sql)[src/anyvar/storage/postgres_init.sql]. This will create the `anyvar` user with the appropriate permissions and create the `anyvar` database.
 
 ## Deployment
 
