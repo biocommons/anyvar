@@ -14,6 +14,10 @@ from ga4gh.vrs import vrs_deref, vrs_enref
 
 from anyvar.storage import DEFAULT_STORAGE_URI, _Storage
 from anyvar.translate.translate import DEFAULT_TRANSLATE_URI, TranslatorSetupException, _Translator
+from anyvar.translate.translate import (DEFAULT_TRANSLATE_URI,
+                                        TranslatorSetupException, _Translator)
+from anyvar.translate.translate import _Translator
+from anyvar.translate.vrs_python import VrsPythonTranslator
 from anyvar.utils.types import VrsPythonObject
 
 _logger = logging.getLogger(__name__)
@@ -44,23 +48,15 @@ def create_storage(uri: Optional[str] = None) -> _Storage:
     return storage
 
 
-def create_translator(uri: Optional[str] = None) -> _Translator:
+def create_translator() -> _Translator:
     """Create variation translator middleware.
 
-    Currently accepts REST interface only -- we should at least enable a local
-    proxy instance in the future.
+    Try to build the VRS-Python wrapper class with default args. In the future, could
+    provide assistance constructing other kinds of translators.
 
-    :param uri: location listening for requests
     :return: instantiated Translator instance
     """
-    if not uri:
-        uri = os.environ.get("ANYVAR_VARIATION_NORMALIZER_URI", DEFAULT_TRANSLATE_URI)
-        if not uri:
-            raise TranslatorSetupException("No Translator URI provided.")
-
-    from anyvar.translate.variation_normalizer import VariationNormalizerRestTranslator
-
-    return VariationNormalizerRestTranslator(uri)
+    return VrsPythonTranslator()
 
 
 class AnyVar:

@@ -21,10 +21,12 @@ Point `ANYVAR_STORAGE_URI` to an available PostgreSQL database:
 export ANYVAR_STORAGE_URI=postgresql://postgres@localhost:5432/anyvar
 ```
 
-Set `ANYVAR_VARIATION_NORMALIZER_URI` to the address of a running Variation Normalizer process:
+Set `SEQREPO_DATAPROXY_URI` to local SeqRepo files or to a REST service instance:
 
 ```
-export ANYVAR_VARIATION_NORMALIZER_URI=http://localhost:7999/variation
+export SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/latest
+# or
+export SEQREPO_DATAPROXY_URI=seqrepo+http://localhost:5000/seqrepo
 ```
 
 Start the AnyVar server:
@@ -48,11 +50,11 @@ Or, more simply:
 
 Then, start the REST server with:
 
-    python -m anyvar.restapi
+    uvicorn anyvar.restapi.main:app
 
 In another terminal:
 
-    curl http://localhost:5000/info
+    curl http://localhost:8000/info
 
 
 ### Setting up Postgres
@@ -63,7 +65,7 @@ Postgres instance.
 
 First, run the commands in (README-pg.md)[src/anyvar/storage/README-pg.md]. This will create and start a local Postgres docker instance.
 
-Next, run the commands in (postgres_init.sql)[src/anyvar/storage/postgres_init.sql]. This will create the `anyvar` user with the appropriate permissions and create the `anyvar_db` database.
+Next, run the commands in (postgres_init.sql)[src/anyvar/storage/postgres_init.sql]. This will create the `anyvar` user with the appropriate permissions and create the `anyvar` database.
 
 ## Deployment
 
