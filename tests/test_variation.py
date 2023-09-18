@@ -18,7 +18,7 @@ def test_put_allele(client, alleles):
     resp = client.put("variation", json={"definition": "BRAF amplification"})
     assert resp.status_code == HTTPStatus.OK
     resp_json = resp.json()
-    assert resp_json["messages"] == ["Variation class for BRAF amplification is currently unsupported."]
+    assert resp_json["messages"] == ["Unable to translate \"BRAF amplification\""]
     assert resp_json["object"] is None
     assert resp_json["object_id"] is None
 
