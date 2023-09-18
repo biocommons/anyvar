@@ -31,36 +31,27 @@
       },
       "location_id": "ga4gh:VSL.r-OjdTzcMoOWJymchrLt_ufNFLEWB_4y"
     },
-    "ga4gh:VA.ZO9HxFHUxoYHyl12HRwPcYG7rKx4A4v1": {
+    "ga4gh:VA.PDHSCeQVYwBh-vQOEzeVCkC80qGGMoR0": {
       "params": { "definition": "NM_000551.3:c.1A>T" },
       "allele_response": {
         "messages": [],
         "object": {
-          "_id": "ga4gh:VA.ZO9HxFHUxoYHyl12HRwPcYG7rKx4A4v1",
-          "type": "Allele",
-          "location": {
-            "_id": "ga4gh:VSL.liaaT1BPSGfxjXXuVLB9v5RuiWHL8S4K",
-            "type": "SequenceLocation",
-            "sequence_id": "ga4gh:SQ.xBKOKptLLDr-k4hTyCetvARn16pDS_rW",
-            "interval": {
-              "type": "SequenceInterval",
-              "start": {
-                "type": "Number",
-                "value": 70
-              },
-              "end": {
-                "type": "Number",
-                "value": 71
-              }
+            "_id": "ga4gh:VA.PDHSCeQVYwBh-vQOEzeVCkC80qGGMoR0",
+            "type": "Allele",
+            "location": {
+                "_id": "ga4gh:VSL.0walyb5XpXwnONQARujAfkMwtCFVAkXs",
+                "type": "SequenceLocation",
+                "sequence_id": "ga4gh:SQ.v_QTc1p-MUYdgrRv4LMT6ByXIOsdw3C_",
+                "interval": {
+                    "type": "SequenceInterval",
+                    "start": {"type": "Number", "value": 0},
+                    "end": {"type": "Number", "value": 1}
+                }
+            },
+            "state": {"type": "LiteralSequenceExpression", "sequence": "T"}
             }
-          },
-          "state": {
-            "type": "LiteralSequenceExpression",
-            "sequence": "T"
-          }
-        }
       },
-      "location_id": "ga4gh:VSL.liaaT1BPSGfxjXXuVLB9v5RuiWHL8S4K"
+      "location_id": "ga4gh:VSL.0walyb5XpXwnONQARujAfkMwtCFVAkXs"
     }
   },
   "text_alleles": {
