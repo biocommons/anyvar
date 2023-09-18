@@ -205,7 +205,7 @@ async def annotate_vcf(
                 return {"error": "VCF registration failed."}
             except ValueError as e:
                 _logger.error(f"Encountered error during VCF registration: {e}")
-                return {"error": f"Encountered error ({e}) when registering VCF"}
+                return {"error": "Encountered ValueError when registering VCF"}
             return FileResponse(temp_out_file.name)
 
 
