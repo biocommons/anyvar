@@ -13,9 +13,6 @@ from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import vrs_deref, vrs_enref
 
 from anyvar.storage import DEFAULT_STORAGE_URI, _Storage
-from anyvar.translate.translate import DEFAULT_TRANSLATE_URI, TranslatorSetupException, _Translator
-from anyvar.translate.translate import (DEFAULT_TRANSLATE_URI,
-                                        TranslatorSetupException, _Translator)
 from anyvar.translate.translate import _Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
 from anyvar.utils.types import VrsPythonObject

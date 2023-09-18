@@ -119,7 +119,7 @@ def register_variation(
     try:
         translated_variation = av.translator.translate(var=definition)
     except TranslationException:
-        result["messages"].append(f"Unable to translate \"{definition}\"")
+        result["messages"].append(f'Unable to translate "{definition}"')
     except NotImplementedError:
         result["messages"].append(f"Variation class for {definition} is currently unsupported.")
     else:
