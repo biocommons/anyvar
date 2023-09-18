@@ -1,3 +1,65 @@
+[project]
+name = "biocommons.anyvar"
+authors = [
+  { name="biocommons contributors", email="biocommons-dev@googlegroups.com" },
+]
+description = "AnyVar provides Python and REST interfaces to validate, normalize, generate identifiers, and register biological sequence variation according to the GA4GH Variation Representation standards."
+readme = "README.md"
+license = { file="LICENSE" }
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dynamic = ["version"]
+
+[project.urls]
+"Homepage" = "https://github.com/biocommons/anyvar"
+"Bug Tracker" = "https://github.com/biocommons/anyvar/issues"
+
+
+[build-system]
+requires = [
+    "setuptools >= 65.3",
+    "setuptools_scm[toml] ~= 7.0"
+]
+build-backend = "setuptools.build_meta"
+
+
+[tool.setuptools_scm]
+
+
+[tool.coverage.run]
+branch = true
+source = ["biocommons.example"]
+omit = ["*_test.py", "*/test/*", "*/tests/*"]
+
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    # Have to re-enable the standard pragma
+    "pragma: no cover",
+
+    # Don't complain about missing debug-only code:
+    "def __repr__",
+    "if self.debug",
+
+    # Don't complain if tests don't hit defensive assertion code:
+    "raise AssertionError",
+    "raise NotImplementedError",
+
+    # Don't complain if non-runnable code isn't run:
+    "if __name__ == .__main__.:",
+]
+
+[tool.black]
+line-length = 100
+
 [tool.ruff]
 exclude = [
     "venv",
@@ -6,11 +68,7 @@ exclude = [
     "tests"
 ]
 
-line-length = 88
+line-length = 100
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["F401", "E402"]
-"uidoc.py" = ["E501"]
-
-[tool.isort]
-group_by_package = true

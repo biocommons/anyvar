@@ -4,23 +4,26 @@ import tempfile
 from http import HTTPStatus
 
 import ga4gh.vrs
-from fastapi import (Body, FastAPI, File, HTTPException, Path, Query, Request,
-                     UploadFile)
+from fastapi import Body, FastAPI, File, HTTPException, Path, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import StrictStr
 
 import anyvar
 from anyvar.anyvar import AnyVar, create_storage, create_translator
 from anyvar.extras.vcf import VcfRegistrar
-from anyvar.restapi.schema import (AnyVarStatsResponse, EndpointTag,
-                                   GetSequenceLocationResponse,
-                                   GetVariationResponse, InfoResponse,
-                                   RegisterVariationRequest,
-                                   RegisterVariationResponse,
-                                   RegisterVrsVariationResponse,
-                                   SearchResponse, VariationStatisticType)
-from anyvar.translate.translate import (TranslationException,
-                                        TranslatorConnectionException)
+from anyvar.restapi.schema import (
+    AnyVarStatsResponse,
+    EndpointTag,
+    GetSequenceLocationResponse,
+    GetVariationResponse,
+    InfoResponse,
+    RegisterVariationRequest,
+    RegisterVariationResponse,
+    RegisterVrsVariationResponse,
+    SearchResponse,
+    VariationStatisticType,
+)
+from anyvar.translate.translate import TranslationException, TranslatorConnectionException
 from anyvar.utils.types import VrsVariation, variation_class_map
 
 _logger = logging.getLogger(__name__)
@@ -32,8 +35,9 @@ app = FastAPI(
     docs_url="/",
     openapi_url="/openapi.json",
     swagger_ui_parameters={"tryItOutEnabled": True},
-    description="Register and retrieve VRS value objects."
+    description="Register and retrieve VRS value objects.",
 )
+
 
 @app.on_event("startup")
 async def startup():
@@ -49,17 +53,15 @@ async def startup():
     response_model=InfoResponse,
     summary="Check system status and configurations",
     description="System status check and configurations",
-    tags=[EndpointTag.GENERAL]
+    tags=[EndpointTag.GENERAL],
 )
 def get_info():
     """Get system status check and configuration"""
     return {
         "anyvar": {
             "version": anyvar.__version__,
-            },
-        "ga4gh_vrs": {
-            "version": ga4gh.vrs.__version__
         },
+        "ga4gh_vrs": {"version": ga4gh.vrs.__version__},
     }
 
 
@@ -68,11 +70,10 @@ def get_info():
     response_model=GetSequenceLocationResponse,
     summary="Retrieve sequence location",
     description="Retrieve registered sequence location by ID",
-    tags=[EndpointTag.LOCATIONS]
+    tags=[EndpointTag.LOCATIONS],
 )
 def get_location_by_id(
-    request: Request,
-    location_id: StrictStr = Path(..., description="Location VRS ID")
+    request: Request, location_id: StrictStr = Path(..., description="Location VRS ID")
 ):
     """Retrieve stored location object by ID.
 
@@ -97,13 +98,13 @@ def get_location_by_id(
     response_model=RegisterVariationResponse,
     summary="Register a new variation object",
     description="Provide a variation definition to be normalized and registered with AnyVar. A complete VRS object and digest is returned for later reference.",  # noqa: E501
-    tags=[EndpointTag.VARIATIONS]
+    tags=[EndpointTag.VARIATIONS],
 )
 def register_variation(
     request: Request,
     variation: RegisterVariationRequest = Body(
         description="Variation description, including (at minimum) a definition property"  # noqa: E501
-    )
+    ),
 ):
     """Register a variation based on a provided description or reference.
 
@@ -114,18 +115,13 @@ def register_variation(
     """
     av: AnyVar = request.app.state.anyvar
     definition = variation.definition
-    result = {
-        "object": None,
-        "messages": []
-    }
+    result = {"object": None, "messages": []}
     try:
         translated_variation = av.translator.translate(var=definition)
     except TranslationException:
-        result["messages"].append(f"Unable to translate \"{definition}\"")
+        result["messages"].append(f'Unable to translate "{definition}"')
     except NotImplementedError:
-        result["messages"].append(
-            f"Variation class for {definition} is currently unsupported."
-        )
+        result["messages"].append(f"Variation class for {definition} is currently unsupported.")
     else:
         if translated_variation:
             v_id = av.put_object(translated_variation)
@@ -141,14 +137,13 @@ def register_variation(
     summary="Register a VRS variation",
     description="Provide a valid VRS variation object to be registered with AnyVar. A digest is returned for later reference.",  # noqa: E501
     response_model=RegisterVrsVariationResponse,
-    tags=[EndpointTag.VARIATIONS]
+    tags=[EndpointTag.VARIATIONS],
 )
 def register_vrs_object(
     request: Request,
     variation: VrsVariation = Body(
-        description="Valid VRS object.",
-        example={"type": "Text", "definition": "BCR-ABL1 Fusion"}
-    )
+        description="Valid VRS object.", example={"type": "Text", "definition": "BCR-ABL1 Fusion"}
+    ),
 ):
     """Register a complete VRS object. No additional normalization is performed.
 
@@ -163,9 +158,7 @@ def register_vrs_object(
     }
     variation_type = variation.type
     if variation_type not in variation_class_map:
-        result["messages"].append(
-            f"Registration for {variation_type} not currently supported."
-        )
+        result["messages"].append(f"Registration for {variation_type} not currently supported.")
         return result
 
     variation_object = variation_class_map[variation_type](**variation.dict())
@@ -179,11 +172,10 @@ def register_vrs_object(
     "/vcf",
     summary="Register alleles from a VCF",
     description="Provide a valid VCF. All reference and alternate alleles will be registered with AnyVar. The file is annotated with VRS IDs and returned.",  # noqa: E501
-    tags=[EndpointTag.VARIATIONS]
+    tags=[EndpointTag.VARIATIONS],
 )
 async def annotate_vcf(
-    request: Request,
-    vcf: UploadFile = File(..., description="VCF to register and annotate")
+    request: Request, vcf: UploadFile = File(..., description="VCF to register and annotate")
 ):
     """Register alleles from a VCF and return a file annotated with VRS IDs.
 
@@ -215,11 +207,10 @@ async def annotate_vcf(
     operation_id="getVariation",
     summary="Retrieve a variation object",
     description="Gets a variation instance by ID. May return any supported type of variation.",  # noqa: E501
-    tags=[EndpointTag.VARIATIONS]
+    tags=[EndpointTag.VARIATIONS],
 )
 def get_variation_by_id(
-    request: Request,
-    variation_id: StrictStr = Path(..., description="VRS ID for variation")
+    request: Request, variation_id: StrictStr = Path(..., description="VRS ID for variation")
 ):
     """Get registered variation given VRS ID.
 
@@ -234,8 +225,7 @@ def get_variation_by_id(
         variation = av.get_object(variation_id, deref=True)
     except KeyError:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail=f"Variation {variation_id} not found"
+            status_code=HTTPStatus.NOT_FOUND, detail=f"Variation {variation_id} not found"
         )
 
     result = {"messages": [], "data": variation.as_dict()}
@@ -249,13 +239,13 @@ def get_variation_by_id(
     operation_id="searchVariations",
     summary="Search for registered variations by genomic region",
     description="Fetch all registered variations within the provided genomic coordinates",  # noqa: E501
-    tags=[EndpointTag.SEARCH]
+    tags=[EndpointTag.SEARCH],
 )
 def search_variations(
     request: Request,
     accession: str = Query(..., description="Sequence accession identifier"),
     start: int = Query(..., description="Start position for genomic region"),
-    end: int = Query(..., description="End position for genomic region")
+    end: int = Query(..., description="End position for genomic region"),
 ):
     """Fetch all registered variations within the provided genomic coordinates.
 
@@ -270,8 +260,7 @@ def search_variations(
         ga4gh_id = av.translator.get_sequence_id(accession)
     except KeyError:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Unable to dereference provided accession ID"
+            status_code=HTTPStatus.NOT_FOUND, detail="Unable to dereference provided accession ID"
         )
 
     alleles = []
@@ -281,7 +270,7 @@ def search_variations(
         except NotImplementedError:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_IMPLEMENTED,
-                detail="Search not implemented for current storage backend"
+                detail="Search not implemented for current storage backend",
             )
 
     inline_alleles = []
@@ -301,13 +290,11 @@ def search_variations(
     operation_id="getStats",
     summary="Summary statistics for registered variations",
     description="Retrieve summary statistics for registered variation objects.",
-    tags=[EndpointTag.GENERAL]
+    tags=[EndpointTag.GENERAL],
 )
 def get_stats(
     request: Request,
-    variation_type: VariationStatisticType = Path(
-        ..., description="category of variation"
-    )
+    variation_type: VariationStatisticType = Path(..., description="category of variation"),
 ):
     """Get summary statistics for registered variants. Currently just returns totals.
 
@@ -323,9 +310,6 @@ def get_stats(
     except NotImplementedError:
         raise HTTPException(
             status_code=HTTPStatus.NOT_IMPLEMENTED,
-            detail="Stats not available for current storage backend"
+            detail="Stats not available for current storage backend",
         )
-    return {
-        "variation_type": variation_type,
-        "count": count
-    }
+    return {"variation_type": variation_type, "count": count}

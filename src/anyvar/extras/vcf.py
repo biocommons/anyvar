@@ -23,8 +23,11 @@ class VcfRegistrar(VCFAnnotator):
         self.av = av
 
     def annotate(
-        self, vcf_in: str, vcf_out: Optional[str] = None,
-        vrs_pickle_out: Optional[str] = None, assembly: str = "GRCh38",
+        self,
+        vcf_in: str,
+        vcf_out: Optional[str] = None,
+        vrs_pickle_out: Optional[str] = None,
+        assembly: str = "GRCh38",
     ) -> None:
         """Annotates an input VCF file with VRS Allele IDs & creates a pickle file
         containing the vrs object information.
@@ -42,9 +45,14 @@ class VcfRegistrar(VCFAnnotator):
             super().annotate(vcf_in, vcf_out, vrs_pickle_out, assembly)
 
     def _get_vrs_object(
-        self, vcf_coords: str, vrs_data: Dict, vrs_allele_ids: List[str], assembly: str,
-        vrs_data_key: Optional[str] = None, output_pickle: bool = True,
-        output_vcf: bool = False
+        self,
+        vcf_coords: str,
+        vrs_data: Dict,
+        vrs_allele_ids: List[str],
+        assembly: str,
+        vrs_data_key: Optional[str] = None,
+        output_pickle: bool = True,
+        output_vcf: bool = False,
     ) -> None:
         """Get VRS Object given `vcf_coords`. `vrs_data` and `vrs_allele_ids` will
         be mutated. Generally, we expect AnyVar to use the output_vcf option rather than

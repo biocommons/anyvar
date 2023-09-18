@@ -17,7 +17,7 @@ class EndpointTag(str, Enum):
 
 
 class DependencyInfo(BaseModel):
-    """Provide information for a specific dependency """
+    """Provide information for a specific dependency"""
 
     version: StrictStr
 
@@ -39,12 +39,8 @@ class InfoResponse(BaseModel):
             for prop in schema.get("properties", {}).values():
                 prop.pop("title", None)
             schema["example"] = {
-                "anyvar": {
-                    "version": "0.1.2.dev58+g81eb592.d20230316"
-                },
-                "ga4gh_vrs": {
-                    "version": "0.7.6"
-                }
+                "anyvar": {"version": "0.1.2.dev58+g81eb592.d20230316"},
+                "ga4gh_vrs": {"version": "0.7.6"},
             }
 
 
@@ -62,11 +58,8 @@ class RegisterVariationRequest(BaseModel):
     class Config:
         """Configure RegisterVariationRequest class"""
 
-        schema_extra = {
-            "example": {
-                "definition": "BRAF V600E"
-            }
-        }
+        schema_extra = {"example": {"definition": "BRAF V600E"}}
+
 
 class RegisterVariationResponse(BaseModel):
     """Describe response for the variation registry endpoint"""
@@ -79,9 +72,7 @@ class RegisterVariationResponse(BaseModel):
         """Configure RegisterVariationResponse class"""
 
         @staticmethod
-        def schema_extra(
-            schema: Dict[str, Any], model: Type["RegisterVariationResponse"]
-        ) -> None:
+        def schema_extra(schema: Dict[str, Any], model: Type["RegisterVariationResponse"]) -> None:
             """Configure OpenAPI schema"""
             if "title" in schema.keys():
                 schema.pop("title", None)
@@ -98,22 +89,13 @@ class RegisterVariationResponse(BaseModel):
                         "sequence_id": "ga4gh:SQ.cQvw4UsHHRRlogxbWCB8W-mKD4AraM9y",
                         "interval": {
                             "type": "SequenceInterval",
-                            "start": {
-                                "type": "Number",
-                                "value": 599
-                            },
-                            "end": {
-                                "type": "Number",
-                                "value": 600
-                            }
-                        }
+                            "start": {"type": "Number", "value": 599},
+                            "end": {"type": "Number", "value": 600},
+                        },
                     },
-                    "state": {
-                        "type": "LiteralSequenceExpression",
-                        "sequence": "E"
-                    }
+                    "state": {"type": "LiteralSequenceExpression", "sequence": "E"},
                 },
-                "object_id": "ga4gh:VA.ZDdoQdURgO2Daj2NxLj4pcDnjiiAsfbO"
+                "object_id": "ga4gh:VA.ZDdoQdURgO2Daj2NxLj4pcDnjiiAsfbO",
             }
 
 
@@ -128,7 +110,6 @@ class RegisterVrsVariationResponse(BaseModel):
 class GetVariationResponse(BaseModel):
     """Describe response for the /variation get endpoint"""
 
-
     messages: List[StrictStr]
     data: Union[Allele, Text]
 
@@ -136,9 +117,7 @@ class GetVariationResponse(BaseModel):
         """Configure GetVariationResponse class"""
 
         @staticmethod
-        def schema_extra(
-            schema: Dict[str, Any], model: Type["GetVariationResponse"]
-        ) -> None:
+        def schema_extra(schema: Dict[str, Any], model: Type["GetVariationResponse"]) -> None:
             """Configure OpenAPI schema"""
             if "title" in schema.keys():
                 schema.pop("title", None)
@@ -155,21 +134,12 @@ class GetVariationResponse(BaseModel):
                         "sequence_id": "ga4gh:SQ.cQvw4UsHHRRlogxbWCB8W-mKD4AraM9y",
                         "interval": {
                             "type": "SequenceInterval",
-                            "start": {
-                                "type": "Number",
-                                "value": 599
-                            },
-                            "end": {
-                                "type": "Number",
-                                "value": 600
-                            }
-                        }
+                            "start": {"type": "Number", "value": 599},
+                            "end": {"type": "Number", "value": 600},
+                        },
                     },
-                    "state": {
-                        "type": "LiteralSequenceExpression",
-                        "sequence": "E"
-                    }
-                }
+                    "state": {"type": "LiteralSequenceExpression", "sequence": "E"},
+                },
             }
 
 
