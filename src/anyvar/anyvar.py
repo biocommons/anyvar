@@ -35,6 +35,7 @@ def create_storage(uri: Optional[str] = None) -> _Storage:
 
     if parsed_uri.scheme == "postgresql":
         from anyvar.storage.postgres import PostgresObjectStore
+
         storage = PostgresObjectStore(uri)  # type: ignore
 
     else:
@@ -64,9 +65,7 @@ class AnyVar:
         :param object_store: Object storage instance
         """
         if not isinstance(object_store, MutableMapping):
-            _logger.warning(
-                "AnyVar(object_store=) should be a mutable mapping; you're on your own"
-            )
+            _logger.warning("AnyVar(object_store=) should be a mutable mapping; you're on your own")
 
         self.object_store = object_store
         self.translator = translator
@@ -84,9 +83,7 @@ class AnyVar:
         _id = ga4gh_identify(v)
         return _id
 
-    def get_object(
-        self, object_id: str, deref: bool = False
-    ) -> Optional[VrsPythonObject]:
+    def get_object(self, object_id: str, deref: bool = False) -> Optional[VrsPythonObject]:
         """Retrieve registered variation.
 
         :param object_id: object identifier

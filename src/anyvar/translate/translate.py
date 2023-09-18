@@ -12,7 +12,7 @@ class TranslatorSetupException(Exception):
 
 
 class TranslatorConnectionException(Exception):
-    """Indicates failure to connect to translator instance (e.g. REST endpoing not
+    """Indicates failure to connect to translator instance (e.g. REST endpoint not
     responding)
     """
 

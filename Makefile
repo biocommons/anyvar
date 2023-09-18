@@ -64,6 +64,12 @@ bdist bdist_egg bdist_wheel build sdist install: %:
 #= TESTING
 # see test configuration in setup.cfg
 
+#=> cqa: execute code quality tests
+cqa:
+	ruff check src
+	black --check src
+	bandit -ll -r src
+
 #=> test: execute tests
 .PHONY: test
 test:

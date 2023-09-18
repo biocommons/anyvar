@@ -51,9 +51,7 @@ class VrsPythonTranslator(_Translator):
         try:
             return self.tlr.translate_from(var)
         except ValueError:
-            raise TranslationException(
-                f"{var} isn't supported by the VRS-Python translator."
-            )
+            raise TranslationException(f"{var} isn't supported by the VRS-Python translator.")
 
     def translate_vcf_row(self, coords: str) -> Optional[VrsPythonVariation]:
         """Translate VCF-like data to a VRS object.
@@ -70,7 +68,5 @@ class VrsPythonTranslator(_Translator):
         :return: equivalent GA4GH sequence ID
         :raise: KeyError if no equivalent ID is available
         """
-        result = self.tlr.data_proxy.translate_sequence_identifier(
-            accession_id, "ga4gh"
-        )
+        result = self.tlr.data_proxy.translate_sequence_identifier(accession_id, "ga4gh")
         return result[0]
