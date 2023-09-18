@@ -50,7 +50,9 @@ class PostgresObjectStore(_Storage):
     def ensure_schema_exists(self):
         """Check that DB schema is in place."""
         with self.conn.cursor() as cur:
-            cur.execute("SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')")  # noqa: E501
+            cur.execute(
+                "SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')"
+            )  # noqa: E501
             result = cur.fetchone()
         if result and result[0]:
             return
@@ -89,10 +91,7 @@ class PostgresObjectStore(_Storage):
         :raise NotImplementedError: if unsupported VRS object type (this is WIP)
         """
         with self.conn.cursor() as cur:
-            cur.execute(
-                "SELECT vrs_object FROM vrs_objects WHERE vrs_id = %s;",
-                [name]
-            )
+            cur.execute("SELECT vrs_object FROM vrs_objects WHERE vrs_id = %s;", [name])
             result = cur.fetchone()
         if result:
             result = result[0]
@@ -113,10 +112,7 @@ class PostgresObjectStore(_Storage):
         :return: True if ID is contained in vrs objects table
         """
         with self.conn.cursor() as cur:
-            cur.execute(
-                "SELECT EXISTS (SELECT 1 FROM vrs_objects WHERE vrs_id = %s);",
-                [name]
-            )
+            cur.execute("SELECT EXISTS (SELECT 1 FROM vrs_objects WHERE vrs_id = %s);", [name])
             result = cur.fetchone()
         return result[0] if result else False
 
@@ -127,10 +123,7 @@ class PostgresObjectStore(_Storage):
         """
         name = str(name)  # in case str-like
         with self.conn.cursor() as cur:
-            cur.execute(
-                "DELETE FROM vrs_objects WHERE vrs_id = %s;",
-                [name]
-            )
+            cur.execute("DELETE FROM vrs_objects WHERE vrs_id = %s;", [name])
         self.conn.commit()
 
     def close(self):
@@ -144,10 +137,12 @@ class PostgresObjectStore(_Storage):
 
     def __len__(self):
         with self.conn.cursor() as cur:
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT COUNT(*) AS c FROM vrs_objects
                 WHERE vrs_object ->> 'type' = 'Allele';
-            """)
+            """
+            )
             result = cur.fetchone()
         if result:
             return result[0]
@@ -169,8 +164,7 @@ class PostgresObjectStore(_Storage):
         elif variation_type == VariationStatisticType.DELETION:
             return self._deletion_count()
         else:
-            return self._substitution_count() + self._deletion_count() + \
-                self._insertion_count()
+            return self._substitution_count() + self._deletion_count() + self._insertion_count()
 
     def _text_count(self) -> int:
         """Get total # of registered text variations.
@@ -191,10 +185,12 @@ class PostgresObjectStore(_Storage):
 
     def _deletion_count(self) -> int:
         with self.conn.cursor() as cur:
-            cur.execute("""
+            cur.execute(
+                """
                 select count(*) as c from vrs_objects
                 where length(vrs_object -> 'state' ->> 'sequence') = 0;
-            """)
+            """
+            )
             result = cur.fetchone()
         if result:
             return result[0]
@@ -203,10 +199,12 @@ class PostgresObjectStore(_Storage):
 
     def _substitution_count(self) -> int:
         with self.conn.cursor() as cur:
-            cur.execute("""
+            cur.execute(
+                """
                 select count(*) as c from vrs_objects
                 where length(vrs_object -> 'state' ->> 'sequence') = 1;
-            """)
+            """
+            )
             result = cur.fetchone()
         if result:
             return result[0]
@@ -215,10 +213,12 @@ class PostgresObjectStore(_Storage):
 
     def _insertion_count(self):
         with self.conn.cursor() as cur:
-            cur.execute("""
+            cur.execute(
+                """
                 select count(*) as c from vrs_objects
                 where length(vrs_object -> 'state' ->> 'sequence') > 1
-            """)
+            """
+            )
             result = cur.fetchone()
         if result:
             return result[0]
@@ -246,8 +246,7 @@ class PostgresObjectStore(_Storage):
         Returns:
             A list of VRS Alleles that have locations referenced as identifiers
         """
-        query_str = (
-            """
+        query_str = """
             SELECT vrs_object FROM vrs_objects
             WHERE vrs_object->>'location' IN (
                 SELECT vrs_id FROM vrs_objects
@@ -256,7 +255,6 @@ class PostgresObjectStore(_Storage):
                 AND vrs_object->>'sequence_id' = %s
             );
             """
-        )
         with self.conn.cursor() as cur:
             cur.execute(query_str, [start, stop, ga4gh_accession_id])
             results = cur.fetchall()
@@ -276,9 +274,13 @@ class PostgresObjectStore(_Storage):
         is to make a temporary table for each COPY statement, and then handle
         conflicts when moving data over from that table to vrs_objects.
         """
-        tmp_statement = "CREATE TEMP TABLE tmp_table (LIKE vrs_objects INCLUDING DEFAULTS);"  # noqa: E501
+        tmp_statement = (
+            "CREATE TEMP TABLE tmp_table (LIKE vrs_objects INCLUDING DEFAULTS);"  # noqa: E501
+        )
         copy_statement = "COPY tmp_table (vrs_id, vrs_object) FROM STDIN;"
-        insert_statement = "INSERT INTO vrs_objects SELECT * FROM tmp_table ON CONFLICT DO NOTHING;"  # noqa: E501
+        insert_statement = (
+            "INSERT INTO vrs_objects SELECT * FROM tmp_table ON CONFLICT DO NOTHING;"  # noqa: E501
+        )
         drop_statement = "DROP TABLE tmp_table;"
         with self.conn.cursor() as cur:
             cur.execute(tmp_statement)
@@ -305,9 +307,7 @@ class PostgresBatchManager(_BatchManager):
         :raise ValueError: if `storage` param is not a `PostgresObjectStore` instance
         """
         if not isinstance(storage, PostgresObjectStore):
-            raise ValueError(
-                "PostgresBatchManager requires a PostgresObjectStore instance"
-            )
+            raise ValueError("PostgresBatchManager requires a PostgresObjectStore instance")
         self._storage = storage
 
     def __enter__(self):
@@ -316,8 +316,7 @@ class PostgresBatchManager(_BatchManager):
         self._storage.batch_mode = True
 
     def __exit__(
-        self, exc_type: Optional[type], exc_value: Optional[BaseException],
-        traceback: Optional[Any]
+        self, exc_type: Optional[type], exc_value: Optional[BaseException], traceback: Optional[Any]
     ) -> bool:
         """Handle exit from context management. This method is responsible for
         committing or rolling back any staged inserts.
@@ -331,9 +330,7 @@ class PostgresBatchManager(_BatchManager):
             self._storage.conn.rollback()
             self._storage.batch_insert_values = []
             self._storage.batch_mode = False
-            _logger.error(
-                f"Postgres batch manager encountered exception {exc_type}: {exc_value}"
-            )
+            _logger.error(f"Postgres batch manager encountered exception {exc_type}: {exc_value}")
             return False
         self._storage.copy_insert()
         self._storage.batch_mode = False

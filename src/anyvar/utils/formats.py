@@ -19,13 +19,10 @@ format_regexps = {
     ],
     "text": [
         r"\w",
-        ]
+    ],
 }
 
-format_regexps = {
-    t: [re.compile(e) for e in exprs]
-    for t, exprs in format_regexps.items()}
-
+format_regexps = {t: [re.compile(e) for e in exprs] for t, exprs in format_regexps.items()}
 
 
 def infer_plausible_formats(o):
@@ -57,11 +54,9 @@ def infer_plausible_formats(o):
         return []
 
     if isinstance(o, list):
-        return(set.intersection(infer_plausible_formats(elem) for elem in o))
+        return set.intersection(infer_plausible_formats(elem) for elem in o)
 
     if isinstance(o, str):
-        return set(t
-                   for t, exprs in format_regexps.items()
-                   if any(e.match(o) for e in exprs))
+        return set(t for t, exprs in format_regexps.items() if any(e.match(o) for e in exprs))
 
     raise RuntimeError("Cannot infer format of a " + type(o))

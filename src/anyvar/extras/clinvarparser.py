@@ -8,8 +8,7 @@ _logger = logging.getLogger()
 
 class VariationArchive:
     def __init__(self, element):
-        assert element.tag == "VariationArchive", \
-            "Expected node type `VariationArchive`"
+        assert element.tag == "VariationArchive", "Expected node type `VariationArchive`"
         self._element = element
 
     @property
@@ -62,17 +61,20 @@ class ClinvarParser:
         self.current_only = current_only
 
     def __iter__(self):
-        yield from (va for va in (VariationArchive(e) for _, e in self._xp)
-                    if not self.current_only or va.is_current)
+        yield from (
+            va
+            for va in (VariationArchive(e) for _, e in self._xp)
+            if not self.current_only or va.is_current
+        )
 
 
 def clinvar_open(fp):
     yield from ClinvarParser(fp)
 
 
-
 if __name__ == "__main__":
     import sys
+
     fn = sys.argv[1]
     for va in clinvar_open(fn):
         print(

@@ -13,8 +13,7 @@ from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import vrs_deref, vrs_enref
 
 from anyvar.storage import DEFAULT_STORAGE_URI, _Storage
-from anyvar.translate.translate import (DEFAULT_TRANSLATE_URI,
-                                        TranslatorSetupException, _Translator)
+from anyvar.translate.translate import DEFAULT_TRANSLATE_URI, TranslatorSetupException, _Translator
 from anyvar.utils.types import VrsPythonObject
 
 _logger = logging.getLogger(__name__)
@@ -35,6 +34,7 @@ def create_storage(uri: Optional[str] = None) -> _Storage:
 
     if parsed_uri.scheme == "postgresql":
         from anyvar.storage.postgres import PostgresObjectStore
+
         storage = PostgresObjectStore(uri)  # type: ignore
 
     else:
@@ -58,8 +58,7 @@ def create_translator(uri: Optional[str] = None) -> _Translator:
         if not uri:
             raise TranslatorSetupException("No Translator URI provided.")
 
-    from anyvar.translate.variation_normalizer import \
-        VariationNormalizerRestTranslator
+    from anyvar.translate.variation_normalizer import VariationNormalizerRestTranslator
 
     return VariationNormalizerRestTranslator(uri)
 
@@ -73,9 +72,7 @@ class AnyVar:
         :param object_store: Object storage instance
         """
         if not isinstance(object_store, MutableMapping):
-            _logger.warning(
-                "AnyVar(object_store=) should be a mutable mapping; you're on your own"
-            )
+            _logger.warning("AnyVar(object_store=) should be a mutable mapping; you're on your own")
 
         self.object_store = object_store
         self.translator = translator
@@ -93,9 +90,7 @@ class AnyVar:
         _id = ga4gh_identify(v)
         return _id
 
-    def get_object(
-        self, object_id: str, deref: bool = False
-    ) -> Optional[VrsPythonObject]:
+    def get_object(self, object_id: str, deref: bool = False) -> Optional[VrsPythonObject]:
         """Retrieve registered variation.
 
         :param object_id: object identifier

@@ -10,7 +10,6 @@ from . import TranslatorConnectionException, _Translator
 
 
 class VariationNormalizerRestTranslator(_Translator):
-
     def __init__(self, endpoint_uri: str):
         """Initialize normalizer-based translator.
 
@@ -64,8 +63,7 @@ class VariationNormalizerRestTranslator(_Translator):
 
         if resp.status_code == HTTPStatus.NOT_FOUND:
             raise TranslatorConnectionException(
-                f"Failed to get response from Variation Normalizer REST endpoint at "
-                f"{req_url}"
+                f"Failed to get response from Variation Normalizer REST endpoint at " f"{req_url}"
             )
         elif resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR:
             raise TranslatorConnectionException(
@@ -73,8 +71,7 @@ class VariationNormalizerRestTranslator(_Translator):
             )
         elif resp.status_code != HTTPStatus.OK:
             raise TranslatorConnectionException(
-                f"Variation Normalizer REST endpoint returned {resp.status_code} "
-                f"for {var}"
+                f"Variation Normalizer REST endpoint returned {resp.status_code} " f"for {var}"
             )
 
         resp_json = resp.json()
@@ -84,9 +81,7 @@ class VariationNormalizerRestTranslator(_Translator):
             return None
 
         if variation_type not in variation_class_map:
-            raise NotImplementedError(
-                f"{variation_type} isn't supported by AnyVar yet."
-            )
+            raise NotImplementedError(f"{variation_type} isn't supported by AnyVar yet.")
 
         variation = resp_json["variation_descriptor"]["variation"]
         return variation_class_map[variation_type](**variation)
@@ -104,13 +99,11 @@ class VariationNormalizerRestTranslator(_Translator):
 
         if resp.status_code == HTTPStatus.NOT_FOUND:
             raise TranslatorConnectionException(
-                f"Failed to get response from Variation Normalizer REST endpoint at "
-                f"{req_url}"
+                f"Failed to get response from Variation Normalizer REST endpoint at " f"{req_url}"
             )
         elif resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR:
             raise TranslatorConnectionException(
-                "Variation Normalizer REST endpoint returned server error for VCF "
-                f"{coords}"
+                "Variation Normalizer REST endpoint returned server error for VCF " f"{coords}"
             )
         elif resp.status_code != HTTPStatus.OK:
             raise TranslatorConnectionException(
@@ -128,9 +121,7 @@ class VariationNormalizerRestTranslator(_Translator):
             return None
 
         if variation_type not in variation_class_map:
-            raise NotImplementedError(
-                f"{variation_type} isn't supported by AnyVar yet."
-            )
+            raise NotImplementedError(f"{variation_type} isn't supported by AnyVar yet.")
 
         variation = resp_json["variation"]
         return variation_class_map[variation_type](**variation)
@@ -142,7 +133,10 @@ class VariationNormalizerRestTranslator(_Translator):
         :return: equivalent GA4GH sequence ID
         :raise: KeyError if no equivalent ID is available
         """
-        req_url = self.endpoint_base + f"translate_identifier?identifier={accession_id}&target_namespaces=ga4gh"  # noqa: E501
+        req_url = (
+            self.endpoint_base
+            + f"translate_identifier?identifier={accession_id}&target_namespaces=ga4gh"
+        )  # noqa: E501
         resp = self._send_rest_request(req_url)
         if resp.status_code == HTTPStatus.NOT_FOUND:
             raise TranslatorConnectionException(
