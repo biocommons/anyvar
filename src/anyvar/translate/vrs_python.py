@@ -2,12 +2,10 @@
 from os import environ
 from typing import Optional
 
-from biocommons.seqrepo import SeqRepo
-from ga4gh.vrs.dataproxy import create_dataproxy, _DataProxy
+from ga4gh.vrs.dataproxy import _DataProxy, create_dataproxy
 from ga4gh.vrs.extras.translator import Translator
-from requests import HTTPError
-from anyvar.translate.translate import TranslationException
 
+from anyvar.translate.translate import TranslationException
 from anyvar.utils.types import VrsPythonVariation
 
 from . import _Translator
