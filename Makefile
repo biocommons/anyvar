@@ -10,7 +10,7 @@ SELF:=$(firstword $(MAKEFILE_LIST))
 
 PKG=eutils
 PKGD=$(subst .,/,${PKG})
-PYV:=3.8
+PYV:=3.11
 VEDIR=venv/${PYV}
 
 UNAME = $(shell uname)

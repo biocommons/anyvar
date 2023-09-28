@@ -46,7 +46,7 @@ uvicorn anyvar.restapi.main:app --reload
 Or, more simply:
 
     make devready
-    source venv/bin/activate
+    source venv/3.11/bin/activate
 
 Then, start the REST server with:
 
