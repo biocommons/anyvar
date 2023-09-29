@@ -4,8 +4,6 @@ from typing import Optional
 
 from anyvar.utils.types import VrsVariation
 
-DEFAULT_TRANSLATE_URI = "http://localhost:8000/variation/"
-
 
 class TranslatorSetupException(Exception):
     """Indicates failure to create translator instance (e.g. invalid params provided)"""

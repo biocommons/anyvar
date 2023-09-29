@@ -5,4 +5,3 @@ from .translate import (
     TranslatorSetupException,
     _Translator,
 )
-from .variation_normalizer import VariationNormalizerRestTranslator
