@@ -12,7 +12,4 @@ def test_info(client):
 def test_summary_statistics(client):
     response = client.get("/stats/all")
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {
-        "variation_type": "all",
-        "count": 2
-    }
+    assert response.json() == {"variation_type": "all", "count": 2}

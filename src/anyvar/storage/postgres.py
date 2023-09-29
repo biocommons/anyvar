@@ -3,9 +3,8 @@ import logging
 from typing import Any, Optional
 
 import psycopg
-from ga4gh.core import is_pjs_instance
+from ga4gh.core import is_pydantic_instance
 from ga4gh.vrs import models
-from ga4gh.vrsatile.pydantic.vrs_models import VRSTypes
 
 from anyvar.restapi.schema import VariationStatisticType
 
@@ -68,9 +67,9 @@ class PostgresObjectStore(_Storage):
         :param name: value for `vrs_id` field
         :param value: value for `vrs_object` field
         """
-        assert is_pjs_instance(value), "ga4gh.vrs object value required"
+        assert is_pydantic_instance(value), "ga4gh.vrs object value required"
         name = str(name)  # in case str-like
-        value_json = json.dumps(value.as_dict())
+        value_json = json.dumps(value.model_dump(exclude_none=True))
         if self.batch_mode:
             self.batch_insert_values.append((name, value_json))
             if len(self.batch_insert_values) > self.batch_limit:
@@ -96,11 +95,13 @@ class PostgresObjectStore(_Storage):
         if result:
             result = result[0]
             object_type = result["type"]
-            if object_type == VRSTypes.ALLELE:
+            if object_type == "Allele":
                 return models.Allele(**result)
-            elif object_type == VRSTypes.TEXT:
-                return models.Allele(**result)
-            elif object_type == VRSTypes.SEQUENCE_LOCATION:
+            elif object_type == "CopyNumberCount":
+                return models.CopyNumberCount(**result)
+            elif object_type == "CopyNumberChange":
+                return models.CopyNumberChange(**result)
+            elif object_type == "SequenceLocation":
                 return models.SequenceLocation(**result)
             else:
                 raise NotImplementedError
@@ -155,8 +156,6 @@ class PostgresObjectStore(_Storage):
         :param variation_type: variation type to check
         :return: total count
         """
-        if variation_type == VariationStatisticType.TEXT:
-            return self._text_count()
         if variation_type == VariationStatisticType.SUBSTITUTION:
             return self._substitution_count()
         elif variation_type == VariationStatisticType.INSERTION:
@@ -165,23 +164,6 @@ class PostgresObjectStore(_Storage):
             return self._deletion_count()
         else:
             return self._substitution_count() + self._deletion_count() + self._insertion_count()
-
-    def _text_count(self) -> int:
-        """Get total # of registered text variations.
-
-        :return: total count
-        """
-        with self.conn.cursor() as cur:
-            query = """
-            SELECT COUNT(1) AS c FROM vrs_objects
-            WHERE vrs_object ->> 'type' = 'Text'
-            """
-            cur.execute(query)
-            result = cur.fetchone()
-        if result:
-            return result[0]
-        else:
-            return 0
 
     def _deletion_count(self) -> int:
         with self.conn.cursor() as cur:
@@ -235,11 +217,11 @@ class PostgresObjectStore(_Storage):
             result = cur.fetchall()
         return result
 
-    def search_variations(self, ga4gh_accession_id: str, start: int, stop: int):
+    def search_variations(self, refget_accession: str, start: int, stop: int):
         """Find all alleles that were registered that are in 1 genomic region
 
         Args:
-            ga4gh_accession_id (str): ga4gh accession for sequence identifier
+            refget_accession (str): refget accession (SQ. identifier)
             start (int): Start genomic region to query
             stop (iint): Stop genomic region to query
 
@@ -250,13 +232,13 @@ class PostgresObjectStore(_Storage):
             SELECT vrs_object FROM vrs_objects
             WHERE vrs_object->>'location' IN (
                 SELECT vrs_id FROM vrs_objects
-                WHERE CAST (vrs_object->'interval'->'start'->>'value' as INTEGER) >= %s
-                AND CAST (vrs_object->'interval'->'end'->>'value' as INTEGER) <= %s
-                AND vrs_object->>'sequence_id' = %s
+                WHERE CAST (vrs_object->>'start' as INTEGER) >= %s
+                AND CAST (vrs_object->>'end' as INTEGER) <= %s
+                AND vrs_object->'sequenceReference'->>'refgetAccession' = %s
             );
             """
         with self.conn.cursor() as cur:
-            cur.execute(query_str, [start, stop, ga4gh_accession_id])
+            cur.execute(query_str, [start, stop, refget_accession])
             results = cur.fetchall()
         return [vrs_object[0] for vrs_object in results if vrs_object]
 

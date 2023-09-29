@@ -1,25 +1,21 @@
 {
   "alleles": {
-    "ga4gh:VA.vcU3lF97DSM9KE3Z0LntAukLqm0K2ENn": {
-      "params": { "definition": "NC_000010.11:g.87894077C>T" },
+    "ga4gh:VA.GbDZmcmmWJngURaODSrbbLWgNEeSYhFB": {
+      "params": {
+        "definition": "NC_000010.11:g.87894077C>T"
+      },
       "allele_response": {
         "messages": [],
         "object": {
-          "_id": "ga4gh:VA.vcU3lF97DSM9KE3Z0LntAukLqm0K2ENn",
+          "id": "ga4gh:VA.GbDZmcmmWJngURaODSrbbLWgNEeSYhFB",
           "location": {
-            "_id": "ga4gh:VSL.r-OjdTzcMoOWJymchrLt_ufNFLEWB_4y",
-            "interval": {
-              "end": {
-                "type": "Number",
-                "value": 87894077
-              },
-              "start": {
-                "type": "Number",
-                "value": 87894076
-              },
-              "type": "SequenceInterval"
+            "id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8",
+            "end": 87894077,
+            "start": 87894076,
+            "sequenceReference": {
+              "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
+              "type": "SequenceReference"
             },
-            "sequence_id": "ga4gh:SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
             "type": "SequenceLocation"
           },
           "state": {
@@ -29,59 +25,86 @@
           "type": "Allele"
         }
       },
-      "location_id": "ga4gh:VSL.r-OjdTzcMoOWJymchrLt_ufNFLEWB_4y"
+      "location_id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8"
     },
-    "ga4gh:VA.PDHSCeQVYwBh-vQOEzeVCkC80qGGMoR0": {
-      "params": { "definition": "NM_000551.3:c.1A>T" },
+    "ga4gh:VA.EB-JEr9jnAjzL_zjxzBqRgGMREVCv31v": {
+      "params": {
+        "definition": "NM_000551.3:c.1A>T"
+      },
       "allele_response": {
         "messages": [],
         "object": {
-            "_id": "ga4gh:VA.PDHSCeQVYwBh-vQOEzeVCkC80qGGMoR0",
-            "type": "Allele",
-            "location": {
-                "_id": "ga4gh:VSL.0walyb5XpXwnONQARujAfkMwtCFVAkXs",
-                "type": "SequenceLocation",
-                "sequence_id": "ga4gh:SQ.v_QTc1p-MUYdgrRv4LMT6ByXIOsdw3C_",
-                "interval": {
-                    "type": "SequenceInterval",
-                    "start": {"type": "Number", "value": 0},
-                    "end": {"type": "Number", "value": 1}
-                }
+          "id": "ga4gh:VA.EB-JEr9jnAjzL_zjxzBqRgGMREVCv31v",
+          "type": "Allele",
+          "location": {
+            "id": "ga4gh:SL.-FaQ9J0LDvasaUpfLKstbyDx8nUld9fl",
+            "type": "SequenceLocation",
+            "sequenceReference": {
+              "refgetAccession": "SQ.v_QTc1p-MUYdgrRv4LMT6ByXIOsdw3C_",
+              "type": "SequenceReference"
             },
-            "state": {"type": "LiteralSequenceExpression", "sequence": "T"}
-            }
+            "start": 0,
+            "end": 1
+          },
+          "state": {
+            "type": "LiteralSequenceExpression",
+            "sequence": "T"
+          }
+        }
       },
-      "location_id": "ga4gh:VSL.0walyb5XpXwnONQARujAfkMwtCFVAkXs"
+      "location_id": "ga4gh:SL.-FaQ9J0LDvasaUpfLKstbyDx8nUld9fl"
     }
   },
-  "text_alleles": {
-    "ga4gh:VT.jZK5femElCE952W6THV7TFLZZWlm3Prv": {
+  "copy_numbers": {
+    "ga4gh:CX.UvIENZGNmCM5j38yHueYdd-BZLn-aLJM": {
       "params": {
-        "type": "Text",
-        "definition": "BCR--ABL1 Fusion"
+        "definition": "NC_000013.11:g.26440969_26443305del",
+        "copy_change": "efo:0030069"
       },
-      "response": {
+      "copy_number_response": {
         "messages": [],
         "object": {
-          "_id": "ga4gh:VT.jZK5femElCE952W6THV7TFLZZWlm3Prv",
-          "definition": "BCR--ABL1 Fusion",
-          "type": "Text"
+          "id": "ga4gh:CX.UvIENZGNmCM5j38yHueYdd-BZLn-aLJM",
+          "location": {
+            "id": "ga4gh:SL.XBjSbazxe6h8lI14zfXIxqt6J718QEec",
+            "start": 26440968,
+            "end": 26443305,
+            "sequenceReference": {
+              "refgetAccession": "SQ._0wi-qoDrvram155UmcSC-zA5ZK4fpLT",
+              "type": "SequenceReference"
+            },
+            "type": "SequenceLocation"
+          },
+          "copyChange": "efo:0030069",
+          "type": "CopyNumberChange"
         }
-      }
+      },
+      "location_id": "ga4gh:SL.XBjSbazxe6h8lI14zfXIxqt6J718QEec"
     },
-    "ga4gh:VT.Ch84PQndQhGul_F2pFFFDl-we6v3lyvT": {
+    "ga4gh:CN.tPLSlUBW6j2dVHv0G81U_IFXt4Xawo7J": {
       "params": {
-        "type": "Text",
-        "definition": "PTEN (Frameshift)"
+        "definition": "NC_000013.11:g.26440969_26443305del",
+        "copies": 1
       },
-      "response": {
+      "copy_number_response": {
         "messages": [],
         "object": {
-          "_id": "ga4gh:VT.Ch84PQndQhGul_F2pFFFDl-we6v3lyvT",
-          "definition": "PTEN (Frameshift)",
-          "type": "Text"
+          "id": "ga4gh:CN.tPLSlUBW6j2dVHv0G81U_IFXt4Xawo7J",
+          "location": {
+            "id": "ga4gh:SL.XBjSbazxe6h8lI14zfXIxqt6J718QEec",
+            "start": 26440968,
+            "end": 26443305,
+            "sequenceReference": {
+              "refgetAccession": "SQ._0wi-qoDrvram155UmcSC-zA5ZK4fpLT",
+              "type": "SequenceReference"
+            },
+            "type": "SequenceLocation"
+          },
+          "copies": 1,
+          "type": "CopyNumberCount"
         }
-      }
+      },
+      "location_id": "ga4gh:SL.XBjSbazxe6h8lI14zfXIxqt6J718QEec"
     }
   }
 }

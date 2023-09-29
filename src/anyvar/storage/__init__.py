@@ -13,10 +13,10 @@ class _Storage(MutableMapping):
     batch_manager = None
 
     @abstractmethod
-    def search_variations(self, ga4gh_accession_id: str, start: int, stop: int):
+    def search_variations(self, refget_accession: str, start: int, stop: int):
         """Find all registered variations in a provided genomic region
 
-        :param ga4gh_accession_id: ga4gh accession for sequence identifier
+        :param refget_accession: refget accession (SQ. identifier)
         :param start: Start genomic region to query
         :param stop: Stop genomic region to query
 

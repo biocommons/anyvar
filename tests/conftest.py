@@ -11,16 +11,8 @@ from anyvar.restapi.main import app as anyvar_restapi
 
 
 def pytest_collection_modifyitems(items):
-    """Modify test items in place to ensure test modules run in a given order.
-
-    """
-    MODULE_ORDER = [
-        "test_variation",
-        "test_general",
-        "test_location",
-        "test_search",
-        "test_vcf"
-    ]
+    """Modify test items in place to ensure test modules run in a given order."""
+    MODULE_ORDER = ["test_variation", "test_general", "test_location", "test_search", "test_vcf"]
     # remember to add new test modules to the order constant:
     assert len(MODULE_ORDER) == len(list(Path(__file__).parent.rglob("test_*.py")))
     items.sort(key=lambda i: MODULE_ORDER.index(i.module.__name__))
@@ -52,10 +44,3 @@ def alleles(test_data_dir) -> Dict:
     """Provide allele fixture object."""
     with open(test_data_dir / "variations.json", "r") as f:
         return json.load(f)["alleles"]
-
-
-@pytest.fixture(scope="session")
-def text_alleles(test_data_dir) -> Dict:
-    """Provide allele fixture object."""
-    with open(test_data_dir / "variations.json", "r") as f:
-        return json.load(f)["text_alleles"]

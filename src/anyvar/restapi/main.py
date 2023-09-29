@@ -17,11 +17,12 @@ from anyvar.restapi.schema import (
     GetSequenceLocationResponse,
     GetVariationResponse,
     InfoResponse,
-    RegisterVariationRequest,
+    RegisterAlleleRequest,
     RegisterVariationResponse,
     RegisterVrsVariationResponse,
     SearchResponse,
     VariationStatisticType,
+    RegisterCopyNumberRequest,
 )
 from anyvar.translate.translate import TranslationException, TranslatorConnectionException
 from anyvar.utils.types import VrsVariation, variation_class_map
@@ -68,6 +69,7 @@ def get_info():
 @app.get(
     "/locations/{location_id}",
     response_model=GetSequenceLocationResponse,
+    response_model_exclude_none=True,
     summary="Retrieve sequence location",
     description="Retrieve registered sequence location by ID",
     tags=[EndpointTag.LOCATIONS],
@@ -88,21 +90,22 @@ def get_location_by_id(
     except KeyError:
         return HTTPException(status_code=HTTPStatus.NOT_FOUND)
     if location:
-        return {"location": location.as_dict()}
+        return {"location": location.model_dump(exclude_none=True)}
     else:
         return {"location": None}
 
 
 @app.put(
-    "/variation",
+    "/allele",
     response_model=RegisterVariationResponse,
-    summary="Register a new variation object",
-    description="Provide a variation definition to be normalized and registered with AnyVar. A complete VRS object and digest is returned for later reference.",  # noqa: E501
+    response_model_exclude_none=True,
+    summary="Register a new allele object",
+    description="Provide a variation definition to be normalized and registered with AnyVar. A complete VRS Allele object and digest is returned for later reference.",  # noqa: E501
     tags=[EndpointTag.VARIATIONS],
 )
-def register_variation(
+def register_allele(
     request: Request,
-    variation: RegisterVariationRequest = Body(
+    variation: RegisterAlleleRequest = Body(
         description="Variation description, including (at minimum) a definition property"  # noqa: E501
     ),
 ):
@@ -115,9 +118,9 @@ def register_variation(
     """
     av: AnyVar = request.app.state.anyvar
     definition = variation.definition
-    result = {"object": None, "messages": []}
+    result = {"object": None, "messages": [], "object_id": None}
     try:
-        translated_variation = av.translator.translate(var=definition)
+        translated_variation = av.translator.translate_allele(var=definition)
     except TranslationException:
         result["messages"].append(f'Unable to translate "{definition}"')
     except NotImplementedError:
@@ -125,7 +128,49 @@ def register_variation(
     else:
         if translated_variation:
             v_id = av.put_object(translated_variation)
-            result["object"] = translated_variation.as_dict()
+            result["object"] = translated_variation.model_dump(exclude_none=True)
+            result["object_id"] = v_id
+        else:
+            result["messages"].append(f"Translation of {definition} failed.")
+    return result
+
+
+@app.put(
+    "/copy_number",
+    response_model=RegisterVariationResponse,
+    response_model_exclude_none=True,
+    summary="Register a new copy number object",
+    description="Provide a variation definition to be normalized and registered with AnyVar. A complete VRS Copy Number object and digest is returned for later reference.",  # noqa: E501
+    tags=[EndpointTag.VARIATIONS],
+)
+def register_copy_number(
+    request: Request,
+    variation: RegisterCopyNumberRequest = Body(
+        description="Variation description, including a definition property and either copies or copy_change"  # noqa: E501
+    ),
+):
+    """Register a variation based on a provided description or reference.
+
+    :param request: FastAPI request object
+    :param variation: provided variation description
+    :return: messages describing translation failure, or object and references if
+        successful
+    """
+    av: AnyVar = request.app.state.anyvar
+    definition = variation.definition
+    result = {"object": None, "messages": [], "object_id": None}
+    try:
+        translated_variation = av.translator.translate_cnv(
+            var=definition, **{"copy_change": variation.copy_change, "copies": variation.copies}
+        )
+    except TranslationException:
+        result["messages"].append(f'Unable to translate "{definition}"')
+    except NotImplementedError:
+        result["messages"].append(f"Variation class for {definition} is currently unsupported.")
+    else:
+        if translated_variation:
+            v_id = av.put_object(translated_variation)
+            result["object"] = translated_variation.model_dump(exclude_none=True)
             result["object_id"] = v_id
         else:
             result["messages"].append(f"Translation of {definition} failed.")
@@ -137,12 +182,27 @@ def register_variation(
     summary="Register a VRS variation",
     description="Provide a valid VRS variation object to be registered with AnyVar. A digest is returned for later reference.",  # noqa: E501
     response_model=RegisterVrsVariationResponse,
+    response_model_exclude_none=True,
     tags=[EndpointTag.VARIATIONS],
 )
 def register_vrs_object(
     request: Request,
     variation: VrsVariation = Body(
-        description="Valid VRS object.", example={"type": "Text", "definition": "BCR-ABL1 Fusion"}
+        description="Valid VRS object.",
+        example={
+            "location": {
+                "id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8",
+                "end": 87894077,
+                "start": 87894076,
+                "sequenceReference": {
+                    "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
+                    "type": "SequenceReference",
+                },
+                "type": "SequenceLocation",
+            },
+            "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
+            "type": "Allele",
+        },
     ),
 ):
     """Register a complete VRS object. No additional normalization is performed.
@@ -163,7 +223,7 @@ def register_vrs_object(
 
     variation_object = variation_class_map[variation_type](**variation.dict())
     v_id = av.put_object(variation_object)
-    result["object"] = variation_object.as_dict()
+    result["object"] = variation_object.model_dump(exclude_none=True)
     result["object_id"] = v_id
     return result
 
@@ -204,6 +264,7 @@ async def annotate_vcf(
 @app.get(
     "/variation/{variation_id}",
     response_model=GetVariationResponse,
+    response_model_exclude_none=True,
     operation_id="getVariation",
     summary="Retrieve a variation object",
     description="Gets a variation instance by ID. May return any supported type of variation.",  # noqa: E501
@@ -228,7 +289,7 @@ def get_variation_by_id(
             status_code=HTTPStatus.NOT_FOUND, detail=f"Variation {variation_id} not found"
         )
 
-    result = {"messages": [], "data": variation.as_dict()}
+    result = {"messages": [], "data": variation.model_dump(exclude_none=True)}
 
     return result
 
@@ -236,6 +297,7 @@ def get_variation_by_id(
 @app.get(
     "/search",
     response_model=SearchResponse,
+    response_model_exclude_none=True,
     operation_id="searchVariations",
     summary="Search for registered variations by genomic region",
     description="Fetch all registered variations within the provided genomic coordinates",  # noqa: E501
@@ -266,7 +328,8 @@ def search_variations(
     alleles = []
     if ga4gh_id:
         try:
-            alleles = av.object_store.search_variations(ga4gh_id, start, end)
+            refget_accession = ga4gh_id.split("ga4gh:")[-1]
+            alleles = av.object_store.search_variations(refget_accession, start, end)
         except NotImplementedError:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_IMPLEMENTED,
@@ -276,10 +339,10 @@ def search_variations(
     inline_alleles = []
     if alleles:
         for allele in alleles:
-            var_object = av.get_object(allele["_id"], deref=True)
+            var_object = av.get_object(allele["id"], deref=True)
             if not var_object:
                 continue
-            inline_alleles.append(var_object.as_dict())
+            inline_alleles.append(var_object.model_dump(exclude_none=True))
 
     return {"variations": inline_alleles}
 

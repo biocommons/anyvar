@@ -15,7 +15,7 @@ from ga4gh.vrs import vrs_deref, vrs_enref
 from anyvar.storage import DEFAULT_STORAGE_URI, _Storage
 from anyvar.translate.translate import _Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
-from anyvar.utils.types import VrsPythonObject
+from anyvar.utils.types import VrsObject
 
 _logger = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ class AnyVar:
         self.object_store = object_store
         self.translator = translator
 
-    def put_object(self, variation_object: VrsPythonObject) -> Optional[str]:
+    def put_object(self, variation_object: VrsObject) -> Optional[str]:
         """Attempt to register variation.
 
         :param variation_object: complete VRS object
@@ -80,10 +80,9 @@ class AnyVar:
             v = vrs_enref(variation_object, self.object_store)
         except ValueError:
             return None
-        _id = ga4gh_identify(v)
-        return _id
+        return ga4gh_identify(v)
 
-    def get_object(self, object_id: str, deref: bool = False) -> Optional[VrsPythonObject]:
+    def get_object(self, object_id: str, deref: bool = False) -> Optional[VrsObject]:
         """Retrieve registered variation.
 
         :param object_id: object identifier

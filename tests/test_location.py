@@ -13,4 +13,4 @@ def test_location(client, alleles):
     # invalid ID
     resp = client.get("/locations/not_a_real_location")
     assert resp.status_code == HTTPStatus.OK
-    assert resp.json()["location"] is None
+    assert "location" not in resp.json()

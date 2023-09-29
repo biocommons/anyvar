@@ -1,9 +1,9 @@
 """Provide response definitions to REST API endpoint."""
 from enum import Enum
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type
 
-from ga4gh.vrsatile.pydantic.vrs_models import Allele, SequenceLocation, Text
-from pydantic import BaseModel, StrictInt, StrictStr
+from ga4gh.vrs import models
+from pydantic import BaseModel, StrictInt, StrictStr, ConfigDict
 
 
 class EndpointTag(str, Enum):
@@ -47,18 +47,36 @@ class InfoResponse(BaseModel):
 class GetSequenceLocationResponse(BaseModel):
     """Describe response for the /locations/ endpoint"""
 
-    location: Optional[SequenceLocation]
+    location: Optional[models.SequenceLocation]
 
 
-class RegisterVariationRequest(BaseModel):
-    """Describe request structure for variation registration endpoint"""
+class RegisterAlleleRequest(BaseModel):
+    """Describe request structure for allele registration endpoint"""
 
     definition: StrictStr
 
     class Config:
-        """Configure RegisterVariationRequest class"""
+        """Configure RegisterAlleleRequest class"""
 
         schema_extra = {"example": {"definition": "BRAF V600E"}}
+
+
+class RegisterCopyNumberRequest(BaseModel):
+    """Describe request structure for copy number registration endpoint"""
+
+    definition: StrictStr
+    copies: Optional[int] = None
+    copy_change: Optional[models.CopyChange] = None
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "definition": "NC_000013.11:g.26440969_26443305del",
+                "copies": None,
+                "copy_change": "efo:0030069",
+            }
+        }
+    )
 
 
 class RegisterVariationResponse(BaseModel):
@@ -111,7 +129,7 @@ class GetVariationResponse(BaseModel):
     """Describe response for the /variation get endpoint"""
 
     messages: List[StrictStr]
-    data: Union[Allele, Text]
+    data: models.Variation
 
     class Config:
         """Configure GetVariationResponse class"""
@@ -146,7 +164,7 @@ class GetVariationResponse(BaseModel):
 class SearchResponse(BaseModel):
     """Describe response for the /search endpoint"""
 
-    variations: List[Allele]
+    variations: List[models.Variation]
 
 
 class VariationStatisticType(str, Enum):
@@ -155,7 +173,6 @@ class VariationStatisticType(str, Enum):
     SUBSTITUTION = "substitution"
     DELETION = "deletion"
     INSERTION = "insertion"
-    TEXT = "text"
     ALL = "all"
 
 

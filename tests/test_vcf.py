@@ -49,4 +49,7 @@ def test_vcf_registration(client, sample_vcf):
     """Test registration and annotation of VCFs"""
     resp = client.put("/vcf", files={"vcf": ("test.vcf", sample_vcf)})
     assert resp.status_code == HTTPStatus.OK
-    assert b"VRS_Allele=ga4gh:VA.AFrq9QZuBrvJdB9xxOJsKvRJFIHuAYxH,ga4gh:VA.VTEdMcoqSZEqIGuQHKRrpkoAwYPEf0-X" in resp.content  # noqa: E501
+    assert (
+        b"VRS_Allele_IDs=ga4gh:VA.8MVWsPFeScEY_19U32k4LVI_3lEOKGUL,ga4gh:VA.l7crC9qxgcDtexejZkfp6yPNevEMnZ5y"
+        in resp.content
+    )  # noqa: E501
