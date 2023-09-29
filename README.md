@@ -38,7 +38,7 @@ uvicorn anyvar.restapi.main:app --reload
 
     git clone https://github.com/biocommons/anyvar.git
     cd anyvar
-    python3 -m venv venv
+    python3 -mvenv venv
     source venv/bin/activate
     pip install -U setuptools pip
     pip install -e '.[dev]'
