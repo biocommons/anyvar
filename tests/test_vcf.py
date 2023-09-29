@@ -52,4 +52,4 @@ def test_vcf_registration(client, sample_vcf):
     assert (
         b"VRS_Allele_IDs=ga4gh:VA.8MVWsPFeScEY_19U32k4LVI_3lEOKGUL,ga4gh:VA.l7crC9qxgcDtexejZkfp6yPNevEMnZ5y"
         in resp.content
-    )  # noqa: E501
+    )
