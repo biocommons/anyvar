@@ -32,6 +32,7 @@ def test_put_allele(client, alleles):
     resp_json = resp.json()
     assert resp_json["messages"] == ['Unable to translate "BRAF amplification"']
     assert "object" not in resp_json
+    assert "object_id" not in resp_json
 
 
 def test_put_copy_number(client, copy_numbers):

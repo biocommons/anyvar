@@ -1,6 +1,6 @@
 """Support processing and manipulation of VCF objects."""
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from ga4gh.vrs.extras.vcf_annotation import VCFAnnotator
 
