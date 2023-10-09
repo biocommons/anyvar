@@ -3,7 +3,9 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Type
 
 from ga4gh.vrs import models
-from pydantic import BaseModel, StrictInt, StrictStr, ConfigDict
+from pydantic import BaseModel, StrictInt, StrictStr
+
+from anyvar.utils.types import SupportedVariationType
 
 
 class EndpointTag(str, Enum):
@@ -50,33 +52,25 @@ class GetSequenceLocationResponse(BaseModel):
     location: Optional[models.SequenceLocation]
 
 
-class RegisterAlleleRequest(BaseModel):
-    """Describe request structure for allele registration endpoint"""
+class RegisterVariationRequest(BaseModel):
+    """Describe request structure for variation registration endpoint"""
 
     definition: StrictStr
+    input_type: Optional[SupportedVariationType] = None
+    copies: Optional[int] = None
+    copy_change: Optional[models.CopyChange] = None
 
     class Config:
         """Configure RegisterAlleleRequest class"""
 
-        schema_extra = {"example": {"definition": "BRAF V600E"}}
-
-
-class RegisterCopyNumberRequest(BaseModel):
-    """Describe request structure for copy number registration endpoint"""
-
-    definition: StrictStr
-    copies: Optional[int] = None
-    copy_change: Optional[models.CopyChange] = None
-
-    model_config = ConfigDict(
-        json_schema_extra={
+        schema_extra = {
             "example": {
-                "definition": "NC_000013.11:g.26440969_26443305del",
+                "definition": "BRAF V600E",
+                "input_type": None,
                 "copies": None,
-                "copy_change": "efo:0030069",
+                "copy_change": None,
             }
         }
-    )
 
 
 class RegisterVariationResponse(BaseModel):

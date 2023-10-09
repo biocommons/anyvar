@@ -59,7 +59,8 @@
     "ga4gh:CX.UvIENZGNmCM5j38yHueYdd-BZLn-aLJM": {
       "params": {
         "definition": "NC_000013.11:g.26440969_26443305del",
-        "copy_change": "efo:0030069"
+        "copy_change": "efo:0030069",
+        "input_type": "CopyNumberChange"
       },
       "copy_number_response": {
         "messages": [],
@@ -84,7 +85,8 @@
     "ga4gh:CN.tPLSlUBW6j2dVHv0G81U_IFXt4Xawo7J": {
       "params": {
         "definition": "NC_000013.11:g.26440969_26443305del",
-        "copies": 1
+        "copies": 1,
+        "input_type": "CopyNumberCount"
       },
       "copy_number_response": {
         "messages": [],

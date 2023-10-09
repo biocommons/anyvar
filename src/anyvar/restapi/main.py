@@ -17,12 +17,11 @@ from anyvar.restapi.schema import (
     GetSequenceLocationResponse,
     GetVariationResponse,
     InfoResponse,
-    RegisterAlleleRequest,
+    RegisterVariationRequest,
     RegisterVariationResponse,
     RegisterVrsVariationResponse,
     SearchResponse,
     VariationStatisticType,
-    RegisterCopyNumberRequest,
 )
 from anyvar.translate.translate import TranslationException, TranslatorConnectionException
 from anyvar.utils.types import VrsVariation, variation_class_map
@@ -96,17 +95,17 @@ def get_location_by_id(
 
 
 @app.put(
-    "/allele",
+    "/variation",
     response_model=RegisterVariationResponse,
     response_model_exclude_none=True,
-    summary="Register a new allele object",
-    description="Provide a variation definition to be normalized and registered with AnyVar. A complete VRS Allele object and digest is returned for later reference.",  # noqa: E501
+    summary="Register a new allele or copy number object",
+    description="Provide a variation definition to be normalized and registered with AnyVar. A complete VRS Allele or Copy Number object and digest is returned for later reference.",  # noqa: E501
     tags=[EndpointTag.VARIATIONS],
 )
-def register_allele(
+def register_variation(
     request: Request,
-    variation: RegisterAlleleRequest = Body(
-        description="Variation description, including (at minimum) a definition property"  # noqa: E501
+    variation: RegisterVariationRequest = Body(
+        description="Variation description, including (at minimum) a definition property. Can provide optional input_type if the expected output representation is known. If representing copy number, provide copies or copy_change."  # noqa: E501
     ),
 ):
     """Register a variation based on a provided description or reference.
@@ -120,48 +119,8 @@ def register_allele(
     definition = variation.definition
     result = {"object": None, "messages": [], "object_id": None}
     try:
-        translated_variation = av.translator.translate_allele(var=definition)
-    except TranslationException:
-        result["messages"].append(f'Unable to translate "{definition}"')
-    except NotImplementedError:
-        result["messages"].append(f"Variation class for {definition} is currently unsupported.")
-    else:
-        if translated_variation:
-            v_id = av.put_object(translated_variation)
-            result["object"] = translated_variation.model_dump(exclude_none=True)
-            result["object_id"] = v_id
-        else:
-            result["messages"].append(f"Translation of {definition} failed.")
-    return result
-
-
-@app.put(
-    "/copy_number",
-    response_model=RegisterVariationResponse,
-    response_model_exclude_none=True,
-    summary="Register a new copy number object",
-    description="Provide a variation definition to be normalized and registered with AnyVar. A complete VRS Copy Number object and digest is returned for later reference.",  # noqa: E501
-    tags=[EndpointTag.VARIATIONS],
-)
-def register_copy_number(
-    request: Request,
-    variation: RegisterCopyNumberRequest = Body(
-        description="Variation description, including a definition property and either copies or copy_change"  # noqa: E501
-    ),
-):
-    """Register a variation based on a provided description or reference.
-
-    :param request: FastAPI request object
-    :param variation: provided variation description
-    :return: messages describing translation failure, or object and references if
-        successful
-    """
-    av: AnyVar = request.app.state.anyvar
-    definition = variation.definition
-    result = {"object": None, "messages": [], "object_id": None}
-    try:
-        translated_variation = av.translator.translate_cnv(
-            var=definition, **{"copy_change": variation.copy_change, "copies": variation.copies}
+        translated_variation = av.translator.translate_variation(
+            definition, **variation.model_dump()
         )
     except TranslationException:
         result["messages"].append(f'Unable to translate "{definition}"')
