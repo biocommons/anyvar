@@ -92,7 +92,7 @@ or the Makefile target:
 Use the environment variable `ANYVAR_TEST_STORAGE_URI` to specify the database to use for tests, eg:
 
 ```shell
-% export ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_test_db
+% export ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_test
 ```
 
 Currently, there is some interdependency between test modules -- namely, tests that rely on reading data from storage assume that the data from `test_variation` has been uploaded. A pytest hook ensures correct test order, but some test modules may not be able to pass when run in isolation.

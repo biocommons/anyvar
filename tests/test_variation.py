@@ -16,18 +16,18 @@ def copy_numbers(test_data_dir) -> Dict:
 
 def test_put_allele(client, alleles):
     for allele_id, allele in alleles.items():
-        resp = client.put("/allele", json=allele["params"])
+        resp = client.put("/variation", json=allele["params"])
         assert resp.status_code == HTTPStatus.OK
         assert resp.json()["object"]["id"] == allele_id
 
     # confirm idempotency
     first_id, first_allele = list(alleles.items())[0]
-    resp = client.put("/allele", json=first_allele["params"])
+    resp = client.put("/variation", json=first_allele["params"])
     assert resp.status_code == HTTPStatus.OK
     assert resp.json()["object"]["id"] == first_id
 
     # try unsupported variation type
-    resp = client.put("/allele", json={"definition": "BRAF amplification"})
+    resp = client.put("/variation", json={"definition": "BRAF amplification"})
     assert resp.status_code == HTTPStatus.OK
     resp_json = resp.json()
     assert resp_json["messages"] == ['Unable to translate "BRAF amplification"']
@@ -37,12 +37,12 @@ def test_put_allele(client, alleles):
 
 def test_put_copy_number(client, copy_numbers):
     for copy_number_id, copy_number in copy_numbers.items():
-        resp = client.put("/copy_number", json=copy_number["params"])
+        resp = client.put("/variation", json=copy_number["params"])
         assert resp.status_code == HTTPStatus.OK
         assert resp.json()["object"]["id"] == copy_number_id
 
     # try unsupported variation type
-    resp = client.put("/copy_number", json={"definition": "BRAF amplification"})
+    resp = client.put("/variation", json={"definition": "BRAF amplification"})
     assert resp.status_code == HTTPStatus.OK
     resp_json = resp.json()
     assert resp_json["messages"] == ['Unable to translate "BRAF amplification"']

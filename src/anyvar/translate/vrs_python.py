@@ -7,7 +7,7 @@ from ga4gh.vrs.dataproxy import _DataProxy, create_dataproxy
 from ga4gh.vrs.extras.translator import AlleleTranslator, CnvTranslator
 
 from anyvar.translate.translate import TranslationException
-from anyvar.utils.types import VrsVariation
+from anyvar.utils.types import VrsVariation, SupportedVariationType
 
 from . import _Translator
 
@@ -41,8 +41,47 @@ class VrsPythonTranslator(_Translator):
         self.allele_tlr = AlleleTranslator(data_proxy=seqrepo_proxy)
         self.cnv_tlr = CnvTranslator(data_proxy=seqrepo_proxy)
 
+    def translate_variation(self, var: str, **kwargs):
+        """Translate provided variation text into a VRS Variation object.
+
+        :param var: user-provided string describing or referencing a variation.
+        :param input_type: The type of variation for `var`.
+        :kwargs:
+            input_type (SupportedVariationType): The type of variation for `var`.
+                If not provided, will first try to translate to allele and then
+                copy number
+            copies (int) - The number of copies for VRS Copy Number Count
+            copy_change (models.CopyChange) - The EFO code for VRS COpy Number Change
+        :returns: VRS variation object if able to translate
+        :raises TranslationException: if translation is unsuccessful, either because
+            the submitted variation is malformed, or because VRS-Python doesn't support
+            its translation.
+        """
+        variation = None
+        input_type = kwargs.get("input_type")
+        if input_type == SupportedVariationType.ALLELE:
+            variation = self.translate_allele(var)
+        elif input_type in {
+            SupportedVariationType.COPY_NUMBER_CHANGE,
+            SupportedVariationType.COPY_NUMBER_COUNT,
+        }:
+            variation = self.translate_cnv(var, **kwargs)
+        else:
+            # Try allele then copy number
+            try:
+                variation = self.translate_allele(var)
+            except TranslationException:
+                try:
+                    variation = self.translate_cnv(var, **kwargs)
+                except TranslationException:
+                    raise TranslationException(
+                        f"{var} isn't supported by the VRS-Python AlleleTranslator or CnvTranslator."  # noqa: E501
+                    )
+
+        return variation
+
     def translate_allele(self, var: str) -> Optional[models.Allele]:
-        """Translate provided variation text into a VRS object.
+        """Translate provided variation text into a VRS Allele object.
 
         :param var: user-provided string describing or referencing a variation.
         :returns: VRS variation object if able to translate
@@ -61,6 +100,9 @@ class VrsPythonTranslator(_Translator):
         """Translate provided variation text into a VRS object.
 
         :param var: user-provided string describing or referencing a variation.
+        :kwargs:
+            copies(int) - The number of copies for VRS Copy Number Count
+            copy_change (models.CopyChange) - The EFO code for VRS COpy Number Change
         :returns: VRS variation object if able to translate
         :raises TranslationException: if translation is unsuccessful, either because
             the submitted variation is malformed, or because VRS-Python doesn't support

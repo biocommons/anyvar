@@ -23,6 +23,25 @@ class _Translator(ABC):
     """Base Translator class."""
 
     @abstractmethod
+    def translate_variation(self, var: str, **kwargs):
+        """Translate provided variation text into a VRS Variation object.
+
+        :param var: user-provided string describing or referencing a variation.
+        :param input_type: The type of variation for `var`.
+        :kwargs:
+            input_type (SupportedVariationType): The type of variation for `var`.
+                If not provided, will first try to translate to allele and then
+                copy number
+            copies (int) - The number of copies for VRS Copy Number Count
+            copy_change (models.CopyChange) - The EFO code for VRS COpy Number Change
+        :returns: VRS variation object if able to translate
+        :raises TranslationException: if translation is unsuccessful, either because
+            the submitted variation is malformed, or because VRS-Python doesn't support
+            its translation.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def translate_allele(self, var: str) -> Optional[VrsVariation]:
         """Translate provided variation text into a normalized VRS object.
 
