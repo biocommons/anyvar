@@ -1,9 +1,11 @@
 """Provide response definitions to REST API endpoint."""
 from enum import Enum
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type
 
-from ga4gh.vrsatile.pydantic.vrs_models import Allele, SequenceLocation, Text
+from ga4gh.vrs import models
 from pydantic import BaseModel, StrictInt, StrictStr
+
+from anyvar.utils.types import SupportedVariationType
 
 
 class EndpointTag(str, Enum):
@@ -47,18 +49,28 @@ class InfoResponse(BaseModel):
 class GetSequenceLocationResponse(BaseModel):
     """Describe response for the /locations/ endpoint"""
 
-    location: Optional[SequenceLocation]
+    location: Optional[models.SequenceLocation]
 
 
 class RegisterVariationRequest(BaseModel):
     """Describe request structure for variation registration endpoint"""
 
     definition: StrictStr
+    input_type: Optional[SupportedVariationType] = None
+    copies: Optional[int] = None
+    copy_change: Optional[models.CopyChange] = None
 
     class Config:
-        """Configure RegisterVariationRequest class"""
+        """Configure RegisterAlleleRequest class"""
 
-        schema_extra = {"example": {"definition": "BRAF V600E"}}
+        schema_extra = {
+            "example": {
+                "definition": "BRAF V600E",
+                "input_type": None,
+                "copies": None,
+                "copy_change": None,
+            }
+        }
 
 
 class RegisterVariationResponse(BaseModel):
@@ -111,7 +123,7 @@ class GetVariationResponse(BaseModel):
     """Describe response for the /variation get endpoint"""
 
     messages: List[StrictStr]
-    data: Union[Allele, Text]
+    data: models.Variation
 
     class Config:
         """Configure GetVariationResponse class"""
@@ -146,7 +158,7 @@ class GetVariationResponse(BaseModel):
 class SearchResponse(BaseModel):
     """Describe response for the /search endpoint"""
 
-    variations: List[Allele]
+    variations: List[models.Variation]
 
 
 class VariationStatisticType(str, Enum):
@@ -155,7 +167,6 @@ class VariationStatisticType(str, Enum):
     SUBSTITUTION = "substitution"
     DELETION = "deletion"
     INSERTION = "insertion"
-    TEXT = "text"
     ALL = "all"
 
 

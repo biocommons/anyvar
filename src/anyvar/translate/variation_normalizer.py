@@ -4,7 +4,7 @@ from typing import Dict, Optional
 
 import requests
 
-from anyvar.utils.types import VrsPythonVariation, variation_class_map
+from anyvar.utils.types import VrsVariation, variation_class_map
 
 from . import TranslatorConnectionException, _Translator
 
@@ -62,7 +62,7 @@ class VariationNormalizerRestTranslator(_Translator):
             return None
         return variation.get("type")
 
-    def translate(self, var: str) -> Optional[VrsPythonVariation]:
+    def translate(self, var: str) -> Optional[VrsVariation]:
         """Translate provided variation text into a normalized VRS object.
 
         :param var: user-provided string describing or referencing a variation.
@@ -85,7 +85,7 @@ class VariationNormalizerRestTranslator(_Translator):
         variation = resp_json["variation"]
         return variation_class_map[variation_type](**variation)
 
-    def translate_vcf_row(self, coords: str) -> Optional[VrsPythonVariation]:
+    def translate_vcf_row(self, coords: str) -> Optional[VrsVariation]:
         """Translate VCF-like data to a normalized VRS object.
 
         :param coords: string formatted a la "<chr>-<pos>-<ref>-<alt>"
