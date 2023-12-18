@@ -63,9 +63,9 @@ A Postgres-backed *AnyVar* installation may use any Postgres instance, local
 or remote.  The following instructions are for using a docker-based
 Postgres instance.
 
-First, run the commands in (README-pg.md)[src/anyvar/storage/README-pg.md]. This will create and start a local Postgres docker instance.
+First, run the commands in [README-pg.md](src/anyvar/storage/README-pg.md). This will create and start a local Postgres docker instance.
 
-Next, run the commands in (postgres_init.sql)[src/anyvar/storage/postgres_init.sql]. This will create the `anyvar` user with the appropriate permissions and create the `anyvar` database.
+Next, run the commands in [postgres_init.sql](src/anyvar/storage/postgres_init.sql). This will create the `anyvar` user with the appropriate permissions and create the `anyvar` database.
 
 ### Setting up Snowflake
 A Snowflake-backed *AnyVar* installation may use any Snowflake database schema.
@@ -75,7 +75,7 @@ variable.  For example:
 
     snowflake://my-sf-acct/?database=sf_db_name&schema=sd_schema_name&user=sf_username&password=sf_password
 
-(Snowflake connection parameter reference)[https://docs.snowflake.com/en/developer-guide/python-connector/python-connector-api]
+[Snowflake connection parameter reference](https://docs.snowflake.com/en/developer-guide/python-connector/python-connector-api)
     
 When running interactively and connecting to a Snowflake account that utilizes federated authentication or SSO, add
 the parameter `authenticator=externalbrowser`.  Non-interactive execution in a federated authentication or SSO environment
