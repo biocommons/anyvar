@@ -20,11 +20,17 @@ _logger = logging.getLogger(__name__)
 class SnowflakeObjectStore(_Storage):
     """Snowflake storage backend. Requires existing Snowflake database."""
 
-    def __init__(self, db_url: str, batch_limit: int = None, table_name: str = None, max_pending_batches: int = None):
+    def __init__(
+        self,
+        db_url: str,
+        batch_limit: int = None,
+        table_name: str = None,
+        max_pending_batches: int = None,
+    ):
         """Initialize Snowflake DB handler.
 
         :param db_url: snowflake connection info URL, snowflake://[account_identifier]/?[param=value]&[param=value]...
-        :param batch_limit: max size of batch insert queue, defaults to 100000; can be set with 
+        :param batch_limit: max size of batch insert queue, defaults to 100000; can be set with
             ANYVAR_SNOWFLAKE_STORE_BATCH_LIMIT environment variable
         :param table_name: table name for storing VRS objects, defaults to `vrs_objects`; can be set with
             ANYVAR_SNOWFLAKE_STORE_TABLE_NAME environment variable
@@ -68,7 +74,6 @@ class SnowflakeObjectStore(_Storage):
                 account_name,
             )
 
-        
         # create the database connection and ensure it is setup
         self.conn = snowflake.connector.connect(account=account_name, **conn_params)
         self.ensure_schema_exists()
@@ -127,11 +132,13 @@ class SnowflakeObjectStore(_Storage):
         name = str(name)  # in case str-like
         if self.batch_mode:
             self.batch_insert_values.append((name, value))
-            if (_logger.isEnabledFor(logging.DEBUG)):
+            if _logger.isEnabledFor(logging.DEBUG):
                 _logger.debug("Appended item %s to batch queue", name)
             if len(self.batch_insert_values) >= self.batch_limit:
                 self.batch_thread.queue_batch(self.batch_insert_values)
-                _logger.info("Queued batch of %s VRS objects for write", len(self.batch_insert_values))
+                _logger.info(
+                    "Queued batch of %s VRS objects for write", len(self.batch_insert_values)
+                )
                 self.batch_insert_values = []
         else:
             value_json = json.dumps(value.model_dump(exclude_none=True))
@@ -141,7 +148,7 @@ class SnowflakeObjectStore(_Storage):
                 """
             with self.conn.cursor() as cur:
                 cur.execute(insert_query, [name, value_json])
-            if (_logger.isEnabledFor(logging.DEBUG)):
+            if _logger.isEnabledFor(logging.DEBUG):
                 _logger.debug("Inserted item %s to %s", name, self.table_name)
 
     def __getitem__(self, name: str) -> Optional[Any]:
