@@ -461,7 +461,7 @@ class SnowflakeBatchThread(Thread):
                 cur.execute(merge_statement)
                 cur.execute(drop_statement)
             self.conn.commit()
-        except:
+        except Exception:
             _logger.exception("Failed to merge VRS object batch into database")
         finally:
             self.conn.rollback()
