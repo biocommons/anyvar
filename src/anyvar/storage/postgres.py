@@ -209,12 +209,17 @@ class PostgresObjectStore(_Storage):
 
     def __iter__(self):
         with self.conn.cursor() as cur:
-            return cur.stream("SELECT * FROM vrs_objects;")
+            cur.execute("SELECT * FROM vrs_objects;")
+            while True:
+                _next = cur.fetchone()
+                if _next is None:
+                    break
+                yield _next
 
     def keys(self):
         with self.conn.cursor() as cur:
             cur.execute("SELECT vrs_id FROM vrs_objects;")
-            result = cur.fetchall()
+            result = [row[0] for row in cur.fetchall()]
         return result
 
     def search_variations(self, refget_accession: str, start: int, stop: int):
