@@ -28,6 +28,9 @@ def create_storage(uri: Optional[str] = None) -> _Storage:
 
     * PostgreSQL
     `postgresql://[username]:[password]@[domain]/[database]`
+    * Snowflake
+    `snowflake://[account_identifier].snowflakecomputing.com/?[param=value]&[param=value]...`
+    `snowflake://[account_identifier]/?[param=value]&[param=value]...`
     """
     uri = uri or os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
 
@@ -37,7 +40,10 @@ def create_storage(uri: Optional[str] = None) -> _Storage:
         from anyvar.storage.postgres import PostgresObjectStore
 
         storage = PostgresObjectStore(uri)  # type: ignore
+    elif parsed_uri.scheme == "snowflake":
+        from anyvar.storage.snowflake import SnowflakeObjectStore
 
+        storage = SnowflakeObjectStore(uri)
     else:
         raise ValueError(f"URI scheme {parsed_uri.scheme} is not implemented")
 
