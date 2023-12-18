@@ -93,12 +93,13 @@ class SnowflakeObjectStore(_Storage):
 
     def _create_schema(self):
         """Add the VRS object table if it does not exist"""
+        # self.table_name is only modifiable via environment variable or direct instantiation of the SnowflakeObjectStore
         create_statement = f"""
         CREATE TABLE {self.table_name} (
             vrs_id VARCHAR(500) PRIMARY KEY,
             vrs_object VARIANT
         );
-        """
+        """ #nosec B608
         _logger.info("Creating VRS object table %s", self.table_name)
         with self.conn.cursor() as cur:
             cur.execute(create_statement)
@@ -111,7 +112,7 @@ class SnowflakeObjectStore(_Storage):
                 SELECT COUNT(*) FROM information_schema.tables 
                  WHERE table_catalog = CURRENT_DATABASE() AND table_schema = CURRENT_SCHEMA() 
                  AND UPPER(table_name) = UPPER('{self.table_name}');
-                """
+                """ #nosec B608
             )
             result = cur.fetchone()
 
@@ -145,7 +146,7 @@ class SnowflakeObjectStore(_Storage):
             insert_query = f"""
                 MERGE INTO {self.table_name} t USING (SELECT ? AS vrs_id, ? AS vrs_object) s ON t.vrs_id = s.vrs_id
                 WHEN NOT MATCHED THEN INSERT (vrs_id, vrs_object) VALUES (s.vrs_id, PARSE_JSON(s.vrs_object));
-                """
+                """ #nosec B608
             with self.conn.cursor() as cur:
                 cur.execute(insert_query, [name, value_json])
             if _logger.isEnabledFor(logging.DEBUG):
@@ -162,7 +163,7 @@ class SnowflakeObjectStore(_Storage):
         :raise NotImplementedError: if unsupported VRS object type (this is WIP)
         """
         with self.conn.cursor() as cur:
-            cur.execute(f"SELECT vrs_object FROM {self.table_name} WHERE vrs_id = ?;", [name])
+            cur.execute(f"SELECT vrs_object FROM {self.table_name} WHERE vrs_id = ?;", [name]) #nosec B608
             result = cur.fetchone()
         if result:
             result = json.loads(result[0])
@@ -185,7 +186,7 @@ class SnowflakeObjectStore(_Storage):
         :return: True if ID is contained in vrs objects table
         """
         with self.conn.cursor() as cur:
-            cur.execute(f"SELECT COUNT(*) FROM {self.table_name} WHERE vrs_id = ?;", [name])
+            cur.execute(f"SELECT COUNT(*) FROM {self.table_name} WHERE vrs_id = ?;", [name]) #nosec B608
             result = cur.fetchone()
         return result[0] > 0 if result else False
 
@@ -196,7 +197,7 @@ class SnowflakeObjectStore(_Storage):
         """
         name = str(name)  # in case str-like
         with self.conn.cursor() as cur:
-            cur.execute(f"DELETE FROM {self.table_name} WHERE vrs_id = ?;", [name])
+            cur.execute(f"DELETE FROM {self.table_name} WHERE vrs_id = ?;", [name]) #nosec B608
         self.conn.commit()
 
     def close(self):
@@ -220,7 +221,7 @@ class SnowflakeObjectStore(_Storage):
                 f"""
                 SELECT COUNT(*) AS c FROM {self.table_name}
                 WHERE vrs_object:type = 'Allele';
-                """
+                """ #nosec B608
             )
             result = cur.fetchone()
         if result:
@@ -249,7 +250,7 @@ class SnowflakeObjectStore(_Storage):
                 f"""
                 SELECT COUNT(*) FROM {self.table_name}
                  WHERE LENGTH(vrs_object:state:sequence) = 0;
-                """
+                """ #nosec B608
             )
             result = cur.fetchone()
         if result:
@@ -263,7 +264,7 @@ class SnowflakeObjectStore(_Storage):
                 f"""
                 SELECT COUNT(*) FROM {self.table_name}
                  WHERE LENGTH(vrs_object:state:sequence) = 1;
-                """
+                """ #nosec B608
             )
             result = cur.fetchone()
         if result:
@@ -277,7 +278,7 @@ class SnowflakeObjectStore(_Storage):
                 f"""
                 SELECT COUNT(*) FROM {self.table_name}
                  WHERE LENGTH(vrs_object:state:sequence) > 1
-                """
+                """ #nosec B608
             )
             result = cur.fetchone()
         if result:
@@ -287,7 +288,7 @@ class SnowflakeObjectStore(_Storage):
 
     def __iter__(self):
         with self.conn.cursor() as cur:
-            cur.execute(f"SELECT * FROM {self.table_name};")
+            cur.execute(f"SELECT * FROM {self.table_name};") #nosec B608
             while True:
                 _next = cur.fetchone()
                 if _next is None:
@@ -296,7 +297,7 @@ class SnowflakeObjectStore(_Storage):
 
     def keys(self):
         with self.conn.cursor() as cur:
-            cur.execute(f"SELECT vrs_id FROM {self.table_name};")
+            cur.execute(f"SELECT vrs_id FROM {self.table_name};") #nosec B608
             result = [row[0] for row in cur.fetchall()]
         return result
 
@@ -319,7 +320,7 @@ class SnowflakeObjectStore(_Storage):
                 AND vrs_object:end::INTEGER <= ?
                 AND vrs_object:sequenceReference:refgetAccession = ?
             );
-            """
+            """ #nosec B608
         with self.conn.cursor() as cur:
             cur.execute(query_str, [start, stop, refget_accession])
             results = cur.fetchall()
@@ -328,7 +329,7 @@ class SnowflakeObjectStore(_Storage):
     def wipe_db(self):
         """Remove all stored records from {self.table_name} table."""
         with self.conn.cursor() as cur:
-            cur.execute(f"DELETE FROM {self.table_name};")
+            cur.execute(f"DELETE FROM {self.table_name};") #nosec B608
 
     def num_pending_batches(self):
         if self.batch_thread:
@@ -453,7 +454,7 @@ class SnowflakeBatchThread(Thread):
             merge_statement = f"""
                 MERGE INTO {self.table_name} v USING tmp_vrs_objects s ON v.vrs_id = s.vrs_id 
                 WHEN NOT MATCHED THEN INSERT (vrs_id, vrs_object) VALUES (s.vrs_id, PARSE_JSON(s.vrs_object));
-                """
+                """ #nosec B608
             drop_statement = "DROP TABLE tmp_vrs_objects;"
 
             row_data = [
