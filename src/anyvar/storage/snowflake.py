@@ -164,8 +164,8 @@ class SnowflakeObjectStore(_Storage):
         """
         with self.conn.cursor() as cur:
             cur.execute(
-                f"SELECT vrs_object FROM {self.table_name} WHERE vrs_id = ?;", [name]
-            )  # nosec B608
+                f"SELECT vrs_object FROM {self.table_name} WHERE vrs_id = ?;", [name]  # nosec B608
+            )
             result = cur.fetchone()
         if result:
             result = json.loads(result[0])
@@ -189,8 +189,8 @@ class SnowflakeObjectStore(_Storage):
         """
         with self.conn.cursor() as cur:
             cur.execute(
-                f"SELECT COUNT(*) FROM {self.table_name} WHERE vrs_id = ?;", [name]
-            )  # nosec B608
+                f"SELECT COUNT(*) FROM {self.table_name} WHERE vrs_id = ?;", [name]  # nosec B608
+            )
             result = cur.fetchone()
         return result[0] > 0 if result else False
 
