@@ -44,7 +44,9 @@ class SnowflakeObjectStore(_Storage):
         snowflake.connector.paramstyle = "qmark"
 
         # get table name override from environment
-        self.table_name = table_name or os.environ.get("ANYVAR_SNOWFLAKE_STORE_TABLE_NAME", "vrs_objects")  # noqa: E501
+        self.table_name = table_name or os.environ.get(
+            "ANYVAR_SNOWFLAKE_STORE_TABLE_NAME", "vrs_objects"
+        )  # noqa: E501
 
         # parse the db url and extract the account name and conn params
         parsed_uri = urlparse(db_url)
