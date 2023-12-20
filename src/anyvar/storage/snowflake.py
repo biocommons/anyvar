@@ -23,9 +23,9 @@ class SnowflakeObjectStore(_Storage):
     def __init__(
         self,
         db_url: str,
-        batch_limit: int = None,
-        table_name: str = None,
-        max_pending_batches: int = None,
+        batch_limit: Optional[int] = None,
+        table_name: Optional[str] = None,
+        max_pending_batches: Optional[int] = None,
     ):
         """Initialize Snowflake DB handler.
 
@@ -44,9 +44,7 @@ class SnowflakeObjectStore(_Storage):
         snowflake.connector.paramstyle = "qmark"
 
         # get table name override from environment
-        self.table_name = table_name or str(
-            os.environ.get("ANYVAR_SNOWFLAKE_STORE_TABLE_NAME", "vrs_objects")
-        )
+        self.table_name = table_name or os.environ.get("ANYVAR_SNOWFLAKE_STORE_TABLE_NAME", "vrs_objects")  # noqa: E501
 
         # parse the db url and extract the account name and conn params
         parsed_uri = urlparse(db_url)
@@ -210,7 +208,7 @@ class SnowflakeObjectStore(_Storage):
             self.batch_thread.stop()
             self.batch_thread.join()
             self.batch_thread = None
-        """Terminate connection if necessary."""
+        # Terminate connection if necessary.
         if self.conn is not None:
             self.conn.close()
             self.conn = None
