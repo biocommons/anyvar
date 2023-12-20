@@ -131,8 +131,7 @@ class SnowflakeObjectStore(_Storage):
         name = str(name)  # in case str-like
         if self.batch_mode:
             self.batch_insert_values.append((name, value))
-            if _logger.isEnabledFor(logging.DEBUG):
-                _logger.debug("Appended item %s to batch queue", name)
+            _logger.debug("Appended item %s to batch queue", name)
             if len(self.batch_insert_values) >= self.batch_limit:
                 self.batch_thread.queue_batch(self.batch_insert_values)
                 _logger.info(
@@ -147,8 +146,7 @@ class SnowflakeObjectStore(_Storage):
                 """  # nosec B608
             with self.conn.cursor() as cur:
                 cur.execute(insert_query, [name, value_json])
-            if _logger.isEnabledFor(logging.DEBUG):
-                _logger.debug("Inserted item %s to %s", name, self.table_name)
+            _logger.debug("Inserted item %s to %s", name, self.table_name)
 
     def __getitem__(self, name: str) -> Optional[Any]:
         """Fetch item from DB given key.
