@@ -63,9 +63,33 @@ A Postgres-backed *AnyVar* installation may use any Postgres instance, local
 or remote.  The following instructions are for using a docker-based
 Postgres instance.
 
-First, run the commands in (README-pg.md)[src/anyvar/storage/README-pg.md]. This will create and start a local Postgres docker instance.
+First, run the commands in [README-pg.md](src/anyvar/storage/README-pg.md). This will create and start a local Postgres docker instance.
 
-Next, run the commands in (postgres_init.sql)[src/anyvar/storage/postgres_init.sql]. This will create the `anyvar` user with the appropriate permissions and create the `anyvar` database.
+Next, run the commands in [postgres_init.sql](src/anyvar/storage/postgres_init.sql). This will create the `anyvar` user with the appropriate permissions and create the `anyvar` database.
+
+### Setting up Snowflake
+A Snowflake-backed *AnyVar* installation may use any Snowflake database schema.
+The Snowflake database and schema must exist prior to starting *AnyVar*.  To point
+*AnyVar* at Snowflake, specify a Snowflake URI in the `ANYVAR_STORAGE_URI` environment
+variable.  For example:
+
+    snowflake://my-sf-acct/?database=sf_db_name&schema=sd_schema_name&user=sf_username&password=sf_password
+
+[Snowflake connection parameter reference](https://docs.snowflake.com/en/developer-guide/python-connector/python-connector-api)
+    
+When running interactively and connecting to a Snowflake account that utilizes federated authentication or SSO, add
+the parameter `authenticator=externalbrowser`.  Non-interactive execution in a federated authentication or SSO environment
+requires a service account to connect.
+
+Environment variables that can be used to modify Snowflake database integration:
+* `ANYVAR_SNOWFLAKE_STORE_BATCH_LIMIT` - in batch mode, limit VRS object upsert batches to this number; defaults to `100,000`
+* `ANYVAR_SNOWFLAKE_STORE_TABLE_NAME` - the name of the table that stores VRS objects; defaults to `vrs_objects`
+* `ANYVAR_SNOWFLAKE_STORE_MAX_PENDING_BATCHES` - the maximum number of pending batches to allow before blocking; defaults to `50`
+
+NOTE: The Snowflake database connector utilizes a background thread to write VRS objects to the database when operating in batch 
+mode (e.g. annotating a VCF file).  Queries and statistics query only against the already committed database state.  Therefore,
+queries issued immediately after a batch operation may not reflect all pending changes.
+
 
 ## Deployment
 
@@ -95,4 +119,5 @@ Use the environment variable `ANYVAR_TEST_STORAGE_URI` to specify the database t
 % export ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_test
 ```
 
-Currently, there is some interdependency between test modules -- namely, tests that rely on reading data from storage assume that the data from `test_variation` has been uploaded. A pytest hook ensures correct test order, but some test modules may not be able to pass when run in isolation.
+Currently, there is some interdependency between test modules -- namely, tests that rely on reading data from storage assume that the data from `test_variation` has been uploaded. A pytest hook ensures correct test order, but some test modules may not be able to pass when run in isolation.  By default, the tests will use a Postgres database
+installation.  To run the tests against a Snowflake database, change the `ANYVAR_TEST_STORAGE_URI` to a Snowflake URI and run the tests.
