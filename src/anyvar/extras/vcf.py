@@ -5,7 +5,7 @@ from typing import Dict, Optional
 from ga4gh.vrs.extras.vcf_annotation import VCFAnnotator
 
 from anyvar.anyvar import AnyVar
-from anyvar.translate.translate import TranslationException, TranslatorConnectionException
+from anyvar.translate.translate import TranslationException
 
 _logger = logging.getLogger(__name__)
 
