@@ -83,10 +83,10 @@ class AnyVar:
         :return: Object digest if successful, None otherwise
         """
         try:
-            v = vrs_enref(variation_object, self.object_store)
+            id, v = vrs_enref(variation_object, self.object_store, True)
         except ValueError:
             return None
-        return ga4gh_identify(v)
+        return id
 
     def get_object(self, object_id: str, deref: bool = False) -> Optional[VrsObject]:
         """Retrieve registered variation.
