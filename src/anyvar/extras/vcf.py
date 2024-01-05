@@ -29,6 +29,7 @@ class VcfRegistrar(VCFAnnotator):
         vrs_pickle_out: Optional[str] = None,
         vrs_attributes: bool = False,
         assembly: str = "GRCh38",
+        compute_for_ref: bool = True,
     ) -> None:
         """Annotates an input VCF file with VRS Allele IDs & creates a pickle file
         containing the vrs object information.
@@ -40,13 +41,14 @@ class VcfRegistrar(VCFAnnotator):
             fields in the INFO field. If `False` will not include these fields.
             Only used if `vcf_out` is provided.
         :param assembly: The assembly used in `vcf_in` data
+        :param compute_for_ref: If `True`, compute VRS IDs for REF alleles
         """
         if self.av.object_store.batch_manager:
             storage = self.av.object_store
             with storage.batch_manager(storage):  # type: ignore
-                return super().annotate(vcf_in, vcf_out, vrs_pickle_out, vrs_attributes, assembly)
+                return super().annotate(vcf_in, vcf_out, vrs_pickle_out, vrs_attributes, assembly, compute_for_ref)
         else:
-            super().annotate(vcf_in, vcf_out, vrs_pickle_out, vrs_attributes, assembly)
+            super().annotate(vcf_in, vcf_out, vrs_pickle_out, vrs_attributes, assembly, compute_for_ref)
 
     def _get_vrs_object(
         self,
