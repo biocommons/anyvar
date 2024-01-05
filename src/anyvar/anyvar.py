@@ -9,7 +9,6 @@ from collections.abc import MutableMapping
 from typing import Optional
 from urllib.parse import urlparse
 
-from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import vrs_deref, vrs_enref
 
 from anyvar.storage import DEFAULT_STORAGE_URI, _Storage
