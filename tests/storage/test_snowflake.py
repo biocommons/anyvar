@@ -219,8 +219,22 @@ def test_batch_mgmt_and_async_write_single_thread(mocker):
 
     sf = SnowflakeObjectStore("snowflake://account/?param=value", 2, "vrs_objects2", 4)
     with sf.batch_manager(sf):
-        for vo in vrs_id_object_pairs:
-            sf[vo[0]] = vo[1]
+        sf.wait_for_writes()
+        assert sf.num_pending_batches() == 0
+        sf[vrs_id_object_pairs[0][0]] = vrs_id_object_pairs[0][1]
+        sf[vrs_id_object_pairs[1][0]] = vrs_id_object_pairs[1][1]
+        assert sf.num_pending_batches() > 0
+        sf.wait_for_writes()
+        assert sf.num_pending_batches() == 0
+        sf[vrs_id_object_pairs[2][0]] = vrs_id_object_pairs[2][1]
+        sf[vrs_id_object_pairs[3][0]] = vrs_id_object_pairs[3][1]
+        sf[vrs_id_object_pairs[4][0]] = vrs_id_object_pairs[4][1]
+        sf[vrs_id_object_pairs[5][0]] = vrs_id_object_pairs[5][1]
+        sf[vrs_id_object_pairs[6][0]] = vrs_id_object_pairs[6][1]
+        sf[vrs_id_object_pairs[7][0]] = vrs_id_object_pairs[7][1]
+        sf[vrs_id_object_pairs[8][0]] = vrs_id_object_pairs[8][1]
+        sf[vrs_id_object_pairs[9][0]] = vrs_id_object_pairs[9][1]
+        sf[vrs_id_object_pairs[10][0]] = vrs_id_object_pairs[10][1]
 
     assert sf.num_pending_batches() > 0
     sf.close()
