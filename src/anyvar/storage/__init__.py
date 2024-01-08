@@ -35,6 +35,10 @@ class _Storage(MutableMapping):
     def wipe_db(self):
         """Empty database of all stored records."""
 
+    @abstractmethod
+    def wait_for_writes(self):
+        """Return true once any currently pending database modifications have been completed."""
+
 
 class _BatchManager(AbstractContextManager):
     """Base context management class for batch writing.
