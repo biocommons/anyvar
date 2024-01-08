@@ -194,7 +194,8 @@ def register_vrs_object(
     tags=[EndpointTag.VARIATIONS],
 )
 async def annotate_vcf(
-    request: Request, vcf: UploadFile = File(..., description="VCF to register and annotate"),
+    request: Request,
+    vcf: UploadFile = File(..., description="VCF to register and annotate"),
     for_ref: bool = Query(default=True, description="Whether to compute VRS IDs for REF alleles"),
 ):
     """Register alleles from a VCF and return a file annotated with VRS IDs.
@@ -212,8 +213,9 @@ async def annotate_vcf(
         registrar = VcfRegistrar(av)
         with tempfile.NamedTemporaryFile(delete=False) as temp_out_file:
             try:
-                registrar.annotate(temp_file.name, vcf_out=temp_out_file.name, 
-                                   compute_for_ref=for_ref)
+                registrar.annotate(
+                    temp_file.name, vcf_out=temp_out_file.name, compute_for_ref=for_ref
+                )
             except (TranslatorConnectionException, OSError) as e:
                 _logger.error(f"Encountered error during VCF registration: {e}")
                 return {"error": "VCF registration failed."}

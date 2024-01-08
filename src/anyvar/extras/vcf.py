@@ -46,9 +46,13 @@ class VcfRegistrar(VCFAnnotator):
         if self.av.object_store.batch_manager:
             storage = self.av.object_store
             with storage.batch_manager(storage):  # type: ignore
-                return super().annotate(vcf_in, vcf_out, vrs_pickle_out, vrs_attributes, assembly, compute_for_ref)
+                return super().annotate(
+                    vcf_in, vcf_out, vrs_pickle_out, vrs_attributes, assembly, compute_for_ref
+                )
         else:
-            super().annotate(vcf_in, vcf_out, vrs_pickle_out, vrs_attributes, assembly, compute_for_ref)
+            super().annotate(
+                vcf_in, vcf_out, vrs_pickle_out, vrs_attributes, assembly, compute_for_ref
+            )
 
     def _get_vrs_object(
         self,
@@ -94,4 +98,6 @@ class VcfRegistrar(VCFAnnotator):
                 vrs_field_data[self.VRS_ALLELE_IDS_FIELD].append(allele_id)
 
         else:
-            raise TranslationException(f"Translator returned empty VRS object for VCF coords {vcf_coords}")
+            raise TranslationException(
+                f"Translator returned empty VRS object for VCF coords {vcf_coords}"
+            )
