@@ -194,8 +194,11 @@ def register_vrs_object(
     tags=[EndpointTag.VARIATIONS],
 )
 async def annotate_vcf(
-    request: Request, vcf: UploadFile = File(..., description="VCF to register and annotate"),
-    allow_async_write: bool = Query(default=False, description="Whether to allow asynchronous write of VRS objects to database"),
+    request: Request,
+    vcf: UploadFile = File(..., description="VCF to register and annotate"),
+    allow_async_write: bool = Query(
+        default=False, description="Whether to allow asynchronous write of VRS objects to database"
+    ),
 ):
     """Register alleles from a VCF and return a file annotated with VRS IDs.
 

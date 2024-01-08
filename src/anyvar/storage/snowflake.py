@@ -205,7 +205,6 @@ class SnowflakeObjectStore(_Storage):
     def wait_for_writes(self):
         """Return true once any currently pending database modifications have been completed."""
         if self.batch_thread is not None:
-
             # short circuit if the queue is empty
             with self.batch_thread.cond:
                 if len(self.batch_thread.pending_batch_list) == 0:
@@ -217,11 +216,15 @@ class SnowflakeObjectStore(_Storage):
             # wait for the batch to be removed from the pending queue
             while True:
                 with self.batch_thread.cond:
-                    if len(list(filter(lambda x: x is batch, self.batch_thread.pending_batch_list))) > 0:
+                    if (
+                        len(
+                            list(filter(lambda x: x is batch, self.batch_thread.pending_batch_list))
+                        )
+                        > 0
+                    ):
                         self.batch_thread.cond.wait()
                     else:
                         break
-
 
     def close(self):
         """Stop the batch thread and wait for it to complete"""
