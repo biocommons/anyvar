@@ -194,12 +194,14 @@ def register_vrs_object(
     tags=[EndpointTag.VARIATIONS],
 )
 async def annotate_vcf(
-    request: Request, vcf: UploadFile = File(..., description="VCF to register and annotate")
+    request: Request, vcf: UploadFile = File(..., description="VCF to register and annotate"),
+    allow_async_write: bool = Query(default=False, description="Whether to allow asynchronous write of VRS objects to database"),
 ):
     """Register alleles from a VCF and return a file annotated with VRS IDs.
 
     :param request: FastAPI request object
     :param vcf: incoming VCF file object
+    :param allow_async_write: whether to allow async database writes
     :return: streamed annotated file
     """
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
@@ -217,6 +219,8 @@ async def annotate_vcf(
             except ValueError as e:
                 _logger.error(f"Encountered error during VCF registration: {e}")
                 return {"error": "Encountered ValueError when registering VCF"}
+            if not allow_async_write:
+                av.object_store.wait_for_writes()
             return FileResponse(temp_out_file.name)
 
 
