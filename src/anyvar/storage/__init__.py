@@ -35,6 +35,10 @@ class _Storage(MutableMapping):
     def wipe_db(self):
         """Empty database of all stored records."""
 
+    @abstractmethod
+    def close(self):
+        """Closes the storage integration and cleans up any resources"""
+
 
 class _BatchManager(AbstractContextManager):
     """Base context management class for batch writing.
