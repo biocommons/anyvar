@@ -207,7 +207,7 @@ class SnowflakeObjectStore(_Storage):
         if self.batch_thread is not None:
             # short circuit if the queue is empty
             with self.batch_thread.cond:
-                if len(self.batch_thread.pending_batch_list) == 0:
+                if not self.batch_thread.pending_batch_list:
                     return
 
             # queue an empty batch
@@ -216,12 +216,7 @@ class SnowflakeObjectStore(_Storage):
             # wait for the batch to be removed from the pending queue
             while True:
                 with self.batch_thread.cond:
-                    if (
-                        len(
-                            list(filter(lambda x: x is batch, self.batch_thread.pending_batch_list))
-                        )
-                        > 0
-                    ):
+                    if list(filter(lambda x: x is batch, self.batch_thread.pending_batch_list)):
                         self.batch_thread.cond.wait()
                     else:
                         break
