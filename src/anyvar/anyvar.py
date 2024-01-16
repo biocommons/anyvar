@@ -82,7 +82,7 @@ class AnyVar:
         :return: Object digest if successful, None otherwise
         """
         try:
-            id, v = vrs_enref(variation_object, self.object_store, True)
+            id, _ = vrs_enref(variation_object, self.object_store, True)
         except ValueError:
             return None
         return id
