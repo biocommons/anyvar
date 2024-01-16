@@ -128,8 +128,9 @@ class PostgresObjectStore(_Storage):
         self.conn.commit()
 
     def wait_for_writes(self):
-        """Return true once any currently pending database modifications have been completed."""
-        pass
+        """Returns once any currently pending database modifications have been completed.
+        The PostgresObjectStore does not implement async writes, therefore this method is a no-op
+        and present only to maintain compatibility with the `_Storage` base class"""
 
     def close(self):
         """Terminate connection if necessary."""

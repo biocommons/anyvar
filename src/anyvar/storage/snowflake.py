@@ -203,7 +203,7 @@ class SnowflakeObjectStore(_Storage):
         self.conn.commit()
 
     def wait_for_writes(self):
-        """Return true once any currently pending database modifications have been completed."""
+        """Returns once any currently pending database modifications have been completed."""
         if self.batch_thread is not None:
             # short circuit if the queue is empty
             with self.batch_thread.cond:

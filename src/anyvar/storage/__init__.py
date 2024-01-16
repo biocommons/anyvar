@@ -37,7 +37,7 @@ class _Storage(MutableMapping):
 
     @abstractmethod
     def wait_for_writes(self):
-        """Return true once any currently pending database modifications have been completed."""
+        """Returns once any currently pending database modifications have been completed."""
 
 
 class _BatchManager(AbstractContextManager):
