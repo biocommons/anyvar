@@ -9,7 +9,6 @@ from collections.abc import MutableMapping
 from typing import Optional
 from urllib.parse import urlparse
 
-from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import vrs_deref, vrs_enref
 
 from anyvar.storage import DEFAULT_STORAGE_URI, _Storage
@@ -83,10 +82,10 @@ class AnyVar:
         :return: Object digest if successful, None otherwise
         """
         try:
-            v = vrs_enref(variation_object, self.object_store)
+            id, _ = vrs_enref(variation_object, self.object_store, True)
         except ValueError:
             return None
-        return ga4gh_identify(v)
+        return id
 
     def get_object(self, object_id: str, deref: bool = False) -> Optional[VrsObject]:
         """Retrieve registered variation.

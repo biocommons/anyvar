@@ -5,7 +5,7 @@ from typing import Dict, Optional
 from ga4gh.vrs.extras.vcf_annotation import VCFAnnotator
 
 from anyvar.anyvar import AnyVar
-from anyvar.translate.translate import TranslatorConnectionException
+from anyvar.translate.translate import TranslationException
 
 _logger = logging.getLogger(__name__)
 
@@ -29,6 +29,7 @@ class VcfRegistrar(VCFAnnotator):
         vrs_pickle_out: Optional[str] = None,
         vrs_attributes: bool = False,
         assembly: str = "GRCh38",
+        compute_for_ref: bool = True,
     ) -> None:
         """Annotates an input VCF file with VRS Allele IDs & creates a pickle file
         containing the vrs object information.
@@ -40,13 +41,18 @@ class VcfRegistrar(VCFAnnotator):
             fields in the INFO field. If `False` will not include these fields.
             Only used if `vcf_out` is provided.
         :param assembly: The assembly used in `vcf_in` data
+        :param compute_for_ref: If `True`, compute VRS IDs for REF alleles
         """
         if self.av.object_store.batch_manager:
             storage = self.av.object_store
             with storage.batch_manager(storage):  # type: ignore
-                return super().annotate(vcf_in, vcf_out, vrs_pickle_out, vrs_attributes, assembly)
+                return super().annotate(
+                    vcf_in, vcf_out, vrs_pickle_out, vrs_attributes, assembly, compute_for_ref
+                )
         else:
-            super().annotate(vcf_in, vcf_out, vrs_pickle_out, vrs_attributes, assembly)
+            super().annotate(
+                vcf_in, vcf_out, vrs_pickle_out, vrs_attributes, assembly, compute_for_ref
+            )
 
     def _get_vrs_object(
         self,
@@ -80,19 +86,18 @@ class VcfRegistrar(VCFAnnotator):
             Only used if `vcf_out` is provided. Not used by this implementation.
         :return: nothing, but registers VRS objects with AnyVar storage and stashes IDs
         """
-        try:
-            vrs_object = self.av.translator.translate_vcf_row(vcf_coords)
-        except (TranslatorConnectionException, NotImplementedError):
-            pass
-        else:
-            if vrs_object:
-                self.av.put_object(vrs_object)
-                if output_pickle:
-                    key = vrs_data_key if vrs_data_key else vcf_coords
-                    vrs_data[key] = str(vrs_object.model_dump(exclude_none=True))
+        vrs_object = self.av.translator.translate_vcf_row(vcf_coords)
+        if vrs_object:
+            self.av.put_object(vrs_object)
+            if output_pickle:
+                key = vrs_data_key if vrs_data_key else vcf_coords
+                vrs_data[key] = str(vrs_object.model_dump(exclude_none=True))
 
-                if output_vcf:
-                    allele_id = vrs_object.id if vrs_object else ""
-                    vrs_field_data[self.VRS_ALLELE_IDS_FIELD].append(allele_id)
-            else:
-                _logger.error(f"Translation failed: {vcf_coords}")
+            if output_vcf:
+                allele_id = vrs_object.id if vrs_object else ""
+                vrs_field_data[self.VRS_ALLELE_IDS_FIELD].append(allele_id)
+
+        else:
+            raise TranslationException(
+                f"Translator returned empty VRS object for VCF coords {vcf_coords}"
+            )

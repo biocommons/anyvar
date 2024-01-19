@@ -39,6 +39,11 @@ class _Storage(MutableMapping):
     def wait_for_writes(self):
         """Returns once any currently pending database modifications have been completed."""
 
+    @abstractmethod
+    def close(self):
+        """Closes the storage integration and cleans up any resources"""
+
+
 
 class _BatchManager(AbstractContextManager):
     """Base context management class for batch writing.

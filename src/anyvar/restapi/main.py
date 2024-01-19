@@ -1,6 +1,7 @@
 """Provide core route definitions for REST service."""
 import logging
 import tempfile
+from contextlib import asynccontextmanager
 from http import HTTPStatus
 
 import ga4gh.vrs
@@ -9,7 +10,7 @@ from fastapi.responses import FileResponse
 from pydantic import StrictStr
 
 import anyvar
-from anyvar.anyvar import AnyVar, create_storage, create_translator
+from anyvar.anyvar import AnyVar
 from anyvar.extras.vcf import VcfRegistrar
 from anyvar.restapi.schema import (
     AnyVarStatsResponse,
@@ -29,6 +30,25 @@ from anyvar.utils.types import VrsVariation, variation_class_map
 _logger = logging.getLogger(__name__)
 
 
+@asynccontextmanager
+async def app_lifespan(param_app: FastAPI):
+    """Initialize AnyVar instance and associate with FastAPI app on startup
+    and teardown the AnyVar instance on shutdown"""
+
+    # create anyvar instance
+    storage = anyvar.anyvar.create_storage()
+    translator = anyvar.anyvar.create_translator()
+    anyvar_instance = AnyVar(object_store=storage, translator=translator)
+
+    # associate anyvar with the app state
+    param_app.state.anyvar = anyvar_instance
+
+    yield
+
+    # close storage connector on shutdown
+    storage.close()
+
+
 app = FastAPI(
     title="AnyVar",
     version=anyvar.__version__,
@@ -36,16 +56,8 @@ app = FastAPI(
     openapi_url="/openapi.json",
     swagger_ui_parameters={"tryItOutEnabled": True},
     description="Register and retrieve VRS value objects.",
+    lifespan=app_lifespan,
 )
-
-
-@app.on_event("startup")
-async def startup():
-    """Initialize AnyVar instance and associate with FastAPI app"""
-    storage = create_storage()
-    translator = create_translator()
-    anyvar_instance = AnyVar(object_store=storage, translator=translator)
-    app.state.anyvar = anyvar_instance
 
 
 @app.get(
@@ -196,6 +208,7 @@ def register_vrs_object(
 async def annotate_vcf(
     request: Request,
     vcf: UploadFile = File(..., description="VCF to register and annotate"),
+    for_ref: bool = Query(default=True, description="Whether to compute VRS IDs for REF alleles"),
     allow_async_write: bool = Query(
         default=False, description="Whether to allow asynchronous write of VRS objects to database"
     ),
@@ -204,6 +217,7 @@ async def annotate_vcf(
 
     :param request: FastAPI request object
     :param vcf: incoming VCF file object
+    :param for_ref: whether to compute VRS IDs for REF alleles
     :param allow_async_write: whether to allow async database writes
     :return: streamed annotated file
     """
@@ -215,7 +229,9 @@ async def annotate_vcf(
         registrar = VcfRegistrar(av)
         with tempfile.NamedTemporaryFile(delete=False) as temp_out_file:
             try:
-                registrar.annotate(temp_file.name, vcf_out=temp_out_file.name)
+                registrar.annotate(
+                    temp_file.name, vcf_out=temp_out_file.name, compute_for_ref=for_ref
+                )
             except (TranslatorConnectionException, OSError) as e:
                 _logger.error(f"Encountered error during VCF registration: {e}")
                 return {"error": "VCF registration failed."}
