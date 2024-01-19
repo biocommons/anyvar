@@ -44,7 +44,6 @@ class _Storage(MutableMapping):
         """Closes the storage integration and cleans up any resources"""
 
 
-
 class _BatchManager(AbstractContextManager):
     """Base context management class for batch writing.
 
