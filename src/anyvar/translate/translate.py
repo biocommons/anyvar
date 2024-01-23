@@ -62,10 +62,11 @@ class _Translator(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def translate_vcf_row(self, coords: str) -> Optional[VrsVariation]:
+    def translate_vcf_row(self, assembly: str, coords: str) -> Optional[VrsVariation]:
         """Translate VCF-like data to a normalized VRS object.
 
         :param coords: string formatted a la "<chr>-<pos>-<ref>-<alt>"
+        :param assembly: The assembly used in `coords`
         :return: VRS variation (using VRS-Python class) if translation is successful
         """
         raise NotImplementedError
