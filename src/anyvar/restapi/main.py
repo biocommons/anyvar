@@ -212,6 +212,11 @@ async def annotate_vcf(
     allow_async_write: bool = Query(
         default=False, description="Whether to allow asynchronous write of VRS objects to database"
     ),
+    assembly: str = Query(
+        default="GRCh38",
+        pattern="^(GRCh38|GRCh37)$",
+        description="The reference assembly for the VCF",
+    ),
 ):
     """Register alleles from a VCF and return a file annotated with VRS IDs.
 
@@ -219,6 +224,7 @@ async def annotate_vcf(
     :param vcf: incoming VCF file object
     :param for_ref: whether to compute VRS IDs for REF alleles
     :param allow_async_write: whether to allow async database writes
+    :param assembly: the reference assembly for the VCF
     :return: streamed annotated file
     """
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
@@ -230,7 +236,10 @@ async def annotate_vcf(
         with tempfile.NamedTemporaryFile(delete=False) as temp_out_file:
             try:
                 registrar.annotate(
-                    temp_file.name, vcf_out=temp_out_file.name, compute_for_ref=for_ref
+                    temp_file.name,
+                    vcf_out=temp_out_file.name,
+                    compute_for_ref=for_ref,
+                    assembly=assembly,
                 )
             except (TranslatorConnectionException, OSError) as e:
                 _logger.error(f"Encountered error during VCF registration: {e}")

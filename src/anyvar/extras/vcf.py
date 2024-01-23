@@ -73,8 +73,7 @@ class VcfRegistrar(VCFAnnotator):
         :param vrs_data: Dictionary containing the VRS object information for the VCF
         :param vrs_field_data: If `output_vcf`, will keys will be VRS Fields and values
             will be list of VRS data. Else, will be an empty dictionary.
-        :param assembly: The assembly used in `vcf_coords`. Not used by this
-            implementation -- GRCh38 is assumed.
+        :param assembly: The assembly used in `vcf_coords`
         :param vrs_data_key: The key to update in `vrs_data`. If not provided, will use
             `vcf_coords` as the key.
         :param output_pickle: `True` if VRS pickle file will be output. `False`
@@ -86,7 +85,7 @@ class VcfRegistrar(VCFAnnotator):
             Only used if `vcf_out` is provided. Not used by this implementation.
         :return: nothing, but registers VRS objects with AnyVar storage and stashes IDs
         """
-        vrs_object = self.av.translator.translate_vcf_row(vcf_coords)
+        vrs_object = self.av.translator.translate_vcf_row(assembly, vcf_coords)
         if vrs_object:
             self.av.put_object(vrs_object)
             if output_pickle:
@@ -99,5 +98,5 @@ class VcfRegistrar(VCFAnnotator):
 
         else:
             raise TranslationException(
-                f"Translator returned empty VRS object for VCF coords {vcf_coords}"
+                f"Translator returned empty VRS object for VCF coords {assembly} {vcf_coords}"
             )
