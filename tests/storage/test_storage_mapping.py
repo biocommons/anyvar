@@ -33,7 +33,7 @@ def test_iter(storage, alleles):
             count += 1
         except StopIteration:
             break
-    assert count == 11
+    assert count == 14
 
 # keys
 def test_keys(storage, alleles):
