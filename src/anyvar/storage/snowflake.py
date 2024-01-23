@@ -202,6 +202,25 @@ class SnowflakeObjectStore(_Storage):
             cur.execute(f"DELETE FROM {self.table_name} WHERE vrs_id = ?;", [name])  # nosec B608
         self.conn.commit()
 
+    def wait_for_writes(self):
+        """Returns once any currently pending database modifications have been completed."""
+        if self.batch_thread is not None:
+            # short circuit if the queue is empty
+            with self.batch_thread.cond:
+                if not self.batch_thread.pending_batch_list:
+                    return
+
+            # queue an empty batch
+            batch = []
+            self.batch_thread.queue_batch(batch)
+            # wait for the batch to be removed from the pending queue
+            while True:
+                with self.batch_thread.cond:
+                    if list(filter(lambda x: x is batch, self.batch_thread.pending_batch_list)):
+                        self.batch_thread.cond.wait()
+                    else:
+                        break
+
     def close(self):
         """Stop the batch thread and wait for it to complete"""
         if self.batch_thread is not None:
@@ -420,7 +439,7 @@ class SnowflakeBatchThread(Thread):
         :param batch_insert_values: list of tuples where each tuple consists of (vrs_id, vrs_object)
         """
         with self.cond:
-            if batch_insert_values:
+            if batch_insert_values is not None:
                 _logger.info("Queueing batch of %s items", len(batch_insert_values))
                 while len(self.pending_batch_list) >= self.max_pending_batches:
                     _logger.debug("Pending batch queue is full, waiting for space...")

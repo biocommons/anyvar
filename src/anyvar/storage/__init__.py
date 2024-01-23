@@ -36,6 +36,10 @@ class _Storage(MutableMapping):
         """Empty database of all stored records."""
 
     @abstractmethod
+    def wait_for_writes(self):
+        """Returns once any currently pending database modifications have been completed."""
+
+    @abstractmethod
     def close(self):
         """Closes the storage integration and cleans up any resources"""
 

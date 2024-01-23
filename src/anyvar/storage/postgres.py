@@ -127,6 +127,11 @@ class PostgresObjectStore(_Storage):
             cur.execute("DELETE FROM vrs_objects WHERE vrs_id = %s;", [name])
         self.conn.commit()
 
+    def wait_for_writes(self):
+        """Returns once any currently pending database modifications have been completed.
+        The PostgresObjectStore does not implement async writes, therefore this method is a no-op
+        and present only to maintain compatibility with the `_Storage` base class"""
+
     def close(self):
         """Terminate connection if necessary."""
         if self.conn is not None:
