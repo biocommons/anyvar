@@ -1,4 +1,5 @@
 """Normalize incoming variation descriptions with the VRS-Python library."""
+
 from os import environ
 from typing import Optional, Union
 
