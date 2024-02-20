@@ -18,7 +18,7 @@ cd anyvar
 Point `ANYVAR_STORAGE_URI` to an available PostgreSQL database:
 
 ```
-export ANYVAR_STORAGE_URI=postgresql://postgres@localhost:5432/anyvar
+export ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@localhost:5432/anyvar
 ```
 
 Set `SEQREPO_DATAPROXY_URI` to local SeqRepo files or to a REST service instance:
@@ -76,7 +76,7 @@ variable.  For example:
     snowflake://my-sf-acct/?database=sf_db_name&schema=sd_schema_name&user=sf_username&password=sf_password
 
 [Snowflake connection parameter reference](https://docs.snowflake.com/en/developer-guide/python-connector/python-connector-api)
-    
+
 When running interactively and connecting to a Snowflake account that utilizes federated authentication or SSO, add
 the parameter `authenticator=externalbrowser`.  Non-interactive execution in a federated authentication or SSO environment
 requires a service account to connect.
@@ -86,7 +86,7 @@ Environment variables that can be used to modify Snowflake database integration:
 * `ANYVAR_SNOWFLAKE_STORE_TABLE_NAME` - the name of the table that stores VRS objects; defaults to `vrs_objects`
 * `ANYVAR_SNOWFLAKE_STORE_MAX_PENDING_BATCHES` - the maximum number of pending batches to allow before blocking; defaults to `50`
 
-NOTE: The Snowflake database connector utilizes a background thread to write VRS objects to the database when operating in batch 
+NOTE: The Snowflake database connector utilizes a background thread to write VRS objects to the database when operating in batch
 mode (e.g. annotating a VCF file).  Queries and statistics query only against the already committed database state.  Therefore,
 queries issued immediately after a batch operation may not reflect all pending changes.
 

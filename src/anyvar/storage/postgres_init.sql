@@ -1,6 +1,6 @@
 DROP DATABASE anyvar;
 DROP USER anyvar;
 
-CREATE USER anyvar;
+CREATE USER anyvar WITH PASSWORD 'anyvar-pw';
 CREATE DATABASE anyvar;
 GRANT ALL PRIVILEGES ON DATABASE anyvar TO anyvar;
