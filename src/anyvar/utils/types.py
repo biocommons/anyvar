@@ -1,4 +1,5 @@
 """Provide helpful type definitions and references."""
+
 from typing import Union
 from enum import StrEnum
 

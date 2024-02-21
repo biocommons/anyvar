@@ -1,4 +1,5 @@
 """Support processing and manipulation of VCF objects."""
+
 import logging
 from typing import Dict, Optional
 
