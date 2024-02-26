@@ -65,6 +65,7 @@ class VcfRegistrar(VCFAnnotator):
         output_pickle: bool = True,
         output_vcf: bool = False,
         vrs_attributes: bool = False,
+        require_validation: bool = True,
     ) -> None:
         """Get VRS Object given `vcf_coords`. `vrs_data` and `vrs_field_data` will
         be mutated. Generally, we expect AnyVar to use the output_vcf option rather than
@@ -84,6 +85,10 @@ class VcfRegistrar(VCFAnnotator):
         :param vrs_attributes: If `True` will include VRS_Start, VRS_End, VRS_State
             fields in the INFO field. If `False` will not include these fields.
             Only used if `vcf_out` is provided. Not used by this implementation.
+        :param bool require_validation: If `True` then validation checks must pass in
+            order to return a VRS object. If `False` then VRS object will be returned
+            even if validation checks fail. Defaults to `True`.  Not used by this 
+            implementation.
         :return: nothing, but registers VRS objects with AnyVar storage and stashes IDs
         """
         vrs_object = self.av.translator.translate_vcf_row(assembly, vcf_coords)
