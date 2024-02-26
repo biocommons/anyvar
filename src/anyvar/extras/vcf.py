@@ -87,7 +87,7 @@ class VcfRegistrar(VCFAnnotator):
             Only used if `vcf_out` is provided. Not used by this implementation.
         :param bool require_validation: If `True` then validation checks must pass in
             order to return a VRS object. If `False` then VRS object will be returned
-            even if validation checks fail. Defaults to `True`.  Not used by this 
+            even if validation checks fail. Defaults to `True`.  Not used by this
             implementation.
         :return: nothing, but registers VRS objects with AnyVar storage and stashes IDs
         """
