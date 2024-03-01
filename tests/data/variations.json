@@ -1,15 +1,15 @@
 {
   "alleles": {
-    "ga4gh:VA.GbDZmcmmWJngURaODSrbbLWgNEeSYhFB": {
+    "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU": {
       "params": {
         "definition": "NC_000010.11:g.87894077C>T"
       },
       "allele_response": {
         "messages": [],
         "object": {
-          "id": "ga4gh:VA.GbDZmcmmWJngURaODSrbbLWgNEeSYhFB",
+          "id": "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU",
           "location": {
-            "id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8",
+            "id": "ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
             "end": 87894077,
             "start": 87894076,
             "sequenceReference": {
@@ -25,19 +25,19 @@
           "type": "Allele"
         }
       },
-      "location_id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8"
+      "location_id": "ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy"
     },
-    "ga4gh:VA.EB-JEr9jnAjzL_zjxzBqRgGMREVCv31v": {
+    "ga4gh:VA.VVeNNW6VvZ8e6Nk0O6ZFZiGjIqvgGYTw": {
       "params": {
         "definition": "NM_000551.3:c.1A>T"
       },
       "allele_response": {
         "messages": [],
         "object": {
-          "id": "ga4gh:VA.EB-JEr9jnAjzL_zjxzBqRgGMREVCv31v",
+          "id": "ga4gh:VA.VVeNNW6VvZ8e6Nk0O6ZFZiGjIqvgGYTw",
           "type": "Allele",
           "location": {
-            "id": "ga4gh:SL.-FaQ9J0LDvasaUpfLKstbyDx8nUld9fl",
+            "id": "ga4gh:SL._mjWpxiwXzBP5TA1HZmjWaxci48-v792",
             "type": "SequenceLocation",
             "sequenceReference": {
               "refgetAccession": "SQ.v_QTc1p-MUYdgrRv4LMT6ByXIOsdw3C_",
@@ -52,11 +52,11 @@
           }
         }
       },
-      "location_id": "ga4gh:SL.-FaQ9J0LDvasaUpfLKstbyDx8nUld9fl"
+      "location_id": "ga4gh:SL._mjWpxiwXzBP5TA1HZmjWaxci48-v792"
     }
   },
   "copy_numbers": {
-    "ga4gh:CX.UvIENZGNmCM5j38yHueYdd-BZLn-aLJM": {
+    "ga4gh:CX.TvAhuGK6HYf53mXoUnon60cZ7DC_UgM3": {
       "params": {
         "definition": "NC_000013.11:g.26440969_26443305del",
         "copy_change": "efo:0030069",
@@ -65,9 +65,9 @@
       "copy_number_response": {
         "messages": [],
         "object": {
-          "id": "ga4gh:CX.UvIENZGNmCM5j38yHueYdd-BZLn-aLJM",
+          "id": "ga4gh:CX.TvAhuGK6HYf53mXoUnon60cZ7DC_UgM3",
           "location": {
-            "id": "ga4gh:SL.XBjSbazxe6h8lI14zfXIxqt6J718QEec",
+            "id": "ga4gh:SL.4akcjXlbAu4xBKnxjOL_b4DM_20HOCA3",
             "start": 26440968,
             "end": 26443305,
             "sequenceReference": {
@@ -80,9 +80,9 @@
           "type": "CopyNumberChange"
         }
       },
-      "location_id": "ga4gh:SL.XBjSbazxe6h8lI14zfXIxqt6J718QEec"
+      "location_id": "ga4gh:SL.4akcjXlbAu4xBKnxjOL_b4DM_20HOCA3"
     },
-    "ga4gh:CN.tPLSlUBW6j2dVHv0G81U_IFXt4Xawo7J": {
+    "ga4gh:CN.QnU97C-cRW431O9qWia9UCVRBDvGDH7I": {
       "params": {
         "definition": "NC_000013.11:g.26440969_26443305del",
         "copies": 1,
@@ -91,9 +91,9 @@
       "copy_number_response": {
         "messages": [],
         "object": {
-          "id": "ga4gh:CN.tPLSlUBW6j2dVHv0G81U_IFXt4Xawo7J",
+          "id": "ga4gh:CN.QnU97C-cRW431O9qWia9UCVRBDvGDH7I",
           "location": {
-            "id": "ga4gh:SL.XBjSbazxe6h8lI14zfXIxqt6J718QEec",
+            "id": "ga4gh:SL.4akcjXlbAu4xBKnxjOL_b4DM_20HOCA3",
             "start": 26440968,
             "end": 26443305,
             "sequenceReference": {
@@ -106,7 +106,7 @@
           "type": "CopyNumberCount"
         }
       },
-      "location_id": "ga4gh:SL.XBjSbazxe6h8lI14zfXIxqt6J718QEec"
+      "location_id": "ga4gh:SL.4akcjXlbAu4xBKnxjOL_b4DM_20HOCA3"
     }
   }
 }
