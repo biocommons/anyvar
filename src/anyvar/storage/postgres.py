@@ -1,263 +1,49 @@
+from io import StringIO
 import json
-import logging
-from typing import Any, Optional
+from typing import Any, Optional, List
 
-import psycopg
-from ga4gh.core import is_pydantic_instance
-from ga4gh.vrs import models
+from sqlalchemy import text as sql_text
+from sqlalchemy.engine import Connection
 
-from anyvar.restapi.schema import VariationStatisticType
-
-from . import _BatchManager, _Storage
+from .sql_storage import SqlStorage
 
 silos = "locations alleles haplotypes genotypes variationsets relations texts".split()
 
 
-_logger = logging.getLogger(__name__)
-
-
-class PostgresObjectStore(_Storage):
+class PostgresObjectStore(SqlStorage):
     """PostgreSQL storage backend. Currently, this is our recommended storage
     approach.
     """
 
-    def __init__(self, db_url: str, batch_limit: int = 65536):
-        """Initialize PostgreSQL DB handler.
+    def __init__(
+        self,
+        db_url: str,
+        batch_limit: Optional[int] = None,
+        table_name: Optional[str] = None,
+        max_pending_batches: Optional[int] = None,
+    ):
+        SqlStorage.__init__(self, db_url, batch_limit, table_name, max_pending_batches)
 
-        :param db_url: libpq connection info URL
-        :param batch_limit: max size of batch insert queue
+    def create_schema(self, db_conn: Connection):
+        check_statement = f"""
+            SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = '{self.table_name}')
         """
-        self.conn = psycopg.connect(db_url, autocommit=True)
-        self.ensure_schema_exists()
-
-        self.batch_manager = PostgresBatchManager
-        self.batch_mode = False
-        self.batch_insert_values = []
-        self.batch_limit = batch_limit
-
-    def _create_schema(self):
-        """Add DB schema."""
-        create_statement = """
-        CREATE TABLE vrs_objects (
-            vrs_id TEXT PRIMARY KEY,
-            vrs_object JSONB
-        );
+        create_statement = f"""
+            CREATE TABLE {self.table_name} (
+                vrs_id TEXT PRIMARY KEY,
+                vrs_object JSONB
+            )
         """
-        with self.conn.cursor() as cur:
-            cur.execute(create_statement)
+        result = db_conn.execute(sql_text(check_statement))
+        if not result or not result.scalar():
+            db_conn.execute(sql_text(create_statement))
 
-    def ensure_schema_exists(self):
-        """Check that DB schema is in place."""
-        with self.conn.cursor() as cur:
-            cur.execute(
-                "SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')"
-            )  # noqa: E501
-            result = cur.fetchone()
-        if result and result[0]:
-            return
-        self._create_schema()
-
-    def __repr__(self):
-        return str(self.conn)
-
-    def __setitem__(self, name: str, value: Any):
-        """Add item to database. If batch mode is on, add item to queue and write only
-        if queue size is exceeded.
-
-        :param name: value for `vrs_id` field
-        :param value: value for `vrs_object` field
-        """
-        assert is_pydantic_instance(value), "ga4gh.vrs object value required"
-        name = str(name)  # in case str-like
+    def add_one_item(self, db_conn: Connection, name: str, value: Any):
+        insert_query = f"INSERT INTO {self.table_name} (vrs_id, vrs_object) VALUES (:vrs_id, :vrs_object) ON CONFLICT DO NOTHING"  # noqa: E501
         value_json = json.dumps(value.model_dump(exclude_none=True))
-        if self.batch_mode:
-            self.batch_insert_values.append((name, value_json))
-            if len(self.batch_insert_values) > self.batch_limit:
-                self.copy_insert()
-        else:
-            insert_query = "INSERT INTO vrs_objects (vrs_id, vrs_object) VALUES (%s, %s) ON CONFLICT DO NOTHING;"  # noqa: E501
-            with self.conn.cursor() as cur:
-                cur.execute(insert_query, [name, value_json])
+        db_conn.execute(sql_text(insert_query), {"vrs_id": name, "vrs_object": value_json})
 
-    def __getitem__(self, name: str) -> Optional[Any]:
-        """Fetch item from DB given key.
-
-        Future issues:
-         * Remove reliance on VRS-Python models (requires rewriting the enderef module)
-
-        :param name: key to retrieve VRS object for
-        :return: VRS object if available
-        :raise NotImplementedError: if unsupported VRS object type (this is WIP)
-        """
-        with self.conn.cursor() as cur:
-            cur.execute("SELECT vrs_object FROM vrs_objects WHERE vrs_id = %s;", [name])
-            result = cur.fetchone()
-        if result:
-            result = result[0]
-            object_type = result["type"]
-            if object_type == "Allele":
-                return models.Allele(**result)
-            elif object_type == "CopyNumberCount":
-                return models.CopyNumberCount(**result)
-            elif object_type == "CopyNumberChange":
-                return models.CopyNumberChange(**result)
-            elif object_type == "SequenceLocation":
-                return models.SequenceLocation(**result)
-            else:
-                raise NotImplementedError
-
-    def __contains__(self, name: str) -> bool:
-        """Check whether VRS objects table contains ID.
-
-        :param name: VRS ID to look up
-        :return: True if ID is contained in vrs objects table
-        """
-        with self.conn.cursor() as cur:
-            cur.execute("SELECT EXISTS (SELECT 1 FROM vrs_objects WHERE vrs_id = %s);", [name])
-            result = cur.fetchone()
-        return result[0] if result else False
-
-    def __delitem__(self, name: str) -> None:
-        """Delete item (not cascading -- doesn't delete referenced items)
-
-        :param name: key to delete object for
-        """
-        name = str(name)  # in case str-like
-        with self.conn.cursor() as cur:
-            cur.execute("DELETE FROM vrs_objects WHERE vrs_id = %s;", [name])
-        self.conn.commit()
-
-    def wait_for_writes(self):
-        """Returns once any currently pending database modifications have been completed.
-        The PostgresObjectStore does not implement async writes, therefore this method is a no-op
-        and present only to maintain compatibility with the `_Storage` base class"""
-
-    def close(self):
-        """Terminate connection if necessary."""
-        if self.conn is not None:
-            self.conn.close()
-
-    def __del__(self):
-        """Tear down DB instance."""
-        self.close()
-
-    def __len__(self):
-        with self.conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT COUNT(*) AS c FROM vrs_objects
-                WHERE vrs_object ->> 'type' = 'Allele';
-            """
-            )
-            result = cur.fetchone()
-        if result:
-            return result[0]
-        else:
-            return 0
-
-    def get_variation_count(self, variation_type: VariationStatisticType) -> int:
-        """Get total # of registered variations of requested type.
-
-        :param variation_type: variation type to check
-        :return: total count
-        """
-        if variation_type == VariationStatisticType.SUBSTITUTION:
-            return self._substitution_count()
-        elif variation_type == VariationStatisticType.INSERTION:
-            return self._insertion_count()
-        elif variation_type == VariationStatisticType.DELETION:
-            return self._deletion_count()
-        else:
-            return self._substitution_count() + self._deletion_count() + self._insertion_count()
-
-    def _deletion_count(self) -> int:
-        with self.conn.cursor() as cur:
-            cur.execute(
-                """
-                select count(*) as c from vrs_objects
-                where length(vrs_object -> 'state' ->> 'sequence') = 0;
-            """
-            )
-            result = cur.fetchone()
-        if result:
-            return result[0]
-        else:
-            return 0
-
-    def _substitution_count(self) -> int:
-        with self.conn.cursor() as cur:
-            cur.execute(
-                """
-                select count(*) as c from vrs_objects
-                where length(vrs_object -> 'state' ->> 'sequence') = 1;
-            """
-            )
-            result = cur.fetchone()
-        if result:
-            return result[0]
-        else:
-            return 0
-
-    def _insertion_count(self):
-        with self.conn.cursor() as cur:
-            cur.execute(
-                """
-                select count(*) as c from vrs_objects
-                where length(vrs_object -> 'state' ->> 'sequence') > 1
-            """
-            )
-            result = cur.fetchone()
-        if result:
-            return result[0]
-        else:
-            return 0
-
-    def __iter__(self):
-        with self.conn.cursor() as cur:
-            cur.execute("SELECT * FROM vrs_objects;")
-            while True:
-                _next = cur.fetchone()
-                if _next is None:
-                    break
-                yield _next
-
-    def keys(self):
-        with self.conn.cursor() as cur:
-            cur.execute("SELECT vrs_id FROM vrs_objects;")
-            result = [row[0] for row in cur.fetchall()]
-        return result
-
-    def search_variations(self, refget_accession: str, start: int, stop: int):
-        """Find all alleles that were registered that are in 1 genomic region
-
-        Args:
-            refget_accession (str): refget accession (SQ. identifier)
-            start (int): Start genomic region to query
-            stop (iint): Stop genomic region to query
-
-        Returns:
-            A list of VRS Alleles that have locations referenced as identifiers
-        """
-        query_str = """
-            SELECT vrs_object FROM vrs_objects
-            WHERE vrs_object->>'location' IN (
-                SELECT vrs_id FROM vrs_objects
-                WHERE CAST (vrs_object->>'start' as INTEGER) >= %s
-                AND CAST (vrs_object->>'end' as INTEGER) <= %s
-                AND vrs_object->'sequenceReference'->>'refgetAccession' = %s
-            );
-            """
-        with self.conn.cursor() as cur:
-            cur.execute(query_str, [start, stop, refget_accession])
-            results = cur.fetchall()
-        return [vrs_object[0] for vrs_object in results if vrs_object]
-
-    def wipe_db(self):
-        """Remove all stored records from vrs_objects table."""
-        with self.conn.cursor() as cur:
-            cur.execute("DELETE FROM vrs_objects;")
-
-    def copy_insert(self):
+    def add_many_items(self, db_conn: Connection, items: list):
         """Perform copy-based insert, enabling much faster writes for large, repeated
         insert statements, using insert parameters stored in `self.batch_insert_values`.
 
@@ -267,63 +53,72 @@ class PostgresObjectStore(_Storage):
         conflicts when moving data over from that table to vrs_objects.
         """
         tmp_statement = (
-            "CREATE TEMP TABLE tmp_table (LIKE vrs_objects INCLUDING DEFAULTS);"  # noqa: E501
+            f"CREATE TEMP TABLE tmp_table (LIKE {self.table_name} INCLUDING DEFAULTS)"  # noqa: E501
         )
-        copy_statement = "COPY tmp_table (vrs_id, vrs_object) FROM STDIN;"
-        insert_statement = (
-            "INSERT INTO vrs_objects SELECT * FROM tmp_table ON CONFLICT DO NOTHING;"  # noqa: E501
+        insert_statement = f"INSERT INTO {self.table_name} SELECT * FROM tmp_table ON CONFLICT DO NOTHING"  # noqa: E501
+        drop_statement = "DROP TABLE tmp_table"
+        db_conn.execute(sql_text(tmp_statement))
+        with db_conn.connection.cursor() as cur:
+            row_data = [
+                f"{name}\t{json.dumps(value.model_dump(exclude_none=True))}"
+                for name, value in items
+            ]
+            fl = StringIO("\n".join(row_data))
+            cur.copy_from(fl, "tmp_table", columns=["vrs_id", "vrs_object"])
+            fl.close()
+        db_conn.execute(sql_text(insert_statement))
+        db_conn.execute(sql_text(drop_statement))
+
+    def deletion_count(self, db_conn: Connection) -> int:
+        result = db_conn.execute(
+            sql_text(
+                f"""
+            SELECT COUNT(*) AS c 
+              FROM {self.table_name}
+             WHERE LENGTH(vrs_object -> 'state' ->> 'sequence') = 0
+            """
+            )
         )
-        drop_statement = "DROP TABLE tmp_table;"
-        with self.conn.cursor() as cur:
-            cur.execute(tmp_statement)
-            with cur.copy(copy_statement) as copy:
-                for row in self.batch_insert_values:
-                    copy.write_row(row)
-            cur.execute(insert_statement)
-            cur.execute(drop_statement)
-        self.conn.commit()
-        self.batch_insert_values = []
+        return result.scalar()
 
+    def substitution_count(self, db_conn: Connection) -> int:
+        result = db_conn.execute(
+            sql_text(
+                f"""
+            SELECT COUNT(*) AS c 
+              FROM {self.table_name}
+             WHERE LENGTH(vrs_object -> 'state' ->> 'sequence') = 1
+            """
+            )
+        )
+        return result.scalar()
 
-class PostgresBatchManager(_BatchManager):
-    """Context manager enabling batch insertion statements via Postgres COPY command.
+    def insertion_count(self, db_conn: Connection):
+        result = db_conn.execute(
+            sql_text(
+                f"""
+            SELECT COUNT(*) AS c 
+              FROM {self.table_name}
+             WHERE LENGTH(vrs_object -> 'state' ->> 'sequence') > 1
+            """
+            )
+        )
+        return result.scalar()
 
-    Use in cases like VCF ingest when intaking large amounts of data at once.
-    """
-
-    def __init__(self, storage: PostgresObjectStore):
-        """Initialize context manager.
-
-        :param storage: Postgres instance to manage. Should be taken from the active
-        AnyVar instance -- otherwise it won't be able to delay insertions.
-        :raise ValueError: if `storage` param is not a `PostgresObjectStore` instance
+    def search_vrs_objects(
+        self, db_conn: Connection, type: str, refget_accession: str, start: int, stop: int
+    ) -> List:
+        query_str = """
+            SELECT vrs_object 
+              FROM vrs_objects
+             WHERE vrs_object->>'type' = %s 
+               AND vrs_object->>'location' IN (
+                SELECT vrs_id FROM vrs_objects
+                 WHERE CAST (vrs_object->>'start' AS INTEGER) >= %s
+                   AND CAST (vrs_object->>'end' AS INTEGER) <= %s
+                   AND vrs_object->'sequenceReference'->>'refgetAccession' = %s)
         """
-        if not isinstance(storage, PostgresObjectStore):
-            raise ValueError("PostgresBatchManager requires a PostgresObjectStore instance")
-        self._storage = storage
-
-    def __enter__(self):
-        """Enter managed context."""
-        self._storage.batch_insert_values = []
-        self._storage.batch_mode = True
-
-    def __exit__(
-        self, exc_type: Optional[type], exc_value: Optional[BaseException], traceback: Optional[Any]
-    ) -> bool:
-        """Handle exit from context management. This method is responsible for
-        committing or rolling back any staged inserts.
-
-        :param exc_type: type of exception encountered, if any
-        :param exc_value: exception value
-        :param traceback: traceback for context of exception
-        :return: True if no exceptions encountered, False otherwise
-        """
-        if exc_type is not None:
-            self._storage.conn.rollback()
-            self._storage.batch_insert_values = []
-            self._storage.batch_mode = False
-            _logger.error(f"Postgres batch manager encountered exception {exc_type}: {exc_value}")
-            return False
-        self._storage.copy_insert()
-        self._storage.batch_mode = False
-        return True
+        with db_conn.connection.cursor() as cur:
+            cur.execute(query_str, [type, start, stop, refget_accession])
+            results = cur.fetchall()
+        return [vrs_object[0] for vrs_object in results if vrs_object]
