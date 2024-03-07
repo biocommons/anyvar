@@ -1,26 +1,21 @@
 """
-Test Snowflake specific storage integration methods
+Test Postgres specific storage integration methods
 and the async batch insertion
 """
+from io import StringIO
 from sqlalchemy_mocks import MockEngine, MockStmtSequence, MockVRSObject
 
 from anyvar.restapi.schema import VariationStatisticType
-from anyvar.storage.snowflake import SnowflakeObjectStore
+from anyvar.storage.postgres import PostgresObjectStore
 
 def test_create_schema(mocker):
     mock_eng = mocker.patch("anyvar.storage.sql_storage.create_engine")
     mock_eng.return_value = MockEngine()
     mock_eng.return_value.add_mock_stmt_sequence(MockStmtSequence()
-        .add_stmt(
-            """
-            SELECT COUNT(*) FROM information_schema.tables 
-             WHERE table_catalog = CURRENT_DATABASE() AND table_schema = CURRENT_SCHEMA() 
-             AND UPPER(table_name) = UPPER('vrs_objects')
-            """, 
-            None, [(0,)])
-        .add_stmt("CREATE TABLE vrs_objects ( vrs_id VARCHAR(500) PRIMARY KEY, vrs_object VARIANT )", None, [("Table created",)])
+        .add_stmt("SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')", None, [(False,)])
+        .add_stmt("CREATE TABLE vrs_objects ( vrs_id TEXT PRIMARY KEY, vrs_object JSONB )", None, [("Table created",)])
     )
-    sf = SnowflakeObjectStore("snowflake://account/?param=value")
+    sf = PostgresObjectStore("postgres://account/?param=value")
     sf.close()
     assert mock_eng.were_all_execd()
 
@@ -28,15 +23,9 @@ def test_create_schema_exists(mocker):
     mock_eng = mocker.patch("anyvar.storage.sql_storage.create_engine")
     mock_eng.return_value = MockEngine()
     mock_eng.return_value.add_mock_stmt_sequence(MockStmtSequence()
-        .add_stmt(
-            """
-            SELECT COUNT(*) FROM information_schema.tables 
-             WHERE table_catalog = CURRENT_DATABASE() AND table_schema = CURRENT_SCHEMA() 
-             AND UPPER(table_name) = UPPER('vrs_objects')
-            """, 
-            None, [(1,)])
+        .add_stmt("SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')", None, [(True,)])
     )
-    sf = SnowflakeObjectStore("snowflake://account/?param=value")
+    sf = PostgresObjectStore("postgres://account/?param=value")
     sf.close()
     assert mock_eng.were_all_execd()
 
@@ -45,33 +34,22 @@ def test_add_one_item(mocker):
     mock_eng = mocker.patch("anyvar.storage.sql_storage.create_engine")
     mock_eng.return_value = MockEngine()
     mock_eng.return_value.add_mock_stmt_sequence(MockStmtSequence()
+        .add_stmt("SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')", None, [(True,)])
         .add_stmt(
             """
-            SELECT COUNT(*) FROM information_schema.tables 
-             WHERE table_catalog = CURRENT_DATABASE() AND table_schema = CURRENT_SCHEMA() 
-               AND UPPER(table_name) = UPPER('vrs_objects')
-            """, 
-            None, [(1,)])
-        .add_stmt(
-            """
-            MERGE INTO vrs_objects t USING (SELECT :vrs_id AS vrs_id, :vrs_object AS vrs_object) s ON t.vrs_id = s.vrs_id 
-            WHEN NOT MATCHED THEN INSERT (vrs_id, vrs_object) VALUES (s.vrs_id, PARSE_JSON(s.vrs_object))
+            INSERT INTO vrs_objects (vrs_id, vrs_object) VALUES (:vrs_id, :vrs_object) ON CONFLICT DO NOTHING
             """, 
             {"vrs_id": "ga4gh:VA.01", "vrs_object": MockVRSObject('01').to_json()}, [(1,)])
     )
-    sf = SnowflakeObjectStore("snowflake://account/?param=value")
+    sf = PostgresObjectStore("postgres://account/?param=value")
     sf["ga4gh:VA.01"] = MockVRSObject('01')
     sf.close()
     assert mock_eng.were_all_execd()
 
 def test_add_many_items(mocker):
-    tmp_statement = "CREATE TEMP TABLE IF NOT EXISTS tmp_vrs_objects (vrs_id VARCHAR(500), vrs_object VARCHAR)"
-    insert_statement = "INSERT INTO tmp_vrs_objects (vrs_id, vrs_object) VALUES (:vrs_id, :vrs_object)"
-    merge_statement = f"""
-        MERGE INTO vrs_objects2 v USING tmp_vrs_objects s ON v.vrs_id = s.vrs_id 
-        WHEN NOT MATCHED THEN INSERT (vrs_id, vrs_object) VALUES (s.vrs_id, PARSE_JSON(s.vrs_object))
-        """
-    drop_statement = "DROP TABLE tmp_vrs_objects"
+    tmp_statement = "CREATE TEMP TABLE tmp_table (LIKE vrs_objects2 INCLUDING DEFAULTS)"
+    insert_statement = "INSERT INTO vrs_objects2 SELECT * FROM tmp_table ON CONFLICT DO NOTHING"
+    drop_statement = "DROP TABLE tmp_table"
 
     vrs_id_object_pairs = [
         ("ga4gh:VA.01", MockVRSObject('01')),
@@ -91,39 +69,39 @@ def test_add_many_items(mocker):
     mock_eng = mocker.patch("anyvar.storage.sql_storage.create_engine")
     mock_eng.return_value = MockEngine()
     mock_eng.return_value.add_mock_stmt_sequence(MockStmtSequence()
-        .add_stmt("SELECT COUNT(*) FROM information_schema.tables WHERE table_catalog = CURRENT_DATABASE() AND table_schema = CURRENT_SCHEMA() AND UPPER(table_name) = UPPER('vrs_objects2')", None, [(1,)])
+        .add_stmt("SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects2')", None, [(True,)])
         # Batch 1
         .add_stmt(tmp_statement, None, [("Table created",)])
-        .add_stmt(insert_statement, list(({ "vrs_id": pair[0], "vrs_object": pair[1].to_json() }) for pair in vrs_id_object_pairs[0:2]), [(2,)], 5)
-        .add_stmt(merge_statement, None, [(2,)])
+        .add_copy_from("tmp_table", "\n".join([f"{pair[0]}\t{pair[1].to_json()}" for pair in vrs_id_object_pairs[0:2]]))
+        .add_stmt(insert_statement, None, [(2,)], 5)
         .add_stmt(drop_statement, None, [("Table dropped",)])
         # Batch 2
         .add_stmt(tmp_statement, None, [("Table created",)])
-        .add_stmt(insert_statement, list(({ "vrs_id": pair[0], "vrs_object": pair[1].to_json() }) for pair in vrs_id_object_pairs[2:4]), [(2,)], 4)
-        .add_stmt(merge_statement, None, [(2,)])
+        .add_copy_from("tmp_table", "\n".join([f"{pair[0]}\t{pair[1].to_json()}" for pair in vrs_id_object_pairs[2:4]]))
+        .add_stmt(insert_statement, None, [(2,)], 4)
         .add_stmt(drop_statement, None, [("Table dropped",)])
         # Batch 3
         .add_stmt(tmp_statement, None, [("Table created",)])
-        .add_stmt(insert_statement, list(({ "vrs_id": pair[0], "vrs_object": pair[1].to_json() }) for pair in vrs_id_object_pairs[4:6]), [(2,)], 3)
-        .add_stmt(merge_statement, None, [(2,)])
+        .add_copy_from("tmp_table", "\n".join([f"{pair[0]}\t{pair[1].to_json()}" for pair in vrs_id_object_pairs[4:6]]))
+        .add_stmt(insert_statement, None, [(2,)], 3)
         .add_stmt(drop_statement, None, [("Table dropped",)])
         # Batch 4
         .add_stmt(tmp_statement, None, [("Table created",)])
-        .add_stmt(insert_statement, list(({ "vrs_id": pair[0], "vrs_object": pair[1].to_json() }) for pair in vrs_id_object_pairs[6:8]), [(2,)], 5)
-        .add_stmt(merge_statement, None, [(2,)])
+        .add_copy_from("tmp_table", "\n".join([f"{pair[0]}\t{pair[1].to_json()}" for pair in vrs_id_object_pairs[6:8]]))
+        .add_stmt(insert_statement, None, [(2,)], 5)
         .add_stmt(drop_statement, None, [("Table dropped",)])
         # Batch 5
         .add_stmt(tmp_statement, None, [("Table created",)])
-        .add_stmt(insert_statement, list(({ "vrs_id": pair[0], "vrs_object": pair[1].to_json() }) for pair in vrs_id_object_pairs[8:10]), [(2,)], 3)
-        .add_stmt(merge_statement, None, Exception("query timeout"))
+        .add_copy_from("tmp_table", "\n".join([f"{pair[0]}\t{pair[1].to_json()}" for pair in vrs_id_object_pairs[8:10]]))
+        .add_stmt(insert_statement, None, Exception("query timeout"))
         # Batch 6
         .add_stmt(tmp_statement, None, [("Table created",)])
-        .add_stmt(insert_statement, list(({ "vrs_id": pair[0], "vrs_object": pair[1].to_json() }) for pair in vrs_id_object_pairs[10:11]), [(2,)], 2)
-        .add_stmt(merge_statement, None, [(2,)])
+        .add_copy_from("tmp_table", "\n".join([f"{pair[0]}\t{pair[1].to_json()}" for pair in vrs_id_object_pairs[10:11]]))
+        .add_stmt(insert_statement, None, [(2,)], 2)
         .add_stmt(drop_statement, None, [("Table dropped",)])
     )
 
-    sf = SnowflakeObjectStore("snowflake://account/?param=value", 2, "vrs_objects2", 4)
+    sf = PostgresObjectStore("postgres://account/?param=value", 2, "vrs_objects2", 4)
     with sf.batch_manager(sf):
         sf.wait_for_writes()
         assert sf.num_pending_batches() == 0
@@ -151,22 +129,16 @@ def test_insertion_count(mocker):
     mock_eng = mocker.patch("anyvar.storage.sql_storage.create_engine")
     mock_eng.return_value = MockEngine()
     mock_eng.return_value.add_mock_stmt_sequence(MockStmtSequence()
+        .add_stmt("SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')", None, [(True,)])
         .add_stmt(
             """
-            SELECT COUNT(*) FROM information_schema.tables 
-             WHERE table_catalog = CURRENT_DATABASE() AND table_schema = CURRENT_SCHEMA() 
-             AND UPPER(table_name) = UPPER('vrs_objects')
-            """, 
-            None, [(1,)])
-        .add_stmt(
-            """
-            SELECT COUNT(*) 
+            SELECT COUNT(*) AS c 
               FROM vrs_objects
-             WHERE LENGTH(vrs_object:state:sequence) > 1
+             WHERE LENGTH(vrs_object -> 'state' ->> 'sequence') > 1
             """,
             None, [(12,)])
     )
-    sf = SnowflakeObjectStore("snowflake://account/?param=value")
+    sf = PostgresObjectStore("postgres://account/?param=value")
     assert sf.get_variation_count(VariationStatisticType.INSERTION) == 12
     sf.close()
     assert mock_eng.were_all_execd()
@@ -175,22 +147,16 @@ def test_substitution_count(mocker):
     mock_eng = mocker.patch("anyvar.storage.sql_storage.create_engine")
     mock_eng.return_value = MockEngine()
     mock_eng.return_value.add_mock_stmt_sequence(MockStmtSequence()
+        .add_stmt("SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')", None, [(True,)])
         .add_stmt(
             """
-            SELECT COUNT(*) FROM information_schema.tables 
-             WHERE table_catalog = CURRENT_DATABASE() AND table_schema = CURRENT_SCHEMA() 
-             AND UPPER(table_name) = UPPER('vrs_objects')
-            """, 
-            None, [(1,)])
-        .add_stmt(
-            """
-            SELECT COUNT(*) 
+            SELECT COUNT(*) AS c 
               FROM vrs_objects
-             WHERE LENGTH(vrs_object:state:sequence) = 1
+             WHERE LENGTH(vrs_object -> 'state' ->> 'sequence') = 1
             """,
             None, [(13,)])
     )
-    sf = SnowflakeObjectStore("snowflake://account/?param=value")
+    sf = PostgresObjectStore("postgres://account/?param=value")
     assert sf.get_variation_count(VariationStatisticType.SUBSTITUTION) == 13
     sf.close()
     assert mock_eng.were_all_execd()
@@ -199,22 +165,16 @@ def test_deletion_count(mocker):
     mock_eng = mocker.patch("anyvar.storage.sql_storage.create_engine")
     mock_eng.return_value = MockEngine()
     mock_eng.return_value.add_mock_stmt_sequence(MockStmtSequence()
+        .add_stmt("SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')", None, [(True,)])
         .add_stmt(
             """
-            SELECT COUNT(*) FROM information_schema.tables 
-             WHERE table_catalog = CURRENT_DATABASE() AND table_schema = CURRENT_SCHEMA() 
-             AND UPPER(table_name) = UPPER('vrs_objects')
-            """, 
-            None, [(1,)])
-        .add_stmt(
-            """
-            SELECT COUNT(*) 
+            SELECT COUNT(*) AS c 
               FROM vrs_objects
-             WHERE LENGTH(vrs_object:state:sequence) = 0
+             WHERE LENGTH(vrs_object -> 'state' ->> 'sequence') = 0
             """,
             None, [(14,)])
     )
-    sf = SnowflakeObjectStore("snowflake://account/?param=value")
+    sf = PostgresObjectStore("postgres://account/?param=value")
     assert sf.get_variation_count(VariationStatisticType.DELETION) == 14
     sf.close()
     assert mock_eng.were_all_execd()
@@ -223,27 +183,21 @@ def test_search_vrs_objects(mocker):
     mock_eng = mocker.patch("anyvar.storage.sql_storage.create_engine")
     mock_eng.return_value = MockEngine()
     mock_eng.return_value.add_mock_stmt_sequence(MockStmtSequence()
-        .add_stmt(
-            """
-            SELECT COUNT(*) FROM information_schema.tables 
-             WHERE table_catalog = CURRENT_DATABASE() AND table_schema = CURRENT_SCHEMA() 
-             AND UPPER(table_name) = UPPER('vrs_objects')
-            """, 
-            None, [(1,)])
+        .add_stmt("SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')", None, [(True,)])
         .add_stmt(
             """
             SELECT vrs_object 
               FROM vrs_objects
-             WHERE vrs_object:type = :type 
-               AND vrs_object:location IN (
+             WHERE vrs_object->>'type' = %s 
+               AND vrs_object->>'location' IN (
                 SELECT vrs_id FROM vrs_objects
-                 WHERE vrs_object:start::INTEGER >= :start
-                   AND vrs_object:end::INTEGER <= :end
-                   AND vrs_object:sequenceReference:refgetAccession = :refgetAccession)
+                 WHERE CAST (vrs_object->>'start' AS INTEGER) >= %s
+                   AND CAST (vrs_object->>'end' AS INTEGER) <= %s
+                   AND vrs_object->'sequenceReference'->>'refgetAccession' = %s)
             """,
-            { "type": "Allele", "start": 123456, "end": 123457, "refgetAccession": "MySQAccId"}, [("{\"id\": 1}",), ("{\"id\": 2}",)])
+            [ "Allele", 123456, 123457, "MySQAccId" ], [({"id": 1},), ({"id": 2},)])
     )
-    sf = SnowflakeObjectStore("snowflake://account/?param=value")
+    sf = PostgresObjectStore("postgres://account/?param=value")
     vars = sf.search_variations("MySQAccId", 123456, 123457)
     sf.close()
     assert len(vars) == 2
