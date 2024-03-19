@@ -79,12 +79,16 @@ variable.  For example:
 
 When running interactively and connecting to a Snowflake account that utilizes federated authentication or SSO, add
 the parameter `authenticator=externalbrowser`.  Non-interactive execution in a federated authentication or SSO environment
-requires a service account to connect.
+requires a service account to connect.  Connections using an encrypted or unencrypted private key are also supported by 
+specifying the parameter `private_key=path/to/file.p8`.  The key material may be URL-encoded and inlined in the connection URI, 
+for example: `private_key=-----BEGIN+PRIVATE+KEY-----%0AMIIEvAIBA...`
+
 
 Environment variables that can be used to modify Snowflake database integration:
 * `ANYVAR_SNOWFLAKE_STORE_BATCH_LIMIT` - in batch mode, limit VRS object upsert batches to this number; defaults to `100,000`
 * `ANYVAR_SNOWFLAKE_STORE_TABLE_NAME` - the name of the table that stores VRS objects; defaults to `vrs_objects`
 * `ANYVAR_SNOWFLAKE_STORE_MAX_PENDING_BATCHES` - the maximum number of pending batches to allow before blocking; defaults to `50`
+* `ANYVAR_SNOWFLAKE_STORE_PRIVATE_KEY_PASSPHRASE` - the passphrase for an encrypted private key
 
 NOTE: If you choose to create the VRS objects table in advance, the minimal table specification is as follows:
 ```sql
