@@ -86,6 +86,14 @@ Environment variables that can be used to modify Snowflake database integration:
 * `ANYVAR_SNOWFLAKE_STORE_TABLE_NAME` - the name of the table that stores VRS objects; defaults to `vrs_objects`
 * `ANYVAR_SNOWFLAKE_STORE_MAX_PENDING_BATCHES` - the maximum number of pending batches to allow before blocking; defaults to `50`
 
+NOTE: If you choose to create the VRS objects table in advance, the minimal table specification is as follows:
+```sql
+CREATE TABLE ... (
+    vrs_id VARCHAR(500) COLLATE 'utf8',
+    vrs_object VARIANT
+)
+```
+
 NOTE: The Snowflake database connector utilizes a background thread to write VRS objects to the database when operating in batch
 mode (e.g. annotating a VCF file).  Queries and statistics query only against the already committed database state.  Therefore,
 queries issued immediately after a batch operation may not reflect all pending changes.

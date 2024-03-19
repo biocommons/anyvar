@@ -96,7 +96,7 @@ class SnowflakeObjectStore(_Storage):
         # self.table_name is only modifiable via environment variable or direct instantiation of the SnowflakeObjectStore
         create_statement = f"""
         CREATE TABLE {self.table_name} (
-            vrs_id VARCHAR(500) PRIMARY KEY,
+            vrs_id VARCHAR(500) PRIMARY KEY COLLATE 'utf8',
             vrs_object VARIANT
         );
         """  # nosec B608
@@ -470,7 +470,7 @@ class SnowflakeBatchThread(Thread):
         """Bulk inserts the batch values into a TEMP table, then merges into the main {self.table_name} table"""
 
         try:
-            tmp_statement = "CREATE TEMP TABLE IF NOT EXISTS tmp_vrs_objects (vrs_id VARCHAR(500), vrs_object VARCHAR);"
+            tmp_statement = "CREATE TEMP TABLE IF NOT EXISTS tmp_vrs_objects (vrs_id VARCHAR(500) COLLATE 'utf8', vrs_object VARCHAR);"
             insert_statement = "INSERT INTO tmp_vrs_objects (vrs_id, vrs_object) VALUES (?, ?);"
             merge_statement = f"""
                 MERGE INTO {self.table_name} v USING tmp_vrs_objects s ON v.vrs_id = s.vrs_id 
