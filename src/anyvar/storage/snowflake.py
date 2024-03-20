@@ -5,6 +5,8 @@ from threading import Condition, Thread
 from typing import Any, List, Optional, Tuple
 from urllib.parse import urlparse, parse_qs
 
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 import ga4gh.core
 from ga4gh.vrs import models
 import snowflake.connector
@@ -55,6 +57,29 @@ class SnowflakeObjectStore(_Storage):
             key: value[0] if value else None for key, value in parse_qs(parsed_uri.query).items()
         }
 
+        # if there is a private_key param that is a file, read the contents of file
+        if "private_key" in conn_params:
+            pk_value = conn_params["private_key"]
+            p_key = None
+            pk_passphrase = None
+            if "ANYVAR_SNOWFLAKE_STORE_PRIVATE_KEY_PASSPHRASE" in os.environ:
+                pk_passphrase = os.environ["ANYVAR_SNOWFLAKE_STORE_PRIVATE_KEY_PASSPHRASE"].encode()
+            if os.path.isfile(pk_value):
+                with open(pk_value, "rb") as key:
+                    p_key = serialization.load_pem_private_key(
+                        key.read(), password=pk_passphrase, backend=default_backend()
+                    )
+            else:
+                p_key = serialization.load_pem_private_key(
+                    pk_value.encode(), password=pk_passphrase, backend=default_backend()
+                )
+
+            conn_params["private_key"] = p_key.private_bytes(
+                encoding=serialization.Encoding.DER,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+
         # log sanitized connection parameters
         if _logger.isEnabledFor(logging.DEBUG):
             sanitized_conn_params = conn_params.copy()
@@ -96,7 +121,7 @@ class SnowflakeObjectStore(_Storage):
         # self.table_name is only modifiable via environment variable or direct instantiation of the SnowflakeObjectStore
         create_statement = f"""
         CREATE TABLE {self.table_name} (
-            vrs_id VARCHAR(500) PRIMARY KEY,
+            vrs_id VARCHAR(500) PRIMARY KEY COLLATE 'utf8',
             vrs_object VARIANT
         );
         """  # nosec B608
@@ -470,7 +495,7 @@ class SnowflakeBatchThread(Thread):
         """Bulk inserts the batch values into a TEMP table, then merges into the main {self.table_name} table"""
 
         try:
-            tmp_statement = "CREATE TEMP TABLE IF NOT EXISTS tmp_vrs_objects (vrs_id VARCHAR(500), vrs_object VARCHAR);"
+            tmp_statement = "CREATE TEMP TABLE IF NOT EXISTS tmp_vrs_objects (vrs_id VARCHAR(500) COLLATE 'utf8', vrs_object VARCHAR);"
             insert_statement = "INSERT INTO tmp_vrs_objects (vrs_id, vrs_object) VALUES (?, ?);"
             merge_statement = f"""
                 MERGE INTO {self.table_name} v USING tmp_vrs_objects s ON v.vrs_id = s.vrs_id 
