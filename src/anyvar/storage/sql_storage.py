@@ -206,7 +206,7 @@ class SqlStorage(_Storage):
 
     def wait_for_writes(self):
         """Returns once any currently pending database modifications have been completed."""
-        if self.batch_thread is not None:
+        if hasattr(self, "batch_thread") and self.batch_thread is not None:
             # short circuit if the queue is empty
             with self.batch_thread.cond:
                 if not self.batch_thread.pending_batch_list:
@@ -225,12 +225,12 @@ class SqlStorage(_Storage):
 
     def close(self):
         """Stop the batch thread and wait for it to complete"""
-        if self.batch_thread is not None:
+        if hasattr(self, "batch_thread") and self.batch_thread is not None:
             self.batch_thread.stop()
             self.batch_thread.join()
             self.batch_thread = None
         # Terminate connection if necessary.
-        if self.conn_pool is not None:
+        if hasattr(self, "conn_pool") and self.conn_pool is not None:
             self.conn_pool.dispose()
             self.conn_pool = None
 
