@@ -307,7 +307,11 @@ class SqlStorage(_Storage):
         """
         result = db_conn.execute(sql_text(f"SELECT vrs_object FROM {self.table_name}"))
         for row in result:
-            yield json.loads(row[0])
+            if row:
+                value = row["vrs_object"]
+                yield json.loads(value) if value and value is str else value
+            else:
+                yield None
 
     def keys(self):
         """Returns a list of all VRS IDs in the database"""
