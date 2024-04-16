@@ -4,7 +4,7 @@ from typing import Any, List, Optional
 from sqlalchemy import text as sql_text
 from sqlalchemy.engine import Connection
 
-from .sql_storage import SqlStorage
+from .sql_storage import SqlStorage, SqlBatchAddMode
 
 _logger = logging.getLogger(__name__)
 
@@ -17,6 +17,7 @@ class SnowflakeObjectStore(SqlStorage):
         db_url: str,
         batch_limit: Optional[int] = None,
         table_name: Optional[str] = None,
+        batch_add_mode: Optional[SqlBatchAddMode] = None,
         max_pending_batches: Optional[int] = None,
         flush_on_batchctx_exit: Optional[bool] = None,
     ):
@@ -25,6 +26,7 @@ class SnowflakeObjectStore(SqlStorage):
             db_url.replace(".snowflakecomputing.com", ""),
             batch_limit,
             table_name,
+            batch_add_mode,
             max_pending_batches,
             flush_on_batchctx_exit,
         )
@@ -60,10 +62,24 @@ class SnowflakeObjectStore(SqlStorage):
         insert_statement = (
             "INSERT INTO tmp_vrs_objects (vrs_id, vrs_object) VALUES (:vrs_id, :vrs_object)"
         )
-        merge_statement = f"""
-            MERGE INTO {self.table_name} v USING tmp_vrs_objects s ON v.vrs_id = s.vrs_id 
-             WHEN NOT MATCHED THEN INSERT (vrs_id, vrs_object) VALUES (s.vrs_id, PARSE_JSON(s.vrs_object))
-            """  # nosec B608
+        if self.batch_add_mode == SqlBatchAddMode.insert:
+            merge_statement = f"""
+                INSERT INO {self.table_name} (vrs_id, vrs_object)
+                SELECT vrs_id, PARSE_JSON(vrs_object) FROM tmp_vrs_objects
+            """
+        elif self.batch_add_mode == SqlBatchAddMode.insert_notin:
+            merge_statement = f"""
+                INSERT INTO {self.table_name} (vrs_id, vrs_object)
+                SELECT t.vrs_id, PARSE_JSON(t.vrs_object)
+                  FROM tmp_vrs_objects t
+                  LEFT OUTER JOIN {self.table_name} v ON v.vrs_id = t.vrs_id
+                 WHERE v.vrs_id IS NULL
+            """
+        else:
+            merge_statement = f"""
+                MERGE INTO {self.table_name} v USING tmp_vrs_objects s ON v.vrs_id = s.vrs_id 
+                WHEN NOT MATCHED THEN INSERT (vrs_id, vrs_object) VALUES (s.vrs_id, PARSE_JSON(s.vrs_object))
+                """  # nosec B608
         drop_statement = "DROP TABLE tmp_vrs_objects"
 
         row_data = [

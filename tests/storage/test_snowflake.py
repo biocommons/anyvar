@@ -5,6 +5,7 @@ and the async batch insertion
 from sqlalchemy_mocks import MockEngine, MockStmtSequence, MockVRSObject
 
 from anyvar.restapi.schema import VariationStatisticType
+from anyvar.storage.sql_storage import SqlBatchAddMode
 from anyvar.storage.snowflake import SnowflakeObjectStore
 
 def test_create_schema(mocker):
@@ -123,7 +124,7 @@ def test_add_many_items(mocker):
         .add_stmt(drop_statement, None, [("Table dropped",)])
     )
 
-    sf = SnowflakeObjectStore("snowflake://account/?param=value", 2, "vrs_objects2", 4, False)
+    sf = SnowflakeObjectStore("snowflake://account/?param=value", 2, "vrs_objects2", SqlBatchAddMode.merge, 4, False)
     with sf.batch_manager(sf):
         sf.wait_for_writes()
         assert sf.num_pending_batches() == 0
@@ -145,6 +146,77 @@ def test_add_many_items(mocker):
     assert sf.num_pending_batches() > 0
     sf.close()
     assert sf.num_pending_batches() == 0
+    assert mock_eng.return_value.were_all_execd()
+
+def test_batch_add_mode_insert_notin(mocker):
+    tmp_statement = "CREATE TEMP TABLE IF NOT EXISTS tmp_vrs_objects (vrs_id VARCHAR(500), vrs_object VARCHAR)"
+    insert_statement = "INSERT INTO tmp_vrs_objects (vrs_id, vrs_object) VALUES (:vrs_id, :vrs_object)"
+    merge_statement = f"""
+        INSERT INTO vrs_objects2 (vrs_id, vrs_object)
+        SELECT t.vrs_id, PARSE_JSON(t.vrs_object)
+          FROM tmp_vrs_objects t
+          LEFT OUTER JOIN vrs_objects2 v ON v.vrs_id = t.vrs_id
+         WHERE v.vrs_id IS NULL
+        """
+    drop_statement = "DROP TABLE tmp_vrs_objects"
+
+    vrs_id_object_pairs = [
+        ("ga4gh:VA.01", MockVRSObject('01')),
+        ("ga4gh:VA.02", MockVRSObject('02')),
+    ]
+
+    mocker.patch("ga4gh.core.is_pydantic_instance", return_value=True)
+    mock_eng = mocker.patch("anyvar.storage.sql_storage.create_engine")
+    mock_eng.return_value = MockEngine()
+    mock_eng.return_value.add_mock_stmt_sequence(MockStmtSequence()
+        .add_stmt("SELECT COUNT(*) FROM information_schema.tables WHERE table_catalog = CURRENT_DATABASE() AND table_schema = CURRENT_SCHEMA() AND UPPER(table_name) = UPPER('vrs_objects2')", None, [(1,)])
+        # Batch 1
+        .add_stmt(tmp_statement, None, [("Table created",)])
+        .add_stmt(insert_statement, list(({ "vrs_id": pair[0], "vrs_object": pair[1].to_json() }) for pair in vrs_id_object_pairs[0:2]), [(2,)], 5)
+        .add_stmt(merge_statement, None, [(2,)])
+        .add_stmt(drop_statement, None, [("Table dropped",)])
+    )
+
+    sf = SnowflakeObjectStore("snowflake://account/?param=value", 2, "vrs_objects2", SqlBatchAddMode.insert_notin)
+    with sf.batch_manager(sf):
+        sf[vrs_id_object_pairs[0][0]] = vrs_id_object_pairs[0][1]
+        sf[vrs_id_object_pairs[1][0]] = vrs_id_object_pairs[1][1]
+
+    sf.close()
+    assert mock_eng.return_value.were_all_execd()
+
+def test_batch_add_mode_insert(mocker):
+    tmp_statement = "CREATE TEMP TABLE IF NOT EXISTS tmp_vrs_objects (vrs_id VARCHAR(500), vrs_object VARCHAR)"
+    insert_statement = "INSERT INTO tmp_vrs_objects (vrs_id, vrs_object) VALUES (:vrs_id, :vrs_object)"
+    merge_statement = f"""
+        INSERT INO vrs_objects2 (vrs_id, vrs_object)
+        SELECT vrs_id, PARSE_JSON(vrs_object) FROM tmp_vrs_objects
+        """
+    drop_statement = "DROP TABLE tmp_vrs_objects"
+
+    vrs_id_object_pairs = [
+        ("ga4gh:VA.01", MockVRSObject('01')),
+        ("ga4gh:VA.02", MockVRSObject('02')),
+    ]
+
+    mocker.patch("ga4gh.core.is_pydantic_instance", return_value=True)
+    mock_eng = mocker.patch("anyvar.storage.sql_storage.create_engine")
+    mock_eng.return_value = MockEngine()
+    mock_eng.return_value.add_mock_stmt_sequence(MockStmtSequence()
+        .add_stmt("SELECT COUNT(*) FROM information_schema.tables WHERE table_catalog = CURRENT_DATABASE() AND table_schema = CURRENT_SCHEMA() AND UPPER(table_name) = UPPER('vrs_objects2')", None, [(1,)])
+        # Batch 1
+        .add_stmt(tmp_statement, None, [("Table created",)])
+        .add_stmt(insert_statement, list(({ "vrs_id": pair[0], "vrs_object": pair[1].to_json() }) for pair in vrs_id_object_pairs[0:2]), [(2,)], 5)
+        .add_stmt(merge_statement, None, [(2,)])
+        .add_stmt(drop_statement, None, [("Table dropped",)])
+    )
+
+    sf = SnowflakeObjectStore("snowflake://account/?param=value", 2, "vrs_objects2", SqlBatchAddMode.insert)
+    with sf.batch_manager(sf):
+        sf[vrs_id_object_pairs[0][0]] = vrs_id_object_pairs[0][1]
+        sf[vrs_id_object_pairs[1][0]] = vrs_id_object_pairs[1][1]
+
+    sf.close()
     assert mock_eng.return_value.were_all_execd()
 
 def test_insertion_count(mocker):

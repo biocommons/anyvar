@@ -5,7 +5,7 @@ from typing import Any, Optional, List
 from sqlalchemy import text as sql_text
 from sqlalchemy.engine import Connection
 
-from .sql_storage import SqlStorage
+from .sql_storage import SqlStorage, SqlBatchAddMode
 
 silos = "locations alleles haplotypes genotypes variationsets relations texts".split()
 
@@ -20,6 +20,7 @@ class PostgresObjectStore(SqlStorage):
         db_url: str,
         batch_limit: Optional[int] = None,
         table_name: Optional[str] = None,
+        batch_add_mode: Optional[SqlBatchAddMode] = None,
         max_pending_batches: Optional[int] = None,
         flush_on_batchctx_exit: Optional[bool] = None,
     ):
@@ -28,6 +29,7 @@ class PostgresObjectStore(SqlStorage):
             db_url,
             batch_limit,
             table_name,
+            batch_add_mode,
             max_pending_batches,
             flush_on_batchctx_exit,
         )
@@ -63,7 +65,18 @@ class PostgresObjectStore(SqlStorage):
         tmp_statement = (
             f"CREATE TEMP TABLE tmp_table (LIKE {self.table_name} INCLUDING DEFAULTS)"  # noqa: E501
         )
-        insert_statement = f"INSERT INTO {self.table_name} SELECT * FROM tmp_table ON CONFLICT DO NOTHING"  # noqa: E501
+        if self.batch_add_mode == SqlBatchAddMode.insert:
+            insert_statement = f"INSERT INO {self.table_name} SELECT * FROM tmp_table"
+        elif self.batch_add_mode == SqlBatchAddMode.insert_notin:
+            insert_statement = f"""
+                INSERT INTO {self.table_name}
+                SELECT *
+                  FROM tmp_table t
+                  LEFT OUTER JOIN {self.table_name} v ON v.vrs_id = t.vrs_id
+                 WHERE v.vrs_id IS NULL
+            """
+        else:
+            insert_statement = f"INSERT INTO {self.table_name} SELECT * FROM tmp_table ON CONFLICT DO NOTHING"  # noqa: E501
         drop_statement = "DROP TABLE tmp_table"
         db_conn.execute(sql_text(tmp_statement))
         with db_conn.connection.cursor() as cur:
