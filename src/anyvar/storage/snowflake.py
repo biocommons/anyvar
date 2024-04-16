@@ -18,6 +18,7 @@ class SnowflakeObjectStore(SqlStorage):
         batch_limit: Optional[int] = None,
         table_name: Optional[str] = None,
         max_pending_batches: Optional[int] = None,
+        flush_on_batchctx_exit: Optional[bool] = None,
     ):
         SqlStorage.__init__(
             self,
@@ -25,6 +26,7 @@ class SnowflakeObjectStore(SqlStorage):
             batch_limit,
             table_name,
             max_pending_batches,
+            flush_on_batchctx_exit,
         )
 
     def create_schema(self, db_conn: Connection):

@@ -101,7 +101,7 @@ def test_add_many_items(mocker):
         .add_stmt(drop_statement, None, [("Table dropped",)])
     )
 
-    sf = PostgresObjectStore("postgres://account/?param=value", 2, "vrs_objects2", 4)
+    sf = PostgresObjectStore("postgres://account/?param=value", 2, "vrs_objects2", 4, False)
     with sf.batch_manager(sf):
         sf.wait_for_writes()
         assert sf.num_pending_batches() == 0

@@ -29,6 +29,7 @@ class SqlStorage(_Storage):
         batch_limit: Optional[int] = None,
         table_name: Optional[str] = None,
         max_pending_batches: Optional[int] = None,
+        flush_on_batchctx_exit: Optional[bool] = None,
     ):
         """Initialize DB handler.
 
@@ -39,6 +40,8 @@ class SqlStorage(_Storage):
             ANYVAR_SQL_STORE_TABLE_NAME environment variable
         :param max_pending_batches: maximum number of pending batches allowed before batch queueing blocks; can
             be set with ANYVAR_SQL_STORE_MAX_PENDING_BATCHES environment variable
+        :param flush_on_batchctx_exit: whether to call `wait_for_writes()` when exiting the batch manager context;
+            defaults to True; can be set with the ANYVAR_SQL_STORE_FLUSH_ON_BATCHCTX_EXIT environment variable
 
         See https://docs.sqlalchemy.org/en/20/core/connections.html for connection URL info
         """
@@ -59,6 +62,15 @@ class SqlStorage(_Storage):
         self.batch_insert_values = []
         self.batch_limit = batch_limit or int(
             os.environ.get("ANYVAR_SQL_STORE_BATCH_LIMIT", "100000")
+        )
+        self.flush_on_batchctx_exit = (
+            bool(
+                os.environ.get(
+                    "ANYVAR_SQL_STORE_FLUSH_ON_BATCHCTX_EXIT", "True"
+                )
+            )
+            if flush_on_batchctx_exit is None
+            else flush_on_batchctx_exit
         )
         max_pending_batches = max_pending_batches or int(
             os.environ.get("ANYVAR_SQL_STORE_MAX_PENDING_BATCHES", "50")
@@ -394,6 +406,8 @@ class SqlStorageBatchManager(_BatchManager):
         self._storage.batch_thread.queue_batch(self._storage.batch_insert_values)
         self._storage.batch_mode = False
         self._storage.batch_insert_values = None
+        if self._storage.flush_on_batchctx_exit:
+            self._storage.wait_for_writes()
         return True
 
 
