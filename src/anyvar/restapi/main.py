@@ -80,7 +80,7 @@ def get_info():
 
 @app.get(
     "/locations/{location_id}",
-    response_model=GetSequenceLocationResponse,
+    # response_model=GetSequenceLocationResponse,
     response_model_exclude_none=True,
     summary="Retrieve sequence location",
     description="Retrieve registered sequence location by ID",
@@ -255,7 +255,7 @@ async def annotate_vcf(
 
 @app.get(
     "/variation/{variation_id}",
-    response_model=GetVariationResponse,
+    # response_model=GetVariationResponse,
     response_model_exclude_none=True,
     operation_id="getVariation",
     summary="Retrieve a variation object",
@@ -288,7 +288,7 @@ def get_variation_by_id(
 
 @app.get(
     "/search",
-    response_model=SearchResponse,
+    # response_model=SearchResponse,
     response_model_exclude_none=True,
     operation_id="searchVariations",
     summary="Search for registered variations by genomic region",
