@@ -7,11 +7,13 @@
       "allele_response": {
         "messages": [],
         "object": {
+          "digest": "K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU",
           "id": "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU",
           "location": {
+            "digest": "01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
             "id": "ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
-            "end": 87894077,
             "start": 87894076,
+            "end": 87894077,
             "sequenceReference": {
               "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
               "type": "SequenceReference"
@@ -27,32 +29,34 @@
       },
       "location_id": "ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy"
     },
-    "ga4gh:VA.VVeNNW6VvZ8e6Nk0O6ZFZiGjIqvgGYTw": {
+    "ga4gh:VA.1FzYrqG-7jB3Wr46eIL_L5BWElQZEB7i": {
       "params": {
         "definition": "NM_000551.3:c.1A>T"
       },
       "allele_response": {
         "messages": [],
         "object": {
-          "id": "ga4gh:VA.VVeNNW6VvZ8e6Nk0O6ZFZiGjIqvgGYTw",
-          "type": "Allele",
+          "digest": "1FzYrqG-7jB3Wr46eIL_L5BWElQZEB7i",
+          "id": "ga4gh:VA.1FzYrqG-7jB3Wr46eIL_L5BWElQZEB7i",
           "location": {
-            "id": "ga4gh:SL._mjWpxiwXzBP5TA1HZmjWaxci48-v792",
-            "type": "SequenceLocation",
+            "digest": "WoWgQNl0L6EkWkW_xRl0TSwzmzh-Z3FD",
+            "id": "ga4gh:SL.WoWgQNl0L6EkWkW_xRl0TSwzmzh-Z3FD",
+            "start": 213,
+            "end": 214,
             "sequenceReference": {
               "refgetAccession": "SQ.v_QTc1p-MUYdgrRv4LMT6ByXIOsdw3C_",
               "type": "SequenceReference"
             },
-            "start": 0,
-            "end": 1
+            "type": "SequenceLocation"
           },
           "state": {
             "type": "LiteralSequenceExpression",
             "sequence": "T"
-          }
+          },
+          "type": "Allele"
         }
       },
-      "location_id": "ga4gh:SL._mjWpxiwXzBP5TA1HZmjWaxci48-v792"
+      "location_id": "ga4gh:SL.WoWgQNl0L6EkWkW_xRl0TSwzmzh-Z3FD"
     }
   },
   "copy_numbers": {
@@ -65,8 +69,10 @@
       "copy_number_response": {
         "messages": [],
         "object": {
+          "digest": "TvAhuGK6HYf53mXoUnon60cZ7DC_UgM3",
           "id": "ga4gh:CX.TvAhuGK6HYf53mXoUnon60cZ7DC_UgM3",
           "location": {
+            "digest": "4akcjXlbAu4xBKnxjOL_b4DM_20HOCA3",
             "id": "ga4gh:SL.4akcjXlbAu4xBKnxjOL_b4DM_20HOCA3",
             "start": 26440968,
             "end": 26443305,
@@ -91,8 +97,10 @@
       "copy_number_response": {
         "messages": [],
         "object": {
+          "digest": "QnU97C-cRW431O9qWia9UCVRBDvGDH7I",
           "id": "ga4gh:CN.QnU97C-cRW431O9qWia9UCVRBDvGDH7I",
           "location": {
+            "digest": "4akcjXlbAu4xBKnxjOL_b4DM_20HOCA3",
             "id": "ga4gh:SL.4akcjXlbAu4xBKnxjOL_b4DM_20HOCA3",
             "start": 26440968,
             "end": 26443305,
