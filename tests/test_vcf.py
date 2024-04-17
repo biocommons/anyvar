@@ -49,7 +49,7 @@ def test_vcf_registration_default_assembly(client, sample_vcf_grch38):
     resp = client.put("/vcf", files={"vcf": ("test.vcf", sample_vcf_grch38)})
     assert resp.status_code == HTTPStatus.OK
     assert (
-        b"VRS_Allele_IDs=ga4gh:VA.8MVWsPFeScEY_19U32k4LVI_3lEOKGUL,ga4gh:VA.l7crC9qxgcDtexejZkfp6yPNevEMnZ5y"
+        b"VRS_Allele_IDs=ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe,ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
         in resp.content
     )
 
@@ -58,7 +58,7 @@ def test_vcf_registration_grch38(client, sample_vcf_grch38):
     resp = client.put("/vcf", params={"assembly": "GRCh38"}, files={"vcf": ("test.vcf", sample_vcf_grch38)})
     assert resp.status_code == HTTPStatus.OK
     assert (
-        b"VRS_Allele_IDs=ga4gh:VA.8MVWsPFeScEY_19U32k4LVI_3lEOKGUL,ga4gh:VA.l7crC9qxgcDtexejZkfp6yPNevEMnZ5y"
+        b"VRS_Allele_IDs=ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe,ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
         in resp.content
     )
 
@@ -106,7 +106,7 @@ def test_vcf_registration_grch37(client, sample_vcf_grch37):
     resp = client.put("/vcf", params={"assembly": "GRCh37"}, files={"vcf": ("test.vcf", sample_vcf_grch37)})
     assert resp.status_code == HTTPStatus.OK
     assert (
-        b"VRS_Allele_IDs=ga4gh:VA.R-tU3agvAtsRD59MXZaCymsVE4yjMpt3,ga4gh:VA.f_EzEO6CLZmubm1gbL20F9EV8GZPLAJz"
+        b"VRS_Allele_IDs=ga4gh:VA.iwk6beQfvJGkeW33NBbSqalr29XkDBE5,ga4gh:VA.CNSRLQlBrly3rRcdldN85dw2Tjos7Cas"
         in resp.content
     )
 
