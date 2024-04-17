@@ -100,14 +100,22 @@ class SnowflakeObjectStore(SqlStorage):
                 """  # nosec B608
         drop_statement = "DROP TABLE tmp_vrs_objects"
 
-        row_data = [
-            ({"vrs_id": name, "vrs_object": json.dumps(value.model_dump(exclude_none=True))})
-            for name, value in items
-        ]
+        # create row data removing duplicates
+        #   because if there are duplicates in the source of the merge
+        #   Snowflake inserts duplicate rows
+        row_data = []
+        row_keys = set()
+        for name, value in items:
+            if name not in row_keys:
+                row_keys.add(name)
+                row_data.append((name, json.dumps(value.model_dump(exclude_none=True))))
         _logger.info("Created row data for insert, first item is %s", row_data[0])
 
         db_conn.execute(sql_text(tmp_statement))
-        db_conn.execute(sql_text(insert_statement), row_data)
+        # NB - enclosing the insert statement in sql_text() 
+        #  causes a "Bind variable ? not set" error from Snowflake
+        # It is unclear why this is that case
+        db_conn.execute(insert_statement, row_data)
         db_conn.execute(sql_text(merge_statement))
         db_conn.execute(sql_text(drop_statement))
 
