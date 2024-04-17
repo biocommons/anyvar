@@ -110,7 +110,8 @@ class MockConnection:
                 self.last_result = result
                 return result
         
-        raise Exception(f"no mock statement found for {str(cmd)} with params {params}")
+        norm_sql = re.sub(r'\s+', ' ', str(cmd)).strip()
+        raise Exception(f"no mock statement found for {norm_sql} with params {params}")
     
     def copy_from(self, fd, table_name, columns=None):
         data_as_str = str(fd.read())

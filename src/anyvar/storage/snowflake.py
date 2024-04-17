@@ -2,6 +2,7 @@ from enum import auto, StrEnum
 import json
 import logging
 import os
+import snowflake.connector
 from typing import Any, List, Optional
 from sqlalchemy import text as sql_text
 from sqlalchemy.engine import Connection
@@ -9,6 +10,8 @@ from sqlalchemy.engine import Connection
 from .sql_storage import SqlStorage
 
 _logger = logging.getLogger(__name__)
+
+snowflake.connector.paramstyle="qmark"
 
 class SnowflakeBatchAddMode(StrEnum):
     merge = auto()
@@ -64,11 +67,11 @@ class SnowflakeObjectStore(SqlStorage):
 
     def add_one_item(self, db_conn: Connection, name: str, value: Any):
         insert_query = f"""
-            MERGE INTO {self.table_name} t USING (SELECT :vrs_id AS vrs_id, :vrs_object AS vrs_object) s ON t.vrs_id = s.vrs_id
+            MERGE INTO {self.table_name} t USING (SELECT ? AS vrs_id, ? AS vrs_object) s ON t.vrs_id = s.vrs_id
             WHEN NOT MATCHED THEN INSERT (vrs_id, vrs_object) VALUES (s.vrs_id, PARSE_JSON(s.vrs_object))
             """  # nosec B608
         value_json = json.dumps(value.model_dump(exclude_none=True))
-        db_conn.execute(insert_query, {"vrs_id": name, "vrs_object": value_json})
+        db_conn.execute(insert_query, (name, value_json))
         _logger.debug("Inserted item %s to %s", name, self.table_name)
 
     def add_many_items(self, db_conn: Connection, items: list):
@@ -144,15 +147,15 @@ class SnowflakeObjectStore(SqlStorage):
         query_str = f"""
             SELECT vrs_object 
               FROM {self.table_name}
-             WHERE vrs_object:type = :type 
+             WHERE vrs_object:type = ?
                AND vrs_object:location IN (
                 SELECT vrs_id FROM {self.table_name}
-                 WHERE vrs_object:start::INTEGER >= :start
-                   AND vrs_object:end::INTEGER <= :end
-                   AND vrs_object:sequenceReference:refgetAccession = :refgetAccession)
+                 WHERE vrs_object:start::INTEGER >= ?
+                   AND vrs_object:end::INTEGER <= ?
+                   AND vrs_object:sequenceReference:refgetAccession = ?)
             """  # nosec B608
         results = db_conn.execute(
             query_str,
-            {"type": type, "start": start, "end": stop, "refgetAccession": refget_accession},
+            (type, start, stop, refget_accession),
         )
         return [json.loads(row[0]) for row in results if row]

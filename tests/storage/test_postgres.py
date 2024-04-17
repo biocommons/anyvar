@@ -1,6 +1,8 @@
 """
 Test Postgres specific storage integration methods
 and the async batch insertion
+
+Uses mocks for database integration
 """
 import os
 from sqlalchemy_mocks import MockEngine, MockStmtSequence, MockVRSObject
@@ -8,12 +10,14 @@ from sqlalchemy_mocks import MockEngine, MockStmtSequence, MockVRSObject
 from anyvar.restapi.schema import VariationStatisticType
 from anyvar.storage.postgres import PostgresObjectStore
 
+vrs_object_table_name = os.environ.get("ANYVAR_SQL_STORE_TABLE_NAME", "vrs_objects")
+
 def test_create_schema(mocker):
     mock_eng = mocker.patch("anyvar.storage.sql_storage.create_engine")
     mock_eng.return_value = MockEngine()
     mock_eng.return_value.add_mock_stmt_sequence(MockStmtSequence()
-        .add_stmt("SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')", None, [(False,)])
-        .add_stmt("CREATE TABLE vrs_objects ( vrs_id TEXT PRIMARY KEY, vrs_object JSONB )", None, [("Table created",)])
+        .add_stmt(f"SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = '{vrs_object_table_name}')", None, [(False,)])
+        .add_stmt(f"CREATE TABLE {vrs_object_table_name} ( vrs_id TEXT PRIMARY KEY, vrs_object JSONB )", None, [("Table created",)])
     )
     sf = PostgresObjectStore("postgres://account/?param=value")
     sf.close()
@@ -23,7 +27,7 @@ def test_create_schema_exists(mocker):
     mock_eng = mocker.patch("anyvar.storage.sql_storage.create_engine")
     mock_eng.return_value = MockEngine()
     mock_eng.return_value.add_mock_stmt_sequence(MockStmtSequence()
-        .add_stmt("SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')", None, [(True,)])
+        .add_stmt(f"SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = '{vrs_object_table_name}')", None, [(True,)])
     )
     sf = PostgresObjectStore("postgres://account/?param=value")
     sf.close()
@@ -34,10 +38,10 @@ def test_add_one_item(mocker):
     mock_eng = mocker.patch("anyvar.storage.sql_storage.create_engine")
     mock_eng.return_value = MockEngine()
     mock_eng.return_value.add_mock_stmt_sequence(MockStmtSequence()
-        .add_stmt("SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')", None, [(True,)])
+        .add_stmt(f"SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = '{vrs_object_table_name}')", None, [(True,)])
         .add_stmt(
-            """
-            INSERT INTO vrs_objects (vrs_id, vrs_object) VALUES (:vrs_id, :vrs_object) ON CONFLICT DO NOTHING
+            f"""
+            INSERT INTO {vrs_object_table_name} (vrs_id, vrs_object) VALUES (:vrs_id, :vrs_object) ON CONFLICT DO NOTHING
             """, 
             {"vrs_id": "ga4gh:VA.01", "vrs_object": MockVRSObject('01').to_json()}, [(1,)])
     )
@@ -129,11 +133,11 @@ def test_insertion_count(mocker):
     mock_eng = mocker.patch("anyvar.storage.sql_storage.create_engine")
     mock_eng.return_value = MockEngine()
     mock_eng.return_value.add_mock_stmt_sequence(MockStmtSequence()
-        .add_stmt("SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')", None, [(True,)])
+        .add_stmt(f"SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = '{vrs_object_table_name}')", None, [(True,)])
         .add_stmt(
-            """
+            f"""
             SELECT COUNT(*) AS c 
-              FROM vrs_objects
+              FROM {vrs_object_table_name}
              WHERE LENGTH(vrs_object -> 'state' ->> 'sequence') > 1
             """,
             None, [(12,)])
@@ -147,11 +151,11 @@ def test_substitution_count(mocker):
     mock_eng = mocker.patch("anyvar.storage.sql_storage.create_engine")
     mock_eng.return_value = MockEngine()
     mock_eng.return_value.add_mock_stmt_sequence(MockStmtSequence()
-        .add_stmt("SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')", None, [(True,)])
+        .add_stmt(f"SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = '{vrs_object_table_name}')", None, [(True,)])
         .add_stmt(
-            """
+            f"""
             SELECT COUNT(*) AS c 
-              FROM vrs_objects
+              FROM {vrs_object_table_name}
              WHERE LENGTH(vrs_object -> 'state' ->> 'sequence') = 1
             """,
             None, [(13,)])
@@ -165,11 +169,11 @@ def test_deletion_count(mocker):
     mock_eng = mocker.patch("anyvar.storage.sql_storage.create_engine")
     mock_eng.return_value = MockEngine()
     mock_eng.return_value.add_mock_stmt_sequence(MockStmtSequence()
-        .add_stmt("SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')", None, [(True,)])
+        .add_stmt(f"SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = '{vrs_object_table_name}')", None, [(True,)])
         .add_stmt(
-            """
+            f"""
             SELECT COUNT(*) AS c 
-              FROM vrs_objects
+              FROM {vrs_object_table_name}
              WHERE LENGTH(vrs_object -> 'state' ->> 'sequence') = 0
             """,
             None, [(14,)])
@@ -183,14 +187,14 @@ def test_search_vrs_objects(mocker):
     mock_eng = mocker.patch("anyvar.storage.sql_storage.create_engine")
     mock_eng.return_value = MockEngine()
     mock_eng.return_value.add_mock_stmt_sequence(MockStmtSequence()
-        .add_stmt("SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')", None, [(True,)])
+        .add_stmt(f"SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = '{vrs_object_table_name}')", None, [(True,)])
         .add_stmt(
-            """
+            f"""
             SELECT vrs_object 
-              FROM vrs_objects
+              FROM {vrs_object_table_name}
              WHERE vrs_object->>'type' = %s 
                AND vrs_object->>'location' IN (
-                SELECT vrs_id FROM vrs_objects
+                SELECT vrs_id FROM {vrs_object_table_name}
                  WHERE CAST (vrs_object->>'start' AS INTEGER) >= %s
                    AND CAST (vrs_object->>'end' AS INTEGER) <= %s
                    AND vrs_object->'sequenceReference'->>'refgetAccession' = %s)
