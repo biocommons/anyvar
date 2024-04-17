@@ -185,7 +185,7 @@ class SqlStorage(_Storage):
         )
         if result:
             value = result.scalar()
-            return json.loads(value) if value and value is str else value
+            return json.loads(value) if value and isinstance(value, str) else value
         else:
             return None
 
@@ -323,7 +323,7 @@ class SqlStorage(_Storage):
         for row in result:
             if row:
                 value = row["vrs_object"]
-                yield json.loads(value) if value and value is str else value
+                yield json.loads(value) if value and isinstance(value, str) else value
             else:
                 yield None
 
