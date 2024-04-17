@@ -129,12 +129,12 @@ class PostgresObjectStore(SqlStorage):
     def search_vrs_objects(
         self, db_conn: Connection, type: str, refget_accession: str, start: int, stop: int
     ) -> List:
-        query_str = """
+        query_str = f"""
             SELECT vrs_object 
-              FROM vrs_objects
+              FROM {self.table_name}
              WHERE vrs_object->>'type' = %s 
                AND vrs_object->>'location' IN (
-                SELECT vrs_id FROM vrs_objects
+                SELECT vrs_id FROM {self.table_name}
                  WHERE CAST (vrs_object->>'start' AS INTEGER) >= %s
                    AND CAST (vrs_object->>'end' AS INTEGER) <= %s
                    AND vrs_object->'sequenceReference'->>'refgetAccession' = %s)
