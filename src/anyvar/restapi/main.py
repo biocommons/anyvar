@@ -375,9 +375,3 @@ def get_stats(
             detail="Stats not available for current storage backend",
         )
     return {"variation_type": variation_type, "count": count}
-
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=8000)
