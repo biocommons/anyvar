@@ -100,11 +100,16 @@ def get_location_by_id(
     try:
         location = av.get_object(location_id)
     except KeyError:
-        return HTTPException(status_code=HTTPStatus.NOT_FOUND)
+        return HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail=f"Location {location_id} not found"
+        )
+
     if location:
         return {"location": location.model_dump(exclude_none=True)}
     else:
-        return {"location": None}
+        return HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail=f"Location {location_id} not found"
+        )
 
 
 @app.put(
@@ -273,17 +278,19 @@ def get_variation_by_id(
     :raise HTTPException: if no variation matches provided ID
     """
     av: AnyVar = request.app.state.anyvar
-
     try:
         variation = av.get_object(variation_id, deref=True)
     except KeyError:
-        raise HTTPException(
+        return HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail=f"Variation {variation_id} not found"
         )
 
-    result = {"messages": [], "data": variation.model_dump(exclude_none=True)}
-
-    return result
+    if variation:
+        return {"messages": [], "data": variation.model_dump(exclude_none=True)}
+    else:
+        return HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail=f"Variation {variation_id} not found"
+        )
 
 
 @app.get(
@@ -368,3 +375,9 @@ def get_stats(
             detail="Stats not available for current storage backend",
         )
     return {"variation_type": variation_type, "count": count}
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)
