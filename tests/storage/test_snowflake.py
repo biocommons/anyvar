@@ -2,11 +2,11 @@
 Test Snowflake specific storage integration methods
 and the async batch insertion
 """
+import os
 from sqlalchemy_mocks import MockEngine, MockStmtSequence, MockVRSObject
 
 from anyvar.restapi.schema import VariationStatisticType
-from anyvar.storage.sql_storage import SqlBatchAddMode
-from anyvar.storage.snowflake import SnowflakeObjectStore
+from anyvar.storage.snowflake import SnowflakeObjectStore, SnowflakeBatchAddMode
 
 def test_create_schema(mocker):
     mock_eng = mocker.patch("anyvar.storage.sql_storage.create_engine")
@@ -124,7 +124,7 @@ def test_add_many_items(mocker):
         .add_stmt(drop_statement, None, [("Table dropped",)])
     )
 
-    sf = SnowflakeObjectStore("snowflake://account/?param=value", 2, "vrs_objects2", SqlBatchAddMode.merge, 4, False)
+    sf = SnowflakeObjectStore("snowflake://account/?param=value", 2, "vrs_objects2", 4, False, SnowflakeBatchAddMode.merge)
     with sf.batch_manager(sf):
         sf.wait_for_writes()
         assert sf.num_pending_batches() == 0
@@ -177,7 +177,7 @@ def test_batch_add_mode_insert_notin(mocker):
         .add_stmt(drop_statement, None, [("Table dropped",)])
     )
 
-    sf = SnowflakeObjectStore("snowflake://account/?param=value", 2, "vrs_objects2", SqlBatchAddMode.insert_notin)
+    sf = SnowflakeObjectStore("snowflake://account/?param=value", 2, "vrs_objects2", None, None, SnowflakeBatchAddMode.insert_notin)
     with sf.batch_manager(sf):
         sf[vrs_id_object_pairs[0][0]] = vrs_id_object_pairs[0][1]
         sf[vrs_id_object_pairs[1][0]] = vrs_id_object_pairs[1][1]
@@ -211,7 +211,7 @@ def test_batch_add_mode_insert(mocker):
         .add_stmt(drop_statement, None, [("Table dropped",)])
     )
 
-    sf = SnowflakeObjectStore("snowflake://account/?param=value", 2, "vrs_objects2", SqlBatchAddMode.insert)
+    sf = SnowflakeObjectStore("snowflake://account/?param=value", 2, "vrs_objects2", None, None, SnowflakeBatchAddMode.insert)
     with sf.batch_manager(sf):
         sf[vrs_id_object_pairs[0][0]] = vrs_id_object_pairs[0][1]
         sf[vrs_id_object_pairs[1][0]] = vrs_id_object_pairs[1][1]

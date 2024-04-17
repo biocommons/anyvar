@@ -1,5 +1,4 @@
 from abc import abstractmethod
-from enum import auto, StrEnum
 import json
 import logging
 import os
@@ -17,11 +16,6 @@ from . import _BatchManager, _Storage
 
 _logger = logging.getLogger(__name__)
 
-class SqlBatchAddMode(StrEnum):
-    merge = auto()
-    insert_notin = auto()
-    insert = auto()
-
 class SqlStorage(_Storage):
     """Relational database storage backend.  Uses SQLAlchemy as a DB abstraction layer and pool.
     Methods that utilize straightforward SQL are implemented in this class.  Methods that require
@@ -33,7 +27,6 @@ class SqlStorage(_Storage):
         db_url: str,
         batch_limit: Optional[int] = None,
         table_name: Optional[str] = None,
-        batch_add_mode: Optional[SqlBatchAddMode] = None,
         max_pending_batches: Optional[int] = None,
         flush_on_batchctx_exit: Optional[bool] = None,
     ):
@@ -44,9 +37,6 @@ class SqlStorage(_Storage):
             ANYVAR_SQL_STORE_BATCH_LIMIT environment variable
         :param table_name: table name for storing VRS objects, defaults to `vrs_objects`; can be set with
             ANYVAR_SQL_STORE_TABLE_NAME environment variable
-        :param batch_add_mode: what type of SQL statement to use when adding many items at one; one of `merge`
-            (no duplicates), `insert_notin` (try to avoid duplicates) or `insert` (don't worry about duplicates);
-            defaults to `merge`; can be set with the ANYVAR_SQL_STORE_BATCH_ADD_MODE
         :param max_pending_batches: maximum number of pending batches allowed before batch queueing blocks; can
             be set with ANYVAR_SQL_STORE_MAX_PENDING_BATCHES environment variable
         :param flush_on_batchctx_exit: whether to call `wait_for_writes()` when exiting the batch manager context;
@@ -68,11 +58,6 @@ class SqlStorage(_Storage):
         # setup batch handling
         self.batch_manager = SqlStorageBatchManager
         self.batch_mode = False
-        self.batch_add_mode = batch_add_mode or os.environ.get(
-            "ANYVAR_SQL_STORE_BATCH_ADD_MODE", SqlBatchAddMode.merge
-        )
-        if self.batch_add_mode not in SqlBatchAddMode:
-            raise Exception("batch_add_mode must be one of 'merge', 'insert_notin', or 'insert'")
         self.batch_insert_values = []
         self.batch_limit = batch_limit or int(
             os.environ.get("ANYVAR_SQL_STORE_BATCH_LIMIT", "100000")

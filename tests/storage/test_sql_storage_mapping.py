@@ -2,8 +2,10 @@
 Tests the SqlStorage methods that are NOT tested through the
 REST API tests.  To test against different SQL backends, this
 test must be run with different ANYVAR_TEST_STORAGE_URI settings
+and different ANYVAR_SQL_STORE_BATCH_ADD_MODE settings
 """
 from ga4gh.vrs import vrs_enref
+from anyvar.storage.snowflake import SnowflakeObjectStore, SnowflakeBatchAddMode
 from anyvar.translate.vrs_python import VrsPythonTranslator
 
 # pause for 5 seconds because Snowflake storage is an async write and
@@ -36,7 +38,7 @@ def test_iter(storage):
             count += 1
         except StopIteration:
             break
-    assert count == 14
+    assert count == (18 if isinstance(storage, SnowflakeObjectStore) and storage.batch_add_mode == SnowflakeBatchAddMode.insert else 14)
 
 # keys
 def test_keys(storage, alleles):

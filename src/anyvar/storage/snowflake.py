@@ -1,13 +1,19 @@
+from enum import auto, StrEnum
 import json
 import logging
+import os
 from typing import Any, List, Optional
 from sqlalchemy import text as sql_text
 from sqlalchemy.engine import Connection
 
-from .sql_storage import SqlStorage, SqlBatchAddMode
+from .sql_storage import SqlStorage
 
 _logger = logging.getLogger(__name__)
 
+class SnowflakeBatchAddMode(StrEnum):
+    merge = auto()
+    insert_notin = auto()
+    insert = auto()
 
 class SnowflakeObjectStore(SqlStorage):
     """Snowflake storage backend. Requires existing Snowflake database."""
@@ -17,19 +23,28 @@ class SnowflakeObjectStore(SqlStorage):
         db_url: str,
         batch_limit: Optional[int] = None,
         table_name: Optional[str] = None,
-        batch_add_mode: Optional[SqlBatchAddMode] = None,
         max_pending_batches: Optional[int] = None,
         flush_on_batchctx_exit: Optional[bool] = None,
+        batch_add_mode: Optional[SnowflakeBatchAddMode] = None,
     ):
+        """
+        :param batch_add_mode: what type of SQL statement to use when adding many items at one; one of `merge`
+            (no duplicates), `insert_notin` (try to avoid duplicates) or `insert` (don't worry about duplicates);
+            defaults to `merge`; can be set with the ANYVAR_SNOWFLAKE_BATCH_ADD_MODE
+        """
         SqlStorage.__init__(
             self,
             db_url.replace(".snowflakecomputing.com", ""),
             batch_limit,
             table_name,
-            batch_add_mode,
             max_pending_batches,
             flush_on_batchctx_exit,
         )
+        self.batch_add_mode = batch_add_mode or os.environ.get(
+            "ANYVAR_SNOWFLAKE_BATCH_ADD_MODE", SnowflakeBatchAddMode.merge
+        )
+        if self.batch_add_mode not in SnowflakeBatchAddMode.__members__:
+            raise Exception("batch_add_mode must be one of 'merge', 'insert_notin', or 'insert'")
 
     def create_schema(self, db_conn: Connection):
         check_statement = f"""
@@ -60,14 +75,14 @@ class SnowflakeObjectStore(SqlStorage):
         """Bulk inserts the batch values into a TEMP table, then merges into the main {self.table_name} table"""
         tmp_statement = "CREATE TEMP TABLE IF NOT EXISTS tmp_vrs_objects (vrs_id VARCHAR(500), vrs_object VARCHAR)"
         insert_statement = (
-            "INSERT INTO tmp_vrs_objects (vrs_id, vrs_object) VALUES (:vrs_id, :vrs_object)"
+            "INSERT INTO tmp_vrs_objects (vrs_id, vrs_object) VALUES (?, ?)"
         )
-        if self.batch_add_mode == SqlBatchAddMode.insert:
+        if self.batch_add_mode == SnowflakeBatchAddMode.insert:
             merge_statement = f"""
-                INSERT INO {self.table_name} (vrs_id, vrs_object)
+                INSERT INTO {self.table_name} (vrs_id, vrs_object)
                 SELECT vrs_id, PARSE_JSON(vrs_object) FROM tmp_vrs_objects
             """
-        elif self.batch_add_mode == SqlBatchAddMode.insert_notin:
+        elif self.batch_add_mode == SnowflakeBatchAddMode.insert_notin:
             merge_statement = f"""
                 INSERT INTO {self.table_name} (vrs_id, vrs_object)
                 SELECT t.vrs_id, PARSE_JSON(t.vrs_object)
