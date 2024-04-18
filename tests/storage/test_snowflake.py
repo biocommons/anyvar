@@ -23,7 +23,7 @@ def test_create_schema(mocker):
              AND UPPER(table_name) = UPPER('{vrs_object_table_name}')
             """, 
             None, [(0,)])
-        .add_stmt(f"CREATE TABLE {vrs_object_table_name} ( vrs_id VARCHAR(500) PRIMARY KEY, vrs_object VARIANT )", None, [("Table created",)])
+        .add_stmt(f"CREATE TABLE {vrs_object_table_name} ( vrs_id VARCHAR(500) PRIMARY KEY COLLATE 'utf8', vrs_object VARIANT )", None, [("Table created",)])
     )
     sf = SnowflakeObjectStore("snowflake://account/?param=value")
     sf.close()
@@ -70,7 +70,7 @@ def test_add_one_item(mocker):
     assert mock_eng.were_all_execd()
 
 def test_add_many_items(mocker):
-    tmp_statement = "CREATE TEMP TABLE IF NOT EXISTS tmp_vrs_objects (vrs_id VARCHAR(500), vrs_object VARCHAR)"
+    tmp_statement = "CREATE TEMP TABLE IF NOT EXISTS tmp_vrs_objects (vrs_id VARCHAR(500) COLLATE 'utf8', vrs_object VARCHAR)"
     insert_statement = "INSERT INTO tmp_vrs_objects (vrs_id, vrs_object) VALUES (?, ?)"
     merge_statement = f"""
         MERGE INTO vrs_objects2 v USING tmp_vrs_objects s ON v.vrs_id = s.vrs_id 
@@ -153,7 +153,7 @@ def test_add_many_items(mocker):
     assert mock_eng.return_value.were_all_execd()
 
 def test_batch_add_mode_insert_notin(mocker):
-    tmp_statement = "CREATE TEMP TABLE IF NOT EXISTS tmp_vrs_objects (vrs_id VARCHAR(500), vrs_object VARCHAR)"
+    tmp_statement = "CREATE TEMP TABLE IF NOT EXISTS tmp_vrs_objects (vrs_id VARCHAR(500) COLLATE 'utf8', vrs_object VARCHAR)"
     insert_statement = "INSERT INTO tmp_vrs_objects (vrs_id, vrs_object) VALUES (?, ?)"
     merge_statement = f"""
         INSERT INTO vrs_objects2 (vrs_id, vrs_object)
@@ -190,7 +190,7 @@ def test_batch_add_mode_insert_notin(mocker):
     assert mock_eng.return_value.were_all_execd()
 
 def test_batch_add_mode_insert(mocker):
-    tmp_statement = "CREATE TEMP TABLE IF NOT EXISTS tmp_vrs_objects (vrs_id VARCHAR(500), vrs_object VARCHAR)"
+    tmp_statement = "CREATE TEMP TABLE IF NOT EXISTS tmp_vrs_objects (vrs_id VARCHAR(500) COLLATE 'utf8', vrs_object VARCHAR)"
     insert_statement = "INSERT INTO tmp_vrs_objects (vrs_id, vrs_object) VALUES (?, ?)"
     merge_statement = f"""
         INSERT INTO vrs_objects2 (vrs_id, vrs_object)

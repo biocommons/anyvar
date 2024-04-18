@@ -123,6 +123,8 @@ class SnowflakeObjectStore(SqlStorage):
                     encryption_algorithm=serialization.NoEncryption(),
                 )
             }
+        else:
+            return {}
 
     def create_schema(self, db_conn: Connection):
         check_statement = f"""

@@ -81,10 +81,10 @@ class SqlStorage(_Storage):
         """Returns a database connection"""
         return self.conn_pool.connect()
     
-    def _get_connect_args(self) -> dict:
+    def _get_connect_args(self, db_url: str) -> dict:
         """Returns connect_args for the SQLAlchemy create_engine() call
         The default implementation returns None"""
-        return None
+        return {}
 
     @abstractmethod
     def create_schema(self, db_conn: Connection):
