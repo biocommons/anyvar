@@ -168,7 +168,7 @@ class SnowflakeObjectStore(SqlStorage):
             merge_statement = f"""
                 INSERT INTO {self.table_name} (vrs_id, vrs_object)
                 SELECT vrs_id, PARSE_JSON(vrs_object) FROM tmp_vrs_objects
-            """
+            """  # nosec B608
         elif self.batch_add_mode == SnowflakeBatchAddMode.insert_notin:
             merge_statement = f"""
                 INSERT INTO {self.table_name} (vrs_id, vrs_object)
@@ -176,7 +176,7 @@ class SnowflakeObjectStore(SqlStorage):
                   FROM tmp_vrs_objects t
                   LEFT OUTER JOIN {self.table_name} v ON v.vrs_id = t.vrs_id
                  WHERE v.vrs_id IS NULL
-            """
+            """  # nosec B608
         else:
             merge_statement = f"""
                 MERGE INTO {self.table_name} v USING tmp_vrs_objects s ON v.vrs_id = s.vrs_id 

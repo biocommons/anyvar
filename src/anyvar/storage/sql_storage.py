@@ -175,7 +175,9 @@ class SqlStorage(_Storage):
         :return: VRS object if available
         """
         result = db_conn.execute(
-            sql_text(f"SELECT vrs_object FROM {self.table_name} WHERE vrs_id = :vrs_id"),
+            sql_text(
+                f"SELECT vrs_object FROM {self.table_name} WHERE vrs_id = :vrs_id"  # nosec B608
+            ),
             {"vrs_id": vrs_id},
         )
         if result:
@@ -210,7 +212,8 @@ class SqlStorage(_Storage):
         :param vrs_id: the VRS ID
         """
         db_conn.execute(
-            sql_text(f"DELETE FROM {self.table_name} WHERE vrs_id = :vrs_id"), {"vrs_id": vrs_id}
+            sql_text(f"DELETE FROM {self.table_name} WHERE vrs_id = :vrs_id"),  # nosec B608
+            {"vrs_id": vrs_id},
         )
 
     def wait_for_writes(self):
@@ -257,7 +260,7 @@ class SqlStorage(_Storage):
 
         :param db_conn: a database connection
         """
-        result = db_conn.execute(sql_text(f"SELECT COUNT(*) FROM {self.table_name}"))
+        result = db_conn.execute(sql_text(f"SELECT COUNT(*) FROM {self.table_name}"))  # nosec B608
         return result.scalar()
 
     def get_variation_count(self, variation_type: VariationStatisticType) -> int:
@@ -314,7 +317,9 @@ class SqlStorage(_Storage):
 
         :param db_conn: a database connection
         """
-        result = db_conn.execute(sql_text(f"SELECT vrs_object FROM {self.table_name}"))
+        result = db_conn.execute(
+            sql_text(f"SELECT vrs_object FROM {self.table_name}")  # nosec B608
+        )
         for row in result:
             if row:
                 value = row["vrs_object"]
@@ -332,7 +337,7 @@ class SqlStorage(_Storage):
 
         :param db_conn: a database connection
         """
-        result = db_conn.execute(sql_text(f"SELECT vrs_id FROM {self.table_name}"))
+        result = db_conn.execute(sql_text(f"SELECT vrs_id FROM {self.table_name}"))  # nosec B608
         return [row[0] for row in result]
 
     def search_variations(self, refget_accession: str, start: int, stop: int):

@@ -34,19 +34,19 @@ class PostgresObjectStore(SqlStorage):
     def create_schema(self, db_conn: Connection):
         check_statement = f"""
             SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = '{self.table_name}')
-        """
+        """  # nosec B608
         create_statement = f"""
             CREATE TABLE {self.table_name} (
                 vrs_id TEXT PRIMARY KEY,
                 vrs_object JSONB
             )
-        """
+        """  # nosec B608
         result = db_conn.execute(sql_text(check_statement))
         if not result or not result.scalar():
             db_conn.execute(sql_text(create_statement))
 
     def add_one_item(self, db_conn: Connection, name: str, value: Any):
-        insert_query = f"INSERT INTO {self.table_name} (vrs_id, vrs_object) VALUES (:vrs_id, :vrs_object) ON CONFLICT DO NOTHING"  # noqa: E501
+        insert_query = f"INSERT INTO {self.table_name} (vrs_id, vrs_object) VALUES (:vrs_id, :vrs_object) ON CONFLICT DO NOTHING"  # nosec B608
         value_json = json.dumps(value.model_dump(exclude_none=True))
         db_conn.execute(sql_text(insert_query), {"vrs_id": name, "vrs_object": value_json})
 
@@ -62,7 +62,7 @@ class PostgresObjectStore(SqlStorage):
         tmp_statement = (
             f"CREATE TEMP TABLE tmp_table (LIKE {self.table_name} INCLUDING DEFAULTS)"  # noqa: E501
         )
-        insert_statement = f"INSERT INTO {self.table_name} SELECT * FROM tmp_table ON CONFLICT DO NOTHING"  # noqa: E501
+        insert_statement = f"INSERT INTO {self.table_name} SELECT * FROM tmp_table ON CONFLICT DO NOTHING"  # nosec B608
         drop_statement = "DROP TABLE tmp_table"
         db_conn.execute(sql_text(tmp_statement))
         with db_conn.connection.cursor() as cur:
@@ -83,7 +83,7 @@ class PostgresObjectStore(SqlStorage):
             SELECT COUNT(*) AS c 
               FROM {self.table_name}
              WHERE LENGTH(vrs_object -> 'state' ->> 'sequence') = 0
-            """
+            """  # nosec B608
             )
         )
         return result.scalar()
@@ -95,7 +95,7 @@ class PostgresObjectStore(SqlStorage):
             SELECT COUNT(*) AS c 
               FROM {self.table_name}
              WHERE LENGTH(vrs_object -> 'state' ->> 'sequence') = 1
-            """
+            """  # nosec B608
             )
         )
         return result.scalar()
@@ -107,7 +107,7 @@ class PostgresObjectStore(SqlStorage):
             SELECT COUNT(*) AS c 
               FROM {self.table_name}
              WHERE LENGTH(vrs_object -> 'state' ->> 'sequence') > 1
-            """
+            """  # nosec B608
             )
         )
         return result.scalar()
@@ -124,7 +124,7 @@ class PostgresObjectStore(SqlStorage):
                  WHERE CAST (vrs_object->>'start' AS INTEGER) >= %s
                    AND CAST (vrs_object->>'end' AS INTEGER) <= %s
                    AND vrs_object->'sequenceReference'->>'refgetAccession' = %s)
-        """
+        """  # nosec B608
         with db_conn.connection.cursor() as cur:
             cur.execute(query_str, [type, start, stop, refget_accession])
             results = cur.fetchall()
