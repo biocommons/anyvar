@@ -365,7 +365,7 @@ class SqlStorage(_Storage):
         """Remove all stored records from the database"""
         with self._get_connection() as conn:
             with conn.begin():
-                conn.execute(sql_text(f"DELETE FROM {self.table_name}"))
+                conn.execute(sql_text(f"DELETE FROM {self.table_name}")) # nosec B608
 
     def num_pending_batches(self) -> int:
         """Returns the number of pending insert batches"""
