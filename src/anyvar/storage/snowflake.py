@@ -151,7 +151,7 @@ class SnowflakeObjectStore(SqlStorage):
 
     def add_many_items(self, db_conn: Connection, items: list):
         """Bulk inserts the batch values into a TEMP table, then merges into the main {self.table_name} table"""
-        tmp_statement = "CREATE TEMP TABLE IF NOT EXISTS tmp_vrs_objects (vrs_id VARCHAR(500), vrs_object VARCHAR)"
+        tmp_statement = "CREATE TEMP TABLE IF NOT EXISTS tmp_vrs_objects (vrs_id VARCHAR(500) COLLATE 'utf8', vrs_object VARCHAR)"
         insert_statement = (
             "INSERT INTO tmp_vrs_objects (vrs_id, vrs_object) VALUES (?, ?)"
         )
