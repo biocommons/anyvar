@@ -127,7 +127,7 @@ def test_create_schema(caplog, mocker):
     sf_conn.return_value = MockConnectionCursor()
     sf_conn.return_value.add_mock_stmt_sequence(MockStmtSequence()
         .add_stmt("SELECT COUNT(*) FROM information_schema.tables WHERE table_catalog = CURRENT_DATABASE() AND table_schema = CURRENT_SCHEMA() AND UPPER(table_name) = UPPER('vrs_objects');", None, [(0,)])
-        .add_stmt("CREATE TABLE vrs_objects ( vrs_id VARCHAR(500) PRIMARY KEY, vrs_object VARIANT );", None, [("Table created",)])
+        .add_stmt("CREATE TABLE vrs_objects ( vrs_id VARCHAR(500) PRIMARY KEY COLLATE 'utf8', vrs_object VARIANT );", None, [("Table created",)])
     )
 
     sf = SnowflakeObjectStore("snowflake://account/?param=value")
@@ -148,7 +148,7 @@ def test_schema_exists(mocker):
 
 
 def test_batch_mgmt_and_async_write_single_thread(mocker):
-    tmp_statement = "CREATE TEMP TABLE IF NOT EXISTS tmp_vrs_objects (vrs_id VARCHAR(500), vrs_object VARCHAR);"
+    tmp_statement = "CREATE TEMP TABLE IF NOT EXISTS tmp_vrs_objects (vrs_id VARCHAR(500) COLLATE 'utf8', vrs_object VARCHAR);"
     insert_statement = "INSERT INTO tmp_vrs_objects (vrs_id, vrs_object) VALUES (?, ?);"
     merge_statement = f"""
         MERGE INTO vrs_objects2 v USING tmp_vrs_objects s ON v.vrs_id = s.vrs_id 
