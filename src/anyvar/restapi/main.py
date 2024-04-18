@@ -80,7 +80,7 @@ def get_info():
 
 @app.get(
     "/locations/{location_id}",
-    # response_model=GetSequenceLocationResponse,
+    response_model=GetSequenceLocationResponse,
     response_model_exclude_none=True,
     summary="Retrieve sequence location",
     description="Retrieve registered sequence location by ID",
@@ -100,14 +100,14 @@ def get_location_by_id(
     try:
         location = av.get_object(location_id)
     except KeyError:
-        return HTTPException(
+        raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail=f"Location {location_id} not found"
         )
 
     if location:
         return {"location": location.model_dump(exclude_none=True)}
     else:
-        return HTTPException(
+        raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail=f"Location {location_id} not found"
         )
 
@@ -260,7 +260,7 @@ async def annotate_vcf(
 
 @app.get(
     "/variation/{variation_id}",
-    # response_model=GetVariationResponse,
+    response_model=GetVariationResponse,
     response_model_exclude_none=True,
     operation_id="getVariation",
     summary="Retrieve a variation object",
@@ -281,21 +281,21 @@ def get_variation_by_id(
     try:
         variation = av.get_object(variation_id, deref=True)
     except KeyError:
-        return HTTPException(
+        raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail=f"Variation {variation_id} not found"
         )
 
     if variation:
         return {"messages": [], "data": variation.model_dump(exclude_none=True)}
     else:
-        return HTTPException(
+        raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail=f"Variation {variation_id} not found"
         )
 
 
 @app.get(
     "/search",
-    # response_model=SearchResponse,
+    response_model=SearchResponse,
     response_model_exclude_none=True,
     operation_id="searchVariations",
     summary="Search for registered variations by genomic region",

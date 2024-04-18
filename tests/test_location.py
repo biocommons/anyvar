@@ -11,6 +11,5 @@ def test_location(client, alleles):
         assert resp.json()["location"] == allele["allele_response"]["object"]["location"]
 
     # invalid ID
-    resp = client.get("/locations/not_a_real_location")
-    assert resp.status_code == HTTPStatus.OK
-    assert "location" not in resp.json()
+    bad_resp = client.get("/locations/not_a_real_location")
+    assert bad_resp.status_code == HTTPStatus.NOT_FOUND
