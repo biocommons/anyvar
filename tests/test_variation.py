@@ -70,7 +70,7 @@ def test_get_allele(client, alleles):
         assert resp.status_code == HTTPStatus.OK
         assert resp_json["data"] == allele["allele_response"]["object"]
 
-    bad_resp = client.get("/allele/ga4gh:VA.invalid7DSM9KE3Z0LntAukLqm0K2ENn")
+    bad_resp = client.get("/variation/ga4gh:VA.invalid7DSM9KE3Z0LntAukLqm0K2ENn")
     assert bad_resp.status_code == HTTPStatus.NOT_FOUND
 
 
