@@ -5,7 +5,11 @@ import os
 import snowflake.connector
 from typing import Any, List, Optional
 from sqlalchemy import text as sql_text
-from sqlalchemy.engine import Connection
+from sqlalchemy.engine import Connection, URL
+from urllib.parse import urlparse, parse_qs, urlunparse, urlencode
+
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 
 from .sql_storage import SqlStorage
 
@@ -35,8 +39,9 @@ class SnowflakeObjectStore(SqlStorage):
             (no duplicates), `insert_notin` (try to avoid duplicates) or `insert` (don't worry about duplicates);
             defaults to `merge`; can be set with the ANYVAR_SNOWFLAKE_BATCH_ADD_MODE
         """
+        prepared_db_url = self._preprocess_db_url(db_url)
         super().__init__(
-            db_url.replace(".snowflakecomputing.com", ""),
+            prepared_db_url,
             batch_limit,
             table_name,
             max_pending_batches,
@@ -47,6 +52,46 @@ class SnowflakeObjectStore(SqlStorage):
         )
         if self.batch_add_mode not in SnowflakeBatchAddMode.__members__:
             raise Exception("batch_add_mode must be one of 'merge', 'insert_notin', or 'insert'")
+        
+    def _preprocess_db_url(self, db_url: str) -> str:
+        db_url = db_url.replace(".snowflakecomputing.com", "")
+        parsed_uri = urlparse(db_url)
+        conn_params = {
+            key: value[0] if value else None for key, value in parse_qs(parsed_uri.query).items()
+        }
+        if "private_key" in conn_params:
+            self.private_key_param = conn_params["private_key"]
+            del conn_params["private_key"]
+            parsed_uri = parsed_uri._replace(query=urlencode(conn_params))
+        else:
+            self.private_key_param = None
+        
+        return urlunparse(parsed_uri)
+
+    def _get_connect_args(self, db_url: str) -> dict:
+        # if there is a private_key param that is a file, read the contents of file
+        if self.private_key_param:
+            p_key = None
+            pk_passphrase = None
+            if "ANYVAR_SNOWFLAKE_STORE_PRIVATE_KEY_PASSPHRASE" in os.environ:
+                pk_passphrase = os.environ["ANYVAR_SNOWFLAKE_STORE_PRIVATE_KEY_PASSPHRASE"].encode()
+            if os.path.isfile(self.private_key_param):
+                with open(self.private_key_param, "rb") as key:
+                    p_key = serialization.load_pem_private_key(
+                        key.read(), password=pk_passphrase, backend=default_backend()
+                    )
+            else:
+                p_key = serialization.load_pem_private_key(
+                    self.private_key_param.encode(), password=pk_passphrase, backend=default_backend()
+                )
+
+            return {
+                "private_key": p_key.private_bytes(
+                    encoding=serialization.Encoding.DER,
+                    format=serialization.PrivateFormat.PKCS8,
+                    encryption_algorithm=serialization.NoEncryption(),
+                )
+            }
 
     def create_schema(self, db_conn: Connection):
         check_statement = f"""
@@ -56,7 +101,7 @@ class SnowflakeObjectStore(SqlStorage):
         """  # nosec B608
         create_statement = f"""
             CREATE TABLE {self.table_name} (
-                vrs_id VARCHAR(500) PRIMARY KEY,
+                vrs_id VARCHAR(500) PRIMARY KEY COLLATE 'utf8',
                 vrs_object VARIANT
             )
         """  # nosec B608

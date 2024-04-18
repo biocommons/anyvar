@@ -32,7 +32,7 @@ class SqlStorage(_Storage):
     ):
         """Initialize DB handler.
 
-        :param db_url: db connection info URL, snowflake://[account_identifier]/?[param=value]&[param=value]...
+        :param db_url: db connection info URL
         :param batch_limit: max size of batch insert queue, defaults to 100000; can be set with
             ANYVAR_SQL_STORE_BATCH_LIMIT environment variable
         :param table_name: table name for storing VRS objects, defaults to `vrs_objects`; can be set with
@@ -49,7 +49,7 @@ class SqlStorage(_Storage):
         self.table_name = table_name or os.environ.get("ANYVAR_SQL_STORE_TABLE_NAME", "vrs_objects")
 
         # create the database connection engine
-        self.conn_pool = create_engine(db_url, pool_size=1, max_overflow=1, pool_recycle=3600)
+        self.conn_pool = create_engine(db_url, pool_size=1, max_overflow=1, pool_recycle=3600, connect_args = self._get_connect_args(db_url))
 
         # create the schema objects if necessary
         with self._get_connection() as conn:
@@ -80,6 +80,11 @@ class SqlStorage(_Storage):
     def _get_connection(self) -> Connection:
         """Returns a database connection"""
         return self.conn_pool.connect()
+    
+    def _get_connect_args(self) -> dict:
+        """Returns connect_args for the SQLAlchemy create_engine() call
+        The default implementation returns None"""
+        return None
 
     @abstractmethod
     def create_schema(self, db_conn: Connection):
