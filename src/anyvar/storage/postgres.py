@@ -23,8 +23,7 @@ class PostgresObjectStore(SqlStorage):
         max_pending_batches: Optional[int] = None,
         flush_on_batchctx_exit: Optional[bool] = None,
     ):
-        SqlStorage.__init__(
-            self,
+        super().__init__(
             db_url,
             batch_limit,
             table_name,

@@ -35,8 +35,7 @@ class SnowflakeObjectStore(SqlStorage):
             (no duplicates), `insert_notin` (try to avoid duplicates) or `insert` (don't worry about duplicates);
             defaults to `merge`; can be set with the ANYVAR_SNOWFLAKE_BATCH_ADD_MODE
         """
-        SqlStorage.__init__(
-            self,
+        super().__init__(
             db_url.replace(".snowflakecomputing.com", ""),
             batch_limit,
             table_name,
