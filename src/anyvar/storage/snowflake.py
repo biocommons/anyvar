@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import snowflake.connector
+from snowflake.sqlalchemy.snowdialect import SnowflakeDialect
 from typing import Any, List, Optional
 from sqlalchemy import text as sql_text
 from sqlalchemy.engine import Connection, URL
@@ -16,6 +17,36 @@ from .sql_storage import SqlStorage
 _logger = logging.getLogger(__name__)
 
 snowflake.connector.paramstyle="qmark"
+
+#
+# Monkey patch to workaround a bug in the Snowflake SQLAlchemy dialect
+#  https://github.com/snowflakedb/snowflake-sqlalchemy/issues/489
+
+# Create a new pointer to the existing create_connect_args method
+SnowflakeDialect._orig_create_connect_args = SnowflakeDialect.create_connect_args
+
+# Define a new create_connect_args method that calls the original method
+#   and then fixes the result so that the account name is not mangled
+#   when using privatelink
+def sf_create_connect_args_override(self, url: URL):
+
+    # retval is tuple of empty array and dict ([], {})
+    retval = self._orig_create_connect_args(url)
+
+    # the dict has the options including the mangled account name
+    opts = retval[1]
+    if "host" in opts and "account" in opts and ".privatelink.snowflakecomputing.com" in opts["host"]:
+        opts["account"] = opts["host"].split(".")[0]
+
+    return retval
+
+# Replace the create_connect_args method with the override
+SnowflakeDialect.create_connect_args = sf_create_connect_args_override
+
+#
+# End monkey patch
+#
+
 
 class SnowflakeBatchAddMode(StrEnum):
     merge = auto()
