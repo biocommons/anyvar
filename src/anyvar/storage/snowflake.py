@@ -16,7 +16,7 @@ from .sql_storage import SqlStorage
 
 _logger = logging.getLogger(__name__)
 
-snowflake.connector.paramstyle="qmark"
+snowflake.connector.paramstyle = "qmark"
 
 #
 # Monkey patch to workaround a bug in the Snowflake SQLAlchemy dialect
@@ -24,6 +24,7 @@ snowflake.connector.paramstyle="qmark"
 
 # Create a new pointer to the existing create_connect_args method
 SnowflakeDialect._orig_create_connect_args = SnowflakeDialect.create_connect_args
+
 
 # Define a new create_connect_args method that calls the original method
 #   and then fixes the result so that the account name is not mangled
@@ -35,10 +36,15 @@ def sf_create_connect_args_override(self, url: URL):
 
     # the dict has the options including the mangled account name
     opts = retval[1]
-    if "host" in opts and "account" in opts and ".privatelink.snowflakecomputing.com" in opts["host"]:
+    if (
+        "host" in opts
+        and "account" in opts
+        and ".privatelink.snowflakecomputing.com" in opts["host"]
+    ):
         opts["account"] = opts["host"].split(".")[0]
 
     return retval
+
 
 # Replace the create_connect_args method with the override
 SnowflakeDialect.create_connect_args = sf_create_connect_args_override
@@ -52,6 +58,7 @@ class SnowflakeBatchAddMode(StrEnum):
     merge = auto()
     insert_notin = auto()
     insert = auto()
+
 
 class SnowflakeObjectStore(SqlStorage):
     """Snowflake storage backend. Requires existing Snowflake database."""
@@ -83,7 +90,7 @@ class SnowflakeObjectStore(SqlStorage):
         )
         if self.batch_add_mode not in SnowflakeBatchAddMode.__members__:
             raise Exception("batch_add_mode must be one of 'merge', 'insert_notin', or 'insert'")
-        
+
     def _preprocess_db_url(self, db_url: str) -> str:
         db_url = db_url.replace(".snowflakecomputing.com", "")
         parsed_uri = urlparse(db_url)
@@ -96,7 +103,7 @@ class SnowflakeObjectStore(SqlStorage):
             parsed_uri = parsed_uri._replace(query=urlencode(conn_params))
         else:
             self.private_key_param = None
-        
+
         return urlunparse(parsed_uri)
 
     def _get_connect_args(self, db_url: str) -> dict:
@@ -113,7 +120,9 @@ class SnowflakeObjectStore(SqlStorage):
                     )
             else:
                 p_key = serialization.load_pem_private_key(
-                    self.private_key_param.encode(), password=pk_passphrase, backend=default_backend()
+                    self.private_key_param.encode(),
+                    password=pk_passphrase,
+                    backend=default_backend(),
                 )
 
             return {
@@ -154,9 +163,7 @@ class SnowflakeObjectStore(SqlStorage):
     def add_many_items(self, db_conn: Connection, items: list):
         """Bulk inserts the batch values into a TEMP table, then merges into the main {self.table_name} table"""
         tmp_statement = "CREATE TEMP TABLE IF NOT EXISTS tmp_vrs_objects (vrs_id VARCHAR(500) COLLATE 'utf8', vrs_object VARCHAR)"
-        insert_statement = (
-            "INSERT INTO tmp_vrs_objects (vrs_id, vrs_object) VALUES (?, ?)"
-        )
+        insert_statement = "INSERT INTO tmp_vrs_objects (vrs_id, vrs_object) VALUES (?, ?)"
         if self.batch_add_mode == SnowflakeBatchAddMode.insert:
             merge_statement = f"""
                 INSERT INTO {self.table_name} (vrs_id, vrs_object)
@@ -189,7 +196,7 @@ class SnowflakeObjectStore(SqlStorage):
         _logger.info("Created row data for insert, first item is %s", row_data[0])
 
         db_conn.execute(sql_text(tmp_statement))
-        # NB - enclosing the insert statement in sql_text() 
+        # NB - enclosing the insert statement in sql_text()
         #  causes a "Bind variable ? not set" error from Snowflake
         # It is unclear why this is that case
         db_conn.execute(insert_statement, row_data)

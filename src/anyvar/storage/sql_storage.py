@@ -16,6 +16,7 @@ from . import _BatchManager, _Storage
 
 _logger = logging.getLogger(__name__)
 
+
 class SqlStorage(_Storage):
     """Relational database storage backend.  Uses SQLAlchemy as a DB abstraction layer and pool.
     Methods that utilize straightforward SQL are implemented in this class.  Methods that require
@@ -49,7 +50,13 @@ class SqlStorage(_Storage):
         self.table_name = table_name or os.environ.get("ANYVAR_SQL_STORE_TABLE_NAME", "vrs_objects")
 
         # create the database connection engine
-        self.conn_pool = create_engine(db_url, pool_size=1, max_overflow=1, pool_recycle=3600, connect_args = self._get_connect_args(db_url))
+        self.conn_pool = create_engine(
+            db_url,
+            pool_size=1,
+            max_overflow=1,
+            pool_recycle=3600,
+            connect_args=self._get_connect_args(db_url),
+        )
 
         # create the schema objects if necessary
         with self._get_connection() as conn:
@@ -63,11 +70,7 @@ class SqlStorage(_Storage):
             os.environ.get("ANYVAR_SQL_STORE_BATCH_LIMIT", "100000")
         )
         self.flush_on_batchctx_exit = (
-            bool(
-                os.environ.get(
-                    "ANYVAR_SQL_STORE_FLUSH_ON_BATCHCTX_EXIT", "True"
-                )
-            )
+            bool(os.environ.get("ANYVAR_SQL_STORE_FLUSH_ON_BATCHCTX_EXIT", "True"))
             if flush_on_batchctx_exit is None
             else flush_on_batchctx_exit
         )
@@ -80,7 +83,7 @@ class SqlStorage(_Storage):
     def _get_connection(self) -> Connection:
         """Returns a database connection"""
         return self.conn_pool.connect()
-    
+
     def _get_connect_args(self, db_url: str) -> dict:
         """Returns connect_args for the SQLAlchemy create_engine() call
         The default implementation returns None"""
