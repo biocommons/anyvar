@@ -161,6 +161,8 @@ class SqlStorage(_Storage):
                     return models.SequenceLocation(**result)
                 else:
                     raise NotImplementedError
+            else:
+                raise KeyError(name)
 
     def fetch_vrs_object(self, db_conn: Connection, vrs_id: str) -> Optional[Any]:
         """Fetches a single VRS object from the database, return the value as a JSON object
