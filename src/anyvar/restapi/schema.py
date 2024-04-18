@@ -50,7 +50,7 @@ class InfoResponse(BaseModel):
 class GetSequenceLocationResponse(BaseModel):
     """Describe response for the /locations/ endpoint"""
 
-    location: Optional[models.SequenceLocation]
+    location: Optional[Dict]
 
 
 class RegisterVariationRequest(BaseModel):
@@ -124,7 +124,7 @@ class GetVariationResponse(BaseModel):
     """Describe response for the /variation get endpoint"""
 
     messages: List[StrictStr]
-    data: models.Variation
+    data: Dict
 
     class Config:
         """Configure GetVariationResponse class"""
@@ -139,19 +139,21 @@ class GetVariationResponse(BaseModel):
             schema["example"] = {
                 "messages": [],
                 "data": {
-                    "_id": "ga4gh:VA.ZDdoQdURgO2Daj2NxLj4pcDnjiiAsfbO",
-                    "type": "Allele",
+                    "digest": "K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU",
+                    "id": "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU",
                     "location": {
-                        "_id": "ga4gh:VSL.2cHIgn7iLKk4x9z3zLkSTTFMV0e48DR4",
-                        "type": "SequenceLocation",
-                        "sequence_id": "ga4gh:SQ.cQvw4UsHHRRlogxbWCB8W-mKD4AraM9y",
-                        "interval": {
-                            "type": "SequenceInterval",
-                            "start": {"type": "Number", "value": 599},
-                            "end": {"type": "Number", "value": 600},
+                        "digest": "01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
+                        "id": "ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
+                        "start": 87894076,
+                        "end": 87894077,
+                        "sequenceReference": {
+                            "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
+                            "type": "SequenceReference",
                         },
+                        "type": "SequenceLocation",
                     },
-                    "state": {"type": "LiteralSequenceExpression", "sequence": "E"},
+                    "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
+                    "type": "Allele",
                 },
             }
 
@@ -159,7 +161,7 @@ class GetVariationResponse(BaseModel):
 class SearchResponse(BaseModel):
     """Describe response for the /search endpoint"""
 
-    variations: List[models.Variation]
+    variations: List[Dict]
 
 
 class VariationStatisticType(str, Enum):
