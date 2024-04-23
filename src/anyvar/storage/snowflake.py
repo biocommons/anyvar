@@ -39,7 +39,7 @@ def sf_create_connect_args_override(self, url: URL):
     if (
         "host" in opts
         and "account" in opts
-        and ".privatelink.snowflakecomputing.com" in opts["host"]
+        and opts["host"].endswith(".privatelink.snowflakecomputing.com")
     ):
         opts["account"] = opts["host"].split(".")[0]
 
