@@ -100,11 +100,16 @@ def get_location_by_id(
     try:
         location = av.get_object(location_id)
     except KeyError:
-        return HTTPException(status_code=HTTPStatus.NOT_FOUND)
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail=f"Location {location_id} not found"
+        )
+
     if location:
         return {"location": location.model_dump(exclude_none=True)}
     else:
-        return {"location": None}
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail=f"Location {location_id} not found"
+        )
 
 
 @app.put(
@@ -273,7 +278,6 @@ def get_variation_by_id(
     :raise HTTPException: if no variation matches provided ID
     """
     av: AnyVar = request.app.state.anyvar
-
     try:
         variation = av.get_object(variation_id, deref=True)
     except KeyError:
@@ -281,9 +285,12 @@ def get_variation_by_id(
             status_code=HTTPStatus.NOT_FOUND, detail=f"Variation {variation_id} not found"
         )
 
-    result = {"messages": [], "data": variation.model_dump(exclude_none=True)}
-
-    return result
+    if variation:
+        return {"messages": [], "data": variation.model_dump(exclude_none=True)}
+    else:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail=f"Variation {variation_id} not found"
+        )
 
 
 @app.get(

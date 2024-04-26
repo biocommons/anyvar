@@ -52,14 +52,12 @@ def test_put_copy_number(client, copy_numbers):
 def test_put_vrs_variation(client, alleles, copy_numbers):
     for allele_id, allele in alleles.items():
         params = deepcopy(allele["allele_response"]["object"])
-        params.pop("id")
         resp = client.put("/vrs_variation", json=params)
         assert resp.status_code == HTTPStatus.OK
         assert resp.json()["object_id"] == allele_id
 
     for copy_number_id, copy_number in copy_numbers.items():
         params = deepcopy(copy_number["copy_number_response"]["object"])
-        params.pop("id")
         resp = client.put("/vrs_variation", json=params)
         assert resp.status_code == HTTPStatus.OK
         assert resp.json()["object_id"] == copy_number_id
@@ -71,7 +69,7 @@ def test_get_allele(client, alleles):
         assert resp.status_code == HTTPStatus.OK
         assert resp.json()["data"] == allele["allele_response"]["object"]
 
-    bad_resp = client.get("/allele/ga4gh:VA.invalid7DSM9KE3Z0LntAukLqm0K2ENn")
+    bad_resp = client.get("/variation/ga4gh:VA.invalid7DSM9KE3Z0LntAukLqm0K2ENn")
     assert bad_resp.status_code == HTTPStatus.NOT_FOUND
 
 

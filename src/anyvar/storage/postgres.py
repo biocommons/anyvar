@@ -105,6 +105,8 @@ class PostgresObjectStore(_Storage):
                 return models.SequenceLocation(**result)
             else:
                 raise NotImplementedError
+        else:
+            raise KeyError(name)
 
     def __contains__(self, name: str) -> bool:
         """Check whether VRS objects table contains ID.
