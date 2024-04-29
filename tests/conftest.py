@@ -12,7 +12,7 @@ from anyvar.restapi.main import app as anyvar_restapi
 
 def pytest_collection_modifyitems(items):
     """Modify test items in place to ensure test modules run in a given order."""
-    MODULE_ORDER = ["test_lifespan", "test_variation", "test_general", "test_location", "test_search", "test_vcf", "test_storage_mapping", "test_snowflake"]
+    MODULE_ORDER = ["test_lifespan", "test_variation", "test_general", "test_location", "test_search", "test_vcf", "test_sql_storage_mapping", "test_postgres", "test_snowflake"]
     # remember to add new test modules to the order constant:
     assert len(MODULE_ORDER) == len(list(Path(__file__).parent.rglob("test_*.py")))
     items.sort(key=lambda i: MODULE_ORDER.index(i.module.__name__))

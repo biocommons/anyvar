@@ -28,8 +28,7 @@ def create_storage(uri: Optional[str] = None) -> _Storage:
     * PostgreSQL
     `postgresql://[username]:[password]@[domain]/[database]`
     * Snowflake
-    `snowflake://[account_identifier].snowflakecomputing.com/?[param=value]&[param=value]...`
-    `snowflake://[account_identifier]/?[param=value]&[param=value]...`
+    `snowflake://[user]:@[account]/[database]/[schema]?[param=value]&[param=value]...`
     """
     uri = uri or os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
 
