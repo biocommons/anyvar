@@ -50,7 +50,7 @@ class InfoResponse(BaseModel):
 class GetSequenceLocationResponse(BaseModel):
     """Describe response for the /locations/ endpoint"""
 
-    location: Optional[Dict]
+    location: Optional[models.SequenceLocation]
 
 
 class RegisterVariationRequest(BaseModel):
@@ -124,7 +124,7 @@ class GetVariationResponse(BaseModel):
     """Describe response for the /variation get endpoint"""
 
     messages: List[StrictStr]
-    data: Dict
+    data: models.Variation
 
     class Config:
         """Configure GetVariationResponse class"""
@@ -161,7 +161,7 @@ class GetVariationResponse(BaseModel):
 class SearchResponse(BaseModel):
     """Describe response for the /search endpoint"""
 
-    variations: List[Dict]
+    variations: List[models.Variation]
 
 
 class VariationStatisticType(str, Enum):
