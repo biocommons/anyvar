@@ -105,7 +105,7 @@ def get_location_by_id(
         )
 
     if location:
-        return {"location": location.model_dump(exclude_none=True)}
+        return {"location": location}
     else:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail=f"Location {location_id} not found"
@@ -147,7 +147,7 @@ def register_variation(
     else:
         if translated_variation:
             v_id = av.put_object(translated_variation)
-            result["object"] = translated_variation.model_dump(exclude_none=True)
+            result["object"] = translated_variation
             result["object_id"] = v_id
         else:
             result["messages"].append(f"Translation of {definition} failed.")
@@ -200,7 +200,7 @@ def register_vrs_object(
 
     variation_object = variation_class_map[variation_type](**variation.dict())
     v_id = av.put_object(variation_object)
-    result["object"] = variation_object.model_dump(exclude_none=True)
+    result["object"] = variation_object
     result["object_id"] = v_id
     return result
 
@@ -286,7 +286,7 @@ def get_variation_by_id(
         )
 
     if variation:
-        return {"messages": [], "data": variation.model_dump(exclude_none=True)}
+        return {"messages": [], "data": variation}
     else:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail=f"Variation {variation_id} not found"
@@ -341,7 +341,7 @@ def search_variations(
             var_object = av.get_object(allele["id"], deref=True)
             if not var_object:
                 continue
-            inline_alleles.append(var_object.model_dump(exclude_none=True))
+            inline_alleles.append(var_object)
 
     return {"variations": inline_alleles}
 
