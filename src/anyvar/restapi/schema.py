@@ -78,7 +78,7 @@ class RegisterVariationResponse(BaseModel):
     """Describe response for the variation registry endpoint"""
 
     messages: List[str]
-    object: Optional[Dict]
+    object: Optional[models.Variation]
     object_id: Optional[str]
 
     class Config:
@@ -116,7 +116,7 @@ class RegisterVrsVariationResponse(BaseModel):
     """Describe response for VRS object registration endpoint"""
 
     messages: List[str]
-    object: Optional[Dict]
+    object: Optional[models.Variation]
     object_id: Optional[str]
 
 
