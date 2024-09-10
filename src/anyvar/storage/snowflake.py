@@ -1,16 +1,19 @@
-from enum import auto, StrEnum
+"""Provide Snowflake-based storage implementation."""
+
 import json
 import logging
 import os
-import snowflake.connector
-from snowflake.sqlalchemy.snowdialect import SnowflakeDialect
-from typing import Any, List, Optional
-from sqlalchemy import text as sql_text
-from sqlalchemy.engine import Connection, URL
-from urllib.parse import urlparse, parse_qs, urlunparse, urlencode
+from enum import Enum, auto
+from pathlib import Path
+from typing import Any
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
+import snowflake.connector
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
+from snowflake.sqlalchemy.snowdialect import SnowflakeDialect
+from sqlalchemy import text as sql_text
+from sqlalchemy.engine import URL, Connection
 
 from .sql_storage import SqlStorage
 
@@ -23,14 +26,13 @@ snowflake.connector.paramstyle = "qmark"
 #  https://github.com/snowflakedb/snowflake-sqlalchemy/issues/489
 
 # Create a new pointer to the existing create_connect_args method
-SnowflakeDialect._orig_create_connect_args = SnowflakeDialect.create_connect_args
+SnowflakeDialect._orig_create_connect_args = SnowflakeDialect.create_connect_args  # noqa: SLF001
 
 
 # Define a new create_connect_args method that calls the original method
 #   and then fixes the result so that the account name is not mangled
 #   when using privatelink
-def sf_create_connect_args_override(self, url: URL):
-
+def sf_create_connect_args_override(self, url: URL) -> tuple[list, dict]:  # noqa: ANN001 D103
     # retval is tuple of empty array and dict ([], {})
     retval = self._orig_create_connect_args(url)
 
@@ -54,7 +56,9 @@ SnowflakeDialect.create_connect_args = sf_create_connect_args_override
 #
 
 
-class SnowflakeBatchAddMode(StrEnum):
+class SnowflakeBatchAddMode(str, Enum):
+    """Define values for snowflake batch add modes"""
+
     merge = auto()
     insert_notin = auto()
     insert = auto()
@@ -66,16 +70,15 @@ class SnowflakeObjectStore(SqlStorage):
     def __init__(
         self,
         db_url: str,
-        batch_limit: Optional[int] = None,
-        table_name: Optional[str] = None,
-        max_pending_batches: Optional[int] = None,
-        flush_on_batchctx_exit: Optional[bool] = None,
-        batch_add_mode: Optional[SnowflakeBatchAddMode] = None,
-    ):
-        """
-        :param batch_add_mode: what type of SQL statement to use when adding many items at one; one of `merge`
-            (no duplicates), `insert_notin` (try to avoid duplicates) or `insert` (don't worry about duplicates);
-            defaults to `merge`; can be set with the ANYVAR_SNOWFLAKE_BATCH_ADD_MODE
+        batch_limit: int | None = None,
+        table_name: str | None = None,
+        max_pending_batches: int | None = None,
+        flush_on_batchctx_exit: bool | None = None,
+        batch_add_mode: SnowflakeBatchAddMode | None = None,
+    ) -> None:
+        """:param batch_add_mode: what type of SQL statement to use when adding many items at one; one of `merge`
+        (no duplicates), `insert_notin` (try to avoid duplicates) or `insert` (don't worry about duplicates);
+        defaults to `merge`; can be set with the ANYVAR_SNOWFLAKE_BATCH_ADD_MODE
         """
         prepared_db_url = self._preprocess_db_url(db_url)
         super().__init__(
@@ -89,13 +92,15 @@ class SnowflakeObjectStore(SqlStorage):
             "ANYVAR_SNOWFLAKE_BATCH_ADD_MODE", SnowflakeBatchAddMode.merge
         )
         if self.batch_add_mode not in SnowflakeBatchAddMode.__members__:
-            raise Exception("batch_add_mode must be one of 'merge', 'insert_notin', or 'insert'")
+            msg = "batch_add_mode must be one of 'merge', 'insert_notin', or 'insert'"
+            raise Exception(msg)
 
     def _preprocess_db_url(self, db_url: str) -> str:
         db_url = db_url.replace(".snowflakecomputing.com", "")
         parsed_uri = urlparse(db_url)
         conn_params = {
-            key: value[0] if value else None for key, value in parse_qs(parsed_uri.query).items()
+            key: value[0] if value else None
+            for key, value in parse_qs(parsed_uri.query).items()
         }
         if "private_key" in conn_params:
             self.private_key_param = conn_params["private_key"]
@@ -106,15 +111,17 @@ class SnowflakeObjectStore(SqlStorage):
 
         return urlunparse(parsed_uri)
 
-    def _get_connect_args(self, db_url: str) -> dict:
+    def _get_connect_args(self, db_url: str) -> dict:  # noqa: ARG002
         # if there is a private_key param that is a file, read the contents of file
         if self.private_key_param:
             p_key = None
             pk_passphrase = None
             if "ANYVAR_SNOWFLAKE_STORE_PRIVATE_KEY_PASSPHRASE" in os.environ:
-                pk_passphrase = os.environ["ANYVAR_SNOWFLAKE_STORE_PRIVATE_KEY_PASSPHRASE"].encode()
-            if os.path.isfile(self.private_key_param):
-                with open(self.private_key_param, "rb") as key:
+                pk_passphrase = os.environ[
+                    "ANYVAR_SNOWFLAKE_STORE_PRIVATE_KEY_PASSPHRASE"
+                ].encode()
+            if Path(self.private_key_param).is_file():
+                with Path(self.private_key_param).open("rb") as key:
                     p_key = serialization.load_pem_private_key(
                         key.read(), password=pk_passphrase, backend=default_backend()
                     )
@@ -132,43 +139,54 @@ class SnowflakeObjectStore(SqlStorage):
                     encryption_algorithm=serialization.NoEncryption(),
                 )
             }
-        else:
-            return {}
+        return {}
 
-    def create_schema(self, db_conn: Connection):
+    def create_schema(self, db_conn: Connection) -> None:
+        """Add the VRS object table if it does not exist
+
+        :param db_conn: a database connection
+        """
         check_statement = f"""
-            SELECT COUNT(*) FROM information_schema.tables 
-             WHERE table_catalog = CURRENT_DATABASE() AND table_schema = CURRENT_SCHEMA() 
+            SELECT COUNT(*) FROM information_schema.tables
+             WHERE table_catalog = CURRENT_DATABASE() AND table_schema = CURRENT_SCHEMA()
                AND UPPER(table_name) = UPPER('{self.table_name}')
-        """  # nosec B608
+        """  # noqa: S608
         create_statement = f"""
             CREATE TABLE {self.table_name} (
                 vrs_id VARCHAR(500) PRIMARY KEY COLLATE 'utf8',
                 vrs_object VARIANT
             )
-        """  # nosec B608
+        """
         result = db_conn.execute(sql_text(check_statement))
         if result.scalar() < 1:
             db_conn.execute(sql_text(create_statement))
 
-    def add_one_item(self, db_conn: Connection, name: str, value: Any):
+    def add_one_item(self, db_conn: Connection, name: str, value: Any) -> None:  # noqa: ANN401
+        """Add/merge a single item to the database
+
+        :param db_conn: a database connection
+        :param name: value for `vrs_id` field
+        :param value: value for `vrs_object` field
+        """
         insert_query = f"""
             MERGE INTO {self.table_name} t USING (SELECT ? AS vrs_id, ? AS vrs_object) s ON t.vrs_id = s.vrs_id
             WHEN NOT MATCHED THEN INSERT (vrs_id, vrs_object) VALUES (s.vrs_id, PARSE_JSON(s.vrs_object))
-            """  # nosec B608
+            """  # noqa: S608
         value_json = json.dumps(value.model_dump(exclude_none=True))
         db_conn.execute(insert_query, (name, value_json))
         _logger.debug("Inserted item %s to %s", name, self.table_name)
 
-    def add_many_items(self, db_conn: Connection, items: list):
-        """Bulk inserts the batch values into a TEMP table, then merges into the main {self.table_name} table"""
+    def add_many_items(self, db_conn: Connection, items: list) -> None:
+        """Bulk insert the batch values into a TEMP table, then merges into the main {self.table_name} table"""
         tmp_statement = "CREATE TEMP TABLE IF NOT EXISTS tmp_vrs_objects (vrs_id VARCHAR(500) COLLATE 'utf8', vrs_object VARCHAR)"
-        insert_statement = "INSERT INTO tmp_vrs_objects (vrs_id, vrs_object) VALUES (?, ?)"
+        insert_statement = (
+            "INSERT INTO tmp_vrs_objects (vrs_id, vrs_object) VALUES (?, ?)"
+        )
         if self.batch_add_mode == SnowflakeBatchAddMode.insert:
             merge_statement = f"""
                 INSERT INTO {self.table_name} (vrs_id, vrs_object)
                 SELECT vrs_id, PARSE_JSON(vrs_object) FROM tmp_vrs_objects
-            """  # nosec B608
+            """  # noqa: S608
         elif self.batch_add_mode == SnowflakeBatchAddMode.insert_notin:
             merge_statement = f"""
                 INSERT INTO {self.table_name} (vrs_id, vrs_object)
@@ -176,12 +194,12 @@ class SnowflakeObjectStore(SqlStorage):
                   FROM tmp_vrs_objects t
                   LEFT OUTER JOIN {self.table_name} v ON v.vrs_id = t.vrs_id
                  WHERE v.vrs_id IS NULL
-            """  # nosec B608
+            """  # noqa: S608
         else:
             merge_statement = f"""
-                MERGE INTO {self.table_name} v USING tmp_vrs_objects s ON v.vrs_id = s.vrs_id 
+                MERGE INTO {self.table_name} v USING tmp_vrs_objects s ON v.vrs_id = s.vrs_id
                 WHEN NOT MATCHED THEN INSERT (vrs_id, vrs_object) VALUES (s.vrs_id, PARSE_JSON(s.vrs_object))
-                """  # nosec B608
+                """  # noqa: S608
         drop_statement = "DROP TABLE tmp_vrs_objects"
 
         # create row data removing duplicates
@@ -204,40 +222,66 @@ class SnowflakeObjectStore(SqlStorage):
         db_conn.execute(sql_text(drop_statement))
 
     def deletion_count(self, db_conn: Connection) -> int:
+        """Return the total number of deletions
+
+        :param db_conn: a database connection
+        """
         result = db_conn.execute(
             f"""
-            SELECT COUNT(*) 
+            SELECT COUNT(*)
               FROM {self.table_name}
              WHERE LENGTH(vrs_object:state:sequence) = 0
-            """  # nosec B608
+            """  # noqa: S608
         )
         return result.scalar()
 
     def substitution_count(self, db_conn: Connection) -> int:
+        """Return the total number of substitutions
+
+        :param db_conn: a database connection
+        """
         result = db_conn.execute(
             f"""
-            SELECT COUNT(*) 
+            SELECT COUNT(*)
               FROM {self.table_name}
              WHERE LENGTH(vrs_object:state:sequence) = 1
-            """  # nosec B608
+            """  # noqa: S608
         )
         return result.scalar()
 
     def insertion_count(self, db_conn: Connection) -> int:
+        """Return the total number of insertions
+
+        :param db_conn: a database connection
+        """
         result = db_conn.execute(
             f"""
-            SELECT COUNT(*) 
+            SELECT COUNT(*)
               FROM {self.table_name}
              WHERE LENGTH(vrs_object:state:sequence) > 1
-            """  # nosec B608
+            """  # noqa: S608
         )
         return result.scalar()
 
     def search_vrs_objects(
-        self, db_conn: Connection, type: str, refget_accession: str, start: int, stop: int
-    ) -> List[Any]:
+        self,
+        db_conn: Connection,
+        type: str,  # noqa: A002
+        refget_accession: str,
+        start: int,
+        stop: int,
+    ) -> list[Any]:
+        """Find all VRS objects of the particular type and region
+
+        :param type: the type of VRS object to search for
+        :param refget_accession: refget accession (SQ. identifier)
+        :param start: Start genomic region to query
+        :param stop: Stop genomic region to query
+
+        :return: a list of VRS objects
+        """
         query_str = f"""
-            SELECT vrs_object 
+            SELECT vrs_object
               FROM {self.table_name}
              WHERE vrs_object:type = ?
                AND vrs_object:location IN (
@@ -245,7 +289,7 @@ class SnowflakeObjectStore(SqlStorage):
                  WHERE vrs_object:start::INTEGER >= ?
                    AND vrs_object:end::INTEGER <= ?
                    AND vrs_object:sequenceReference:refgetAccession = ?)
-            """  # nosec B608
+            """  # noqa: S608
         results = db_conn.execute(
             query_str,
             (type, start, stop, refget_accession),

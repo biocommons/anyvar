@@ -1,4 +1,5 @@
 """Check basic functions of general endpoint(s)"""
+
 from http import HTTPStatus
 
 

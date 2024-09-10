@@ -2,22 +2,23 @@ import json
 import re
 import time
 
+
 class MockResult(list):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
     def fetchone(self):
-        if len(self) > 0:
+        if len(self) > 0:  # noqa: RET503
             retval = self[0]
             del self[0]
             return retval
-        
+
     def fetchall(self):
         new_list = list(self)
         while len(self) > 0:
             del self[0]
         return new_list
-    
+
     def scalar(self):
         if len(self) > 0:
             value = self[0][0]
@@ -25,28 +26,35 @@ class MockResult(list):
                 del self[0]
             try:
                 return int(value)
-            except:
+            except:  # noqa: E722
                 return str(value) if value else None
         else:
             return None
-        
+
+
 class MockStmt:
     def __init__(self, sql: str, params, result, wait_for_secs: int = 0):
-        self.sql = re.sub(r'\s+', ' ', sql).strip()
+        self.sql = re.sub(r"\s+", " ", sql).strip()
         self.params = params
-        self.result = result if not result or isinstance(result, Exception) else MockResult(result)
+        self.result = (
+            result
+            if not result or isinstance(result, Exception)
+            else MockResult(result)
+        )
         self.wait_for_secs = wait_for_secs
 
     def matches(self, sql: str, params):
-        norm_sql = re.sub(r'\s+', ' ', sql).strip()
-        if norm_sql == self.sql:
-            if self.params == True:
-                return True
-            elif (self.params is None or len(self.params) == 0) and (params is None or len(params) == 0):
-                return True
-            elif self.params == params:
+        norm_sql = re.sub(r"\s+", " ", sql).strip()
+        if norm_sql == self.sql:  # noqa: SIM102
+            if (
+                self.params is True
+                or (self.params is None or len(self.params) == 0)
+                and (params is None or len(params) == 0)
+                or self.params == params
+            ):
                 return True
         return False
+
 
 class MockStmtSequence(list):
     def __init__(self):
@@ -55,7 +63,7 @@ class MockStmtSequence(list):
     def add_stmt(self, sql: str, params, result, wait_for_secs: int = 0):
         self.append(MockStmt(sql, params, result, wait_for_secs))
         return self
-    
+
     def add_copy_from(self, table_name, data):
         self.append(MockStmt(f"COPY FROM fd INTO {table_name}", data, [(1,)]))
         return self
@@ -70,12 +78,12 @@ class MockStmtSequence(list):
                 time.sleep(wait_for_secs)
             if isinstance(result, Exception):
                 raise result
-            else:
-                return result
+            return result
         return None
-    
+
     def were_all_execd(self):
         return len(self) <= 0
+
 
 class MockConnection:
     def __init__(self):
@@ -88,10 +96,10 @@ class MockConnection:
 
     def cursor(self):
         return self
-        
+
     def fetchall(self):
         return self.last_result.fetchall() if self.last_result else None
-    
+
     def __enter__(self):
         return self
 
@@ -99,20 +107,21 @@ class MockConnection:
         if exc_value:
             raise exc_value
         return True
-    
+
     def begin(self):
         return self
 
-    def execute(self, cmd, params = None):
+    def execute(self, cmd, params=None):
         for seq in self.mock_stmt_sequences:
             result = seq.pop_if_matches(str(cmd), params)
             if result:
                 self.last_result = result
                 return result
-        
-        norm_sql = re.sub(r'\s+', ' ', str(cmd)).strip()
-        raise Exception(f"no mock statement found for {norm_sql} with params {params}")
-    
+
+        norm_sql = re.sub(r"\s+", " ", str(cmd)).strip()
+        msg = f"no mock statement found for {norm_sql} with params {params}"
+        raise Exception(msg)
+
     def copy_from(self, fd, table_name, columns=None):
         data_as_str = str(fd.read())
         for seq in self.mock_stmt_sequences:
@@ -120,34 +129,37 @@ class MockConnection:
             if result:
                 self.last_result = result
                 return result
-        
-        raise Exception(f"no mock statement found for COPY FROM fd INTO {table_name} with data {data_as_str[:10]}...")
-    
+
+        msg = f"no mock statement found for COPY FROM fd INTO {table_name} with data {data_as_str[:10]}..."
+        raise Exception(msg)
+
+
 class MockEngine:
     def __init__(self):
         self.conn = MockConnection()
 
     def connect(self):
         return self.conn
-    
+
     def dispose(self):
         pass
 
     def add_mock_stmt_sequence(self, stmt_seq: MockStmtSequence):
         self.conn.mock_stmt_sequences.append(stmt_seq)
-    
+
     def were_all_execd(self):
-        for seq in self.conn.mock_stmt_sequences:
+        for seq in self.conn.mock_stmt_sequences:  # noqa: SIM110
             if not seq.were_all_execd():
                 return False
         return True
+
 
 class MockVRSObject:
     def __init__(self, id: str):
         self.id = id
 
     def model_dump(self, exclude_none: bool):
-        return { "id": self.id }
-    
+        return {"id": self.id}
+
     def to_json(self):
         return json.dumps(self.model_dump(exclude_none=True))

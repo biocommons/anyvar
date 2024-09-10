@@ -1,3 +1,5 @@
+"""Provide tools for and implementations of AnyVar storage backends."""
+
 DEFAULT_STORAGE_URI = "postgresql://postgres@localhost:5432/anyvar"
 
 from abc import abstractmethod
@@ -13,7 +15,7 @@ class _Storage(MutableMapping):
     batch_manager = None
 
     @abstractmethod
-    def search_variations(self, refget_accession: str, start: int, stop: int):
+    def search_variations(self, refget_accession: str, start: int, stop: int) -> list:
         """Find all registered variations in a provided genomic region
 
         :param refget_accession: refget accession (SQ. identifier)
@@ -32,16 +34,16 @@ class _Storage(MutableMapping):
         """
 
     @abstractmethod
-    def wipe_db(self):
+    def wipe_db(self) -> None:
         """Empty database of all stored records."""
 
     @abstractmethod
-    def wait_for_writes(self):
-        """Returns once any currently pending database modifications have been completed."""
+    def wait_for_writes(self) -> None:
+        """Return once any currently pending database modifications have been completed."""
 
     @abstractmethod
-    def close(self):
-        """Closes the storage integration and cleans up any resources"""
+    def close(self) -> None:
+        """Close the storage integration and cleans up any resources"""
 
 
 class _BatchManager(AbstractContextManager):
@@ -53,7 +55,7 @@ class _BatchManager(AbstractContextManager):
     """
 
     @abstractmethod
-    def __init__(self, storage: _Storage):
+    def __init__(self, storage: _Storage) -> None:
         """Initialize context manager.
 
         :param storage: Storage instance to manage. Should be taken from the active

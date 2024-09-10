@@ -1,7 +1,7 @@
 """Provide response definitions to REST API endpoint."""
 
 from enum import Enum
-from typing import Any, Dict, List, Optional, Type
+from typing import Any
 
 from ga4gh.vrs import models
 from pydantic import BaseModel, StrictInt, StrictStr
@@ -35,9 +35,9 @@ class InfoResponse(BaseModel):
         """Configure InfoResponse class"""
 
         @staticmethod
-        def schema_extra(schema: Dict[str, Any], model: Type["InfoResponse"]) -> None:
+        def schema_extra(schema: dict[str, Any], model: type["InfoResponse"]) -> None:  # noqa: ARG004
             """Configure OpenAPI schema"""
-            if "title" in schema.keys():
+            if "title" in schema:
                 schema.pop("title", None)
             for prop in schema.get("properties", {}).values():
                 prop.pop("title", None)
@@ -50,21 +50,21 @@ class InfoResponse(BaseModel):
 class GetSequenceLocationResponse(BaseModel):
     """Describe response for the /locations/ endpoint"""
 
-    location: Optional[models.SequenceLocation]
+    location: models.SequenceLocation | None
 
 
 class RegisterVariationRequest(BaseModel):
     """Describe request structure for variation registration endpoint"""
 
     definition: StrictStr
-    input_type: Optional[SupportedVariationType] = None
-    copies: Optional[int] = None
-    copy_change: Optional[models.CopyChange] = None
+    input_type: SupportedVariationType | None = None
+    copies: int | None = None
+    copy_change: models.CopyChange | None = None
 
     class Config:
         """Configure RegisterAlleleRequest class"""
 
-        schema_extra = {
+        schema_extra = {  # noqa: RUF012
             "example": {
                 "definition": "BRAF V600E",
                 "input_type": None,
@@ -77,17 +77,20 @@ class RegisterVariationRequest(BaseModel):
 class RegisterVariationResponse(BaseModel):
     """Describe response for the variation registry endpoint"""
 
-    messages: List[str]
-    object: Optional[models.Variation]
-    object_id: Optional[str]
+    messages: list[str]
+    object: models.Variation | None
+    object_id: str | None
 
     class Config:
         """Configure RegisterVariationResponse class"""
 
         @staticmethod
-        def schema_extra(schema: Dict[str, Any], model: Type["RegisterVariationResponse"]) -> None:
+        def schema_extra(
+            schema: dict[str, Any],
+            model: type["RegisterVariationResponse"],  # noqa: ARG004
+        ) -> None:
             """Configure OpenAPI schema"""
-            if "title" in schema.keys():
+            if "title" in schema:
                 schema.pop("title", None)
             for prop in schema.get("properties", {}).values():
                 prop.pop("title", None)
@@ -115,24 +118,27 @@ class RegisterVariationResponse(BaseModel):
 class RegisterVrsVariationResponse(BaseModel):
     """Describe response for VRS object registration endpoint"""
 
-    messages: List[str]
-    object: Optional[models.Variation]
-    object_id: Optional[str]
+    messages: list[str]
+    object: models.Variation | None
+    object_id: str | None
 
 
 class GetVariationResponse(BaseModel):
     """Describe response for the /variation get endpoint"""
 
-    messages: List[StrictStr]
+    messages: list[StrictStr]
     data: models.Variation
 
     class Config:
         """Configure GetVariationResponse class"""
 
         @staticmethod
-        def schema_extra(schema: Dict[str, Any], model: Type["GetVariationResponse"]) -> None:
+        def schema_extra(
+            schema: dict[str, Any],
+            model: type["GetVariationResponse"],  # noqa: ARG004
+        ) -> None:
             """Configure OpenAPI schema"""
-            if "title" in schema.keys():
+            if "title" in schema:
                 schema.pop("title", None)
             for prop in schema.get("properties", {}).values():
                 prop.pop("title", None)
@@ -161,7 +167,7 @@ class GetVariationResponse(BaseModel):
 class SearchResponse(BaseModel):
     """Describe response for the /search endpoint"""
 
-    variations: List[models.Variation]
+    variations: list[models.Variation]
 
 
 class VariationStatisticType(str, Enum):

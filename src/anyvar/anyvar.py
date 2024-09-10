@@ -6,7 +6,6 @@ biological sequence variation
 import logging
 import os
 from collections.abc import MutableMapping
-from typing import Optional
 from urllib.parse import urlparse
 
 from ga4gh.vrs import vrs_deref, vrs_enref
@@ -19,9 +18,9 @@ from anyvar.utils.types import VrsObject
 _logger = logging.getLogger(__name__)
 
 
-def create_storage(uri: Optional[str] = None) -> _Storage:
-    """factory to create storage based on `uri` or the ANYVAR_STORAGE_URI environment
-    value.
+def create_storage(uri: str | None = None) -> _Storage:
+    """Provide factory to create storage based on `uri` or the ANYVAR_STORAGE_URI
+    environment value.
 
     The URI format is as follows:
 
@@ -37,15 +36,16 @@ def create_storage(uri: Optional[str] = None) -> _Storage:
     if parsed_uri.scheme == "postgresql":
         from anyvar.storage.postgres import PostgresObjectStore
 
-        storage = PostgresObjectStore(uri)  # type: ignore
+        storage = PostgresObjectStore(uri)
     elif parsed_uri.scheme == "snowflake":
         from anyvar.storage.snowflake import SnowflakeObjectStore
 
         storage = SnowflakeObjectStore(uri)
     else:
-        raise ValueError(f"URI scheme {parsed_uri.scheme} is not implemented")
+        msg = f"URI scheme {parsed_uri.scheme} is not implemented"
+        raise ValueError(msg)
 
-    _logger.debug(f"create_storage: {uri} → {storage}")
+    _logger.debug("create_storage: %s → %s}", uri, storage)
     return storage
 
 
@@ -61,7 +61,9 @@ def create_translator() -> _Translator:
 
 
 class AnyVar:
-    def __init__(self, /, translator: _Translator, object_store: _Storage):
+    """Define core AnyVar class."""
+
+    def __init__(self, /, translator: _Translator, object_store: _Storage) -> None:
         """Initialize anyvar instance. It's easiest to use factory methods to create
         translator and object_store instances but manual construction works too.
 
@@ -69,24 +71,26 @@ class AnyVar:
         :param object_store: Object storage instance
         """
         if not isinstance(object_store, MutableMapping):
-            _logger.warning("AnyVar(object_store=) should be a mutable mapping; you're on your own")
+            _logger.warning(
+                "AnyVar(object_store=) should be a mutable mapping; you're on your own"
+            )
 
         self.object_store = object_store
         self.translator = translator
 
-    def put_object(self, variation_object: VrsObject) -> Optional[str]:
+    def put_object(self, variation_object: VrsObject) -> str | None:
         """Attempt to register variation.
 
         :param variation_object: complete VRS object
         :return: Object digest if successful, None otherwise
         """
         try:
-            id, _ = vrs_enref(variation_object, self.object_store, True)
+            id, _ = vrs_enref(variation_object, self.object_store, True)  # noqa: A001
         except ValueError:
             return None
         return id
 
-    def get_object(self, object_id: str, deref: bool = False) -> Optional[VrsObject]:
+    def get_object(self, object_id: str, deref: bool = False) -> VrsObject | None:
         """Retrieve registered variation.
 
         :param object_id: object identifier

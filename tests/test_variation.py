@@ -1,16 +1,16 @@
 """Test variation endpoints"""
+
 import json
-from typing import Dict
-from http import HTTPStatus
 from copy import deepcopy
+from http import HTTPStatus
 
 import pytest
 
 
 @pytest.fixture(scope="module")
-def copy_numbers(test_data_dir) -> Dict:
+def copy_numbers(test_data_dir) -> dict:
     """Provide copy_numbers fixture object."""
-    with open(test_data_dir / "variations.json", "r") as f:
+    with (test_data_dir / "variations.json").open() as f:
         return json.load(f)["copy_numbers"]
 
 
@@ -21,7 +21,7 @@ def test_put_allele(client, alleles):
         assert resp.json()["object"]["id"] == allele_id
 
     # confirm idempotency
-    first_id, first_allele = list(alleles.items())[0]
+    first_id, first_allele = next(iter(alleles.items()))
     resp = client.put("/variation", json=first_allele["params"])
     assert resp.status_code == HTTPStatus.OK
     assert resp.json()["object"]["id"] == first_id
