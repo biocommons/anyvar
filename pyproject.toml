@@ -17,7 +17,7 @@ classifiers = [
 ]
 dependencies = [
     "fastapi>=0.95.0",
-    # "python-multipart",  # TODO ???
+    "python-multipart",  # required for fastapi file uploads
     "uvicorn",
     "ga4gh.vrs[extras]~=2.0.0a10",
 ]
