@@ -25,17 +25,20 @@ from anyvar.restapi.schema import (
     SearchResponse,
     VariationStatisticType,
 )
-from anyvar.translate.translate import TranslationException, TranslatorConnectionException
+from anyvar.translate.translate import (
+    TranslationError,
+    TranslatorConnectionError,
+)
 from anyvar.utils.types import VrsVariation, variation_class_map
 
 _logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def app_lifespan(param_app: FastAPI):
+async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
     """Initialize AnyVar instance and associate with FastAPI app on startup
-    and teardown the AnyVar instance on shutdown"""
-
+    and teardown the AnyVar instance on shutdown
+    """
     # create anyvar instance
     storage = anyvar.anyvar.create_storage()
     translator = anyvar.anyvar.create_translator()
@@ -68,7 +71,7 @@ app = FastAPI(
     description="System status check and configurations",
     tags=[EndpointTag.GENERAL],
 )
-def get_info():
+def get_info() -> dict:
     """Get system status check and configuration"""
     return {
         "anyvar": {
@@ -88,7 +91,7 @@ def get_info():
 )
 def get_location_by_id(
     request: Request, location_id: StrictStr = Path(..., description="Location VRS ID")
-):
+) -> dict:
     """Retrieve stored location object by ID.
 
     :param request: FastAPI request object
@@ -99,17 +102,16 @@ def get_location_by_id(
     av: AnyVar = request.app.state.anyvar
     try:
         location = av.get_object(location_id)
-    except KeyError:
+    except KeyError as e:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail=f"Location {location_id} not found"
-        )
+        ) from e
 
     if location:
         return {"location": location}
-    else:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail=f"Location {location_id} not found"
-        )
+    raise HTTPException(
+        status_code=HTTPStatus.NOT_FOUND, detail=f"Location {location_id} not found"
+    )
 
 
 @app.put(
@@ -117,15 +119,15 @@ def get_location_by_id(
     response_model=RegisterVariationResponse,
     response_model_exclude_none=True,
     summary="Register a new allele or copy number object",
-    description="Provide a variation definition to be normalized and registered with AnyVar. A complete VRS Allele or Copy Number object and digest is returned for later reference.",  # noqa: E501
+    description="Provide a variation definition to be normalized and registered with AnyVar. A complete VRS Allele or Copy Number object and digest is returned for later reference.",
     tags=[EndpointTag.VARIATIONS],
 )
 def register_variation(
     request: Request,
     variation: RegisterVariationRequest = Body(
-        description="Variation description, including (at minimum) a definition property. Can provide optional input_type if the expected output representation is known. If representing copy number, provide copies or copy_change."  # noqa: E501
+        description="Variation description, including (at minimum) a definition property. Can provide optional input_type if the expected output representation is known. If representing copy number, provide copies or copy_change."
     ),
-):
+) -> dict:
     """Register a variation based on a provided description or reference.
 
     :param request: FastAPI request object
@@ -140,10 +142,12 @@ def register_variation(
         translated_variation = av.translator.translate_variation(
             definition, **variation.model_dump()
         )
-    except TranslationException:
+    except TranslationError:
         result["messages"].append(f'Unable to translate "{definition}"')
     except NotImplementedError:
-        result["messages"].append(f"Variation class for {definition} is currently unsupported.")
+        result["messages"].append(
+            f"Variation class for {definition} is currently unsupported."
+        )
     else:
         if translated_variation:
             v_id = av.put_object(translated_variation)
@@ -157,7 +161,7 @@ def register_variation(
 @app.put(
     "/vrs_variation",
     summary="Register a VRS variation",
-    description="Provide a valid VRS variation object to be registered with AnyVar. A digest is returned for later reference.",  # noqa: E501
+    description="Provide a valid VRS variation object to be registered with AnyVar. A digest is returned for later reference.",
     response_model=RegisterVrsVariationResponse,
     response_model_exclude_none=True,
     tags=[EndpointTag.VARIATIONS],
@@ -181,7 +185,7 @@ def register_vrs_object(
             "type": "Allele",
         },
     ),
-):
+) -> dict:
     """Register a complete VRS object. No additional normalization is performed.
 
     :param request: FastAPI request object
@@ -195,7 +199,9 @@ def register_vrs_object(
     }
     variation_type = variation.type
     if variation_type not in variation_class_map:
-        result["messages"].append(f"Registration for {variation_type} not currently supported.")
+        result["messages"].append(
+            f"Registration for {variation_type} not currently supported."
+        )
         return result
 
     variation_object = variation_class_map[variation_type](**variation.dict())
@@ -208,22 +214,25 @@ def register_vrs_object(
 @app.put(
     "/vcf",
     summary="Register alleles from a VCF",
-    description="Provide a valid VCF. All reference and alternate alleles will be registered with AnyVar. The file is annotated with VRS IDs and returned.",  # noqa: E501
+    description="Provide a valid VCF. All reference and alternate alleles will be registered with AnyVar. The file is annotated with VRS IDs and returned.",
     tags=[EndpointTag.VARIATIONS],
 )
 async def annotate_vcf(
     request: Request,
     vcf: UploadFile = File(..., description="VCF to register and annotate"),
-    for_ref: bool = Query(default=True, description="Whether to compute VRS IDs for REF alleles"),
+    for_ref: bool = Query(
+        default=True, description="Whether to compute VRS IDs for REF alleles"
+    ),
     allow_async_write: bool = Query(
-        default=False, description="Whether to allow asynchronous write of VRS objects to database"
+        default=False,
+        description="Whether to allow asynchronous write of VRS objects to database",
     ),
     assembly: str = Query(
         default="GRCh38",
         pattern="^(GRCh38|GRCh37)$",
         description="The reference assembly for the VCF",
     ),
-):
+) -> FileResponse | dict:
     """Register alleles from a VCF and return a file annotated with VRS IDs.
 
     :param request: FastAPI request object
@@ -247,11 +256,11 @@ async def annotate_vcf(
                     compute_for_ref=for_ref,
                     assembly=assembly,
                 )
-            except (TranslatorConnectionException, OSError) as e:
-                _logger.error(f"Encountered error during VCF registration: {e}")
+            except (TranslatorConnectionError, OSError) as e:
+                _logger.error("Encountered error during VCF registration: %s", e)
                 return {"error": "VCF registration failed."}
             except ValueError as e:
-                _logger.error(f"Encountered error during VCF registration: {e}")
+                _logger.error("Encountered error during VCF registration: %s", e)
                 return {"error": "Encountered ValueError when registering VCF"}
             if not allow_async_write:
                 av.object_store.wait_for_writes()
@@ -264,12 +273,13 @@ async def annotate_vcf(
     response_model_exclude_none=True,
     operation_id="getVariation",
     summary="Retrieve a variation object",
-    description="Gets a variation instance by ID. May return any supported type of variation.",  # noqa: E501
+    description="Gets a variation instance by ID. May return any supported type of variation.",
     tags=[EndpointTag.VARIATIONS],
 )
 def get_variation_by_id(
-    request: Request, variation_id: StrictStr = Path(..., description="VRS ID for variation")
-):
+    request: Request,
+    variation_id: StrictStr = Path(..., description="VRS ID for variation"),
+) -> dict:
     """Get registered variation given VRS ID.
 
     :param request: FastAPI request object
@@ -280,17 +290,18 @@ def get_variation_by_id(
     av: AnyVar = request.app.state.anyvar
     try:
         variation = av.get_object(variation_id, deref=True)
-    except KeyError:
+    except KeyError as e:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail=f"Variation {variation_id} not found"
-        )
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"Variation {variation_id} not found",
+        ) from e
 
     if variation:
         return {"messages": [], "data": variation}
-    else:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail=f"Variation {variation_id} not found"
-        )
+    raise HTTPException(
+        status_code=HTTPStatus.NOT_FOUND,
+        detail=f"Variation {variation_id} not found",
+    )
 
 
 @app.get(
@@ -299,7 +310,7 @@ def get_variation_by_id(
     response_model_exclude_none=True,
     operation_id="searchVariations",
     summary="Search for registered variations by genomic region",
-    description="Fetch all registered variations within the provided genomic coordinates",  # noqa: E501
+    description="Fetch all registered variations within the provided genomic coordinates",
     tags=[EndpointTag.SEARCH],
 )
 def search_variations(
@@ -307,7 +318,7 @@ def search_variations(
     accession: str = Query(..., description="Sequence accession identifier"),
     start: int = Query(..., description="Start position for genomic region"),
     end: int = Query(..., description="End position for genomic region"),
-):
+) -> dict:
     """Fetch all registered variations within the provided genomic coordinates.
 
     :param request: FastAPI request object
@@ -319,21 +330,22 @@ def search_variations(
     av: AnyVar = request.app.state.anyvar
     try:
         ga4gh_id = av.translator.get_sequence_id(accession)
-    except KeyError:
+    except KeyError as e:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Unable to dereference provided accession ID"
-        )
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Unable to dereference provided accession ID",
+        ) from e
 
     alleles = []
     if ga4gh_id:
         try:
             refget_accession = ga4gh_id.split("ga4gh:")[-1]
             alleles = av.object_store.search_variations(refget_accession, start, end)
-        except NotImplementedError:
+        except NotImplementedError as e:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_IMPLEMENTED,
                 detail="Search not implemented for current storage backend",
-            )
+            ) from e
 
     inline_alleles = []
     if alleles:
@@ -356,8 +368,10 @@ def search_variations(
 )
 def get_stats(
     request: Request,
-    variation_type: VariationStatisticType = Path(..., description="category of variation"),
-):
+    variation_type: VariationStatisticType = Path(
+        ..., description="category of variation"
+    ),
+) -> dict:
     """Get summary statistics for registered variants. Currently just returns totals.
 
     :param request: FastAPI request object
@@ -369,9 +383,9 @@ def get_stats(
     av: AnyVar = request.app.state.anyvar
     try:
         count = av.object_store.get_variation_count(variation_type)
-    except NotImplementedError:
+    except NotImplementedError as e:
         raise HTTPException(
             status_code=HTTPStatus.NOT_IMPLEMENTED,
             detail="Stats not available for current storage backend",
-        )
+        ) from e
     return {"variation_type": variation_type, "count": count}

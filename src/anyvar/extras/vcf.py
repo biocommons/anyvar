@@ -1,12 +1,11 @@
 """Support processing and manipulation of VCF objects."""
 
 import logging
-from typing import Dict, Optional
 
 from ga4gh.vrs.extras.vcf_annotation import VCFAnnotator
 
 from anyvar.anyvar import AnyVar
-from anyvar.translate.translate import TranslationException
+from anyvar.translate.translate import TranslationError
 
 _logger = logging.getLogger(__name__)
 
@@ -26,8 +25,8 @@ class VcfRegistrar(VCFAnnotator):
     def annotate(
         self,
         vcf_in: str,
-        vcf_out: Optional[str] = None,
-        vrs_pickle_out: Optional[str] = None,
+        vcf_out: str | None = None,
+        vrs_pickle_out: str | None = None,
         vrs_attributes: bool = False,
         assembly: str = "GRCh38",
         compute_for_ref: bool = True,
@@ -46,26 +45,37 @@ class VcfRegistrar(VCFAnnotator):
         """
         if self.av.object_store.batch_manager:
             storage = self.av.object_store
-            with storage.batch_manager(storage):  # type: ignore
+            with storage.batch_manager(storage):
                 return super().annotate(
-                    vcf_in, vcf_out, vrs_pickle_out, vrs_attributes, assembly, compute_for_ref
+                    vcf_in,
+                    vcf_out,
+                    vrs_pickle_out,
+                    vrs_attributes,
+                    assembly,
+                    compute_for_ref,
                 )
         else:
             super().annotate(
-                vcf_in, vcf_out, vrs_pickle_out, vrs_attributes, assembly, compute_for_ref
+                vcf_in,
+                vcf_out,
+                vrs_pickle_out,
+                vrs_attributes,
+                assembly,
+                compute_for_ref,
             )
+        return None
 
     def _get_vrs_object(
         self,
         vcf_coords: str,
-        vrs_data: Dict,
-        vrs_field_data: Dict,
+        vrs_data: dict,
+        vrs_field_data: dict,
         assembly: str,
-        vrs_data_key: Optional[str] = None,
+        vrs_data_key: str | None = None,
         output_pickle: bool = True,
         output_vcf: bool = False,
-        vrs_attributes: bool = False,
-        require_validation: bool = True,
+        vrs_attributes: bool = False,  # noqa: ARG002
+        require_validation: bool = True,  # noqa: ARG002
     ) -> None:
         """Get VRS Object given `vcf_coords`. `vrs_data` and `vrs_field_data` will
         be mutated. Generally, we expect AnyVar to use the output_vcf option rather than
@@ -103,6 +113,5 @@ class VcfRegistrar(VCFAnnotator):
                 vrs_field_data[self.VRS_ALLELE_IDS_FIELD].append(allele_id)
 
         else:
-            raise TranslationException(
-                f"Translator returned empty VRS object for VCF coords {assembly} {vcf_coords}"
-            )
+            msg = f"Translator returned empty VRS object for VCF coords {assembly} {vcf_coords}"
+            raise TranslationError(msg)

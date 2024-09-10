@@ -1,4 +1,5 @@
 """Test search functionality."""
+
 from http import HTTPStatus
 
 
@@ -7,9 +8,9 @@ def test_search(client, alleles):
     for allele in alleles.values():
         start = allele["allele_response"]["object"]["location"]["start"]
         end = allele["allele_response"]["object"]["location"]["end"]
-        refget_ac = allele["allele_response"]["object"]["location"]["sequenceReference"][
-            "refgetAccession"
-        ]
+        refget_ac = allele["allele_response"]["object"]["location"][
+            "sequenceReference"
+        ]["refgetAccession"]
         accession = f"ga4gh:{refget_ac}"
         resp = client.get(f"/search?accession={accession}&start={start}&end={end}")
         assert resp.status_code == HTTPStatus.OK

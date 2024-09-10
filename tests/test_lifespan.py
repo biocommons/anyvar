@@ -1,5 +1,6 @@
-from fastapi.testclient import TestClient
 from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
 from anyvar.restapi.main import app_lifespan
 from anyvar.storage import _Storage
 
@@ -18,7 +19,7 @@ def test_lifespan(mocker):
         description="Test app",
         lifespan=app_lifespan,
     )
-    with TestClient(app) as client:
+    with TestClient(app):
         create_storage_mock.assert_called_once()
         create_translator_mock.assert_called_once()
         assert app.state.anyvar is not None

@@ -1,22 +1,23 @@
 """Provide base properties for Translator classes."""
 
 from abc import ABC, abstractmethod
-from typing import Optional
+
+from ga4gh.vrs import models
 
 from anyvar.utils.types import VrsVariation
 
 
-class TranslatorSetupException(Exception):
+class TranslatorSetupError(Exception):
     """Indicates failure to create translator instance (e.g. invalid params provided)"""
 
 
-class TranslatorConnectionException(Exception):
+class TranslatorConnectionError(Exception):
     """Indicates failure to connect to translator instance (e.g. REST endpoint not
     responding)
     """
 
 
-class TranslationException(Exception):
+class TranslationError(Exception):
     """Indicates failure to translate provided term into known variation structure."""
 
 
@@ -24,7 +25,9 @@ class _Translator(ABC):
     """Base Translator class."""
 
     @abstractmethod
-    def translate_variation(self, var: str, **kwargs):
+    def translate_variation(
+        self, var: str, **kwargs
+    ) -> models.Allele | models.CopyNumberCount | models.CopyNumberChange | None:
         """Translate provided variation text into a VRS Variation object.
 
         :param var: user-provided string describing or referencing a variation.
@@ -36,34 +39,34 @@ class _Translator(ABC):
             copies (int) - The number of copies for VRS Copy Number Count
             copy_change (models.CopyChange) - The EFO code for VRS COpy Number Change
         :returns: VRS variation object if able to translate
-        :raises TranslationException: if translation is unsuccessful, either because
+        :raises TranslationError: if translation is unsuccessful, either because
             the submitted variation is malformed, or because VRS-Python doesn't support
             its translation.
         """
         raise NotImplementedError
 
     @abstractmethod
-    def translate_allele(self, var: str) -> Optional[VrsVariation]:
+    def translate_allele(self, var: str) -> VrsVariation | None:
         """Translate provided variation text into a normalized VRS object.
 
         :param var: user-provided string describing or referencing a variation.
         :returns: VRS variation object if able to normalize
-        :raises TranslatorConnectionException: if translation request returns error
+        :raises TranslatorConnectionError: if translation request returns error
         """
         raise NotImplementedError
 
     @abstractmethod
-    def translate_cnv(self, var: str) -> Optional[VrsVariation]:
+    def translate_cnv(self, var: str) -> VrsVariation | None:
         """Translate provided variation text into a normalized VRS object.
 
         :param var: user-provided string describing or referencing a variation.
         :returns: VRS variation object if able to normalize
-        :raises TranslatorConnectionException: if translation request returns error
+        :raises TranslatorConnectionError: if translation request returns error
         """
         raise NotImplementedError
 
     @abstractmethod
-    def translate_vcf_row(self, assembly: str, coords: str) -> Optional[VrsVariation]:
+    def translate_vcf_row(self, assembly: str, coords: str) -> VrsVariation | None:
         """Translate VCF-like data to a normalized VRS object.
 
         :param coords: string formatted a la "<chr>-<pos>-<ref>-<alt>"

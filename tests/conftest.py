@@ -1,7 +1,6 @@
 import json
 import os
 from pathlib import Path
-from typing import Dict
 
 import pytest
 from fastapi.testclient import TestClient
@@ -12,10 +11,21 @@ from anyvar.restapi.main import app as anyvar_restapi
 
 def pytest_collection_modifyitems(items):
     """Modify test items in place to ensure test modules run in a given order."""
-    MODULE_ORDER = ["test_lifespan", "test_variation", "test_general", "test_location", "test_search", "test_vcf", "test_sql_storage_mapping", "test_postgres", "test_snowflake"]
+    module_order = [
+        "test_lifespan",
+        "test_variation",
+        "test_general",
+        "test_location",
+        "test_search",
+        "test_vcf",
+        "test_sql_storage_mapping",
+        "test_postgres",
+        "test_snowflake",
+    ]
     # remember to add new test modules to the order constant:
-    assert len(MODULE_ORDER) == len(list(Path(__file__).parent.rglob("test_*.py")))
-    items.sort(key=lambda i: MODULE_ORDER.index(i.module.__name__))
+    assert len(module_order) == len(list(Path(__file__).parent.rglob("test_*.py")))
+    items.sort(key=lambda i: module_order.index(i.module.__name__))
+
 
 @pytest.fixture(scope="session")
 def storage():
@@ -28,6 +38,7 @@ def storage():
     storage = create_storage(uri=storage_uri)
     storage.wipe_db()
     return storage
+
 
 @pytest.fixture(scope="session")
 def client(storage):
@@ -43,7 +54,7 @@ def test_data_dir() -> Path:
 
 
 @pytest.fixture(scope="session")
-def alleles(test_data_dir) -> Dict:
+def alleles(test_data_dir) -> dict:
     """Provide allele fixture object."""
-    with open(test_data_dir / "variations.json", "r") as f:
+    with (test_data_dir / "variations.json").open() as f:
         return json.load(f)["alleles"]
