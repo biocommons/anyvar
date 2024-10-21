@@ -63,7 +63,7 @@
     "ga4gh:CX.TvAhuGK6HYf53mXoUnon60cZ7DC_UgM3": {
       "params": {
         "definition": "NC_000013.11:g.26440969_26443305del",
-        "copy_change": "efo:0030069",
+        "copy_change": "EFO:0030069",
         "input_type": "CopyNumberChange"
       },
       "copy_number_response": {
@@ -82,7 +82,7 @@
             },
             "type": "SequenceLocation"
           },
-          "copyChange": "efo:0030069",
+          "copyChange": "EFO:0030069",
           "type": "CopyNumberChange"
         }
       },
