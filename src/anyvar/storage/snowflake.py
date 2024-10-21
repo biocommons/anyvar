@@ -91,7 +91,9 @@ class SnowflakeObjectStore(SqlStorage):
         env_batch_mode_name = os.environ.get(
             "ANYVAR_SNOWFLAKE_BATCH_ADD_MODE", SnowflakeBatchAddMode.merge.name
         )
-        self.batch_add_mode = (batch_add_mode or SnowflakeBatchAddMode[env_batch_mode_name])
+        self.batch_add_mode = (
+            batch_add_mode or SnowflakeBatchAddMode[env_batch_mode_name]
+        )
         if self.batch_add_mode not in SnowflakeBatchAddMode:
             msg = "batch_add_mode must be one of 'merge', 'insert_notin', or 'insert'"
             raise Exception(msg)
