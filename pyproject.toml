@@ -20,6 +20,7 @@ dependencies = [
     "python-multipart",  # required for fastapi file uploads
     "uvicorn",
     "ga4gh.vrs[extras]~=2.0.0a10",
+    "sqlalchemy~=1.4.54",
 ]
 dynamic = ["version"]
 
