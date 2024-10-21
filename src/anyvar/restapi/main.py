@@ -216,6 +216,7 @@ def register_vrs_object(
     summary="Register alleles from a VCF",
     description="Provide a valid VCF. All reference and alternate alleles will be registered with AnyVar. The file is annotated with VRS IDs and returned.",
     tags=[EndpointTag.VARIATIONS],
+    response_model=None,
 )
 async def annotate_vcf(
     request: Request,
