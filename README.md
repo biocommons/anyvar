@@ -213,3 +213,44 @@ uploaded. A pytest hook ensures correct test order, but some test modules may no
 able to pass when run in isolation. By default, the tests will use a Postgres database
 installation. To run the tests against a Snowflake database, change the
 `ANYVAR_TEST_STORAGE_URI` to a Snowflake URI and run the tests.
+
+## Logging
+AnyVar uses the [Python Logging Module](https://docs.python.org/3/howto/logging.html) to
+output information and diagnostics.  By default, log output is directed to standard output
+and the level is set to `INFO`.  Alternatively, a YAML logging configuration may be specified
+using the `ANYVAR_LOGGING_CONFIG` environment variable.  The value must be the relative or
+absolute path of a YAML file containing a valid logging configuration. The configuration
+in this file will be loaded and used to configured the logging module.
+
+For example:
+```yaml
+version: 1
+disable_existing_loggers: true
+
+formatters:
+  standard:
+    format: "%(threadName)s %(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: standard
+    stream: ext://sys.stdout
+
+root:
+  level: INFO
+  handlers: [console]
+  propagate: yes
+
+loggers:
+  anyvar.restapi.main:
+    level: INFO
+    handlers: [console]
+    propagate: no
+
+  anyvar.storage.sql_storage:
+    level: DEBUG
+    handlers: [console]
+    propagate: no
+```
