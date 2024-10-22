@@ -75,7 +75,8 @@ class SqlStorage(_Storage):
             os.environ.get("ANYVAR_SQL_STORE_BATCH_LIMIT", "100000")
         )
         self.flush_on_batchctx_exit = (
-            bool(os.environ.get("ANYVAR_SQL_STORE_FLUSH_ON_BATCHCTX_EXIT", "True"))
+            os.environ.get("ANYVAR_SQL_STORE_FLUSH_ON_BATCHCTX_EXIT", "true").lower()
+            in ["true", "yes", "1"]
             if flush_on_batchctx_exit is None
             else flush_on_batchctx_exit
         )
