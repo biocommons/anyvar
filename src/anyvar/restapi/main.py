@@ -1,11 +1,15 @@
 """Provide core route definitions for REST service."""
 
 import logging
+import logging.config
+import os
+import pathlib
 import tempfile
 from contextlib import asynccontextmanager
 from http import HTTPStatus
 
 import ga4gh.vrs
+import yaml
 from fastapi import Body, FastAPI, File, HTTPException, Path, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import StrictStr
@@ -30,6 +34,15 @@ from anyvar.translate.translate import (
     TranslatorConnectionError,
 )
 from anyvar.utils.types import VrsVariation, variation_class_map
+
+logging_config_file = os.environ.get("ANYVAR_LOGGING_CONFIG", None)
+if logging_config_file and pathlib.Path(logging_config_file).is_file():
+    with pathlib.Path(logging_config_file).open() as fd:
+        try:
+            config = yaml.safe_load(fd.read())
+            logging.config.dictConfig(config)
+        except Exception:
+            logging.exception("Error in Logging Configuration. Using default configs")
 
 _logger = logging.getLogger(__name__)
 
@@ -264,6 +277,7 @@ async def annotate_vcf(
                 _logger.error("Encountered error during VCF registration: %s", e)
                 return {"error": "Encountered ValueError when registering VCF"}
             if not allow_async_write:
+                _logger.info("Waiting for object store writes from API handler method")
                 av.object_store.wait_for_writes()
             return FileResponse(temp_out_file.name)
 

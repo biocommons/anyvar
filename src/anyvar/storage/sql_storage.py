@@ -74,15 +74,23 @@ class SqlStorage(_Storage):
         self.batch_limit = batch_limit or int(
             os.environ.get("ANYVAR_SQL_STORE_BATCH_LIMIT", "100000")
         )
+        _logger.debug("set batch limit to %s", self.batch_limit)
+
         self.flush_on_batchctx_exit = (
             os.environ.get("ANYVAR_SQL_STORE_FLUSH_ON_BATCHCTX_EXIT", "true").lower()
             in ["true", "yes", "1"]
             if flush_on_batchctx_exit is None
             else flush_on_batchctx_exit
         )
+        _logger.debug(
+            "set flush on batch context exit to %s", self.flush_on_batchctx_exit
+        )
+
         max_pending_batches = max_pending_batches or int(
             os.environ.get("ANYVAR_SQL_STORE_MAX_PENDING_BATCHES", "50")
         )
+        _logger.debug("set max pending batches to %s", max_pending_batches)
+
         self.batch_thread = SqlStorageBatchThread(self, max_pending_batches)
         self.batch_thread.start()
 
@@ -228,6 +236,8 @@ class SqlStorage(_Storage):
 
     def wait_for_writes(self) -> None:
         """Return once any currently pending database modifications have been completed."""
+        _logger.debug("Waiting for writes")
+
         if hasattr(self, "batch_thread") and self.batch_thread is not None:
             # short circuit if the queue is empty
             with self.batch_thread.cond:
@@ -449,6 +459,7 @@ class SqlStorageBatchManager(_BatchManager):
         self._storage.batch_mode = False
         self._storage.batch_insert_values = None
         if self._storage.flush_on_batchctx_exit:
+            _logger.debug("Flushing on batch context exit")
             self._storage.wait_for_writes()
         return True
 
