@@ -1,7 +1,7 @@
 """Provide response definitions to REST API endpoint."""
 
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 
 from ga4gh.vrs import models
 from pydantic import BaseModel, StrictInt, StrictStr
@@ -184,3 +184,20 @@ class AnyVarStatsResponse(BaseModel):
 
     variation_type: VariationStatisticType
     count: StrictInt
+
+
+class RunStatusResponse(BaseModel):
+    """Represents the response for triggering or checking the status of a run."""
+
+    run_id: str  # Run ID
+    status: str  # Run status
+    status_message: Optional[str] = (  # noqa: UP007
+        None  # Detailed status message for failures
+    )
+
+
+class ErrorResponse(BaseModel):
+    """Represents an error message"""
+
+    error: str  # Error message
+    error_code: Optional[str] = None  # error code # noqa: UP007
