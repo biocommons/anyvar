@@ -2,6 +2,7 @@
 
 import logging
 import os
+import threading
 from pathlib import Path
 
 import celery.signals
@@ -26,7 +27,7 @@ celery_app.conf.update(
     result_backend_transport_options={"global_keyprefix": "anyvar_"},
     broker_url=os.environ.get("CELERY_BROKER_URL", None),
     timezone=os.environ.get("CELERY_TIMEZONE", "UTC"),
-    result_expires=int(os.environ.get("CELERY_RESULT_EXPIRES", "3600")),
+    result_expires=int(os.environ.get("CELERY_RESULT_EXPIRES", "7200")),
     # task settings
     task_ignore_result=False,
     task_acks_late=os.environ.get("CELERY_TASK_ACKS_LATE", "true").lower()
@@ -49,35 +50,36 @@ celery_app.conf.update(
 
 # if this is a worker, create/destroy the AnyVar app instance
 #  on startup and shutdown
-anyvar_app = None
+_anyvar_app = None
+worker_init_lock = threading.Lock()
 
 
-@celery.signals.worker_process_init.connect
-def init_anyvar(**kwargs) -> None:  # noqa: ARG001
-    """On the `worker_process_init` signal, construct the AnyVar app instance"""
-    _logger.info("processing signal worker process init")
-    global anyvar_app
-    # create anyvar instance
-    if not anyvar_app:
-        _logger.info("creating anyvar app in worker process init")
-        storage = anyvar.anyvar.create_storage()
-        translator = anyvar.anyvar.create_translator()
-        anyvar_instance = anyvar.AnyVar(object_store=storage, translator=translator)
+def get_anyvar_app() -> anyvar.AnyVar:
+    """Create AnyVar app as necessary and return it"""
+    with worker_init_lock:
+        global _anyvar_app
+        # create anyvar instance if necessary
+        if not _anyvar_app:
+            _logger.info("creating global anyvar app for worker")
+            storage = anyvar.anyvar.create_storage()
+            translator = anyvar.anyvar.create_translator()
+            anyvar_instance = anyvar.AnyVar(object_store=storage, translator=translator)
+            _anyvar_app = anyvar_instance
 
-        # associate anyvar with the app state
-        anyvar_app = anyvar_instance
+    return _anyvar_app
 
 
-@celery.signals.worker_process_shutdown.connect
+@celery.signals.worker_shutdown.connect
 def teardown_anyvar(**kwargs) -> None:  # noqa: ARG001
     """On the `worker_process_shutdown` signal, destroy the AnyVar app instance"""
-    _logger.info("processing signal worker process shutdown")
-    global anyvar_app
-    # close storage connector on shutdown
-    if anyvar_app:
-        _logger.info("closing anyvar app in worker process init")
-        anyvar_app.object_store.close()
-        anyvar_app = None
+    with worker_init_lock:
+        global _anyvar_app
+        _logger.info("processing signal worker shutdown")
+        # close storage connector on shutdown
+        if _anyvar_app:
+            _logger.info("closing anyvar app in worker process init")
+            _anyvar_app.object_store.close()
+            _anyvar_app = None
 
 
 @celery_app.task(bind=True)
@@ -95,7 +97,6 @@ def annotate_vcf(
     :param allow_async_write: whether to allow async database writes
     :return: path to the annotated VCF file
     """
-    global anyvar_app
     try:
         # create output file path
         output_file_path = f"{input_file_path}_outputvcf"
@@ -107,6 +108,7 @@ def annotate_vcf(
         )
 
         # annotation vcf with VRS IDs
+        anyvar_app = get_anyvar_app()
         registrar = VcfRegistrar(anyvar_app)
         registrar.annotate(
             vcf_in=input_file_path,

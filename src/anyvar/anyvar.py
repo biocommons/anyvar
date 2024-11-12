@@ -4,16 +4,29 @@ biological sequence variation
 """
 
 import logging
+import logging.config
 import os
+import pathlib
 from collections.abc import MutableMapping
 from urllib.parse import urlparse
 
+import yaml
 from ga4gh.vrs import vrs_deref, vrs_enref
 
 from anyvar.storage import DEFAULT_STORAGE_URI, _Storage
 from anyvar.translate.translate import _Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
 from anyvar.utils.types import VrsObject
+
+# Configure logging from file or use default
+logging_config_file = os.environ.get("ANYVAR_LOGGING_CONFIG", None)
+if logging_config_file and pathlib.Path(logging_config_file).is_file():
+    with pathlib.Path(logging_config_file).open() as fd:
+        try:
+            config = yaml.safe_load(fd.read())
+            logging.config.dictConfig(config)
+        except Exception:
+            logging.exception("Error in Logging Configuration. Using default configs")
 
 _logger = logging.getLogger(__name__)
 

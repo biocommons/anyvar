@@ -12,7 +12,6 @@ from contextlib import asynccontextmanager
 from http import HTTPStatus
 
 import ga4gh.vrs
-import yaml
 from fastapi import (
     BackgroundTasks,
     Body,
@@ -51,16 +50,6 @@ from anyvar.translate.translate import (
     TranslatorConnectionError,
 )
 from anyvar.utils.types import VrsVariation, variation_class_map
-
-# Configure logging from file or use default
-logging_config_file = os.environ.get("ANYVAR_LOGGING_CONFIG", None)
-if logging_config_file and pathlib.Path(logging_config_file).is_file():
-    with pathlib.Path(logging_config_file).open() as fd:
-        try:
-            config = yaml.safe_load(fd.read())
-            logging.config.dictConfig(config)
-        except Exception:
-            logging.exception("Error in Logging Configuration. Using default configs")
 
 _logger = logging.getLogger(__name__)
 
@@ -485,14 +474,15 @@ async def get_result(
         _logger.info("%s - failed with error %s", run_id, error_msg)
 
         # cleanup working files
-        input_file_path_str = async_result.kwargs.get("input_file_path", None)
-        if input_file_path_str:
-            input_file_path = pathlib.Path(input_file_path_str)
-            if input_file_path.is_file():
-                bg_tasks.add_task(input_file_path.unlink, missing_ok=True)
-            output_file_path = pathlib.Path(f"{input_file_path_str}_outputvcf")
-            if output_file_path.is_file():
-                bg_tasks.add_task(output_file_path.unlink, missing_ok=True)
+        if async_result.kwargs:
+            input_file_path_str = async_result.kwargs.get("input_file_path", None)
+            if input_file_path_str:
+                input_file_path = pathlib.Path(input_file_path_str)
+                if input_file_path.is_file():
+                    bg_tasks.add_task(input_file_path.unlink, missing_ok=True)
+                output_file_path = pathlib.Path(f"{input_file_path_str}_outputvcf")
+                if output_file_path.is_file():
+                    bg_tasks.add_task(output_file_path.unlink, missing_ok=True)
 
         # forget the run and return the response
         async_result.forget()
