@@ -48,14 +48,13 @@ celery_app.conf.update(
     in ["true", "yes", "1"],
 )
 
-# if this is a worker, create/destroy the AnyVar app instance
-#  on startup and shutdown
+# if this is a celery worker, we need an AnyVar app instance
 _anyvar_app = None
 worker_init_lock = threading.Lock()
 
 
 def get_anyvar_app() -> anyvar.AnyVar:
-    """Create AnyVar app as necessary and return it"""
+    """Create AnyVar app associated with the Celery work as necessary and return it"""
     with worker_init_lock:
         global _anyvar_app
         # create anyvar instance if necessary
@@ -71,7 +70,7 @@ def get_anyvar_app() -> anyvar.AnyVar:
 
 @celery.signals.worker_shutdown.connect
 def teardown_anyvar(**kwargs) -> None:  # noqa: ARG001
-    """On the `worker_process_shutdown` signal, destroy the AnyVar app instance"""
+    """On the `worker_shutdown` signal, destroy the AnyVar app instance"""
     with worker_init_lock:
         global _anyvar_app
         _logger.info("processing signal worker shutdown")
@@ -90,7 +89,8 @@ def annotate_vcf(
     for_ref: bool,
     allow_async_write: bool,
 ) -> str:
-    """Annotate the specified VCF file and return the path to the annotated file
+    """Annotate the specified VCF file and return the path to the annotated file.
+    The input file is deleted when the annotation completes successfully.
     :param input_file_path: path to the VCF file to be annotated
     :param assembly: the reference assembly for the VCF
     :param for_ref: whether to compute VRS IDs for REF alleles
@@ -101,13 +101,13 @@ def annotate_vcf(
         # create output file path
         output_file_path = f"{input_file_path}_outputvcf"
         _logger.info(
-            "%s - worker annotating vcf %s to %s",
+            "%s - annotating vcf file %s, outputting to %s",
             self.request.id,
             input_file_path,
             output_file_path,
         )
 
-        # annotation vcf with VRS IDs
+        # annotate vcf with VRS IDs
         anyvar_app = get_anyvar_app()
         registrar = VcfRegistrar(anyvar_app)
         registrar.annotate(
@@ -115,6 +115,10 @@ def annotate_vcf(
             vcf_out=output_file_path,
             compute_for_ref=for_ref,
             assembly=assembly,
+        )
+        _logger.info(
+            "%s - annotation completed",
+            self.request.id,
         )
 
         # wait for writes if necessary
@@ -135,13 +139,13 @@ def annotate_vcf(
         raise
 
 
-# after task is published, set the status to "SENT"
-#  this allows the web api to determine when a run_id is not found
 @celery.signals.after_task_publish.connect
 def update_sent_state(sender: str | None, headers: dict | None, **kwargs) -> None:  # noqa: ARG001
     """On the `after_task_publish` signal, set the task status to SENT.  This enables
     the application to differentiate between task ids that are not complete and those
     that do not exist.
+    :param sender: the name of the task
+    :param headers: the task message headers
     """
     _logger.info("%s - after publish", headers["id"])
     task = celery_app.tasks.get(sender)

@@ -364,7 +364,11 @@ async def _annotate_vcf_async(
         },
         task_id=run_id,
     )
-    _logger.info("%s - async vcf annotation run submitted", task_result.id)
+    _logger.info(
+        "%s - async annotation run submitted for vcf with %s sites",
+        task_result.id,
+        vcf_site_count,
+    )
 
     # set response headers
     response.status_code = status.HTTP_202_ACCEPTED
@@ -471,7 +475,7 @@ async def get_result(
                 else "RUN_FAILURE"
             )
         )
-        _logger.info("%s - failed with error %s", run_id, error_msg)
+        _logger.debug("%s - failed with error %s", run_id, error_msg)
 
         # cleanup working files
         if async_result.kwargs:
@@ -479,9 +483,19 @@ async def get_result(
             if input_file_path_str:
                 input_file_path = pathlib.Path(input_file_path_str)
                 if input_file_path.is_file():
+                    _logger.debug(
+                        "%s - adding task to remove input file %s",
+                        run_id,
+                        str(input_file_path),
+                    )
                     bg_tasks.add_task(input_file_path.unlink, missing_ok=True)
                 output_file_path = pathlib.Path(f"{input_file_path_str}_outputvcf")
                 if output_file_path.is_file():
+                    _logger.debug(
+                        "%s - adding task to remove output file %s",
+                        run_id,
+                        str(output_file_path),
+                    )
                     bg_tasks.add_task(output_file_path.unlink, missing_ok=True)
 
         # forget the run and return the response
