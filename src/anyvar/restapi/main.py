@@ -342,7 +342,7 @@ async def _annotate_vcf_async(
     vcf_site_count = 0
     async with aiofiles.open(input_file_path, mode="wb") as fd:
         while buffer := await vcf.read(1024 * 1024):
-            if ord("#") not in buffer and ord("\n") in buffer:
+            if ord("\n") in buffer:
                 vcf_site_count = vcf_site_count + 1
             await fd.write(buffer)
     _logger.debug("wrote working file for async vcf to %s", input_file_path)
@@ -374,7 +374,7 @@ async def _annotate_vcf_async(
     return RunStatusResponse(
         run_id=task_result.id,
         status="PENDING",
-        message=f"Run submitted. Check status at /vcf/{task_result.id}.",
+        status_message=f"Run submitted. Check status at /vcf/{task_result.id}",
     )
 
 
@@ -446,7 +446,7 @@ async def get_result(
     # completed successfully
     if async_result.status == "SUCCESS":
         response.status_code = status.HTTP_200_OK
-        output_file_path = async_result.get()
+        output_file_path = async_result.result
         async_result.forget()
         _logger.debug("%s - output file path is %s", run_id, output_file_path)
         bg_tasks.add_task(os.unlink, output_file_path)
