@@ -8,6 +8,8 @@ from fastapi.testclient import TestClient
 from anyvar.anyvar import AnyVar, create_storage, create_translator
 from anyvar.restapi.main import app as anyvar_restapi
 
+pytest_plugins = ("celery.contrib.pytest",)
+
 
 def pytest_collection_modifyitems(items):
     """Modify test items in place to ensure test modules run in a given order."""
@@ -58,3 +60,16 @@ def alleles(test_data_dir) -> dict:
     """Provide allele fixture object."""
     with (test_data_dir / "variations.json").open() as f:
         return json.load(f)["alleles"]
+
+
+@pytest.fixture(scope="session")
+def celery_config():
+    return {
+        "broker_url": os.environ.get("CELERY_BROKER_URL", "redis://"),
+        "result_backend": os.environ.get("CELERY_BACKEND_URL", "redis://"),
+        "task_default_queue": "anyvar_q",
+        "event_queue_prefix": "anyvar_ev",
+        "task_serializer": "json",
+        "result_serializer": "json",
+        "accept_content": ["application/json"],
+    }
