@@ -51,13 +51,6 @@ from anyvar.translate.translate import (
 )
 from anyvar.utils.types import VrsVariation, variation_class_map
 
-_logger = logging.getLogger(__name__)
-
-# Determine whether asynchronous VCF annotation is enabled
-#   Get the working directory for asynchronous VCF annotation
-async_work_dir = os.environ.get("ANYVAR_VCF_ASYNC_WORK_DIR", None)
-#   Get what response code to use for asynchronous VCF annotation failures
-failure_status_code = int(os.environ.get("ANYVAR_VCF_ASYNC_FAILURE_STATUS_CODE", "500"))
 try:
     import aiofiles  # noqa: I001
     import anyvar.queueing.celery_worker
@@ -65,9 +58,9 @@ try:
     from celery.exceptions import WorkerLostError
     from celery.result import AsyncResult
 except ImportError:
-    has_queueing = False
-else:
-    has_queueing = os.environ.get("CELERY_BROKER_URL", None) and async_work_dir
+    pass
+
+_logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -294,7 +287,7 @@ async def annotate_vcf(
     :return: streamed annotated file or a run status response for an asynchronous run
     """
     # If async requested but not enabled, return an error
-    if run_async and not has_queueing:
+    if run_async and not anyvar.anyvar.has_queueing_enabled():
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ErrorResponse(
             error="Required modules and/or configurations for asynchronous VCF annotation are missing"
@@ -336,6 +329,7 @@ async def _annotate_vcf_async(
 ) -> RunStatusResponse:
     """Annotate with VRS IDs asynchronously.  See `annotate_vcf()` for parameter definitions."""
     # write file to shared storage area with a directory for each day and a random file name
+    async_work_dir = os.environ.get("ANYVAR_VCF_ASYNC_WORK_DIR", None)
     utc_now = datetime.datetime.now(tz=datetime.UTC)
     file_id = str(uuid.uuid4())
     input_file_path = pathlib.Path(
@@ -439,7 +433,7 @@ async def get_result(
     :return: streamed annotated file or a run status response
     """
     # Asynchronous VCF annotation not enabled, return error
-    if not has_queueing:
+    if not anyvar.anyvar.has_queueing_enabled():
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ErrorResponse(
             error="Required modules and/or configurations for asynchronous VCF annotation are missing"
@@ -500,7 +494,9 @@ async def get_result(
 
         # forget the run and return the response
         async_result.forget()
-        response.status_code = failure_status_code
+        response.status_code = int(
+            os.environ.get("ANYVAR_VCF_ASYNC_FAILURE_STATUS_CODE", "500")
+        )
         return ErrorResponse(error_code=error_code, error=error_msg)
 
     # status here is either "SENT" or "PENDING"

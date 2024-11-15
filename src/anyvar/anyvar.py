@@ -3,6 +3,7 @@ biological sequence variation
 
 """
 
+import importlib.util
 import logging
 import logging.config
 import os
@@ -71,6 +72,16 @@ def create_translator() -> _Translator:
     :return: instantiated Translator instance
     """
     return VrsPythonTranslator()
+
+
+def has_queueing_enabled() -> bool:
+    """Determine whether or not asynchronous task queueing is enabled"""
+    return (
+        importlib.util.find_spec("aiofiles") is not None
+        and importlib.util.find_spec("celery") is not None
+        and os.environ.get("CELERY_BROKER_URL", "") != ""
+        and os.environ.get("ANYVAR_VCF_ASYNC_WORK_DIR", "") != ""
+    )
 
 
 class AnyVar:
