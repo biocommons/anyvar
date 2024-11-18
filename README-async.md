@@ -89,9 +89,6 @@ Start a Celery worker with environment variables to set shared resource location
     celery -A anyvar.queueing.celery_worker:celery_app worker
 ```
 To start multiple Celery workers use the `--concurrency` option.
-Note that Celery supports multiple worker pool types (prefork, threads, etc).  AnyVar
-should only be run using the prefork pool, which is the default, because the AnyVar code
-is not thread safe.
 
 #### Submit an Async VCF Request
 Now that the REST API and Celery worker are running, submit an async VCF request with cURL:
