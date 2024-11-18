@@ -6,7 +6,7 @@ eliminating long lived connections and allow AnyVar to scale horizontally instea
 to serve a larger request volume.  AnyVar utilizes the [Celery](https://docs.celeryq.dev/)
 distributed task queue to manage the asynchronous tasks.
 
-### How It Works
+## How It Works
 AnyVar can be run as a FastAPI app that provides a REST API.  The REST API is run using
 uvicorn or gunicorn, eg:
 ```shell
@@ -45,10 +45,10 @@ VCF file.  For example:
 The client can provide a `run_id=...` query parameter with the initial PUT request.  If one is not
 provided, a random UUID will be generated (as illustrated above).
 
-### Setting Up Asynchronous VCF Processing
+## Setting Up Asynchronous VCF Processing
 Enabling asychronous VCF processing requires some additional setup.
 
-#### Install the Necessary Dependencies
+### Install the Necessary Dependencies
 Asynchronous VCF processing requires the installation of additional, optional dependencies:
 ```shell
 % pip install .[queueing]
@@ -56,7 +56,7 @@ Asynchronous VCF processing requires the installation of additional, optional de
 This will install the `celery[redis]` module and its dependencies.  To connect Celery to a different
 message broker or backend, install the appropriate extras with Celery.
 
-#### Start an Instance of Redis
+### Start an Instance of Redis
 Celery relies on a message broker and result backend to manage the task queue and store results.
 The simplest option is to use a single instance of [Redis](https://redis.io) for both purposes.  This
 documentation and the default settings will both assume this configuration.  For other message broker
@@ -68,12 +68,12 @@ If a Docker engine is available, start a local instance of Redis:
 ```
 Or follow the [instructions](https://redis.io/docs/latest/get-started/) to run locally.
 
-#### Create a Scratch Directory for File Storage
+### Create a Scratch Directory for File Storage
 AnyVar does not store the actual VCF files in Redis for asynchronous processing, only paths to the file.
 This allows very large VCF files to be asychronously processed.  All REST API and worker instances of AnyVar
 require access to the same shared file system.
 
-#### Start the REST API
+### Start the REST API
 Start the REST API with environment variables to set shared resource locations:
 ```shell
 % CELERY_BROKER_URL="redis://localhost:6379/0" \
@@ -82,7 +82,7 @@ Start the REST API with environment variables to set shared resource locations:
     uvicorn anyvar.restapi.main:app
 ```
 
-#### Start a Celery Worker
+### Start a Celery Worker
 Start a Celery worker with environment variables to set shared resource locations:
 ```shell
 % CELERY_BROKER_URL="redis://localhost:6379/0" \
@@ -92,7 +92,7 @@ Start a Celery worker with environment variables to set shared resource location
 ```
 To start multiple Celery workers use the `--concurrency` option.
 
-#### Submit an Async VCF Request
+### Submit an Async VCF Request
 Now that the REST API and Celery worker are running, submit an async VCF request with cURL:
 ```shell
 % curl -v -X PUT -F "vcf=@test.vcf" 'https://localhost:8000/vcf?run_async=True&run_id=12345'
@@ -102,7 +102,7 @@ And then check its status:
 % curl -v 'https://localhost:8000/vcf/12345'
 ```
 
-### Additional Environment Variables
+## Additional Environment Variables
 In addition to the environment variables mentioned previously, the following environment variables
 are directly supported and applied by AnyVar during startup.  It is advisable to understand the underlying
 Celery configuration options in more detail before making any changes.  The Celery configuration parameter
