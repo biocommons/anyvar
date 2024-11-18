@@ -183,7 +183,7 @@ AnyVar can support using the asynchronous request-response pattern when annotati
 This can improve reliability when serving remote clients by eliminating long lived connections
 and allow AnyVar to scale out instead of up to serve a larger request volume.
 
-See README-async.md for more details.
+See [README-async.md](README-async.md) for more details.
 
 ### Starting the REST service locally
 
