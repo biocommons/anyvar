@@ -181,6 +181,44 @@ def test_vcf_registration_async(client, sample_vcf_grch38, mocker):
         shutil.rmtree("tests/tmp_async_work_dir")
 
 
+def test_vcf_submit_no_async(client, sample_vcf_grch38, mocker):
+    """Tests that a 400 is returned when async processing is not enabled"""
+    mocker.patch.dict(
+        os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "", "CELERY_BROKER_URL": ""}
+    )
+    resp = client.put(
+        "/vcf",
+        params={"assembly": "GRCh38", "run_id": "12345", "run_async": True},
+        files={"vcf": ("test.vcf", sample_vcf_grch38)},
+    )
+    assert resp.status_code == HTTPStatus.BAD_REQUEST
+    assert "error" in resp.json()
+    assert (
+        resp.json()["error"]
+        == "Required modules and/or configurations for asynchronous VCF annotation are missing"
+    )
+
+
+def test_vcf_submit_duplicate_run_id(client, sample_vcf_grch38, mocker):
+    """Tests the submit VCF endpoint when there is already a run for the specified run id"""
+    mocker.patch.dict(
+        os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "./", "CELERY_BROKER_URL": "redis://"}
+    )
+    mock_result = mocker.patch("anyvar.restapi.main.AsyncResult")
+    mock_result.return_value.status = "SENT"
+    resp = client.put(
+        "/vcf",
+        params={"assembly": "GRCh38", "run_id": "12345", "run_async": True},
+        files={"vcf": ("test.vcf", sample_vcf_grch38)},
+    )
+    assert resp.status_code == HTTPStatus.BAD_REQUEST
+    assert "error" in resp.json()
+    assert (
+        resp.json()["error"]
+        == "An existing run with id 12345 is SENT.  Fetch the completed run result before submitting with the same run_id."
+    )
+
+
 def test_vcf_get_result_no_async(client, mocker):
     """Tests that a 400 is returned when async processing is not enabled"""
     mocker.patch.dict(
