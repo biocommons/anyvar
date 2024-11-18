@@ -53,6 +53,8 @@ Asynchronous VCF processing requires the installation of additional, optional de
 ```shell
 % pip install .[queueing]
 ```
+This will install the `celery[redis]` module and its dependencies.  To connect Celery to a different
+message broker or backend, install the appropriate extras with Celery.
 
 #### Start an Instance of Redis
 Celery relies on a message broker and result backend to manage the task queue and store results.
@@ -102,7 +104,10 @@ And then check its status:
 
 ### Additional Environment Variables
 In addition to the environment variables mentioned previously, the following environment variables
-can be set to adjust the behavior of AnyVar and Celery:
+are directly supported and applied by AnyVar during startup.  It is advisable to understand the underlying
+Celery configuration options in more detail before making any changes.  The Celery configuration parameter
+name corresponding to each environment variable can be derived by removing the leading `CELERY_` and lower
+casing the remaining, e.g.: `CELERY_TASK_DEFAULT_QUEUE` -> `task_default_queue`.
 | Variable | Description | Default |
 | -------- | ------- | ------- |
 | CELERY_TASK_DEFAULT_QUEUE | The name of the queue for tasks | anyvar_q |
