@@ -49,13 +49,20 @@ celery_app.conf.update(
 )
 
 # if this is a celery worker, we need an AnyVar app instance
+#  and to track how many tasks are concurrently running
+#  so that clean up can happen cleanly and at the right time
+# For the prefork pool, this is not really needed since preforked
+#   workers are single threaded; but for the threads pool, this
+#   state is shared by the worker threads
 _anyvar_app = None
-worker_init_lock = threading.Lock()
+_current_task_count = 0
+_cleanup_flag = False
+_shared_state_lock = threading.Lock()
 
 
 def get_anyvar_app() -> anyvar.AnyVar:
     """Create AnyVar app associated with the Celery work as necessary and return it"""
-    with worker_init_lock:
+    with _shared_state_lock:
         global _anyvar_app
         # create anyvar instance if necessary
         if not _anyvar_app:
@@ -68,17 +75,88 @@ def get_anyvar_app() -> anyvar.AnyVar:
     return _anyvar_app
 
 
-@celery.signals.worker_shutdown.connect
-def teardown_anyvar(**kwargs) -> None:  # noqa: ARG001
-    """On the `worker_shutdown` signal, destroy the AnyVar app instance"""
-    with worker_init_lock:
-        global _anyvar_app
-        _logger.info("processing signal worker shutdown")
-        # close storage connector on shutdown
-        if _anyvar_app:
-            _logger.info("closing anyvar app in worker process init")
+def teardown_anyvar_app() -> None:
+    """Shutdown the AnyVar app if it is safe to do so"""
+    global _anyvar_app
+    global _shared_state_lock
+    global _current_task_count
+    global _cleanup_flag
+    with _shared_state_lock:
+        # if it is safe to do so
+        if _cleanup_flag and _current_task_count == 0 and _anyvar_app:
+            # cleanly shutdown the AnyVar app, waiting for background writes
+            _logger.info("closing AnyVar app")
+            _anyvar_app.object_store.wait_for_writes()
             _anyvar_app.object_store.close()
             _anyvar_app = None
+
+
+def enter_task() -> None:
+    """Increment the task counter"""
+    global _shared_state_lock
+    global _current_task_count
+    _logger.info(
+        "incrementing current task count from %s to %s",
+        _current_task_count,
+        _current_task_count + 1,
+    )
+    with _shared_state_lock:
+        _current_task_count = _current_task_count + 1
+
+
+def exit_task() -> None:
+    """Decrement the task counter"""
+    global _shared_state_lock
+    global _current_task_count
+    _logger.info(
+        "decrementing current task count from %s to %s",
+        _current_task_count,
+        _current_task_count - 1,
+    )
+    with _shared_state_lock:
+        _current_task_count = _current_task_count - 1
+
+
+@celery.signals.worker_shutting_down.connect
+def on_worker_shutting_down(**kwargs) -> None:  # noqa: ARG001
+    """On the `worker_shutting_down` signal, set the cleanup flag and attempt tear down.
+    This signal is dispatched in both the prefork and threads pool types on the main process.
+    """
+    _logger.info("processing signal worker_shutting_down")
+    global _shared_state_lock
+    global _cleanup_flag
+    with _shared_state_lock:
+        _cleanup_flag = True
+
+    teardown_anyvar_app()
+
+
+@celery.signals.worker_process_shutdown.connect
+def on_worker_process_shutdown(**kwargs) -> None:  # noqa: ARG001
+    """On the `worker_process_shutdown` signal, set the cleanup flag and attempt tear down.
+    This signal is dispatched in the forked worker processes in the prefork pool.
+    """
+    _logger.info("processing signal worker_process_shutdown")
+    global _shared_state_lock
+    global _cleanup_flag
+    with _shared_state_lock:
+        _cleanup_flag = True
+
+    teardown_anyvar_app()
+
+
+@celery.signals.worker_shutdown.connect
+def on_worker_shutdown(**kwargs) -> None:  # noqa: ARG001
+    """On the `worker_shutdown` signal, set the cleanup flag and attempt tear down.
+    This signal is dispatched in both the prefork and threads pool types on the main process.
+    """
+    _logger.info("processing signal worker_shutdown")
+    global _shared_state_lock
+    global _cleanup_flag
+    with _shared_state_lock:
+        _cleanup_flag = True
+
+    teardown_anyvar_app()
 
 
 @celery_app.task(bind=True)
@@ -98,6 +176,8 @@ def annotate_vcf(
     :return: path to the annotated VCF file
     """
     try:
+        enter_task()
+
         # create output file path
         output_file_path = f"{input_file_path}_outputvcf"
         _logger.info(
@@ -137,6 +217,9 @@ def annotate_vcf(
     except Exception:
         _logger.exception("%s - vcf annotation failed with exception", self.request.id)
         raise
+    finally:
+        exit_task()
+        teardown_anyvar_app()
 
 
 @celery.signals.after_task_publish.connect
