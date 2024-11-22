@@ -92,9 +92,9 @@ Start a Celery worker with environment variables to set shared resource location
 ```
 To start multiple Celery workers use the `--concurrency` option.
 
-[!CAUTION]
-Celery supports different pool types (prefork, threads, etc.).
-AnyVar ONLY supports the `prefork` and `solo` pool types.
+> [!CAUTION]
+> Celery supports different pool types (prefork, threads, etc.).
+> AnyVar ONLY supports the `prefork` and `solo` pool types.
 
 
 ### Submit an Async VCF Request
