@@ -1,5 +1,6 @@
 """Define the Celery app and tasks for asynchronous request-response support"""
 
+import datetime
 import logging
 import os
 import threading
@@ -75,7 +76,7 @@ def get_anyvar_app() -> anyvar.AnyVar:
     return _anyvar_app
 
 
-def teardown_anyvar_app() -> None:
+def maybe_teardown_anyvar_app() -> None:
     """Shutdown the AnyVar app if it is safe to do so"""
     global _anyvar_app
     global _shared_state_lock
@@ -89,6 +90,7 @@ def teardown_anyvar_app() -> None:
             _anyvar_app.object_store.wait_for_writes()
             _anyvar_app.object_store.close()
             _anyvar_app = None
+            _cleanup_flag = False
 
 
 def enter_task() -> None:
@@ -128,7 +130,7 @@ def on_worker_shutting_down(**kwargs) -> None:  # noqa: ARG001
     with _shared_state_lock:
         _cleanup_flag = True
 
-    teardown_anyvar_app()
+    maybe_teardown_anyvar_app()
 
 
 @celery.signals.worker_process_shutdown.connect
@@ -142,7 +144,7 @@ def on_worker_process_shutdown(**kwargs) -> None:  # noqa: ARG001
     with _shared_state_lock:
         _cleanup_flag = True
 
-    teardown_anyvar_app()
+    maybe_teardown_anyvar_app()
 
 
 @celery.signals.worker_shutdown.connect
@@ -156,7 +158,7 @@ def on_worker_shutdown(**kwargs) -> None:  # noqa: ARG001
     with _shared_state_lock:
         _cleanup_flag = True
 
-    teardown_anyvar_app()
+    maybe_teardown_anyvar_app()
 
 
 @celery_app.task(bind=True)
@@ -177,6 +179,7 @@ def annotate_vcf(
     """
     try:
         enter_task()
+        task_start = datetime.datetime.now(tz=datetime.UTC)
 
         # create output file path
         output_file_path = f"{input_file_path}_outputvcf"
@@ -196,18 +199,25 @@ def annotate_vcf(
             compute_for_ref=for_ref,
             assembly=assembly,
         )
+        elapsed = datetime.datetime.now(tz=datetime.UTC) - task_start
         _logger.info(
-            "%s - annotation completed",
-            self.request.id,
+            "%s - annotation completed in %s seconds", self.request.id, elapsed.seconds
         )
 
         # wait for writes if necessary
         if not allow_async_write:
             _logger.info(
-                "%s - waiting for object store writes from API handler method",
+                "%s - waiting for object store writes from celery worker method",
                 self.request.id,
             )
+            write_start = datetime.datetime.now(tz=datetime.UTC)
             anyvar_app.object_store.wait_for_writes()
+            elapsed = datetime.datetime.now(tz=datetime.UTC) - write_start
+            _logger.info(
+                "%s - waited for object store writes for %s seconds",
+                self.request.id,
+                elapsed.seconds,
+            )
 
         # remove input file
         Path(input_file_path).unlink()
@@ -219,7 +229,7 @@ def annotate_vcf(
         raise
     finally:
         exit_task()
-        teardown_anyvar_app()
+        maybe_teardown_anyvar_app()
 
 
 @celery.signals.after_task_publish.connect
@@ -230,7 +240,7 @@ def update_sent_state(sender: str | None, headers: dict | None, **kwargs) -> Non
     :param sender: the name of the task
     :param headers: the task message headers
     """
-    _logger.info("%s - after publish", headers["id"])
+    _logger.info("%s - after publish changing status to SENT", headers["id"])
     task = celery_app.tasks.get(sender)
     backend = task.backend if task else celery_app.backend
 
