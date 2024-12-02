@@ -21,7 +21,7 @@ dependencies = [
     "uvicorn",
     "ga4gh.vrs[extras]~=2.0.0a11",
     "sqlalchemy~=1.4.54",
-    "pyaml",
+    "pyyaml",
 ]
 dynamic = ["version"]
 
