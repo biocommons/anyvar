@@ -178,6 +178,13 @@ CREATE TABLE ... (
 )
 ```
 
+### Enabling Asynchronous VCF Annotation
+AnyVar can support using the asynchronous request-response pattern when annotating VCF files.
+This can improve reliability when serving remote clients by eliminating long lived connections
+and allow AnyVar to scale out instead of up to serve a larger request volume.
+
+See [README-async.md](README-async.md) for more details.
+
 ### Starting the REST service locally
 
 Once the data dependencies are setup, start the REST server with:
@@ -213,6 +220,15 @@ uploaded. A pytest hook ensures correct test order, but some test modules may no
 able to pass when run in isolation. By default, the tests will use a Postgres database
 installation. To run the tests against a Snowflake database, change the
 `ANYVAR_TEST_STORAGE_URI` to a Snowflake URI and run the tests.
+
+For the `tests/test_vcf::test_vcf_registration_async` unit test to pass, a real broker and backend
+are required for Celery to interact with.  Set the `CELERY_BROKER_URL` and `CELERY_BACKEND_URL`
+environment variables.  The simplest solution is to run Redis locally and use that for both
+the broker and the backend, eg:
+```shell
+% export CELERY_BROKER_URL="redis://"
+% export CELERY_BACKEND_URL="redis://"
+```
 
 ## Logging
 AnyVar uses the [Python Logging Module](https://docs.python.org/3/howto/logging.html) to

@@ -21,17 +21,23 @@ dependencies = [
     "uvicorn",
     "ga4gh.vrs[extras]~=2.0.0a11",
     "sqlalchemy~=1.4.54",
+    "pyyaml",
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
 postgres = ["psycopg[binary]"]
 snowflake = ["snowflake-sqlalchemy~=1.5.1"]
-tests = [
+queueing = [
+    "celery[redis]~=5.4.0",
+    "aiofiles",
+]
+test = [
     "pytest",
     "pytest-cov",
     "pytest-mock",
-    "httpx"
+    "httpx",
+    "celery[pytest]",
 ]
 dev = [
     "ruff==0.5.0",
