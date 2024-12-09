@@ -60,7 +60,7 @@ class PostgresObjectStore(SqlStorage):
         :param value: value for `vrs_object` field
         """
         insert_query = f"INSERT INTO {self.table_name} (vrs_id, vrs_object) VALUES (:vrs_id, :vrs_object) ON CONFLICT DO NOTHING"  # noqa: S608
-        value_json = json.dumps(value.model_dump(exclude_none=True))
+        value_json = json.dumps(value.model_dump(exclude_none=True, warnings=False))
         db_conn.execute(
             sql_text(insert_query), {"vrs_id": name, "vrs_object": value_json}
         )
@@ -82,7 +82,7 @@ class PostgresObjectStore(SqlStorage):
         db_conn.execute(sql_text(tmp_statement))
         with db_conn.connection.cursor() as cur:
             row_data = [
-                f"{name}\t{json.dumps(value.model_dump(exclude_none=True))}"
+                f"{name}\t{json.dumps(value.model_dump(exclude_none=True, warnings=False))}"
                 for name, value in items
             ]
             fl = StringIO("\n".join(row_data))

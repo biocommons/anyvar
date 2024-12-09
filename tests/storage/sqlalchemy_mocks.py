@@ -158,7 +158,7 @@ class MockVRSObject:
     def __init__(self, id: str):
         self.id = id
 
-    def model_dump(self, exclude_none: bool):
+    def model_dump(self, exclude_none: bool = False, warnings: bool | str = True):
         return {"id": self.id}
 
     def to_json(self):
