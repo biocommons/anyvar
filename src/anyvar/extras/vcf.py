@@ -106,9 +106,7 @@ class VcfRegistrar(VCFAnnotator):
             self.av.put_object(vrs_object)
             if output_pickle:
                 key = vrs_data_key if vrs_data_key else vcf_coords
-                vrs_data[key] = str(
-                    vrs_object.model_dump(exclude_none=True, warnings=False)
-                )
+                vrs_data[key] = str(vrs_object.model_dump(exclude_none=True))
 
             if output_vcf:
                 allele_id = vrs_object.id if vrs_object else ""

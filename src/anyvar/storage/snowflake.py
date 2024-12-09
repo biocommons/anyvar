@@ -175,7 +175,7 @@ class SnowflakeObjectStore(SqlStorage):
             MERGE INTO {self.table_name} t USING (SELECT ? AS vrs_id, ? AS vrs_object) s ON t.vrs_id = s.vrs_id
             WHEN NOT MATCHED THEN INSERT (vrs_id, vrs_object) VALUES (s.vrs_id, PARSE_JSON(s.vrs_object))
             """  # noqa: S608
-        value_json = json.dumps(value.model_dump(exclude_none=True, warnings=False))
+        value_json = json.dumps(value.model_dump(exclude_none=True))
         db_conn.execute(insert_query, (name, value_json))
         _logger.debug("Inserted item %s to %s", name, self.table_name)
 
@@ -213,12 +213,7 @@ class SnowflakeObjectStore(SqlStorage):
         for name, value in items:
             if name not in row_keys:
                 row_keys.add(name)
-                row_data.append(
-                    (
-                        name,
-                        json.dumps(value.model_dump(exclude_none=True, warnings=False)),
-                    )
-                )
+                row_data.append((name, json.dumps(value.model_dump(exclude_none=True))))
         _logger.info("Created row data for insert, first item is %s", row_data[0])
 
         db_conn.execute(sql_text(tmp_statement))
