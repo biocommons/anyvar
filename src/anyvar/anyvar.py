@@ -8,6 +8,7 @@ import logging
 import logging.config
 import os
 import pathlib
+import warnings
 from collections.abc import MutableMapping
 from urllib.parse import urlparse
 
@@ -18,6 +19,10 @@ from anyvar.storage import DEFAULT_STORAGE_URI, _Storage
 from anyvar.translate.translate import _Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
 from anyvar.utils.types import VrsObject
+
+# Suppress pydantic warnings unless otherwise indicated
+if os.environ.get("ANYVAR_SHOW_PYDANTIC_WARNINGS", None) is None:
+    warnings.filterwarnings("ignore", module="pydantic")
 
 # Configure logging from file or use default
 logging_config_file = os.environ.get("ANYVAR_LOGGING_CONFIG", None)
