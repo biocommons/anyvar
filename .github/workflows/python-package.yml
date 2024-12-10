@@ -47,7 +47,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install --use-deprecated=legacy-resolver '.[tests]'
+        pip install --use-deprecated=legacy-resolver '.[test,postgres,snowflake,queueing]'
 
     - name: Test with pytest
       run: |
