@@ -1,6 +1,6 @@
 """Provide helpful type definitions and references."""
 
-from enum import StrEnum
+from enum import Enum
 
 from ga4gh.vrs import models
 
@@ -24,7 +24,7 @@ variation_class_map = {
 }
 
 
-class SupportedVariationType(StrEnum):
+class SupportedVariationType(str, Enum):
     """Define constraints for supported variation types"""
 
     ALLELE = "Allele"
