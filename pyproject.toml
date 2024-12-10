@@ -19,7 +19,7 @@ dependencies = [
     "fastapi>=0.95.0",
     "python-multipart",  # required for fastapi file uploads
     "uvicorn",
-    "ga4gh.vrs[extras]~=2.0.0a11",
+    "ga4gh.vrs[extras]==2.0.0a12",
     "sqlalchemy~=1.4.54",
     "pyyaml",
 ]
