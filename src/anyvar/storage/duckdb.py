@@ -1,23 +1,16 @@
-"""Provide PostgreSQL-based storage implementation."""
+"""Provide DuckDB-based storage implementation."""
 
 import json
 import random
 import string
-from io import StringIO
-from pathlib import Path
 from typing import Any
 
 import duckdb
-import pandas as pd
 import pydantic
 from sqlalchemy import text as sql_text
 from sqlalchemy.engine import Connection
 
 from anyvar.storage.sql_storage import SqlStorage
-
-from . import _Storage
-
-silos = "locations alleles haplotypes genotypes variationsets relations texts".split()
 
 
 class DuckdbObjectStore(SqlStorage):
