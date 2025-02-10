@@ -116,15 +116,6 @@ class VrsPythonTranslator(_Translator):
             msg = f"{var} isn't supported by the VRS-Python CnvTranslator."
             raise TranslationError(msg) from e
 
-    def translate_vcf_row(self, assembly: str, coords: str) -> VrsVariation | None:
-        """Translate VCF-like data to a VRS object.
-
-        :param coords: string formatted a la "<chr>-<pos>-<ref>-<alt>"
-        :param assembly: The assembly used in `coords`
-        :return: VRS variation (using VRS-Python class) if translation is successful
-        """
-        return self.allele_tlr.translate_from(coords, "gnomad", assembly_name=assembly)
-
     def get_sequence_id(self, accession_id: str) -> str:
         """Get GA4GH sequence identifier for provided accession ID
 
