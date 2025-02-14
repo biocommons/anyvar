@@ -7,7 +7,7 @@ from ga4gh.vrs.dataproxy import _DataProxy, create_dataproxy
 from ga4gh.vrs.extras.translator import AlleleTranslator, CnvTranslator
 
 from anyvar.translate.translate import TranslationError
-from anyvar.utils.types import SupportedVariationType, VrsVariation
+from anyvar.utils.types import SupportedVariationType
 
 from . import _Translator
 
@@ -37,9 +37,9 @@ class VrsPythonTranslator(_Translator):
             seqrepo_uri = environ.get(
                 "SEQREPO_DATAPROXY_URI", "seqrepo+http://localhost:5000/seqrepo"
             )
-            seqrepo_proxy = create_dataproxy(seqrepo_uri)
-        self.allele_tlr = AlleleTranslator(data_proxy=seqrepo_proxy)
-        self.cnv_tlr = CnvTranslator(data_proxy=seqrepo_proxy)
+            self.dp = create_dataproxy(seqrepo_uri)
+        self.allele_tlr = AlleleTranslator(data_proxy=self.dp)
+        self.cnv_tlr = CnvTranslator(data_proxy=self.dp)
 
     def translate_variation(
         self, var: str, **kwargs
