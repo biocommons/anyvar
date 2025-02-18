@@ -13,7 +13,7 @@ from collections.abc import MutableMapping
 from urllib.parse import urlparse
 
 import yaml
-from ga4gh.vrs import vrs_deref, vrs_enref
+from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 
 from anyvar.storage import DEFAULT_STORAGE_URI, _Storage
 from anyvar.translate.translate import _Translator
