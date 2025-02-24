@@ -42,6 +42,7 @@ test = [
 dev = [
     "ruff==0.5.0",
     "pre-commit>=3.7.1",
+    "ipykernel",
 ]
 
 [project.urls]
@@ -161,6 +162,7 @@ fixable = [
 # E114 - indentation-with-invalid-multiple-comment*
 # E117 - over-indented*
 # E501 - line-too-long*
+# EM101, EM102, EM103 - assign exception string to variable
 # W191 - tab-indentation*
 # S321 - suspicious-ftp-lib-usage
 # *ignored for compatibility with formatter
@@ -168,6 +170,7 @@ ignore = [
     "ANN003", "ANN101", "ANN102",
     "D203", "D205", "D206", "D213", "D300", "D400", "D415",
     "E111", "E114", "E117", "E501",
+    "EM101", "EM102", "EM103",
     "W191",
     "S321",
 ]
