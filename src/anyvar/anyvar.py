@@ -10,6 +10,7 @@ import os
 import pathlib
 import warnings
 from collections.abc import MutableMapping
+from typing import Any
 from urllib.parse import urlparse
 
 import yaml
@@ -18,7 +19,7 @@ from ga4gh.vrs import vrs_deref, vrs_enref
 from anyvar.storage import DEFAULT_STORAGE_URI, _Storage
 from anyvar.translate.translate import _Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
-from anyvar.utils.types import VrsObject
+from anyvar.utils.types import Annotation, VrsObject
 
 # Suppress pydantic warnings unless otherwise indicated
 if os.environ.get("ANYVAR_SHOW_PYDANTIC_WARNINGS", None) is None:
@@ -37,7 +38,7 @@ if logging_config_file and pathlib.Path(logging_config_file).is_file():
 _logger = logging.getLogger(__name__)
 
 
-def create_storage(uri: str | None = None) -> _Storage:
+def create_storage(uri: str | None = None, table_name: str | None = None) -> _Storage:
     """Provide factory to create storage based on `uri` or the ANYVAR_STORAGE_URI
     environment value.
 
@@ -47,6 +48,9 @@ def create_storage(uri: str | None = None) -> _Storage:
     `postgresql://[username]:[password]@[domain]/[database]`
     * Snowflake
     `snowflake://[user]:@[account]/[database]/[schema]?[param=value]&[param=value]...`
+
+    :param uri: storage URI
+    :param table_name: table name to use for storage (if the storage supports it)
     """
     uri = uri or os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
 
@@ -55,11 +59,11 @@ def create_storage(uri: str | None = None) -> _Storage:
     if parsed_uri.scheme == "postgresql":
         from anyvar.storage.postgres import PostgresObjectStore
 
-        storage = PostgresObjectStore(uri)
+        storage = PostgresObjectStore(uri, table_name=table_name)
     elif parsed_uri.scheme == "snowflake":
         from anyvar.storage.snowflake import SnowflakeObjectStore
 
-        storage = SnowflakeObjectStore(uri)
+        storage = SnowflakeObjectStore(uri, table_name=table_name)
     else:
         msg = f"URI scheme {parsed_uri.scheme} is not implemented"
         raise ValueError(msg)
@@ -92,12 +96,19 @@ def has_queueing_enabled() -> bool:
 class AnyVar:
     """Define core AnyVar class."""
 
-    def __init__(self, /, translator: _Translator, object_store: _Storage) -> None:
+    def __init__(
+        self,
+        /,
+        translator: _Translator,
+        object_store: _Storage,
+        # annotation_store: _Storage | None,
+    ) -> None:
         """Initialize anyvar instance. It's easiest to use factory methods to create
         translator and object_store instances but manual construction works too.
 
         :param translator: Translator instance
         :param object_store: Object storage instance
+        :param annotation_store: (Optional) Annotation storage instance
         """
         if not isinstance(object_store, MutableMapping):
             _logger.warning(
@@ -106,6 +117,7 @@ class AnyVar:
 
         self.object_store = object_store
         self.translator = translator
+        # self.annotation_store = annotation_store
 
     def put_object(self, variation_object: VrsObject) -> str | None:
         """Attempt to register variation.
@@ -127,3 +139,66 @@ class AnyVar:
         """
         v = self.object_store[object_id]
         return vrs_deref(v, self.object_store) if deref else v
+
+    # def supports_annotation(self) -> bool:
+    #     """Determine if annotation store is available."""
+    #     return self.annotation_store is not None
+
+    # def put_annotation(
+    #     self, object_id: str, annotation: Annotation
+    # ) -> list[Annotation]:
+    #     """Attach annotation to object.
+
+    #     :param object_id: object identifier
+    #     :param annotation: annotation dictionary
+    #     """
+    #     if self.annotation_store is None:
+    #         raise ValueError("No annotation store available")
+
+    #     stored_annotations = self.get_annotation(object_id)
+    #     stored_annotations.append(annotation)
+    #     self.annotation_store[object_id] = stored_annotations
+    #     return stored_annotations
+
+    # def get_annotation(self, object_id: str) -> list[Annotation]:
+    #     """Retrieve annotations for object.
+
+    #     :param object_id: object identifier
+    #     """
+    #     if self.annotation_store is None:
+    #         raise ValueError("No annotation store available")
+
+    #     return self.annotation_store.get(object_id, [])
+
+
+class AnyAnnotation:
+
+    def __init__(self, annotation_store: _Storage) -> None:
+        """Initialize AnyAnnotation instance.
+
+        :param annotation_store: Annotation storage instance
+        """
+        self.annotation_store = annotation_store
+        # self.annotation_type = annotation_type
+
+    def get_annotation(self, object_id: str, annotation_type: str) -> list[Annotation]:
+        """Retrieve annotations for object.
+
+        :param object_id: object identifier
+        """
+        if self.annotation_store is None:
+            raise ValueError("No annotation store available")
+
+        return self.annotation_store.get((object_id, annotation_type), [])
+
+    def put_annotation(
+        self, object_id: str, annotation_type: str, annotation: Annotation
+    ) -> list[Any]:
+        """Attach annotation to object.
+
+        :param object_id: object identifier
+        :param annotation: annotation dictionary
+        """
+        stored_annotations = self.get_annotation(object_id)
+        stored_annotations.append(annotation)
+        self.annotation_store[object_id] = stored_annotations

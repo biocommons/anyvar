@@ -124,10 +124,6 @@ class SqlStorage(_Storage):
         :param value: value for `vrs_object` field
         :raise ValueError: if not given VRS object
         """
-        if not ga4gh.core.is_pydantic_instance(value):
-            msg = "ga4gh.vrs object value required"
-            raise ValueError(msg)
-        name = str(name)  # in case str-like
         if self.batch_mode:
             self.batch_insert_values.append((name, value))
             _logger.debug("Appended item %s to batch queue", name)
@@ -145,7 +141,9 @@ class SqlStorage(_Storage):
             _logger.debug("Inserted item %s to %s", name, self.table_name)
 
     @abstractmethod
-    def add_one_item(self, db_conn: Connection, name: str, value: Any) -> None:  # noqa: ANN401
+    def add_one_item(
+        self, db_conn: Connection, name: str, value: Any
+    ) -> None:  # noqa: ANN401
         """Add/merge a single item to the database
 
         :param db_conn: a database connection
@@ -160,6 +158,137 @@ class SqlStorage(_Storage):
         :param db_conn: a database connection
         :param items: a list of (vrs_id, vrs_object) tuples
         """
+
+    @abstractmethod
+    def __getitem__(self, name: str) -> Any | None:  # noqa: ANN401
+        """Fetch item from DB given key.
+
+        :param name: key to retrieve the value of
+        :return: result object from the underlying storage
+        :raise KeyError if name not found
+        """
+
+    def __contains__(self, name: str) -> bool:
+        """Check whether storage contains entry with name.
+
+        :param name: key to look up
+        :return: True if the key is contained in the storage
+        """
+        try:
+            _ = self.__getitem__(name)
+        except KeyError:
+            return False
+        return True
+
+    @abstractmethod
+    def __delitem__(self, name: str) -> None:
+        """Delete item (not cascading -- doesn't delete referenced items)
+
+        :param name: key to delete object for
+        """
+
+    def wait_for_writes(self) -> None:
+        """Return once any currently pending database modifications have been completed."""
+        _logger.debug("Waiting for writes")
+
+        if hasattr(self, "batch_thread") and self.batch_thread is not None:
+            # short circuit if the queue is empty
+            with self.batch_thread.cond:
+                if not self.batch_thread.pending_batch_list:
+                    return
+
+            # queue an empty batch
+            batch = []
+            self.batch_thread.queue_batch(batch)
+            # wait for the batch to be removed from the pending queue
+            while True:
+                with self.batch_thread.cond:
+                    if list(
+                        filter(
+                            lambda x: x is batch, self.batch_thread.pending_batch_list
+                        )
+                    ):
+                        self.batch_thread.cond.wait()
+                    else:
+                        break
+
+    def close(self) -> None:
+        """Stop the batch thread and wait for it to complete"""
+        if hasattr(self, "batch_thread") and self.batch_thread is not None:
+            self.batch_thread.stop()
+            self.batch_thread.join()
+            self.batch_thread = None
+        # Terminate connection if necessary.
+        if hasattr(self, "conn_pool") and self.conn_pool is not None:
+            self.conn_pool.dispose()
+            self.conn_pool = None
+
+    def __del__(self) -> None:
+        """Flush pending writes and tear down DB connection."""
+        self.close()
+
+    def __len__(self) -> int:
+        """Return the total number of objects in the table"""
+        with self._get_connection() as conn:
+            result = conn.execute(
+                f"SELECT COUNT(*) FROM {self.table_name}"  # noqa: S608
+            )
+            return result.scalar()
+
+    def __iter__(self) -> Any:  # noqa: ANN401
+        """Iterate over all rows in the table"""
+        with self._get_connection() as conn:
+            result = conn.execute(f"SELECT * FROM {self.table_name}")  # noqa: S608
+            yield from result
+
+    @abstractmethod
+    def keys(self) -> list:
+        """Return a list of all keys in the database"""
+
+    def wipe_db(self) -> None:
+        """Remove all stored records from the database"""
+        with self._get_connection() as conn:  # noqa: SIM117
+            with conn.begin():
+                conn.execute(sql_text(f"DELETE FROM {self.table_name}"))  # noqa: S608
+
+    def num_pending_batches(self) -> int:
+        """Return the number of pending insert batches"""
+        if self.batch_thread:
+            return len(self.batch_thread.pending_batch_list)
+        return 0
+
+
+class VrsSqlStorage(SqlStorage):
+    """Relational database storage backend.  Uses SQLAlchemy as a DB abstraction layer and pool.
+    Methods that utilize straightforward SQL are implemented in this class.  Methods that require
+    specialized SQL statements must be implemented in a database specific subclass.
+    """
+
+    def __init__(
+        self,
+        db_url: str,
+        batch_limit: int | None = None,
+        table_name: str | None = None,
+        max_pending_batches: int | None = None,
+        flush_on_batchctx_exit: bool | None = None,
+    ) -> None:
+        super().__init__(
+            db_url, batch_limit, table_name, max_pending_batches, flush_on_batchctx_exit
+        )
+
+    def __setitem__(self, name: str, value: Any) -> None:  # noqa: ANN401
+        """Add item to database. If batch mode is on, add item to batch and submit batch
+        for write only if batch size is exceeded.
+
+        :param name: value for `vrs_id` field
+        :param value: value for `vrs_object` field
+        :raise ValueError: if not given VRS object
+        """
+        if not ga4gh.core.is_pydantic_instance(value):
+            msg = "ga4gh.vrs object value required"
+            raise ValueError(msg)
+        name = str(name)  # in case str-like
+        super().__setitem__(name, value)
 
     def __getitem__(self, name: str) -> Any | None:  # noqa: ANN401
         """Fetch item from DB given key.
@@ -186,7 +315,9 @@ class SqlStorage(_Storage):
                 raise NotImplementedError
             raise KeyError(name)
 
-    def fetch_vrs_object(self, db_conn: Connection, vrs_id: str) -> Any | None:  # noqa: ANN401
+    def fetch_vrs_object(
+        self, db_conn: Connection, vrs_id: str
+    ) -> Any | None:  # noqa: ANN401
         """Fetch a single VRS object from the database, return the value as a JSON object
 
         :param db_conn: a database connection
@@ -230,49 +361,11 @@ class SqlStorage(_Storage):
         :param vrs_id: the VRS ID
         """
         db_conn.execute(
-            sql_text(f"DELETE FROM {self.table_name} WHERE vrs_id = :vrs_id"),  # noqa: S608
+            sql_text(
+                f"DELETE FROM {self.table_name} WHERE vrs_id = :vrs_id"
+            ),  # noqa: S608
             {"vrs_id": vrs_id},
         )
-
-    def wait_for_writes(self) -> None:
-        """Return once any currently pending database modifications have been completed."""
-        _logger.debug("Waiting for writes")
-
-        if hasattr(self, "batch_thread") and self.batch_thread is not None:
-            # short circuit if the queue is empty
-            with self.batch_thread.cond:
-                if not self.batch_thread.pending_batch_list:
-                    return
-
-            # queue an empty batch
-            batch = []
-            self.batch_thread.queue_batch(batch)
-            # wait for the batch to be removed from the pending queue
-            while True:
-                with self.batch_thread.cond:
-                    if list(
-                        filter(
-                            lambda x: x is batch, self.batch_thread.pending_batch_list
-                        )
-                    ):
-                        self.batch_thread.cond.wait()
-                    else:
-                        break
-
-    def close(self) -> None:
-        """Stop the batch thread and wait for it to complete"""
-        if hasattr(self, "batch_thread") and self.batch_thread is not None:
-            self.batch_thread.stop()
-            self.batch_thread.join()
-            self.batch_thread = None
-        # Terminate connection if necessary.
-        if hasattr(self, "conn_pool") and self.conn_pool is not None:
-            self.conn_pool.dispose()
-            self.conn_pool = None
-
-    def __del__(self) -> None:
-        """Tear down DB instance."""
-        self.close()
 
     def __len__(self) -> int:
         """Return the total number of VRS objects"""
@@ -284,7 +377,9 @@ class SqlStorage(_Storage):
 
         :param db_conn: a database connection
         """
-        result = db_conn.execute(sql_text(f"SELECT COUNT(*) FROM {self.table_name}"))  # noqa: S608
+        result = db_conn.execute(
+            sql_text(f"SELECT COUNT(*) FROM {self.table_name}")
+        )  # noqa: S608
         return result.scalar()
 
     def get_variation_count(self, variation_type: VariationStatisticType) -> int:
@@ -359,7 +454,9 @@ class SqlStorage(_Storage):
 
         :param db_conn: a database connection
         """
-        result = db_conn.execute(sql_text(f"SELECT vrs_id FROM {self.table_name}"))  # noqa: S608
+        result = db_conn.execute(
+            sql_text(f"SELECT vrs_id FROM {self.table_name}")
+        )  # noqa: S608
         return [row[0] for row in result]
 
     def search_variations(self, refget_accession: str, start: int, stop: int) -> list:
