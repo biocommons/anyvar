@@ -29,7 +29,7 @@ from fastapi.responses import FileResponse
 from pydantic import StrictStr
 
 import anyvar
-from anyvar.anyvar import AnyVar
+from anyvar.anyvar import AnyAnnotation, AnyVar
 from anyvar.extras.vcf import VcfRegistrar
 from anyvar.restapi.schema import (
     AnyVarStatsResponse,
@@ -73,13 +73,30 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
     translator = anyvar.anyvar.create_translator()
     anyvar_instance = AnyVar(object_store=storage, translator=translator)
 
+    # create annotation instance if configured
+    annotation_storage = None
+    if "ANYVAR_ANNOTATION_STORAGE_URI" in os.environ:
+        if "ANYVAR_ANNOTATION_TABLE_NAME" not in os.environ:
+            raise ValueError(
+                "ANYVAR_ANNOTATION_TABLE_NAME is required if ANYVAR_ANNOTATION_STORAGE_URI is set"  # noqa: EM101
+            )
+        annotation_storage = anyvar.anyvar.create_storage(
+            os.environ["ANYVAR_ANNOTATION_STORAGE_URI"],
+            table_name=os.environ["ANYVAR_ANNOTATION_TABLE_NAME"],
+        )
+        anyannotation_instance = AnyAnnotation(annotation_storage)
+
     # associate anyvar with the app state
     param_app.state.anyvar = anyvar_instance
+    if annotation_storage:
+        param_app.state.anyannotation = anyannotation_instance
 
     yield
 
     # close storage connector on shutdown
     storage.close()
+    if annotation_storage:
+        annotation_storage.close()
 
 
 app = FastAPI(
