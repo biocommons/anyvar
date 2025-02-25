@@ -1,5 +1,6 @@
 """Provide PostgreSQL-based storage implementation."""
 
+import dataclasses
 import json
 import logging
 import os
@@ -112,6 +113,7 @@ class PostgresAnnotationObjectStore(SqlStorage):
             WHERE object_id = :object_id
             AND annotation_type = :annotation_type
         """  # noqa: S608
+        # TODO allow null annotation_type
         with self._get_connection() as conn:
             result = conn.execute(
                 sql_text(query_str),
@@ -121,8 +123,26 @@ class PostgresAnnotationObjectStore(SqlStorage):
                 first = next(result)
             except StopIteration:
                 raise KeyError(f"Key {key} not found")  # noqa: B904
-            yield Annotation(**first)
-            yield from (Annotation(**row) for row in result)
+            return [
+                Annotation(
+                    object_id=first.object_id,
+                    annotation_type=first.annotation_type,
+                    annotation=first.annotation,
+                )
+            ] + [
+                Annotation(
+                    object_id=row.object_id,
+                    annotation_type=row.annotation_type,
+                    annotation=row.annotation,
+                )
+                for row in result
+            ]
+
+    def push(self, value: Annotation) -> None:
+        """
+        Add a single annotation to the store.
+        """
+        self[value.key()] = value.annotation
 
     def add_one_item(
         self,
@@ -140,7 +160,9 @@ class PostgresAnnotationObjectStore(SqlStorage):
             },
         )
 
-    def add_many_items(self, db_conn: Connection, items: list[dict | str]) -> None:
+    def add_many_items(
+        self, db_conn: Connection, items: list[tuple[AnnotationKey, dict]]
+    ) -> None:
         # TODO implement merge based bulk insert to indexed table
         """Perform copy-based insert, enabling much faster writes for large, repeated
         insert statements, using insert parameters stored in `self.batch_insert_values`.
@@ -156,14 +178,21 @@ class PostgresAnnotationObjectStore(SqlStorage):
         insert_statement = f"INSERT INTO {self.table_name} SELECT * FROM {tmp_table_name} ON CONFLICT DO NOTHING"  # noqa: S608
         drop_statement = f"DROP TABLE {tmp_table_name}"
         db_conn.execute(sql_text(tmp_statement))
+
+        def fmt_row(name: AnnotationKey, value: dict):
+            return "\t".join(
+                [f"{name.object_id}", f"{name.annotation_type}", f"{json.dumps(value)}"]
+            )
+
         # Get a psycopg2 cursor from the sqlalchemy connection
         with db_conn.connection.cursor() as cur:
-            row_data = [
-                f"{name}\t{json.dumps(value.model_dump(exclude_none=True))}"
-                for name, value in items
-            ]
+            row_data = [fmt_row(name, value) for name, value in items]
             fl = StringIO("\n".join(row_data))
-            cur.copy_from(fl, tmp_table_name, columns=["vrs_id", "vrs_object"])
+            cur.copy_from(
+                fl,
+                tmp_table_name,
+                columns=["object_id", "annotation_type", "annotation"],
+            )
             fl.close()
         db_conn.execute(sql_text(insert_statement))
         db_conn.execute(sql_text(drop_statement))
