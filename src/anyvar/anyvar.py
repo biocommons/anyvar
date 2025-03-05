@@ -19,7 +19,7 @@ from ga4gh.vrs import vrs_deref, vrs_enref
 from anyvar.storage import DEFAULT_STORAGE_URI, _Storage
 from anyvar.translate.translate import _Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
-from anyvar.utils.types import Annotation, VrsObject
+from anyvar.utils.types import Annotation, AnnotationKey, VrsObject
 
 # Suppress pydantic warnings unless otherwise indicated
 if os.environ.get("ANYVAR_SHOW_PYDANTIC_WARNINGS", None) is None:
@@ -69,6 +69,31 @@ def create_storage(uri: str | None = None, table_name: str | None = None) -> _St
         raise ValueError(msg)
 
     _logger.debug("create_storage: %s → %s}", uri, storage)
+    return storage
+
+
+def create_annotation_storage(
+    uri: str | None = None, table_name: str | None = None
+) -> _Storage:
+    """Provide factory to create annotation storage based on `uri` or the
+    ANYVAR_ANNOTATION_STORAGE_URI environment value.
+
+    :param uri: storage URI
+    :param table_name: table name to use for storage (if the storage supports it)
+    """
+    uri = uri or os.environ.get("ANYVAR_ANNOTATION_STORAGE_URI", DEFAULT_STORAGE_URI)
+
+    parsed_uri = urlparse(uri)
+
+    if parsed_uri.scheme == "postgresql":
+        from anyvar.storage.postgres import PostgresAnnotationObjectStore
+
+        storage = PostgresAnnotationObjectStore(uri, table_name=table_name)
+    else:
+        msg = f"URI scheme {parsed_uri.scheme} is not implemented"
+        raise ValueError(msg)
+
+    _logger.debug("create_annotation_storage: %s → %s}", uri, storage)
     return storage
 
 
@@ -140,36 +165,6 @@ class AnyVar:
         v = self.object_store[object_id]
         return vrs_deref(v, self.object_store) if deref else v
 
-    # def supports_annotation(self) -> bool:
-    #     """Determine if annotation store is available."""
-    #     return self.annotation_store is not None
-
-    # def put_annotation(
-    #     self, object_id: str, annotation: Annotation
-    # ) -> list[Annotation]:
-    #     """Attach annotation to object.
-
-    #     :param object_id: object identifier
-    #     :param annotation: annotation dictionary
-    #     """
-    #     if self.annotation_store is None:
-    #         raise ValueError("No annotation store available")
-
-    #     stored_annotations = self.get_annotation(object_id)
-    #     stored_annotations.append(annotation)
-    #     self.annotation_store[object_id] = stored_annotations
-    #     return stored_annotations
-
-    # def get_annotation(self, object_id: str) -> list[Annotation]:
-    #     """Retrieve annotations for object.
-
-    #     :param object_id: object identifier
-    #     """
-    #     if self.annotation_store is None:
-    #         raise ValueError("No annotation store available")
-
-    #     return self.annotation_store.get(object_id, [])
-
 
 class AnyAnnotation:
 
@@ -179,7 +174,6 @@ class AnyAnnotation:
         :param annotation_store: Annotation storage instance
         """
         self.annotation_store = annotation_store
-        # self.annotation_type = annotation_type
 
     def get_annotation(self, object_id: str, annotation_type: str) -> list[Annotation]:
         """Retrieve annotations for object.
@@ -189,16 +183,22 @@ class AnyAnnotation:
         if self.annotation_store is None:
             raise ValueError("No annotation store available")
 
-        return self.annotation_store.get((object_id, annotation_type), [])
+        return self.annotation_store.get(
+            AnnotationKey(object_id=object_id, annotation_type=annotation_type), []
+        )
 
     def put_annotation(
-        self, object_id: str, annotation_type: str, annotation: Annotation
-    ) -> list[Any]:
+        self, object_id: str, annotation_type: str, annotation: dict
+    ) -> None:
         """Attach annotation to object.
 
         :param object_id: object identifier
         :param annotation: annotation dictionary
         """
-        stored_annotations = self.get_annotation(object_id)
-        stored_annotations.append(annotation)
-        self.annotation_store[object_id] = stored_annotations
+        self.annotation_store.push(
+            Annotation(
+                object_id=object_id,
+                annotation_type=annotation_type,
+                annotation=annotation,
+            )
+        )

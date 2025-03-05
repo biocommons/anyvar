@@ -1,15 +1,12 @@
 """Provide PostgreSQL-based storage implementation."""
 
-import dataclasses
 import json
 import logging
 import os
-from abc import abstractmethod
-from collections.abc import MutableMapping
+from collections.abc import Iterator
 from io import StringIO
-from typing import Any, Generator, Iterator
+from typing import Any
 
-from sqlalchemy import create_engine
 from sqlalchemy import text as sql_text
 from sqlalchemy.engine import Connection
 

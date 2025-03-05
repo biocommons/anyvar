@@ -32,9 +32,12 @@ import anyvar
 from anyvar.anyvar import AnyAnnotation, AnyVar
 from anyvar.extras.vcf import VcfRegistrar
 from anyvar.restapi.schema import (
+    AddAnnotationRequest,
+    AddAnnotationResponse,
     AnyVarStatsResponse,
     EndpointTag,
     ErrorResponse,
+    GetAnnotationResponse,
     GetSequenceLocationResponse,
     GetVariationResponse,
     InfoResponse,
@@ -73,22 +76,21 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
     translator = anyvar.anyvar.create_translator()
     anyvar_instance = AnyVar(object_store=storage, translator=translator)
 
+    # associate anyvar with the app state
+    param_app.state.anyvar = anyvar_instance
+
     # create annotation instance if configured
     annotation_storage = None
     if "ANYVAR_ANNOTATION_STORAGE_URI" in os.environ:
         if "ANYVAR_ANNOTATION_TABLE_NAME" not in os.environ:
             raise ValueError(
-                "ANYVAR_ANNOTATION_TABLE_NAME is required if ANYVAR_ANNOTATION_STORAGE_URI is set"  # noqa: EM101
+                "ANYVAR_ANNOTATION_TABLE_NAME is required if ANYVAR_ANNOTATION_STORAGE_URI is set"
             )
-        annotation_storage = anyvar.anyvar.create_storage(
+        annotation_storage = anyvar.anyvar.create_annotation_storage(
             os.environ["ANYVAR_ANNOTATION_STORAGE_URI"],
             table_name=os.environ["ANYVAR_ANNOTATION_TABLE_NAME"],
         )
         anyannotation_instance = AnyAnnotation(annotation_storage)
-
-    # associate anyvar with the app state
-    param_app.state.anyvar = anyvar_instance
-    if annotation_storage:
         param_app.state.anyannotation = anyannotation_instance
 
     yield
@@ -158,6 +160,90 @@ def get_location_by_id(
     raise HTTPException(
         status_code=HTTPStatus.NOT_FOUND, detail=f"Location {location_id} not found"
     )
+
+
+@app.post(
+    "/variation/{vrs_id}/annotations",
+    response_model=AddAnnotationResponse,
+    response_model_exclude_none=True,
+    summary="Add annotation to a variation",
+    description="Provide an annotation to associate with a Variation object. The Variation must be registered with AnyVar before adding annotations.",
+    tags=[EndpointTag.VARIATIONS],
+)
+def add_variation_annotation(
+    request: Request,
+    vrs_id: StrictStr = Path(..., description="VRS ID for variation"),
+    annotation: AddAnnotationRequest = Body(
+        ...,
+        description="Annotation to associate with the variation",
+    ),
+) -> dict | HTTPException:
+    messages = []
+    # Look up the variation from the AnyVar store
+    av: AnyVar = request.app.state.anyvar
+    try:
+        variation = av.get_object(vrs_id)
+    except KeyError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail=f"Variation {vrs_id} not found"
+        ) from e
+
+    # Add the annotation to the annotation store
+    if hasattr(request.app.state, "anyannotation"):
+        anyannotation: AnyAnnotation = request.app.state.anyannotation
+        try:
+            anyannotation.put_annotation(
+                object_id=vrs_id,
+                annotation_type=annotation.annotation_type,
+                annotation=annotation.annotation,
+            )
+        except ValueError as e:
+            _logger.error("Failed to add annotation: %s", e)
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                detail=f"Failed to add annotation: {annotation}",
+            ) from e
+
+    return {
+        "messages": messages,
+        "object": variation,
+        "object_id": vrs_id,
+        "annotation_type": annotation.annotation_type,
+        "annotation": annotation.annotation,
+    }
+
+
+@app.get(
+    "/variation/{vrs_id}/annotations/{annotation_type}",
+    response_model=GetAnnotationResponse,
+    response_model_exclude_none=True,
+    summary="Retrieve annotations for a variation",
+    description="Retrieve annotations for a variation by VRS ID and annotation type",
+    tags=[EndpointTag.VARIATIONS],
+)
+def get_variation_annotation(
+    request: Request,
+    vrs_id: StrictStr = Path(..., description="VRS ID for variation"),
+    annotation_type: StrictStr = Path(..., description="Annotation type"),
+) -> list[GetAnnotationResponse]:
+    """Retrieve annotations for a variation.
+
+    :param request: FastAPI request object
+    :param vrs_id: VRS ID for variation
+    :param annotation_type: type of annotation to retrieve
+    :return: list of annotations for the variation
+    """
+
+    # Retrieve the annotation from the annotation store
+    if hasattr(request.app.state, "anyannotation"):
+        anyannotation: AnyAnnotation = request.app.state.anyannotation
+        annotations = anyannotation.get_annotation(vrs_id, annotation_type)
+        print("GOT ANNOTATIONS:")
+        print(annotations)
+    else:
+        annotations = []
+
+    return {"annotations": annotations}
 
 
 @app.put(

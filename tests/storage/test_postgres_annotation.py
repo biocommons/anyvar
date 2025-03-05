@@ -122,20 +122,18 @@ def test_one_to_many(db_uri):
 
 def test_batch_insert(db_uri):
     try:
-        batch_limit = 10
-        half_batch_limit = 5
+        batch_limit = 100
+        half_batch_limit = 50
         sqlstore = PostgresAnnotationObjectStore(
             db_url=db_uri,
             table_name="annotations",
             batch_limit=batch_limit,
             max_pending_batches=0,
         )
-        print(f"{type(sqlstore)=}")
         sqlstore.wipe_db()
         assert len(sqlstore) == 0
 
         with sqlstore.batch_manager(sqlstore):
-            print(f"{type(sqlstore)=}")
             values = [
                 Annotation(
                     object_id=str(i),
@@ -148,6 +146,7 @@ def test_batch_insert(db_uri):
                 sqlstore.push(value)
 
             # Not flushed yet so values should not be there
+            assert len(sqlstore) == 0
             assert values[0].key() not in sqlstore
 
             # Push second half of batch
@@ -158,11 +157,60 @@ def test_batch_insert(db_uri):
             if sqlstore.num_pending_batches() > 0:
                 sqlstore.wait_for_writes()
 
-            print(f"{type(sqlstore)=}")
             assert len(sqlstore) == len(values)
+
             # Values should be there now
             for value in values:
                 assert value.key() in sqlstore
+                assert sqlstore[value.key()][0].annotation == value.annotation
+
+            # Add everything again, should have double the count
+            for value in values:
+                sqlstore.push(value)
+
+            # Wait for flush
+            if sqlstore.num_pending_batches() > 0:
+                sqlstore.wait_for_writes()
+
+            assert len(sqlstore) == 2 * len(values)
+    finally:
+        sqlstore.close()
+
+
+def test_batch_ctx_mgr(db_uri):
+    try:
+        batch_limit = 100
+        half_batch_limit = 50
+        sqlstore = PostgresAnnotationObjectStore(
+            db_url=db_uri,
+            table_name="annotations",
+            batch_limit=batch_limit,
+            max_pending_batches=0,
+        )
+        sqlstore.wipe_db()
+        assert len(sqlstore) == 0
+
+        with sqlstore.batch_manager(sqlstore):
+            values = [
+                Annotation(
+                    object_id=str(i),
+                    annotation_type="created_time",
+                    annotation={"value": f"VALUE{i}"},
+                )
+                for i in range(batch_limit)
+            ]
+            for value in values[:half_batch_limit]:
+                sqlstore.push(value)
+
+            # Wrote fewer than batch limit, so nothing should be flushed
+            assert len(sqlstore) == 0
+            assert values[0].key() not in sqlstore
+
+        # Context manager exited. Values should be there now
+        assert len(sqlstore) == half_batch_limit
+        for value in values[:half_batch_limit]:
+            assert value.key() in sqlstore
+            assert sqlstore[value.key()][0].annotation == value.annotation
 
     finally:
         sqlstore.close()
