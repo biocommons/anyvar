@@ -126,7 +126,6 @@ class AnyVar:
         /,
         translator: _Translator,
         object_store: _Storage,
-        # annotation_store: _Storage | None,
     ) -> None:
         """Initialize anyvar instance. It's easiest to use factory methods to create
         translator and object_store instances but manual construction works too.
@@ -142,7 +141,6 @@ class AnyVar:
 
         self.object_store = object_store
         self.translator = translator
-        # self.annotation_store = annotation_store
 
     def put_object(self, variation_object: VrsObject) -> str | None:
         """Attempt to register variation.
@@ -180,8 +178,8 @@ class AnyAnnotation:
 
         :param object_id: object identifier
         """
-        if self.annotation_store is None:
-            raise ValueError("No annotation store available")
+        # if self.annotation_store is None:
+        #     raise ValueError("No annotation store available")
 
         return self.annotation_store.get(
             AnnotationKey(object_id=object_id, annotation_type=annotation_type), []
@@ -195,6 +193,9 @@ class AnyAnnotation:
         :param object_id: object identifier
         :param annotation: annotation dictionary
         """
+        # if self.annotation_store is None:
+        #     raise ValueError("No annotation store available")
+
         self.annotation_store.push(
             Annotation(
                 object_id=object_id,

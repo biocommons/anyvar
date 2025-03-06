@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+from abc import abstractmethod
 from collections.abc import Iterator
 from io import StringIO
 from typing import Any
@@ -65,7 +66,35 @@ _logger = logging.getLogger(__name__)
 #         pass
 
 
+class _AnnotationObjectStore(SqlStorage):
+    def __init__(
+        self,
+        db_url: str,
+        batch_limit: int | None = None,
+        table_name: str | None = None,
+        max_pending_batches: int | None = None,
+        flush_on_batchctx_exit: bool | None = None,
+    ) -> None:
+        """Initialize DB handler."""
+        super().__init__(
+            db_url,
+            batch_limit,
+            table_name,
+            max_pending_batches,
+            flush_on_batchctx_exit,
+        )
+
+    @abstractmethod
+    def __getitem__(self, key: AnnotationKey) -> Iterator[Annotation]:
+        """Retrieve an annotation from the store."""
+
+    @abstractmethod
+    def push(self, value: Annotation) -> None:
+        """Add a single annotation to the store."""
+
+
 class PostgresAnnotationObjectStore(SqlStorage):
+    """Annotation object store for PostgreSQL backend."""
 
     def __init__(
         self,
@@ -85,6 +114,7 @@ class PostgresAnnotationObjectStore(SqlStorage):
         )
 
     def create_schema(self, db_conn: Connection) -> None:
+        """Create the table if it does not exist."""
         check_statement = f"""
             SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = '{self.table_name}')
         """  # noqa: S608
@@ -108,14 +138,15 @@ class PostgresAnnotationObjectStore(SqlStorage):
         query_str = f"""
             SELECT * from {self.table_name}
             WHERE object_id = :object_id
-            AND annotation_type = :annotation_type
         """  # noqa: S608
+        params = {"object_id": key.object_id}
+        if key.annotation_type:
+            query_str += "AND annotation_type = :annotation_type"
+            params["annotation_type"] = key.annotation_type
+
         # TODO allow null annotation_type
         with self._get_connection() as conn:
-            result = conn.execute(
-                sql_text(query_str),
-                {"object_id": key.object_id, "annotation_type": key.annotation_type},
-            )
+            result = conn.execute(sql_text(query_str), params)
             try:
                 first = next(result)
             except StopIteration:
@@ -136,9 +167,7 @@ class PostgresAnnotationObjectStore(SqlStorage):
             ]
 
     def push(self, value: Annotation) -> None:
-        """
-        Add a single annotation to the store.
-        """
+        """Add a single annotation to the store."""
         self[value.key()] = value.annotation
 
     def add_one_item(
@@ -194,7 +223,7 @@ class PostgresAnnotationObjectStore(SqlStorage):
         db_conn.execute(sql_text(insert_statement))
         db_conn.execute(sql_text(drop_statement))
 
-    def __delitem__(self, key) -> None:
+    def __delitem__(self, key: AnnotationKey) -> None:
         delete_statement = f"DELETE FROM {self.table_name} WHERE object_id = :object_id AND annotation_type = :annotation_type"  # noqa: S608
         with self._get_connection() as conn:
             conn.execute(

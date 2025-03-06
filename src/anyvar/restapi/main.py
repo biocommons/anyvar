@@ -2,6 +2,7 @@
 
 import asyncio
 import datetime
+import json
 import logging
 import logging.config
 import os
@@ -25,7 +26,7 @@ from fastapi import (
     UploadFile,
     status,
 )
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import StrictStr
 
 import anyvar
@@ -244,6 +245,47 @@ def get_variation_annotation(
         annotations = []
 
     return {"annotations": annotations}
+
+
+# TODO add input string annotation
+
+
+@app.middleware("http")
+async def add_creation_timestamp_annotation(request: Request, call_next) -> Response:
+    """Add a creation timestamp annotation to a variation if it doesn't already exist."""
+    # Do nothing on request. Pass downstream.
+    response = await call_next(request)
+
+    # Check if the request was for the "/variation" endpoint
+    if request.url.path == "/variation":
+        # With response, check if timestamp exists
+        annotator: AnyAnnotation = getattr(request.app.state, "anyannotation", None)
+        if annotator:
+            response_chunks = [chunk async for chunk in response.body_iterator]
+            response_body = b"".join(response_chunks)
+            response_body = response_body.decode("utf-8")
+            response_json: dict = json.loads(response_body)
+            vrs_id = response_json.get("object", {}).get("id")
+            annotations = annotator.get_annotation(vrs_id, "creation_timestamp")
+            if not annotations:
+                annotator.put_annotation(
+                    object_id=vrs_id,
+                    annotation_type="creation_timestamp",
+                    annotation={
+                        "timestamp": datetime.datetime.now(
+                            tz=datetime.timezone.utc
+                        ).isoformat()
+                    },
+                )
+            # Create a new response object since we have exhausted the response body iterator
+            return JSONResponse(
+                content=response_json,
+                status_code=response.status_code,
+                headers=response.headers,
+                media_type=response.media_type,
+            )
+
+    return response
 
 
 @app.put(

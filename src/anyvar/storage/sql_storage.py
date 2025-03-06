@@ -312,6 +312,7 @@ class VrsSqlStorage(SqlStorage):
                     return models.CopyNumberChange(**result)
                 if object_type == "SequenceLocation":
                     return models.SequenceLocation(**result)
+                # TODO add SequenceReference
                 raise NotImplementedError
             raise KeyError(name)
 
