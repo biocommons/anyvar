@@ -23,6 +23,7 @@ def pytest_collection_modifyitems(items):
         "test_sql_storage_mapping",
         "test_postgres",
         "test_snowflake",
+        "test_postgres_annotation",
     ]
     # remember to add new test modules to the order constant:
     assert len(module_order) == len(list(Path(__file__).parent.rglob("test_*.py")))
