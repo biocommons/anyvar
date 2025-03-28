@@ -145,7 +145,8 @@ fixable = [
     "SIM",
     "PERF",
     "FURB",
-    "RUF"
+    "RUF",
+    "W",
 ]
 # ANN003 - missing-type-kwargs
 # ANN101 - missing-type-self
@@ -188,12 +189,14 @@ ignore = [
 # C400 - unnecessary-generator-list
 # ARG002 - unused-method-argument
 # A002 - builtin-argument-shadowing
+# T201 - print
 "__init__.py" = ["F401", "E402"]
 "src/anyvar/restapi/main.py" = ["B008"]
 "tests/*" = ["ANN001", "ANN002", "ANN2", "ANN102", "S101", "B011", "INP001", "D", "C400"]
 "tests/storage/test_snowflake.py" = ["S608"]
 "tests/storage/test_postgres.py" = ["S608"]
 "tests/storage/sqlalchemy_mocks.py" = ["ARG002", "A002"]
+"demo/*" = ["T201"]
 
 [tool.ruff.format]
 docstring-code-format = true
