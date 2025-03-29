@@ -262,37 +262,33 @@ async def annotate_vcf(
     vcf: Annotated[UploadFile, File(..., description="VCF to register and annotate")],
     for_ref: Annotated[
         bool,
-        Query(default=True, description="Whether to compute VRS IDs for REF alleles"),
-    ],
+        Query(description="Whether to compute VRS IDs for REF alleles"),
+    ] = True,
     allow_async_write: Annotated[
         bool,
         Query(
-            default=False,
             description="Whether to allow asynchronous write of VRS objects to database",
         ),
-    ],
+    ] = False,
     assembly: Annotated[
         str,
         Query(
-            default="GRCh38",
             pattern="^(GRCh38|GRCh37)$",
             description="The reference assembly for the VCF",
         ),
-    ],
+    ] = "GRCh38",
     run_async: Annotated[
         bool,
         Query(
-            default=False,
             description="If true, immediately return a '202 Accepted' response and run asynchronously",
         ),
-    ],
+    ] = False,
     run_id: Annotated[
         str | None,
         Query(
-            default=None,
             description="When running asynchronously, use the specified value as the run id instead generating a random uuid",
         ),
-    ],
+    ] = None,
 ) -> FileResponse | RunStatusResponse | ErrorResponse:
     """Register alleles from a VCF and return a file annotated with VRS IDs.
 
