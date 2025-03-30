@@ -60,6 +60,10 @@ def create_storage(uri: str | None = None) -> _Storage:
         from anyvar.storage.snowflake import SnowflakeObjectStore
 
         storage = SnowflakeObjectStore(uri)
+    elif parsed_uri.scheme == "":
+        from anyvar.storage.no_db import NoObjectStore
+
+        storage = NoObjectStore()
     else:
         msg = f"URI scheme {parsed_uri.scheme} is not implemented"
         raise ValueError(msg)
