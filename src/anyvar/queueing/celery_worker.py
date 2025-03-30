@@ -87,8 +87,8 @@ def maybe_teardown_anyvar_app() -> None:
         if _cleanup_flag and _current_task_count == 0 and _anyvar_app:
             # cleanly shutdown the AnyVar app, waiting for background writes
             _logger.info("closing AnyVar app")
-            _anyvar_app.object_store.wait_for_writes()  # TODO needed?
-            _anyvar_app.object_store.close()  # TODO needed?
+            _anyvar_app.object_store.wait_for_writes()
+            _anyvar_app.object_store.close()
             _anyvar_app = None
             _cleanup_flag = False
 
@@ -211,7 +211,7 @@ def annotate_vcf(
                 self.request.id,
             )
             write_start = datetime.datetime.now(tz=datetime.UTC)
-            anyvar_app.object_store.wait_for_writes()   # TODO needed
+            anyvar_app.object_store.wait_for_writes()
             elapsed = datetime.datetime.now(tz=datetime.UTC) - write_start
             _logger.info(
                 "%s - waited for object store writes for %s seconds",

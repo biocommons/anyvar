@@ -103,7 +103,7 @@ class AnyVar:
         :param translator: Translator instance
         :param object_store: Object storage instance
         """
-        if not isinstance(object_store, MutableMapping):  # TODO handle
+        if not isinstance(object_store, MutableMapping):
             _logger.warning(
                 "AnyVar(object_store=) should be a mutable mapping; you're on your own"
             )
