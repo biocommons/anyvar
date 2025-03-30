@@ -418,7 +418,7 @@ async def _annotate_vcf_sync(
 
         if not allow_async_write:
             _logger.info("Waiting for object store writes from API handler method")
-            av.object_store.wait_for_writes()
+            av.object_store.wait_for_writes()  # TODO needed
         bg_tasks.add_task(os.unlink, temp_out_file.name)
         return FileResponse(temp_out_file.name)
 

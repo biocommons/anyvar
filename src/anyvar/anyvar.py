@@ -103,7 +103,7 @@ class AnyVar:
         :param translator: Translator instance
         :param object_store: Object storage instance
         """
-        if not isinstance(object_store, MutableMapping):
+        if not isinstance(object_store, MutableMapping):  # TODO handle
             _logger.warning(
                 "AnyVar(object_store=) should be a mutable mapping; you're on your own"
             )
@@ -118,7 +118,7 @@ class AnyVar:
         :return: Object digest if successful, None otherwise
         """
         try:
-            id, _ = vrs_enref(variation_object, self.object_store, True)  # noqa: A001
+            id, _ = vrs_enref(variation_object, self.object_store, True)  # noqa: A001  # TODO error handling?
         except ValueError:
             return None
         return id
@@ -129,5 +129,5 @@ class AnyVar:
         :param object_id: object identifier
         :param deref: if True, dereference all IDs contained by the object
         """
-        v = self.object_store[object_id]
+        v = self.object_store[object_id] # TODO add error handling to calls
         return vrs_deref(v, self.object_store) if deref else v
