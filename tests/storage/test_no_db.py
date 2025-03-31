@@ -1,13 +1,13 @@
 """Test storage integration methods when no database is configured"""
 
-from sqlalchemy_mocks import MockEngine, MockStmtSequence, MockVRSObject
+from sqlalchemy_mocks import MockVRSObject
 
 from anyvar.anyvar import create_storage
 from anyvar.storage.no_db import NoObjectStore
 
 
 def test_create_storage():
-    sf = create_storage('null')
+    sf = create_storage("null")
     assert isinstance(sf, NoObjectStore)
 
 
