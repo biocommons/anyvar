@@ -17,12 +17,13 @@ COPY pyproject.toml /app/pyproject.toml
 COPY src /app/src
 COPY .git /app/.git
 ENV PATH=/app/venv/bin:$PATH
-# RUN . /app/venv/bin/activate && pip install -e '.[dev,test,queueing,snowflake,postgres]'
 RUN pip install -e '.[dev,test,queueing,snowflake,postgres]'
 
 FROM python:3.12-slim as anyvar
 
-RUN apt-get update && apt-get install -y libpq-dev
+RUN apt-get update && apt-get install -y libpq-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app/venv /app/venv
 COPY --from=build /app/src /app/src
 COPY --from=build /app/pyproject.toml /app/pyproject.toml
