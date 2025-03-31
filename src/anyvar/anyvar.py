@@ -118,7 +118,7 @@ class AnyVar:
         :return: Object digest if successful, None otherwise
         """
         try:
-            id, _ = vrs_enref(variation_object, self.object_store, True)  # noqa: A001  # TODO error handling?
+            id, _ = vrs_enref(variation_object, self.object_store, True)  # noqa: A001
         except ValueError:
             return None
         return id
@@ -129,5 +129,5 @@ class AnyVar:
         :param object_id: object identifier
         :param deref: if True, dereference all IDs contained by the object
         """
-        v = self.object_store[object_id] # TODO add error handling to calls
+        v = self.object_store[object_id]
         return vrs_deref(v, self.object_store) if deref else v
