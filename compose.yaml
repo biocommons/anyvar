@@ -1,0 +1,62 @@
+services:
+
+  # If you have a SeqRepo database already on your local filesystem,
+  # you can comment this `seqrepo` container out and replace `seqrepo_vol`
+  # everywhere in this file with that path, or read the path from a variable
+  # like SEQREPO_ROOT_DIR.
+  # e.g. under the `anyvar` container, replace
+  # volumes:
+  #   - seqrepo_vol:/usr/local/share/seqrepo
+  #
+  # with
+  #
+  # volumes:
+  #   - $SEQREPO_ROOT_DIR:/usr/local/share/seqrepo
+  seqrepo:
+    image: biocommons/seqrepo:2024-12-20
+    volumes:
+      - seqrepo_vol:/usr/local/share/seqrepo
+
+  uta:
+    # Test:
+    # psql -XAt postgres://anonymous@localhost/uta -c 'select count(*) from uta_20241220.transcript'
+    # 314227
+    image: biocommons/uta:uta_20241220
+    environment:
+      - POSTGRES_PASSWORD=some-password-that-you-make-up
+    volumes:
+      - uta_vol:/var/lib/postgresql/data
+    ports:
+      - 127.0.0.1:5433:5432
+
+  anyvar_db:
+    image: postgres:17
+    volumes:
+      - anyvar_vol:/var/lib/postgresql/data
+      - ./src/anyvar/storage/postgres_init.sql:/docker-entrypoint-initdb.d/postgres_init.sql:ro
+    ports:
+      - 127.0.0.1:5434:5432
+    environment:
+      - POSTGRES_PASSWORD=postgres
+
+  anyvar:
+    image: docker.io/clingendevs/anyvar:latest
+    volumes:
+      - seqrepo_vol:/usr/local/share/seqrepo
+    depends_on:
+      - anyvar_db
+    environment:
+      - SEQREPO_INSTANCE=/usr/local/share/seqrepo/2024-12-20
+      - SEQREPO_DATAPROXY_URI=seqrepo+file://{SEQREPO_INSTANCE}
+      - ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@anyvar_db:5432/anyvar
+    ports:
+      - 127.0.0.1:8010:8000
+
+
+volumes:
+  seqrepo_vol:
+    external: true
+  uta_vol:
+    external: true
+  anyvar_vol:
+    external: true
