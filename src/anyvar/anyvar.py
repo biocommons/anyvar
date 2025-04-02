@@ -32,7 +32,9 @@ if logging_config_file and pathlib.Path(logging_config_file).is_file():
             config = yaml.safe_load(fd.read())
             logging.config.dictConfig(config)
         except Exception:
-            logging.exception("Error in Logging Configuration. Using default configs")
+            logging.exception(  # noqa: LOG015
+                "Error in Logging Configuration. Using default configs"
+            )
 
 _logger = logging.getLogger(__name__)
 
