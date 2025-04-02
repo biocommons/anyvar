@@ -22,6 +22,8 @@ services:
   # to a docker volume.
   # Export SEQREPO_ROOT_DIR for the compose command
   # e.g. SEQREPO_ROOT_DIR=/my/seqrepo docker-compose up
+  # If using this container, make sure you have commented out the `seqrepo` container
+  # and changed the `depends_on` for the `anyvar` container to depend on  `seqrepo_local_populator` instead of `seqrepo`.
   # seqrepo_local_populator:
   #   # image: alpine
   #   image: eeacms/rsync
@@ -60,12 +62,12 @@ services:
     depends_on:
       anyvar_db:
         required: true
-      seqrepo_local_populator:
+      seqrepo:
         required: true
         condition: service_completed_successfully
     environment:
-      - SEQREPO_INSTANCE=/usr/local/share/seqrepo/2024-12-20
-      - SEQREPO_DATAPROXY_URI=seqrepo+file://${SEQREPO_INSTANCE}
+      - SEQREPO_INSTANCE_DIR=/usr/local/share/seqrepo/2024-12-20
+      - SEQREPO_DATAPROXY_URI=seqrepo+file://${SEQREPO_INSTANCE_DIR}
       - UTA_DB_URL=postgresql://anonymous:anonymous@uta:5432/uta/uta_20241220
 
       # The anyvar credentials are initialized by postgres_init in the anyvar_db startup scripts. Values must be changed if you are making it publicly accessible.

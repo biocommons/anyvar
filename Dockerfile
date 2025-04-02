@@ -32,4 +32,4 @@ ENV PATH=/app/venv/bin:$PATH
 
 EXPOSE 8000
 
-CMD bash -c "uvicorn --host=0.0.0.0 anyvar.restapi.main:app"
+CMD uvicorn --host=0.0.0.0 anyvar.restapi.main:app
