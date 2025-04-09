@@ -16,7 +16,7 @@ import anyvar.anyvar
 from anyvar.queueing.celery_worker import celery_app
 
 
-@pytest.fixture()
+@pytest.fixture
 def sample_vcf_grch38():
     """Basic GRCh38 VCF fixture to use in tests."""
     file_content = b"""##fileformat=VCFv4.2
@@ -79,7 +79,7 @@ def test_vcf_registration_grch38(client, sample_vcf_grch38):
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def sample_vcf_grch37():
     """Basic GRCh37 VCF fixture to use in tests."""
     file_content = b"""##fileformat=VCFv4.2
