@@ -1,0 +1,68 @@
+name: Feature Request
+description: Suggest an idea for this project.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    attributes:
+      label: Feature description
+      description: Provide a clear and concise description of what you want to happen.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Use case
+      description: |
+        Why do you need this feature? For example: "I'm always frustrated when..."
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Acceptance Criteria
+      description: |
+        Provide the criteria that must be met in order for this issue to be considered complete.
+        Be specific, and consider potential edge cases.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proposed solution
+      description: Provide proposed solution.
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Alternatives considered
+      description: Describe any alternative solutions you've considered.
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Implementation details
+      description: Provide any technical details on how the feature might be implemented.
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Potential Impact
+      description: |
+        Discuss any potential impacts of this feature on existing functionality or performance, if known.
+        Will this feature cause breaking changes?
+        What challenges might arise?
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Provide any other context or screenshots about the feature.
+    validations:
+      required: false
+  - type: dropdown
+    attributes:
+      label: Contribution
+      description: Can you contribute to the development of this feature?
+      options:
+        - "Yes, I can create a PR for this feature."
+        - "Yes, but I can only provide ideas and feedback."
+        - "No, I cannot contribute."
+    validations:
+      required: false
