@@ -32,7 +32,9 @@ if logging_config_file and pathlib.Path(logging_config_file).is_file():
             config = yaml.safe_load(fd.read())
             logging.config.dictConfig(config)
         except Exception:
-            logging.exception("Error in Logging Configuration. Using default configs")
+            logging.exception(  # noqa: LOG015
+                "Error in Logging Configuration. Using default configs"
+            )
 
 _logger = logging.getLogger(__name__)
 
@@ -60,6 +62,10 @@ def create_storage(uri: str | None = None) -> _Storage:
         from anyvar.storage.snowflake import SnowflakeObjectStore
 
         storage = SnowflakeObjectStore(uri)
+    elif parsed_uri.scheme == "":
+        from anyvar.storage.no_db import NoObjectStore
+
+        storage = NoObjectStore()
     else:
         msg = f"URI scheme {parsed_uri.scheme} is not implemented"
         raise ValueError(msg)

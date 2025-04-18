@@ -9,7 +9,15 @@ from sqlalchemy.engine import Connection
 
 from .sql_storage import SqlStorage
 
-silos = "locations alleles haplotypes genotypes variationsets relations texts".split()
+silos = [
+    "locations",
+    "alleles",
+    "haplotypes",
+    "genotypes",
+    "variationsets",
+    "relations",
+    "texts",
+]
 
 
 class PostgresObjectStore(SqlStorage):

@@ -105,7 +105,7 @@ We recommend using Docker to install
 
 ### SQL Database Setup
 
-A Postgres or Snowflake database may be used with *AnyVar*. The Postgres database
+A Postgres or Snowflake database may optionally be used with *AnyVar*. The Postgres database
 may be either local or remote. Use the  `ANYVAR_STORAGE_URI` environment variable
 to define the database connection URL. *AnyVar* uses
 [SQLAlchemy 1.4](https://docs.sqlalchemy.org/en/14/index.html) to provide database
@@ -177,6 +177,11 @@ CREATE TABLE ... (
     vrs_object VARIANT
 )
 ```
+
+#### Skipping Database Setup
+It is also possible to run AnyVar with no database. This is primarily useful for bulk annotations, 
+such as annotating a VCF, where there is no real need to reuse previously computed VRS IDs. 
+To run AnyVar with no database, set the `ANYVAR_STORAGE_URI` environment variable to `null`.
 
 ### Enabling Asynchronous VCF Annotation
 AnyVar can support using the asynchronous request-response pattern when annotating VCF files.
