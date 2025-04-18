@@ -1,8 +1,6 @@
 """Provide DuckDB-based storage implementation."""
 
 import json
-import random
-import string
 from typing import Any
 
 import duckdb
@@ -14,17 +12,7 @@ from anyvar.storage.sql_storage import SqlStorage
 
 
 class DuckdbObjectStore(SqlStorage):
-    """PostgreSQL storage backend. Currently, this is our recommended storage
-    approach.
-    """
-
-    # def __init__(self, db_file_path: Path) -> None:
-    #     """Initialize DB handler."""
-    #     self.db_file_path = db_file_path
-    #     self.table_name = "vrs_objects"
-
-    #     self.db_conn = self._get_connection()
-    #     self.create_schema(self.db_conn)
+    """DuckDB storage backend."""
 
     def __init__(
         self,
@@ -67,7 +55,10 @@ class DuckdbObjectStore(SqlStorage):
             db_conn.execute(create_statement)
 
     def add_one_item(
-        self, db_conn: duckdb.DuckDBPyConnection, name: str, value: Any
+        self,
+        db_conn: duckdb.DuckDBPyConnection,
+        name: str,
+        value: Any,  # noqa: ANN401
     ) -> None:
         """Add/merge a single item to the DuckDB database.
 
@@ -88,9 +79,6 @@ class DuckdbObjectStore(SqlStorage):
         # Execute the query with parameterized values
         db_conn.execute(insert_query, (name, value_json))
 
-    def _random_tmp_table_name(self) -> str:
-        return "".join(random.choice(string.ascii_uppercase) for i in range(32))
-
     def add_many_items(
         self,
         db_conn: duckdb.DuckDBPyConnection,
@@ -102,9 +90,7 @@ class DuckdbObjectStore(SqlStorage):
         :param items: list of tuples (name, value) to be inserted
         """
         # Create a temporary table with the same schema as the main table
-        # TODO if application has any concurrency, tmp_table name should be made unique instead
-        # Create random name starting with tmp_table
-        tmp_table_name = f"tmp_table_{self._random_tmp_table_name()}"
+        tmp_table_name = "tmp_table"
         tmp_statement = f"""
             CREATE TEMPORARY TABLE {tmp_table_name} (vrs_id TEXT, vrs_object JSON)
         """
@@ -126,7 +112,8 @@ class DuckdbObjectStore(SqlStorage):
 
         # Insert data into the temporary table
         db_conn.execute(
-            f"INSERT INTO {tmp_table_name} VALUES (?, ?)", row_data  # noqa: S608
+            f"INSERT INTO {tmp_table_name} VALUES (?, ?)",  # noqa: S608
+            row_data,
         )
 
         # Move data from the temporary table to the main table with conflict handling
@@ -215,12 +202,3 @@ class DuckdbObjectStore(SqlStorage):
             cur.execute(query_str, [type, start, stop, refget_accession])
             results = cur.fetchall()
         return [vrs_object[0] for vrs_object in results if vrs_object]
-
-    def __enter__(self):
-        """Enter context manager."""
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        """Exit context manager."""
-        self.close()
-        return True
