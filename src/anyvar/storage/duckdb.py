@@ -104,7 +104,7 @@ class DuckdbObjectStore(SqlStorage):
         # Create the temporary table
         db_conn.execute(tmp_statement)
 
-        # Prepare data for bulk insertion using a Pandas DataFrame
+        # Prepare data for bulk insertion
         row_data = [
             (name, json.dumps(value.model_dump(exclude_none=True)))
             for name, value in items
