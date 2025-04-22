@@ -189,16 +189,23 @@ class DuckdbObjectStore(SqlStorage):
         :return: a list of VRS objects
         """
         query_str = f"""
-            SELECT vrs_object
-              FROM {self.table_name}
-             WHERE vrs_object->>'type' = %s
-               AND vrs_object->>'location' IN (
+        SELECT vrs_object
+        FROM {self.table_name}
+        WHERE (vrs_object->>'type' = :type)
+            AND (vrs_object->>'location' IN (
                 SELECT vrs_id FROM {self.table_name}
-                 WHERE CAST (vrs_object->>'start' AS INTEGER) >= %s
-                   AND CAST (vrs_object->>'end' AS INTEGER) <= %s
-                   AND vrs_object->'sequenceReference'->>'refgetAccession' = %s)
+                WHERE (CAST (vrs_object->>'start' AS INTEGER) >= :start)
+                    AND (CAST (vrs_object->>'end' AS INTEGER) <= :end)
+                    AND (vrs_object->'sequenceReference'->>'refgetAccession' = :refgetAccession)
+            ))
         """  # noqa: S608
-        with db_conn.connection.cursor() as cur:
-            cur.execute(query_str, [type, start, stop, refget_accession])
-            results = cur.fetchall()
+        results = db_conn.execute(
+            sql_text(query_str),
+            {
+                "type": type,
+                "start": start,
+                "end": stop,
+                "refgetAccession": refget_accession,
+            },
+        ).fetchall()
         return [vrs_object[0] for vrs_object in results if vrs_object]
