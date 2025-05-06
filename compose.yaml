@@ -61,14 +61,14 @@ services:
       - seqrepo_vol:/usr/local/share/seqrepo
     depends_on:
       anyvar_db:
-        condition: service_started
         required: true
+        condition: service_started
       # seqrepo:
       #   required: true
       #   condition: service_completed_successfully
     environment:
       - SEQREPO_INSTANCE_DIR=/usr/local/share/seqrepo/2024-12-20
-      - SEQREPO_DATAPROXY_URI=seqrepo+file://${SEQREPO_INSTANCE_DIR}
+      - SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/2024-12-20
       - UTA_DB_URL=postgresql://anonymous:anonymous@uta:5432/uta/uta_20241220
 
       # The anyvar credentials are initialized by postgres_init in the anyvar_db startup scripts. Values must be changed if you are making it publicly accessible.
