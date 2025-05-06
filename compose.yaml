@@ -58,7 +58,7 @@ services:
   anyvar:
     image: docker.io/clingendevs/anyvar:latest
     volumes:
-      - $SEQREPO_ROOT_DIR:/usr/local/share/seqrepo
+      - /usr/local/share/seqrepo:/usr/local/share/seqrepo
     depends_on:
       anyvar_db:
         required: true
