@@ -4,7 +4,7 @@ import json
 import logging
 import os
 from abc import abstractmethod
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from io import StringIO
 from typing import Any
 
@@ -196,12 +196,18 @@ class PostgresAnnotationObjectStore(SqlStorage):
                 {"object_id": key.object_id, "annotation_type": key.annotation_type},
             )
 
-    def keys(self) -> list:
+    def keys(self) -> Iterable:
         """Return all annotation keys in the store including duplicates."""
-        query_statement = f"SELECT object_id FROM {self.table_name}"  # noqa: S608
+        query_statement = f"SELECT object_id, annotation_type FROM {self.table_name}"  # noqa: S608
         with self._get_connection() as conn:
             result = conn.execute(sql_text(query_statement))
-            return (row["object_id"] for row in result)
+            yield from (
+                AnnotationKey(
+                    object_id=row["object_id"], annotation_type=row["annotation_type"]
+                )
+                for row in result
+            )
+            # return (row["object_id"] for row in result)
 
 
 class PostgresObjectStore(VrsSqlStorage):

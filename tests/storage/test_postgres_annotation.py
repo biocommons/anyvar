@@ -11,7 +11,7 @@ from anyvar.utils.types import Annotation, AnnotationKey
 def db_uri():
     return (
         os.environ.get("ANYVAR_DB_URI")
-        or "postgresql://anyvar:anyvar-pw@localhost:5432/anyvar_test"
+        or "postgresql://anyvar_test:anyvar-test-pw@localhost:5432/anyvar_test"
     )
 
 
@@ -113,6 +113,9 @@ def test_one_to_many(db_uri):
         results = sqlstore[input_annotations[5].key()]
         assert len(results) == 1
         assert results[0].annotation == {"value": "VALUE2"}
+
+        # check keys
+        assert list(sqlstore.keys()) == [a.key() for a in input_annotations]
 
     finally:
         sqlstore.close()
