@@ -11,6 +11,7 @@ import tempfile
 import uuid
 from contextlib import asynccontextmanager
 from http import HTTPStatus
+from typing import Annotated
 
 import ga4gh.vrs
 from fastapi import (
@@ -139,7 +140,8 @@ def get_info() -> dict:
     tags=[EndpointTag.LOCATIONS],
 )
 def get_location_by_id(
-    request: Request, location_id: StrictStr = Path(..., description="Location VRS ID")
+    request: Request,
+    location_id: Annotated[StrictStr, Path(..., description="Location VRS ID")],
 ) -> dict:
     """Retrieve stored location object by ID.
 
@@ -298,9 +300,12 @@ async def add_creation_timestamp_annotation(request: Request, call_next) -> Resp
 )
 def register_variation(
     request: Request,
-    variation: RegisterVariationRequest = Body(
-        description="Variation description, including (at minimum) a definition property. Can provide optional input_type if the expected output representation is known. If representing copy number, provide copies or copy_change."
-    ),
+    variation: Annotated[
+        RegisterVariationRequest,
+        Body(
+            description="Variation description, including (at minimum) a definition property. Can provide optional input_type if the expected output representation is known. If representing copy number, provide copies or copy_change."
+        ),
+    ],
 ) -> dict:
     """Register a variation based on a provided description or reference.
 
@@ -342,23 +347,26 @@ def register_variation(
 )
 def register_vrs_object(
     request: Request,
-    variation: VrsVariation = Body(
-        description="Valid VRS object.",
-        example={
-            "location": {
-                "id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8",
-                "end": 87894077,
-                "start": 87894076,
-                "sequenceReference": {
-                    "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
-                    "type": "SequenceReference",
+    variation: Annotated[
+        VrsVariation,
+        Body(
+            description="Valid VRS object.",
+            example={
+                "location": {
+                    "id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8",
+                    "end": 87894077,
+                    "start": 87894076,
+                    "sequenceReference": {
+                        "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
+                        "type": "SequenceReference",
+                    },
+                    "type": "SequenceLocation",
                 },
-                "type": "SequenceLocation",
+                "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
+                "type": "Allele",
             },
-            "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
-            "type": "Allele",
-        },
-    ),
+        ),
+    ],
 ) -> dict:
     """Register a complete VRS object. No additional normalization is performed.
 
@@ -396,27 +404,36 @@ async def annotate_vcf(
     request: Request,
     response: Response,
     bg_tasks: BackgroundTasks,
-    vcf: UploadFile = File(..., description="VCF to register and annotate"),
-    for_ref: bool = Query(
-        default=True, description="Whether to compute VRS IDs for REF alleles"
-    ),
-    allow_async_write: bool = Query(
-        default=False,
-        description="Whether to allow asynchronous write of VRS objects to database",
-    ),
-    assembly: str = Query(
-        default="GRCh38",
-        pattern="^(GRCh38|GRCh37)$",
-        description="The reference assembly for the VCF",
-    ),
-    run_async: bool = Query(
-        default=False,
-        description="If true, immediately return a '202 Accepted' response and run asynchronously",
-    ),
-    run_id: str | None = Query(
-        default=None,
-        description="When running asynchronously, use the specified value as the run id instead generating a random uuid",
-    ),
+    vcf: Annotated[UploadFile, File(..., description="VCF to register and annotate")],
+    for_ref: Annotated[
+        bool,
+        Query(description="Whether to compute VRS IDs for REF alleles"),
+    ] = True,
+    allow_async_write: Annotated[
+        bool,
+        Query(
+            description="Whether to allow asynchronous write of VRS objects to database",
+        ),
+    ] = False,
+    assembly: Annotated[
+        str,
+        Query(
+            pattern="^(GRCh38|GRCh37)$",
+            description="The reference assembly for the VCF",
+        ),
+    ] = "GRCh38",
+    run_async: Annotated[
+        bool,
+        Query(
+            description="If true, immediately return a '202 Accepted' response and run asynchronously",
+        ),
+    ] = False,
+    run_id: Annotated[
+        str | None,
+        Query(
+            description="When running asynchronously, use the specified value as the run id instead generating a random uuid",
+        ),
+    ] = None,
 ) -> FileResponse | RunStatusResponse | ErrorResponse:
     """Register alleles from a VCF and return a file annotated with VRS IDs.
 
@@ -578,7 +595,9 @@ async def _annotate_vcf_sync(
 async def get_result(
     response: Response,
     bg_tasks: BackgroundTasks,
-    run_id: str = Path(description="The run id to retrieve the result or status for"),
+    run_id: Annotated[
+        str, Path(description="The run id to retrieve the result or status for")
+    ],
 ) -> RunStatusResponse | FileResponse | ErrorResponse:
     """Return the status or result of an asynchronous registration of alleles from a VCF file.
     :param response: FastAPI response object
@@ -695,7 +714,7 @@ async def get_result(
 )
 def get_variation_by_id(
     request: Request,
-    variation_id: StrictStr = Path(..., description="VRS ID for variation"),
+    variation_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
 ) -> dict:
     """Get registered variation given VRS ID.
 
@@ -732,9 +751,9 @@ def get_variation_by_id(
 )
 def search_variations(
     request: Request,
-    accession: str = Query(..., description="Sequence accession identifier"),
-    start: int = Query(..., description="Start position for genomic region"),
-    end: int = Query(..., description="End position for genomic region"),
+    accession: Annotated[str, Query(..., description="Sequence accession identifier")],
+    start: Annotated[int, Query(..., description="Start position for genomic region")],
+    end: Annotated[int, Query(..., description="End position for genomic region")],
 ) -> dict:
     """Fetch all registered variations within the provided genomic coordinates.
 
@@ -785,9 +804,9 @@ def search_variations(
 )
 def get_stats(
     request: Request,
-    variation_type: VariationStatisticType = Path(
-        ..., description="category of variation"
-    ),
+    variation_type: Annotated[
+        VariationStatisticType, Path(..., description="category of variation")
+    ],
 ) -> dict:
     """Get summary statistics for registered variants. Currently just returns totals.
 

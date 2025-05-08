@@ -48,8 +48,10 @@ class MockStmt:
         if norm_sql == self.sql:  # noqa: SIM102
             if (
                 self.params is True
-                or (self.params is None or len(self.params) == 0)
-                and (params is None or len(params) == 0)
+                or (
+                    (self.params is None or len(self.params) == 0)
+                    and (params is None or len(params) == 0)
+                )
                 or self.params == params
             ):
                 return True

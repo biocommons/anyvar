@@ -33,7 +33,9 @@ if logging_config_file and pathlib.Path(logging_config_file).is_file():
             config = yaml.safe_load(fd.read())
             logging.config.dictConfig(config)
         except Exception:
-            logging.exception("Error in Logging Configuration. Using default configs")
+            logging.exception(  # noqa: LOG015
+                "Error in Logging Configuration. Using default configs"
+            )
 
 _logger = logging.getLogger(__name__)
 
@@ -53,9 +55,7 @@ def create_storage(uri: str | None = None, table_name: str | None = None) -> _St
     :param table_name: table name to use for storage (if the storage supports it)
     """
     uri = uri or os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
-
     parsed_uri = urlparse(uri)
-
     if parsed_uri.scheme == "postgresql":
         from anyvar.storage.postgres import PostgresObjectStore
 
@@ -63,7 +63,15 @@ def create_storage(uri: str | None = None, table_name: str | None = None) -> _St
     elif parsed_uri.scheme == "snowflake":
         from anyvar.storage.snowflake import SnowflakeObjectStore
 
-        storage = SnowflakeObjectStore(uri, table_name=table_name)
+        storage = SnowflakeObjectStore(uri)
+    elif parsed_uri.scheme == "":
+        from anyvar.storage.no_db import NoObjectStore
+
+        storage = NoObjectStore()
+    elif parsed_uri.scheme == "duckdb":
+        from anyvar.storage.duckdb import DuckdbObjectStore
+
+        storage = DuckdbObjectStore(uri)
     else:
         msg = f"URI scheme {parsed_uri.scheme} is not implemented"
         raise ValueError(msg)

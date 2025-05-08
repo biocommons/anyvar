@@ -32,6 +32,10 @@ queueing = [
     "celery[redis]~=5.4.0",
     "aiofiles",
 ]
+duckdb = [
+    "duckdb",       # duckdb python client
+    "duckdb-engine" # sqlalchemy engine for duckdb
+]
 test = [
     "pytest",
     "pytest-cov",
@@ -40,7 +44,7 @@ test = [
     "celery[pytest]",
 ]
 dev = [
-    "ruff==0.5.0",
+    "ruff==0.11.2",
     "pre-commit>=3.7.1",
     "ipykernel",
 ]
@@ -129,6 +133,7 @@ select = [
     "PERF",  # https://docs.astral.sh/ruff/rules/#perflint-perf
     "FURB",  # https://docs.astral.sh/ruff/rules/#refurb-furb
     "RUF",  # https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
+    "FAST", # https://docs.astral.sh/ruff/rules/#fastapi-fast
 ]
 fixable = [
     "I",
@@ -146,11 +151,10 @@ fixable = [
     "SIM",
     "PERF",
     "FURB",
-    "RUF"
+    "RUF",
+    "W",
 ]
 # ANN003 - missing-type-kwargs
-# ANN101 - missing-type-self
-# ANN102 - missing-type-cls
 # D203 - one-blank-line-before-class
 # D205 - blank-line-after-summary
 # D206 - indent-with-spaces*
@@ -167,7 +171,7 @@ fixable = [
 # S321 - suspicious-ftp-lib-usage
 # *ignored for compatibility with formatter
 ignore = [
-    "ANN003", "ANN101", "ANN102",
+    "ANN003",
     "D203", "D205", "D206", "D213", "D300", "D400", "D415",
     "E111", "E114", "E117", "E501",
     "EM101", "EM102", "EM103",
@@ -191,12 +195,14 @@ ignore = [
 # C400 - unnecessary-generator-list
 # ARG002 - unused-method-argument
 # A002 - builtin-argument-shadowing
+# T201 - print
 "__init__.py" = ["F401", "E402"]
 "src/anyvar/restapi/main.py" = ["B008"]
 "tests/*" = ["ANN001", "ANN002", "ANN2", "ANN102", "S101", "B011", "INP001", "D", "C400"]
 "tests/storage/test_snowflake.py" = ["S608"]
 "tests/storage/test_postgres.py" = ["S608"]
 "tests/storage/sqlalchemy_mocks.py" = ["ARG002", "A002"]
+"demo/*" = ["T201"]
 
 [tool.ruff.format]
 docstring-code-format = true
