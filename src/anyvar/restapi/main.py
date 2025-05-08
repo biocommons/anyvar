@@ -4,11 +4,11 @@ import asyncio
 import datetime
 import json
 import logging
-import logging.config
 import os
 import pathlib
 import tempfile
 import uuid
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from http import HTTPStatus
 from typing import Annotated
@@ -175,12 +175,22 @@ def get_location_by_id(
 )
 def add_variation_annotation(
     request: Request,
-    vrs_id: StrictStr = Path(..., description="VRS ID for variation"),
-    annotation: AddAnnotationRequest = Body(
-        ...,
-        description="Annotation to associate with the variation",
-    ),
+    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
+    annotation: Annotated[
+        AddAnnotationRequest,
+        Body(
+            description="Annotation to associate with the variation",
+        ),
+    ],
 ) -> dict | HTTPException:
+    """Store an annotation for a variation.
+
+    :param request: FastAPI request object
+    :param vrs_id: the VRS ID of the variation to annotate
+    :param annotation: the annotation to store
+    :return: the variation and annotations if stored
+    :raise HTTPException: if requested location isn't found
+    """
     messages = []
     # Look up the variation from the AnyVar store
     av: AnyVar = request.app.state.anyvar
@@ -226,8 +236,8 @@ def add_variation_annotation(
 )
 def get_variation_annotation(
     request: Request,
-    vrs_id: StrictStr = Path(..., description="VRS ID for variation"),
-    annotation_type: StrictStr = Path(..., description="Annotation type"),
+    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
+    annotation_type: Annotated[StrictStr, Path(..., description="Annotation type")],
 ) -> list[GetAnnotationResponse]:
     """Retrieve annotations for a variation.
 
@@ -236,13 +246,11 @@ def get_variation_annotation(
     :param annotation_type: type of annotation to retrieve
     :return: list of annotations for the variation
     """
-
     # Retrieve the annotation from the annotation store
     if hasattr(request.app.state, "anyannotation"):
         anyannotation: AnyAnnotation = request.app.state.anyannotation
         annotations = anyannotation.get_annotation(vrs_id, annotation_type)
-        print("GOT ANNOTATIONS:")
-        print(annotations)
+        # print("GOT ANNOTATIONS: \n" + str(annotations))
     else:
         annotations = []
 
@@ -253,7 +261,9 @@ def get_variation_annotation(
 
 
 @app.middleware("http")
-async def add_creation_timestamp_annotation(request: Request, call_next) -> Response:
+async def add_creation_timestamp_annotation(
+    request: Request, call_next: Callable
+) -> Response:
     """Add a creation timestamp annotation to a variation if it doesn't already exist."""
     # Do nothing on request. Pass downstream.
     response = await call_next(request)

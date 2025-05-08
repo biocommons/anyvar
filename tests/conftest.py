@@ -24,6 +24,7 @@ def pytest_collection_modifyitems(items):
         "test_postgres",
         "test_snowflake",
         "test_postgres_annotation",
+        "test_duckdb_annotation",
         "test_no_db",
     ]
     # remember to add new test modules to the order constant:

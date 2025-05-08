@@ -10,7 +10,6 @@ import os
 import pathlib
 import warnings
 from collections.abc import MutableMapping
-from typing import Any
 from urllib.parse import urlparse
 
 import yaml
@@ -173,6 +172,7 @@ class AnyVar:
 
 
 class AnyAnnotation:
+    """Class for interacting with annotations"""
 
     def __init__(self, annotation_store: _Storage) -> None:
         """Initialize AnyAnnotation instance.
@@ -186,9 +186,6 @@ class AnyAnnotation:
 
         :param object_id: object identifier
         """
-        # if self.annotation_store is None:
-        #     raise ValueError("No annotation store available")
-
         return self.annotation_store.get(
             AnnotationKey(object_id=object_id, annotation_type=annotation_type), []
         )
@@ -201,9 +198,6 @@ class AnyAnnotation:
         :param object_id: object identifier
         :param annotation: annotation dictionary
         """
-        # if self.annotation_store is None:
-        #     raise ValueError("No annotation store available")
-
         self.annotation_store.push(
             Annotation(
                 object_id=object_id,

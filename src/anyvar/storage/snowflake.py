@@ -15,7 +15,7 @@ from snowflake.sqlalchemy.snowdialect import SnowflakeDialect
 from sqlalchemy import text as sql_text
 from sqlalchemy.engine import URL, Connection
 
-from .sql_storage import SqlStorage, VrsSqlStorage
+from .sql_storage import VrsSqlStorage
 
 _logger = logging.getLogger(__name__)
 
@@ -26,17 +26,16 @@ snowflake.connector.paramstyle = "qmark"
 #  https://github.com/snowflakedb/snowflake-sqlalchemy/issues/489
 
 # Create a new pointer to the existing create_connect_args method
-SnowflakeDialect._orig_create_connect_args = (
+SnowflakeDialect._orig_create_connect_args = (  # noqa: SLF001
     SnowflakeDialect.create_connect_args
-)  # noqa: SLF001
+)
 
 
-# Define a new create_connect_args method that calls the original method
-#   and then fixes the result so that the account name is not mangled
-#   when using privatelink
-def sf_create_connect_args_override(
-    self, url: URL
-) -> tuple[list, dict]:  # noqa: ANN001 D103
+def sf_create_connect_args_override(self, url: URL) -> tuple[list, dict]:  # noqa: ANN001
+    """Define a new create_connect_args method that calls the original method
+    and then fixes the result so that the account name is not mangled
+    when using privatelink
+    """
     # retval is tuple of empty array and dict ([], {})
     retval = self._orig_create_connect_args(url)
 
@@ -168,9 +167,7 @@ class SnowflakeObjectStore(VrsSqlStorage):
         if result.scalar() < 1:
             db_conn.execute(sql_text(create_statement))
 
-    def add_one_item(
-        self, db_conn: Connection, name: str, value: Any
-    ) -> None:  # noqa: ANN401
+    def add_one_item(self, db_conn: Connection, name: str, value: Any) -> None:  # noqa: ANN401
         """Add/merge a single item to the database
 
         :param db_conn: a database connection

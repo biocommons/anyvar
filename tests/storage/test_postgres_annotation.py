@@ -1,15 +1,13 @@
 import os
-import sys
 from datetime import datetime, timedelta
 
 import pytest
 
 from anyvar.storage.postgres import PostgresAnnotationObjectStore
-from anyvar.storage.sql_storage import VrsSqlStorage
 from anyvar.utils.types import Annotation, AnnotationKey
 
 
-@pytest.fixture()
+@pytest.fixture
 def db_uri():
     return (
         os.environ.get("ANYVAR_DB_URI")

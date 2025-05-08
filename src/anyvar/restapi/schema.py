@@ -36,8 +36,9 @@ class InfoResponse(BaseModel):
 
         @staticmethod
         def schema_extra(
-            schema: dict[str, Any], model: type["InfoResponse"]
-        ) -> None:  # noqa: ARG004
+            schema: dict[str, Any],
+            model: type["InfoResponse"],  # noqa: ARG004
+        ) -> None:
             """Configure OpenAPI schema"""
             if "title" in schema:
                 schema.pop("title", None)

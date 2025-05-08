@@ -48,5 +48,6 @@ class Annotation(AnnotationKey):
 
     annotation: Any
 
-    def key(self):
+    def key(self) -> AnnotationKey:
+        """Return the key of the annotation"""
         return AnnotationKey(self.object_id, self.annotation_type)

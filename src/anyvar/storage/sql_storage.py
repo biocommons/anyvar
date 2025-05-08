@@ -142,8 +142,11 @@ class SqlStorage(_Storage):
 
     @abstractmethod
     def add_one_item(
-        self, db_conn: Connection, name: str, value: Any
-    ) -> None:  # noqa: ANN401
+        self,
+        db_conn: Connection,
+        name: str,
+        value: Any,  # noqa: ANN401
+    ) -> None:
         """Add/merge a single item to the database
 
         :param db_conn: a database connection
@@ -272,6 +275,7 @@ class VrsSqlStorage(SqlStorage):
         max_pending_batches: int | None = None,
         flush_on_batchctx_exit: bool | None = None,
     ) -> None:
+        """Initialize SqlStorage."""
         super().__init__(
             db_url, batch_limit, table_name, max_pending_batches, flush_on_batchctx_exit
         )
@@ -316,9 +320,7 @@ class VrsSqlStorage(SqlStorage):
                 raise NotImplementedError
             raise KeyError(name)
 
-    def fetch_vrs_object(
-        self, db_conn: Connection, vrs_id: str
-    ) -> Any | None:  # noqa: ANN401
+    def fetch_vrs_object(self, db_conn: Connection, vrs_id: str) -> Any | None:  # noqa: ANN401
         """Fetch a single VRS object from the database, return the value as a JSON object
 
         :param db_conn: a database connection
@@ -362,9 +364,7 @@ class VrsSqlStorage(SqlStorage):
         :param vrs_id: the VRS ID
         """
         db_conn.execute(
-            sql_text(
-                f"DELETE FROM {self.table_name} WHERE vrs_id = :vrs_id"
-            ),  # noqa: S608
+            sql_text(f"DELETE FROM {self.table_name} WHERE vrs_id = :vrs_id"),  # noqa: S608
             {"vrs_id": vrs_id},
         )
 
@@ -378,9 +378,7 @@ class VrsSqlStorage(SqlStorage):
 
         :param db_conn: a database connection
         """
-        result = db_conn.execute(
-            sql_text(f"SELECT COUNT(*) FROM {self.table_name}")
-        )  # noqa: S608
+        result = db_conn.execute(sql_text(f"SELECT COUNT(*) FROM {self.table_name}"))  # noqa: S608
         return result.scalar()
 
     def get_variation_count(self, variation_type: VariationStatisticType) -> int:
@@ -455,9 +453,7 @@ class VrsSqlStorage(SqlStorage):
 
         :param db_conn: a database connection
         """
-        result = db_conn.execute(
-            sql_text(f"SELECT vrs_id FROM {self.table_name}")
-        )  # noqa: S608
+        result = db_conn.execute(sql_text(f"SELECT vrs_id FROM {self.table_name}"))  # noqa: S608
         return [row[0] for row in result]
 
     def search_variations(self, refget_accession: str, start: int, stop: int) -> list:

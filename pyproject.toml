@@ -98,6 +98,7 @@ exclude_lines = [
 
 [tool.ruff]
 src = ["src"]
+include = ["src/**/*.py", "tests/**/*.py", "demo/**/*.py"]
 
 [tool.ruff.lint]
 select = [

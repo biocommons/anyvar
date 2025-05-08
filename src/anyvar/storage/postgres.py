@@ -28,52 +28,6 @@ silos = [
 _logger = logging.getLogger(__name__)
 
 
-# class PostgresCompositeKeyGenericObjectStore(SqlStorage):
-#     def __init__(
-#         self,
-#         db_url: str,
-#         key_fields: list[str],
-#         batch_limit: int | None = None,
-#         table_name: str | None = None,
-#         max_pending_batches: int | None = None,
-#         flush_on_batchctx_exit: bool | None = None,
-#     ) -> None:
-#         """Initialize DB handler."""
-#         super().__init__(
-#             db_url,
-#             batch_limit,
-#             table_name,
-#             max_pending_batches,
-#             flush_on_batchctx_exit,
-#         )
-
-#         self.key_fields = key_fields
-
-#     def create_schema(self, db_conn: Connection) -> None:
-#         check_statement = f"""
-#             SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = '{self.table_name}')
-#         """  # noqa: S608
-#         create_statement = f"""
-#             CREATE TABLE {self.table_name} (
-#                 {', '.join([f'{field} TEXT' for field in self.key_fields])},
-#                 object JSONB
-#             )
-#         """
-#         create_index = f"""
-#             CREATE INDEX {self.table_name}_index
-#             ON {self.table_name} ({', '.join(self.key_fields)})
-#         """
-#         # TODO index on each key field?
-#         result = db_conn.execute(sql_text(check_statement))
-#         if not result or not result.scalar():
-#             db_conn.execute(sql_text(create_statement))
-#             db_conn.execute(sql_text(create_index))
-
-#     def __getitem__(self, key):
-#         # return super().__getitem__(name)
-#         pass
-
-
 class _AnnotationObjectStore(SqlStorage):
     def __init__(
         self,
@@ -138,6 +92,7 @@ class PostgresAnnotationObjectStore(SqlStorage):
             db_conn.execute(sql_text(create_statement))
 
     def __getitem__(self, key: AnnotationKey) -> Iterator[Annotation]:
+        """Get annotations by key."""
         if key.object_id is None:
             raise ValueError("Object ID is required")
         if key.annotation_type is None:
@@ -184,6 +139,7 @@ class PostgresAnnotationObjectStore(SqlStorage):
         name: AnnotationKey,
         value: dict | str,
     ) -> None:
+        """Add a single item."""
         insert_query = f"INSERT INTO {self.table_name} (object_id, annotation_type, annotation) VALUES (:object_id, :annotation_type, :annotation) ON CONFLICT DO NOTHING"  # noqa: S608
         db_conn.execute(
             sql_text(insert_query),
@@ -213,7 +169,7 @@ class PostgresAnnotationObjectStore(SqlStorage):
         drop_statement = f"DROP TABLE {tmp_table_name}"
         db_conn.execute(sql_text(tmp_statement))
 
-        def fmt_row(name: AnnotationKey, value: dict):
+        def fmt_row(name: AnnotationKey, value: dict) -> str:
             return "\t".join(
                 [f"{name.object_id}", f"{name.annotation_type}", f"{json.dumps(value)}"]
             )
@@ -232,6 +188,7 @@ class PostgresAnnotationObjectStore(SqlStorage):
         db_conn.execute(sql_text(drop_statement))
 
     def __delitem__(self, key: AnnotationKey) -> None:
+        """Delete annotations matching the key."""
         delete_statement = f"DELETE FROM {self.table_name} WHERE object_id = :object_id AND annotation_type = :annotation_type"  # noqa: S608
         with self._get_connection() as conn:
             conn.execute(
@@ -240,6 +197,7 @@ class PostgresAnnotationObjectStore(SqlStorage):
             )
 
     def keys(self) -> list:
+        """Return all annotation keys in the store including duplicates."""
         query_statement = f"SELECT object_id FROM {self.table_name}"  # noqa: S608
         with self._get_connection() as conn:
             result = conn.execute(sql_text(query_statement))
@@ -286,9 +244,7 @@ class PostgresObjectStore(VrsSqlStorage):
         if not result or not result.scalar():
             db_conn.execute(sql_text(create_statement))
 
-    def add_one_item(
-        self, db_conn: Connection, name: str, value: Any
-    ) -> None:  # noqa: ANN401
+    def add_one_item(self, db_conn: Connection, name: str, value: Any) -> None:  # noqa: ANN401
         """Add/merge a single item to the database
 
         :param db_conn: a database connection
