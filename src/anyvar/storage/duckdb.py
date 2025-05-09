@@ -10,7 +10,7 @@ import pydantic
 from sqlalchemy import text as sql_text
 from sqlalchemy.engine import Connection
 
-from anyvar.storage.sql_storage import SqlStorage
+from anyvar.storage.sql_storage import SqlStorage, VrsSqlStorage
 from anyvar.utils.types import Annotation, AnnotationKey
 
 
@@ -37,8 +37,8 @@ class DuckdbAnnotationObjectStore(SqlStorage):
     def create_schema(self, db_conn: Connection) -> None:
         """Create the table if it does not exist."""
         check_statement = f"""
-            SELECT COUNT(*) FROM information_schema.tables
-            WHERE table_name = '{self.table_name}'
+            SELECT EXISTS (SELECT 1 FROM information_schema.tables
+            WHERE table_name = '{self.table_name}')
         """  # noqa: S608
         create_statement = f"""
             CREATE TABLE {self.table_name} (
@@ -127,7 +127,8 @@ class DuckdbAnnotationObjectStore(SqlStorage):
         conflicts when moving data over from that table to vrs_objects.
         """
         # Generate a temporary table name
-        tmp_table_name = f"tmp_{self.table_name}_{os.urandom(8).hex()}"
+        # tmp_table_name = f"tmp_{self.table_name}_{os.urandom(8).hex()}"
+        tmp_table_name = f"tmp_{self.table_name}"
         # https://duckdb.org/docs/stable/sql/statements/create_table.html#copying-the-schema
         tmp_statement = (
             f"CREATE TEMP TABLE {tmp_table_name} AS FROM {self.table_name} LIMIT 0"
@@ -173,7 +174,7 @@ class DuckdbAnnotationObjectStore(SqlStorage):
             )
 
 
-class DuckdbObjectStore(SqlStorage):
+class DuckdbObjectStore(VrsSqlStorage):
     """DuckDB storage backend."""
 
     def __init__(
@@ -199,8 +200,8 @@ class DuckdbObjectStore(SqlStorage):
         :param db_conn: a DuckDB database connection
         """
         check_statement = f"""
-            SELECT COUNT(*) FROM information_schema.tables
-            WHERE table_name = '{self.table_name}'
+            SELECT EXISTS (SELECT 1 FROM information_schema.tables
+            WHERE table_name = '{self.table_name}')
         """  # noqa: S608
         create_statement = f"""
             CREATE TABLE {self.table_name} (
@@ -234,12 +235,16 @@ class DuckdbObjectStore(SqlStorage):
         # Use INSERT with ON CONFLICT DO NOTHING
         insert_query = f"""
             INSERT INTO {self.table_name} (vrs_id, vrs_object)
-            VALUES (?, ?)
-            ON CONFLICT DO NOTHING
+            VALUES (:vrs_id, :vrs_object)
+            ON CONFLICT (vrs_id) DO NOTHING
         """  # noqa: S608
 
         # Execute the query with parameterized values
-        db_conn.execute(insert_query, (name, value_json))
+        db_conn.execute(
+            sql_text(insert_query),
+            {"vrs_id": name, "vrs_object": value_json},
+            # (name, value_json),
+        )
 
     def add_many_items(
         self,
@@ -252,9 +257,9 @@ class DuckdbObjectStore(SqlStorage):
         :param items: list of tuples (name, value) to be inserted
         """
         # Create a temporary table with the same schema as the main table
-        tmp_table_name = "tmp_table"
+        tmp_table_name = f"tmp_{self.table_name}"
         tmp_statement = f"""
-            CREATE TEMPORARY TABLE {tmp_table_name} (vrs_id TEXT, vrs_object JSON)
+            CREATE TEMP TABLE {tmp_table_name} (vrs_id TEXT, vrs_object JSON)
         """
         insert_statement = f"""
             INSERT INTO {self.table_name}
