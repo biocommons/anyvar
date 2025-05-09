@@ -1,6 +1,8 @@
 """Provide DuckDB-based storage implementation."""
 
 import json
+import os
+from collections.abc import Iterable
 from typing import Any
 
 import duckdb
@@ -9,6 +11,166 @@ from sqlalchemy import text as sql_text
 from sqlalchemy.engine import Connection
 
 from anyvar.storage.sql_storage import SqlStorage
+from anyvar.utils.types import Annotation, AnnotationKey
+
+
+class DuckdbAnnotationObjectStore(SqlStorage):
+    """Annotation object store for DuckDB backend."""
+
+    def __init__(
+        self,
+        db_url: str,
+        batch_limit: int | None = None,
+        table_name: str | None = None,
+        max_pending_batches: int | None = None,
+        flush_on_batchctx_exit: bool | None = None,
+    ) -> None:
+        """Initialize DB handler."""
+        super().__init__(
+            db_url,
+            batch_limit,
+            table_name,
+            max_pending_batches,
+            flush_on_batchctx_exit,
+        )
+
+    def create_schema(self, db_conn: Connection) -> None:
+        """Create the table if it does not exist."""
+        check_statement = f"""
+            SELECT COUNT(*) FROM information_schema.tables
+            WHERE table_name = '{self.table_name}'
+        """  # noqa: S608
+        create_statement = f"""
+            CREATE TABLE {self.table_name} (
+                object_id TEXT,
+                annotation_type TEXT,
+                annotation JSON
+            )
+        """
+        # Check if table exists
+        result = db_conn.execute(check_statement).fetchone()
+        table_exists = result[0] > 0
+
+        # If the table does not exist, create it
+        if not table_exists:
+            db_conn.execute(create_statement)
+
+    def __getitem__(self, key: AnnotationKey) -> Iterable[Annotation]:
+        """Get annotations by key."""
+        if key.object_id is None:
+            raise ValueError("Object ID is required")
+        if key.annotation_type is None:
+            raise ValueError("Annotation type is required")  # TODO make not required
+
+        query_str = f"""
+            SELECT * from {self.table_name}
+            WHERE object_id = :object_id
+        """  # noqa: S608
+        params = {"object_id": key.object_id}
+        if key.annotation_type:
+            query_str += "AND annotation_type = :annotation_type"
+            params["annotation_type"] = key.annotation_type
+
+        # TODO allow null annotation_type
+        with self._get_connection() as conn:
+            result = conn.execute(sql_text(query_str), params)
+            try:
+                first = next(result)
+            except StopIteration:
+                raise KeyError(f"Key {key} not found")  # noqa: B904
+            return [
+                Annotation(
+                    object_id=first.object_id,
+                    annotation_type=first.annotation_type,
+                    annotation=first.annotation,
+                )
+            ] + [
+                Annotation(
+                    object_id=row.object_id,
+                    annotation_type=row.annotation_type,
+                    annotation=row.annotation,
+                )
+                for row in result
+            ]
+
+    def push(self, value: Annotation) -> None:
+        """Add a single annotation to the store."""
+        self[value.key()] = value.annotation
+
+    def add_one_item(
+        self,
+        db_conn: Connection,
+        name: AnnotationKey,
+        value: dict | str,
+    ) -> None:
+        """Add a single item."""
+        insert_query = f"INSERT INTO {self.table_name} (object_id, annotation_type, annotation) VALUES (:object_id, :annotation_type, :annotation)"  # noqa: S608
+        db_conn.execute(
+            sql_text(insert_query),
+            {
+                "object_id": name.object_id,
+                "annotation_type": name.annotation_type,
+                "annotation": json.dumps(value) if isinstance(value, dict) else value,
+            },
+        )
+
+    def add_many_items(
+        self, db_conn: Connection, items: list[tuple[AnnotationKey, dict]]
+    ) -> None:
+        # TODO implement merge based bulk insert to indexed table
+        """Perform copy-based insert, enabling much faster writes for large, repeated
+        insert statements, using insert parameters stored in `self.batch_insert_values`.
+
+        Because we may be writing repeated records, we need to handle conflicts, which
+        isn't available for COPY. The workaround (https://stackoverflow.com/a/49836011)
+        is to make a temporary table for each COPY statement, and then handle
+        conflicts when moving data over from that table to vrs_objects.
+        """
+        # Generate a temporary table name
+        tmp_table_name = f"tmp_{self.table_name}_{os.urandom(8).hex()}"
+        # https://duckdb.org/docs/stable/sql/statements/create_table.html#copying-the-schema
+        tmp_statement = (
+            f"CREATE TEMP TABLE {tmp_table_name} AS FROM {self.table_name} LIMIT 0"
+        )
+        insert_statement = (
+            f"INSERT INTO {self.table_name} SELECT * FROM {tmp_table_name}"  # noqa: S608
+        )
+        drop_statement = f"DROP TABLE {tmp_table_name}"
+        db_conn.execute(sql_text(tmp_statement))
+
+        row_data = [
+            (name.object_id, name.annotation_type, json.dumps(value))
+            for name, value in items
+        ]
+
+        # Insert into the temporary table
+        db_conn.execute(f"INSERT INTO {tmp_table_name} VALUES (?, ?, ?)", row_data)  # noqa: S608
+        # Copy temp table to the main table
+        db_conn.execute(sql_text(insert_statement))
+        # Drop the temporary table
+        db_conn.execute(sql_text(drop_statement))
+
+    def __delitem__(self, key: AnnotationKey) -> None:
+        """Delete annotations matching the key."""
+        delete_statement = f"DELETE FROM {self.table_name} WHERE object_id = :object_id AND annotation_type = :annotation_type"  # noqa: S608
+        with self._get_connection() as conn:
+            conn.execute(
+                sql_text(delete_statement),
+                {"object_id": key.object_id, "annotation_type": key.annotation_type},
+            )
+
+    def keys(self) -> Iterable:
+        """Return all annotation keys in the store including duplicates."""
+        query_statement = f"SELECT object_id, annotation_type FROM {self.table_name}"  # noqa: S608
+        with self._get_connection() as conn:
+            result = conn.execute(sql_text(query_statement))
+            yield from (
+                AnnotationKey(
+                    object_id=row["object_id"],
+                    annotation_type=row["annotation_type"],
+                )
+                for row in result
+            )
 
 
 class DuckdbObjectStore(SqlStorage):

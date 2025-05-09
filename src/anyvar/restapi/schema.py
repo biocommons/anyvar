@@ -6,7 +6,7 @@ from typing import Any, Optional
 from ga4gh.vrs import models
 from pydantic import BaseModel, StrictInt, StrictStr
 
-from anyvar.utils.types import SupportedVariationType
+from anyvar.utils.types import Annotation, SupportedVariationType
 
 
 class EndpointTag(str, Enum):
@@ -35,7 +35,10 @@ class InfoResponse(BaseModel):
         """Configure InfoResponse class"""
 
         @staticmethod
-        def schema_extra(schema: dict[str, Any], model: type["InfoResponse"]) -> None:  # noqa: ARG004
+        def schema_extra(
+            schema: dict[str, Any],
+            model: type["InfoResponse"],  # noqa: ARG004
+        ) -> None:
             """Configure OpenAPI schema"""
             if "title" in schema:
                 schema.pop("title", None)
@@ -72,6 +75,29 @@ class RegisterVariationRequest(BaseModel):
                 "copy_change": None,
             }
         }
+
+
+class AddAnnotationResponse(BaseModel):
+    """Response for the add variation annotation endpoint"""
+
+    messages: list[str]
+    object: models.Variation | None
+    object_id: str | None
+    annotation_type: str | None
+    annotation: dict | None
+
+
+class AddAnnotationRequest(BaseModel):
+    """Request for the add variation annotation endpoint. Used when the annotation is identified through the request path"""
+
+    annotation_type: str
+    annotation: dict
+
+
+class GetAnnotationResponse(BaseModel):
+    """Response for the get variation annotation endpoint"""
+
+    annotations: list[Annotation]
 
 
 class RegisterVariationResponse(BaseModel):
