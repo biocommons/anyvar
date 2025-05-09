@@ -2,7 +2,7 @@
 
 import logging
 
-from ga4gh.vrs.extras.vcf_annotation import VCFAnnotator
+from ga4gh.vrs.extras.annotator.vcf import VcfAnnotator
 
 from anyvar.anyvar import AnyVar
 from anyvar.translate.translate import TranslationError
@@ -10,7 +10,7 @@ from anyvar.translate.translate import TranslationError
 _logger = logging.getLogger(__name__)
 
 
-class VcfRegistrar(VCFAnnotator):
+class VcfRegistrar(VcfAnnotator):
     """Custom implementation of annotator class from VRS-Python. Rewrite some methods
     and values in order to enable use of existing AnyVar translator.
     """
