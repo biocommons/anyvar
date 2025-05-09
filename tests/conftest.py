@@ -39,7 +39,7 @@ def storage():
     if "ANYVAR_TEST_STORAGE_URI" in os.environ:
         storage_uri = os.environ["ANYVAR_TEST_STORAGE_URI"]
     else:
-        storage_uri = "postgresql://postgres@localhost:5432/anyvar_test"
+        storage_uri = "postgresql://postgres:postgres@localhost:5432/anyvar_test"
 
     storage = create_storage(uri=storage_uri)
     storage.wipe_db()
