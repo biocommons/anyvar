@@ -415,12 +415,12 @@ async def _annotate_vcf_sync(
 ) -> FileResponse | ErrorResponse:
     """Annotate with VRS IDs synchronously.  See `annotate_vcf()` for parameter definitions."""
     av: AnyVar = request.app.state.anyvar
-    registrar = VcfRegistrar(av)
+    registrar = VcfRegistrar(av.translator.dp, av=av)
     with tempfile.NamedTemporaryFile(delete=False) as temp_out_file:
         try:
             registrar.annotate(
-                vcf.file.name,
-                vcf_out=temp_out_file.name,
+                Path(vcf.filename),
+                Path(temp_out_file.name),
                 compute_for_ref=for_ref,
                 assembly=assembly,
             )

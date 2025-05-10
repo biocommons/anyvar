@@ -4,7 +4,7 @@ test must be run with different ANYVAR_TEST_STORAGE_URI settings
 and different ANYVAR_SQL_STORE_BATCH_ADD_MODE settings
 """
 
-from ga4gh.vrs import vrs_enref
+from ga4gh.vrs.enderef import vrs_enref
 
 from anyvar.storage.snowflake import SnowflakeBatchAddMode, SnowflakeObjectStore
 from anyvar.translate.vrs_python import VrsPythonTranslator
