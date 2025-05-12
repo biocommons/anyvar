@@ -12,12 +12,10 @@ services:
   #
   # volumes:
   #   - $SEQREPO_ROOT_DIR:/usr/local/share/seqrepo
-
   # seqrepo:
   #   image: biocommons/seqrepo:2024-12-20
   #   volumes:
-  #     - seqrepo_vol:/usr/local/share/seqrepo
-
+  #     - $SEQREPO_ROOT_DIR:/usr/local/share/seqrepo
 
   # This can also be used in place of the `seqrepo` container if you have
   # an existing SeqRepo database on your local filesystem and want to copy it
@@ -37,7 +35,7 @@ services:
 
   uta:
     # Test:
-    # psql -XAt postgres://anonymous@localhost/uta -c 'select count(*) from uta_20241220.transcript'
+    # psql -XAt postgres://anonymous@localhost:5433/uta -c 'select count(*) from uta_20241220.transcript'
     # 314227
     image: biocommons/uta:uta_20241220
     environment:
@@ -60,7 +58,7 @@ services:
   anyvar:
     image: docker.io/clingendevs/anyvar:latest
     volumes:
-      - ~/usr/local/share/seqrepo/2024-12-20/
+      - /usr/local/share/seqrepo:/usr/local/share/seqrepo
     depends_on:
       anyvar_db:
         required: true
@@ -69,10 +67,10 @@ services:
       #   required: true
       #   condition: service_completed_successfully
     environment:
+      - SEQREPO_ROOT_DIR=/usr/local/share/seqrepo/2024-12-20
       - SEQREPO_INSTANCE_DIR=/usr/local/share/seqrepo/2024-12-20
       - SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/2024-12-20
-      # - UTA_DB_URL=postgresql://anonymous:anonymous@uta:5432/uta/uta_20241220
-      - UTA_DB_URL='postgresql://anonymous:anonymous@localhost:5433/uta/uta_20241220'
+      - UTA_DB_URL=postgresql://anonymous:anonymous@uta:5432/uta/uta_20241220
 
       # The anyvar credentials are initialized by postgres_init in the anyvar_db startup scripts. Values must be changed if you are making it publicly accessible.
       - ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@anyvar_db:5432/anyvar
