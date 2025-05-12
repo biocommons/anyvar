@@ -73,6 +73,7 @@ cqa:
 #=> test: execute tests
 .PHONY: test
 test:
+	pip install -e '.[postgres,snowflake,queueing,test,dev]’
 	python -m pytest tests
 
 ############################################################################

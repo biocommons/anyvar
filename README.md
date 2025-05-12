@@ -179,8 +179,8 @@ CREATE TABLE ... (
 ```
 
 #### Skipping Database Setup
-It is also possible to run AnyVar with no database. This is primarily useful for bulk annotations, 
-such as annotating a VCF, where there is no real need to reuse previously computed VRS IDs. 
+It is also possible to run AnyVar with no database. This is primarily useful for bulk annotations,
+such as annotating a VCF, where there is no real need to reuse previously computed VRS IDs.
 To run AnyVar with no database, set the `ANYVAR_STORAGE_URI` environment variable to `null`.
 
 ### Enabling Asynchronous VCF Annotation
@@ -206,18 +206,19 @@ curl http://localhost:8000/info
 
 ## Testing
 
-To run tests:
+1. Set up a postgres database for testing by following the instructions found here: `src/anyvar/storage/README-pg.md`.
 
-```shell
-make test
-```
-
-Use the environment variable `ANYVAR_TEST_STORAGE_URI` to specify the database to use
+2. Use the environment variable `ANYVAR_TEST_STORAGE_URI` to specify the database to use
 for tests, eg:
 
-```shell
-% export ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_test
-```
+    ```shell
+    export ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_test
+    ```
+3. Then, run tests with the following command:
+
+    ```shell
+    make test
+    ```
 
 Currently, there is some interdependency between test modules -- namely, tests that rely
 on reading data from storage assume that the data from `test_variation` has been
