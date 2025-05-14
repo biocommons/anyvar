@@ -55,7 +55,7 @@ def test_create_schema_exists_mem(mocker):
     store = DuckdbObjectStore("duckdb:///:memory:/")
     store["A"] = MockVRSObject("01")
 
-    with store._get_connection() as conn:
+    with store._get_connection() as conn:  # noqa: SLF001
         # Should not throw an error, due to table exists check
         store.create_schema(conn)
 
@@ -347,7 +347,7 @@ def test_search_vrs_objects(mocker):
                         AND (CAST (vrs_object->>'end' AS INTEGER) <= :end)
                         AND (vrs_object->'sequenceReference'->>'refgetAccession' = :refgetAccession)
                 ))
-            """,  # noqa: S608
+            """,
             {
                 "type": "Allele",
                 "start": 123456,

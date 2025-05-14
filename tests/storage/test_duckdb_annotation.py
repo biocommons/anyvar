@@ -169,7 +169,6 @@ def test_batch_insert(db_uri):
             for value in values:
                 sqlstore.push(value)
 
-            logger.info(f"{sqlstore.num_pending_batches()=}")
             # Wait for flush
             if sqlstore.num_pending_batches() > 0:
                 logger.info("Waiting for writes")
