@@ -206,17 +206,27 @@ curl http://localhost:8000/info
 
 ## Testing
 
-1. Make sure to source your venv: `source venv/3.11/bin/activate`
+1. Set up a postgres database for testing by following the instructions found here: `src/anyvar/storage/README-pg.md`.
 
-2. Set up a postgres database for testing by following the instructions found here: `src/anyvar/storage/README-pg.md`.
+2. Follow the [quickstart guide](#quick-start) to get AnyVar running
 
-3. Use the environment variable `ANYVAR_TEST_STORAGE_URI` to specify the database to use
-for tests, eg:
+3. If you haven't run `make devready` before, open a new terminal and do so now. Then, source your venv by running: `source venv/3.11/bin/activate`
 
-    ```shell
-    export ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_test
-    ```
-4. Then, run tests with the following command:
+    Otherwise, you can skip straight to sourcing your venv: `source venv/3.11/bin/activate`
+
+4. Within your venv, export the following environment variables:
+    - `SEQREPO_DATAPROXY_URI` - see the quickstart guide above
+    - `ANYVAR_STORAGE_URI` - see the quickstart guide above
+    - `ANYVAR_TEST_STORAGE_URI` - this specifies the database to use for tests
+
+    For example:
+      ```shell
+      export SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/latest
+      export ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@localhost:5432/anyvar
+      export ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_test
+      ```
+
+6. Then, run tests with the following command:
 
     ```shell
     make test
