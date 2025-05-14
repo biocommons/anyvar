@@ -14,25 +14,6 @@ class _Storage(MutableMapping):
 
     batch_manager = None
 
-    # @abstractmethod
-    # def search_variations(self, refget_accession: str, start: int, stop: int) -> list:
-    #     """Find all registered variations in a provided genomic region
-
-    #     :param refget_accession: refget accession (SQ. identifier)
-    #     :param start: Start genomic region to query
-    #     :param stop: Stop genomic region to query
-
-    #     :return: A list of VRS Alleles that have locations referenced as identifiers
-    #     """
-
-    # @abstractmethod
-    # def get_variation_count(self, variation_type: VariationStatisticType) -> int:
-    #     """Get total # of registered variations of requested type.
-
-    #     :param variation_type: variation type to check
-    #     :return: total count
-    #     """
-
     @abstractmethod
     def wipe_db(self) -> None:
         """Empty database of all stored records."""

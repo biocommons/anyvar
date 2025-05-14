@@ -166,6 +166,7 @@ class AnyVar:
 
         :param object_id: object identifier
         :param deref: if True, dereference all IDs contained by the object
+        :return: VRS object if found, None otherwise
         """
         v = self.object_store[object_id]
         return vrs_deref(v, self.object_store) if deref else v
@@ -185,6 +186,8 @@ class AnyAnnotation:
         """Retrieve annotations for object.
 
         :param object_id: object identifier
+        :param annotation_type: type of annotation
+        :return: list of annotations
         """
         return self.annotation_store.get(
             AnnotationKey(object_id=object_id, annotation_type=annotation_type), []
@@ -196,6 +199,7 @@ class AnyAnnotation:
         """Attach annotation to object.
 
         :param object_id: object identifier
+        :param annotation_type: type of annotation
         :param annotation: annotation dictionary
         """
         self.annotation_store.push(

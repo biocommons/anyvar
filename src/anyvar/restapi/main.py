@@ -250,14 +250,10 @@ def get_variation_annotation(
     if hasattr(request.app.state, "anyannotation"):
         anyannotation: AnyAnnotation = request.app.state.anyannotation
         annotations = anyannotation.get_annotation(vrs_id, annotation_type)
-        # print("GOT ANNOTATIONS: \n" + str(annotations))
     else:
         annotations = []
 
     return {"annotations": annotations}
-
-
-# TODO add input string annotation
 
 
 @app.middleware("http")

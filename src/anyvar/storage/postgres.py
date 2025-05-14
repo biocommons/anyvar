@@ -1,9 +1,7 @@
 """Provide PostgreSQL-based storage implementation."""
 
 import json
-import logging
 import os
-from abc import abstractmethod
 from collections.abc import Iterable, Iterator
 from io import StringIO
 from typing import Any
@@ -24,35 +22,6 @@ silos = [
     "relations",
     "texts",
 ]
-
-_logger = logging.getLogger(__name__)
-
-
-class _AnnotationObjectStore(SqlStorage):
-    def __init__(
-        self,
-        db_url: str,
-        batch_limit: int | None = None,
-        table_name: str | None = None,
-        max_pending_batches: int | None = None,
-        flush_on_batchctx_exit: bool | None = None,
-    ) -> None:
-        """Initialize DB handler."""
-        super().__init__(
-            db_url,
-            batch_limit,
-            table_name,
-            max_pending_batches,
-            flush_on_batchctx_exit,
-        )
-
-    @abstractmethod
-    def __getitem__(self, key: AnnotationKey) -> Iterator[Annotation]:
-        """Retrieve an annotation from the store."""
-
-    @abstractmethod
-    def push(self, value: Annotation) -> None:
-        """Add a single annotation to the store."""
 
 
 class PostgresAnnotationObjectStore(SqlStorage):
@@ -207,7 +176,6 @@ class PostgresAnnotationObjectStore(SqlStorage):
                 )
                 for row in result
             )
-            # return (row["object_id"] for row in result)
 
 
 class PostgresObjectStore(VrsSqlStorage):
