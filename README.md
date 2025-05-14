@@ -206,15 +206,17 @@ curl http://localhost:8000/info
 
 ## Testing
 
-1. Set up a postgres database for testing by following the instructions found here: `src/anyvar/storage/README-pg.md`.
+1. Make sure to source your venv: `source venv/3.11/bin/activate`
 
-2. Use the environment variable `ANYVAR_TEST_STORAGE_URI` to specify the database to use
+2. Set up a postgres database for testing by following the instructions found here: `src/anyvar/storage/README-pg.md`.
+
+3. Use the environment variable `ANYVAR_TEST_STORAGE_URI` to specify the database to use
 for tests, eg:
 
     ```shell
     export ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_test
     ```
-3. Then, run tests with the following command:
+4. Then, run tests with the following command:
 
     ```shell
     make test
