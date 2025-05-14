@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import datetime, timedelta
 
@@ -5,6 +6,8 @@ import pytest
 
 from anyvar.storage.duckdb import DuckdbAnnotationObjectStore
 from anyvar.utils.types import Annotation, AnnotationKey
+
+logger = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -119,13 +122,13 @@ def test_one_to_many(db_uri):
 def test_batch_insert(db_uri):
     sqlstore = None
     try:
-        batch_limit = 100
-        half_batch_limit = 50
+        batch_limit = 10
+        half_batch_limit = 5
         sqlstore = DuckdbAnnotationObjectStore(
             db_url=db_uri,
             table_name="annotations",
             batch_limit=batch_limit,
-            max_pending_batches=0,
+            max_pending_batches=1,
         )
         sqlstore.wipe_db()
         assert len(sqlstore) == 0
@@ -137,7 +140,7 @@ def test_batch_insert(db_uri):
                     annotation_type="created_time",
                     annotation={"value": f"VALUE{i}"},
                 )
-                for i in range(batch_limit)
+                for i in range(batch_limit * 2)
             ]
             for value in values[:half_batch_limit]:
                 sqlstore.push(value)
@@ -152,8 +155,8 @@ def test_batch_insert(db_uri):
                 sqlstore.push(value)
 
             # Wait for flush
-            if sqlstore.num_pending_batches() > 0:
-                sqlstore.wait_for_writes()
+            assert sqlstore.num_pending_batches() > 0
+            sqlstore.wait_for_writes()
 
             assert len(sqlstore) == len(values)
 
@@ -166,8 +169,10 @@ def test_batch_insert(db_uri):
             for value in values:
                 sqlstore.push(value)
 
+            logger.info(f"{sqlstore.num_pending_batches()=}")
             # Wait for flush
             if sqlstore.num_pending_batches() > 0:
+                logger.info("Waiting for writes")
                 sqlstore.wait_for_writes()
 
             assert len(sqlstore) == 2 * len(values)
@@ -176,7 +181,40 @@ def test_batch_insert(db_uri):
             sqlstore.close()
 
 
+def test_batch_insert_backpressure(db_uri):
+    """Test that the batch insert backpressure works as expected.
+    Inserts batches of size 1, 1 at a time."""
+    sqlstore = None
+    try:
+        insert_count = 10
+        batch_limit = 1
+        sqlstore = DuckdbAnnotationObjectStore(
+            db_url=db_uri,
+            table_name="annotations",
+            batch_limit=batch_limit,
+            max_pending_batches=1,
+        )
+        sqlstore.wipe_db()
+        assert len(sqlstore) == 0
+        with sqlstore.batch_manager(sqlstore):
+            for i in range(insert_count):
+                sqlstore.push(
+                    Annotation(
+                        object_id=str(i),
+                        annotation_type="created_time",
+                        annotation={"value": f"VALUE{i}"},
+                    )
+                )
+            if sqlstore.num_pending_batches() > 0:
+                sqlstore.wait_for_writes()
+            assert len(sqlstore) == insert_count
+    finally:
+        if sqlstore is not None:
+            sqlstore.close()
+
+
 def test_batch_ctx_mgr(db_uri):
+    sqlstore = None
     try:
         batch_limit = 100
         half_batch_limit = 50

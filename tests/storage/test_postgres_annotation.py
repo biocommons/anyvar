@@ -129,7 +129,7 @@ def test_batch_insert(db_uri):
             db_url=db_uri,
             table_name="annotations",
             batch_limit=batch_limit,
-            max_pending_batches=0,
+            max_pending_batches=1,
         )
         sqlstore.wipe_db()
         assert len(sqlstore) == 0

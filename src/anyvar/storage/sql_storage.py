@@ -192,12 +192,18 @@ class SqlStorage(_Storage):
 
     def wait_for_writes(self) -> None:
         """Return once any currently pending database modifications have been completed."""
-        _logger.debug("Waiting for writes")
-
         if hasattr(self, "batch_thread") and self.batch_thread is not None:
+            _logger.debug(
+                "wait_for_writes: len(pending_batch_list): %s, len(flushing_batch_list): %s",
+                len(self.batch_thread.pending_batch_list),
+                len(self.batch_thread.flushing_batch_list),
+            )
             # short circuit if the queue is empty
             with self.batch_thread.cond:
-                if not self.batch_thread.pending_batch_list:
+                if (
+                    not self.batch_thread.pending_batch_list
+                    and not self.batch_thread.flushing_batch_list
+                ):
                     return
 
             # queue an empty batch
@@ -257,12 +263,19 @@ class SqlStorage(_Storage):
     def num_pending_batches(self) -> int:
         """Return the number of pending insert batches"""
         if self.batch_thread:
-            return len(self.batch_thread.pending_batch_list)
+            pending = len(self.batch_thread.pending_batch_list)
+            flushing = len(self.batch_thread.flushing_batch_list)
+            _logger.debug(
+                "Pending batches: %s, flushing batches: %s",
+                pending,
+                flushing,
+            )
+            return pending + flushing
         return 0
 
 
 class VrsSqlStorage(SqlStorage):
-    """Relational database storage backend.  Uses SQLAlchemy as a DB abstraction layer and pool.
+    """Relational database storage backend. Uses SQLAlchemy as a DB abstraction layer and pool.
     Methods that utilize straightforward SQL are implemented in this class.  Methods that require
     specialized SQL statements must be implemented in a database specific subclass.
     """
@@ -495,12 +508,6 @@ class VrsSqlStorage(SqlStorage):
             with conn.begin():
                 conn.execute(sql_text(f"DELETE FROM {self.table_name}"))  # noqa: S608
 
-    def num_pending_batches(self) -> int:
-        """Return the number of pending insert batches"""
-        if self.batch_thread:
-            return len(self.batch_thread.pending_batch_list)
-        return 0
-
 
 class SqlStorageBatchManager(_BatchManager):
     """Context manager enabling bulk insertion statements
@@ -568,9 +575,10 @@ class SqlStorageBatchThread(Thread):
         """
         super().__init__(daemon=True)
         self.sql_store = sql_store
-        self.cond = Condition()
+        self.cond = Condition()  # Used to lock batch lists and wait/notify for changes
         self.run_flag = True
-        self.pending_batch_list = []
+        self.pending_batch_list = []  # Batches awaiting flushing
+        self.flushing_batch_list = []  # Batches currently being flushed
         self.max_pending_batches = max_pending_batches
 
     def run(self) -> None:
@@ -608,20 +616,36 @@ class SqlStorageBatchThread(Thread):
         _logger.info("Processing %s queued batches", len(self.pending_batch_list))
         while True:
             batch_insert_values = None
+            _logger.debug("process_pending_batches acquiring self.cond")
             with self.cond:
+                _logger.debug("process_pending_batches acquired self.cond")
                 if len(self.pending_batch_list) > 0:
                     batch_insert_values = self.pending_batch_list[0]
+                    if batch_insert_values:
+                        self.flushing_batch_list.append(batch_insert_values)
                     del self.pending_batch_list[0]
+                    _logger.debug(
+                        "Popped first pending batch of %s items, %s pending batches remaining",
+                        len(batch_insert_values),
+                        len(self.pending_batch_list),
+                    )
                     self.cond.notify_all()
                 else:
                     self.cond.notify_all()
                     break
-
             if batch_insert_values:
-                self._run_copy_insert(batch_insert_values)
-                _logger.info(
-                    "Processed queued batch of %s items", len(batch_insert_values)
+                _logger.debug(
+                    "Calling _run_copy_insert on %s items", len(batch_insert_values)
                 )
+                self._run_copy_insert(batch_insert_values)
+                _logger.debug(
+                    "Flushed batch of %s items",
+                    len(batch_insert_values),
+                )
+                with self.cond:
+                    self.flushing_batch_list.remove(batch_insert_values)
+                    self.cond.notify_all()
+                _logger.debug("Removed flushed batch from self.flushing_batch_list")
 
     def _run_copy_insert(self, batch_insert_values):  # noqa: ANN001 ANN202
         try:

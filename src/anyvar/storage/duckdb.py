@@ -1,6 +1,7 @@
 """Provide DuckDB-based storage implementation."""
 
 import json
+import logging
 import os
 from collections.abc import Iterable
 from typing import Any
@@ -259,8 +260,14 @@ class DuckdbObjectStore(VrsSqlStorage):
         # Create a temporary table with the same schema as the main table
         tmp_table_name = f"tmp_{self.table_name}"
         tmp_statement = f"""
-            CREATE TEMP TABLE {tmp_table_name} (vrs_id TEXT, vrs_object JSON)
+            CREATE TEMP TABLE {tmp_table_name}
+            AS FROM {self.table_name} LIMIT 0
         """
+        insert_tmp_statement = f"""
+            INSERT INTO {tmp_table_name} (vrs_id, vrs_object)
+            VALUES (:vrs_id, :vrs_object)
+        """  # noqa: S608
+
         insert_statement = f"""
             INSERT INTO {self.table_name}
             SELECT * FROM {tmp_table_name}
@@ -273,13 +280,15 @@ class DuckdbObjectStore(VrsSqlStorage):
 
         # Prepare data for bulk insertion
         row_data = [
-            (name, json.dumps(value.model_dump(exclude_none=True)))
+            {
+                "vrs_id": name,
+                "vrs_object": json.dumps(value.model_dump(exclude_none=True)),
+            }
             for name, value in items
         ]
-
         # Insert data into the temporary table
         db_conn.execute(
-            f"INSERT INTO {tmp_table_name} VALUES (?, ?)",  # noqa: S608
+            insert_tmp_statement,
             row_data,
         )
 
