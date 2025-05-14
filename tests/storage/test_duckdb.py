@@ -50,6 +50,16 @@ def test_create_schema_exists(mocker):
     assert mock_eng.were_all_execd()
 
 
+def test_create_schema_exists_mem(mocker):
+    mocker.patch("ga4gh.core.is_pydantic_instance", return_value=True)
+    store = DuckdbObjectStore("duckdb:///:memory:/")
+    store["A"] = MockVRSObject("01")
+
+    with store._get_connection() as conn:
+        # Should not throw an error, due to table exists check
+        store.create_schema(conn)
+
+
 def test_add_one_item(mocker):
     mocker.patch("ga4gh.core.is_pydantic_instance", return_value=True)
     mock_eng = mocker.patch("anyvar.storage.sql_storage.create_engine")
@@ -107,12 +117,6 @@ def test_add_many_items(mocker):
         ("ga4gh:VA.10", MockVRSObject("10")),
         ("ga4gh:VA.11", MockVRSObject("11")),
     ]
-    print(f"{insert_tmp_statement=}")
-    params_0_1 = [
-        {"vrs_id": name, "vrs_object": value.to_json()}
-        for name, value in vrs_id_object_pairs[0:2]
-    ]
-    print(f"{params_0_1=}")
 
     mocker.patch("ga4gh.core.is_pydantic_instance", return_value=True)
     mock_eng = mocker.patch("anyvar.storage.sql_storage.create_engine")

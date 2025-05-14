@@ -230,8 +230,8 @@ class DuckdbObjectStore(VrsSqlStorage):
             )
         """
         # Check if table exists
-        result = db_conn.execute(check_statement).fetchone()
-        table_exists = result[0] > 0
+        result: tuple[bool] = db_conn.execute(check_statement).fetchone()
+        table_exists = result[0]
 
         # If the table does not exist, create it
         if not table_exists:

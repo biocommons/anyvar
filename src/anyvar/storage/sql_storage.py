@@ -612,7 +612,10 @@ class SqlStorageBatchThread(Thread):
             self.cond.notify_all()
 
     def process_pending_batches(self) -> None:
-        """As long as batches are available for processing, merges them into the database"""
+        """As long as batches are available for processing, merges them into the database.
+
+        When a batch begins processing, removes it from the pending list and adds it to the flushing list. When a batch finishes processing, removes it from the flushing list. This need to track in-flight batches was detected in testing duckdb. If a client wants to wait for all batches to be flushed, we need to know that the batch write has not yet returned.
+        """
         _logger.info("Processing %s queued batches", len(self.pending_batch_list))
         while True:
             batch_insert_values = None
