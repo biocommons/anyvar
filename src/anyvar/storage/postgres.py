@@ -166,14 +166,15 @@ class PostgresObjectStore(SqlStorage):
         :return: a list of VRS objects
         """
         query_str = f"""
-            SELECT vrs_object
-              FROM {self.table_name}
-             WHERE vrs_object->>'type' = %s
-               AND vrs_object->>'location' IN (
+        SELECT vrs_object
+        FROM {self.table_name}
+        WHERE (vrs_object->>'type' = %s)
+            AND (vrs_object->>'location' IN (
                 SELECT vrs_id FROM {self.table_name}
-                 WHERE CAST (vrs_object->>'start' AS INTEGER) >= %s
-                   AND CAST (vrs_object->>'end' AS INTEGER) <= %s
-                   AND vrs_object->'sequenceReference'->>'refgetAccession' = %s)
+                WHERE (CAST (vrs_object->>'start' AS INTEGER) >= %s)
+                    AND (CAST (vrs_object->>'end' AS INTEGER) <= %s)
+                    AND (vrs_object->'sequenceReference'->>'refgetAccession' = %s)
+            ))
         """  # noqa: S608
         with db_conn.connection.cursor() as cur:
             cur.execute(query_str, [type, start, stop, refget_accession])

@@ -60,33 +60,33 @@
     }
   },
   "copy_numbers": {
-    "ga4gh:CX.TvAhuGK6HYf53mXoUnon60cZ7DC_UgM3": {
+    "ga4gh:CX.eVlFPLW5eFChqk1GX5QBpHent0UchVhG": {
       "params": {
         "definition": "NC_000013.11:g.26440969_26443305del",
-        "copy_change": "EFO:0030069",
+        "copy_change": "complete genomic loss",
         "input_type": "CopyNumberChange"
       },
       "copy_number_response": {
         "messages": [],
         "object": {
-          "digest": "TvAhuGK6HYf53mXoUnon60cZ7DC_UgM3",
-          "id": "ga4gh:CX.TvAhuGK6HYf53mXoUnon60cZ7DC_UgM3",
+          "id": "ga4gh:CX.eVlFPLW5eFChqk1GX5QBpHent0UchVhG",
+          "type": "CopyNumberChange",
+          "digest": "eVlFPLW5eFChqk1GX5QBpHent0UchVhG",
           "location": {
-            "digest": "4akcjXlbAu4xBKnxjOL_b4DM_20HOCA3",
             "id": "ga4gh:SL.4akcjXlbAu4xBKnxjOL_b4DM_20HOCA3",
-            "start": 26440968,
-            "end": 26443305,
+            "type": "SequenceLocation",
+            "digest": "4akcjXlbAu4xBKnxjOL_b4DM_20HOCA3",
             "sequenceReference": {
-              "refgetAccession": "SQ._0wi-qoDrvram155UmcSC-zA5ZK4fpLT",
-              "type": "SequenceReference"
+              "type": "SequenceReference",
+              "refgetAccession": "SQ._0wi-qoDrvram155UmcSC-zA5ZK4fpLT"
             },
-            "type": "SequenceLocation"
+            "start": 26440968,
+            "end": 26443305
           },
-          "copyChange": "EFO:0030069",
-          "type": "CopyNumberChange"
-        }
-      },
-      "location_id": "ga4gh:SL.4akcjXlbAu4xBKnxjOL_b4DM_20HOCA3"
+          "copyChange": "complete genomic loss"
+        },
+        "object_id": "ga4gh:CX.eVlFPLW5eFChqk1GX5QBpHent0UchVhG"
+      }
     },
     "ga4gh:CN.QnU97C-cRW431O9qWia9UCVRBDvGDH7I": {
       "params": {

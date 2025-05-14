@@ -19,7 +19,7 @@ dependencies = [
     "fastapi>=0.95.0",
     "python-multipart",  # required for fastapi file uploads
     "uvicorn",
-    "ga4gh.vrs[extras]==2.0.0a12",
+    "ga4gh.vrs[extras]~=2.1.2",
     "sqlalchemy~=1.4.54",
     "pyyaml",
 ]
@@ -31,6 +31,10 @@ snowflake = ["snowflake-sqlalchemy~=1.5.1"]
 queueing = [
     "celery[redis]~=5.4.0",
     "aiofiles",
+]
+duckdb = [
+    "duckdb",       # duckdb python client
+    "duckdb-engine" # sqlalchemy engine for duckdb
 ]
 test = [
     "pytest",

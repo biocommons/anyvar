@@ -51,9 +51,7 @@ def create_storage(uri: str | None = None) -> _Storage:
     `snowflake://[user]:@[account]/[database]/[schema]?[param=value]&[param=value]...`
     """
     uri = uri or os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
-
     parsed_uri = urlparse(uri)
-
     if parsed_uri.scheme == "postgresql":
         from anyvar.storage.postgres import PostgresObjectStore
 
@@ -66,6 +64,10 @@ def create_storage(uri: str | None = None) -> _Storage:
         from anyvar.storage.no_db import NoObjectStore
 
         storage = NoObjectStore()
+    elif parsed_uri.scheme == "duckdb":
+        from anyvar.storage.duckdb import DuckdbObjectStore
+
+        storage = DuckdbObjectStore(uri)
     else:
         msg = f"URI scheme {parsed_uri.scheme} is not implemented"
         raise ValueError(msg)

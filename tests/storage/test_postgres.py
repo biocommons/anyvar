@@ -292,12 +292,13 @@ def test_search_vrs_objects(mocker):
             f"""
             SELECT vrs_object
               FROM {vrs_object_table_name}
-             WHERE vrs_object->>'type' = %s
-               AND vrs_object->>'location' IN (
-                SELECT vrs_id FROM {vrs_object_table_name}
-                 WHERE CAST (vrs_object->>'start' AS INTEGER) >= %s
-                   AND CAST (vrs_object->>'end' AS INTEGER) <= %s
-                   AND vrs_object->'sequenceReference'->>'refgetAccession' = %s)
+            WHERE (vrs_object->>'type' = %s)
+                AND (vrs_object->>'location' IN (
+                    SELECT vrs_id FROM {vrs_object_table_name}
+                    WHERE (CAST (vrs_object->>'start' AS INTEGER) >= %s)
+                        AND (CAST (vrs_object->>'end' AS INTEGER) <= %s)
+                        AND (vrs_object->'sequenceReference'->>'refgetAccession' = %s)
+                ))
             """,
             ["Allele", 123456, 123457, "MySQAccId"],
             [({"id": 1},), ({"id": 2},)],
