@@ -192,10 +192,10 @@ def annotate_vcf(
 
         # annotate vcf with VRS IDs
         anyvar_app = get_anyvar_app()
-        registrar = VcfRegistrar(anyvar_app)
+        registrar = VcfRegistrar(anyvar_app.translator.dp, av=anyvar_app)
         registrar.annotate(
-            vcf_in=input_file_path,
-            vcf_out=output_file_path,
+            Path(input_file_path),
+            Path(output_file_path),
             compute_for_ref=for_ref,
             assembly=assembly,
         )
