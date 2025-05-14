@@ -45,7 +45,11 @@ class PostgresAnnotationObjectStore(SqlStorage):
         )
 
     def create_schema(self, db_conn: Connection) -> None:
-        """Create the table if it does not exist."""
+        """Create the table if it does not exist.
+
+        :param db_conn: a SQLAlchemy database connection
+        :return: None
+        """
         check_statement = f"""
             SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = '{self.table_name}')
         """  # noqa: S608
@@ -65,7 +69,7 @@ class PostgresAnnotationObjectStore(SqlStorage):
         if key.object_id is None:
             raise ValueError("Object ID is required")
         if key.annotation_type is None:
-            raise ValueError("Annotation type is required")  # TODO make not required
+            raise ValueError("Annotation type is required")
 
         query_str = f"""
             SELECT * from {self.table_name}
@@ -76,7 +80,6 @@ class PostgresAnnotationObjectStore(SqlStorage):
             query_str += "AND annotation_type = :annotation_type"
             params["annotation_type"] = key.annotation_type
 
-        # TODO allow null annotation_type
         with self._get_connection() as conn:
             result = conn.execute(sql_text(query_str), params)
             try:
@@ -99,7 +102,11 @@ class PostgresAnnotationObjectStore(SqlStorage):
             ]
 
     def push(self, value: Annotation) -> None:
-        """Add a single annotation to the store."""
+        """Add a single annotation to the store.
+
+        :param value: Annotation object
+        :return: None
+        """
         self[value.key()] = value.annotation
 
     def add_one_item(
@@ -108,7 +115,13 @@ class PostgresAnnotationObjectStore(SqlStorage):
         name: AnnotationKey,
         value: dict | str,
     ) -> None:
-        """Add a single item."""
+        """Add a single item.
+
+        :param db_conn: a SQLAlchemy database connection
+        :param name: AnnotationKey object
+        :param value: value to be inserted for that key
+        :return: None
+        """
         insert_query = f"INSERT INTO {self.table_name} (object_id, annotation_type, annotation) VALUES (:object_id, :annotation_type, :annotation) ON CONFLICT DO NOTHING"  # noqa: S608
         db_conn.execute(
             sql_text(insert_query),
@@ -130,6 +143,9 @@ class PostgresAnnotationObjectStore(SqlStorage):
         isn't available for COPY. The workaround (https://stackoverflow.com/a/49836011)
         is to make a temporary table for each COPY statement, and then handle
         conflicts when moving data over from that table to vrs_objects.
+
+        :param db_conn: a SQLAlchemy database connection
+        :param items: list of tuples (AnnotationKey, dict) to be inserted
         """
         # Generate a temporary table name
         tmp_table_name = f"tmp_{self.table_name}_{os.urandom(8).hex()}"
@@ -157,7 +173,11 @@ class PostgresAnnotationObjectStore(SqlStorage):
         db_conn.execute(sql_text(drop_statement))
 
     def __delitem__(self, key: AnnotationKey) -> None:
-        """Delete annotations matching the key."""
+        """Delete annotations matching the key.
+
+        :param key: AnnotationKey object. All values for this key will be deleted.
+        :return: None
+        """
         delete_statement = f"DELETE FROM {self.table_name} WHERE object_id = :object_id AND annotation_type = :annotation_type"  # noqa: S608
         with self._get_connection() as conn:
             conn.execute(
@@ -239,6 +259,9 @@ class PostgresObjectStore(VrsSqlStorage):
         isn't available for COPY. The workaround (https://stackoverflow.com/a/49836011)
         is to make a temporary table for each COPY statement, and then handle
         conflicts when moving data over from that table to vrs_objects.
+
+        :param db_conn: a database connection
+        :param items: a list of tuples containing the vrs_id and vrs_object
         """
         tmp_statement = (
             f"CREATE TEMP TABLE tmp_table (LIKE {self.table_name} INCLUDING DEFAULTS)"
@@ -261,7 +284,7 @@ class PostgresObjectStore(VrsSqlStorage):
         """Delete a single VRS object
 
         :param db_conn: a database connection
-        :param vrs_id: the VRS ID
+        :return: the number of deletions
         """
         result = db_conn.execute(
             sql_text(
@@ -278,6 +301,7 @@ class PostgresObjectStore(VrsSqlStorage):
         """Return the total number of substitutions
 
         :param db_conn: a database connection
+        :return: the number of substitutions
         """
         result = db_conn.execute(
             sql_text(
@@ -294,6 +318,7 @@ class PostgresObjectStore(VrsSqlStorage):
         """Return the total number of insertions
 
         :param db_conn: a database connection
+        :return: the number of insertions
         """
         result = db_conn.execute(
             sql_text(

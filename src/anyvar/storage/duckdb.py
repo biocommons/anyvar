@@ -36,7 +36,7 @@ class DuckdbAnnotationObjectStore(SqlStorage):
     def create_schema(self, db_conn: Connection) -> None:
         """Create the table if it does not exist.
 
-        :param db_conn: a SQLAlchemy DuckDB database connection
+        :param db_conn: a SQLAlchemy database connection
         :return: None
         """
         check_statement = f"""
