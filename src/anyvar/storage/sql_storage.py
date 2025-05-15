@@ -124,10 +124,6 @@ class SqlStorage(_Storage):
         :param value: value for `vrs_object` field
         :raise ValueError: if not given VRS object
         """
-        if not ga4gh.core.is_pydantic_instance(value):
-            msg = "ga4gh.vrs object value required"
-            raise ValueError(msg)
-        name = str(name)  # in case str-like
         if self.batch_mode:
             self.batch_insert_values.append((name, value))
             _logger.debug("Appended item %s to batch queue", name)
@@ -145,7 +141,12 @@ class SqlStorage(_Storage):
             _logger.debug("Inserted item %s to %s", name, self.table_name)
 
     @abstractmethod
-    def add_one_item(self, db_conn: Connection, name: str, value: Any) -> None:  # noqa: ANN401
+    def add_one_item(
+        self,
+        db_conn: Connection,
+        name: str,
+        value: Any,  # noqa: ANN401
+    ) -> None:
         """Add/merge a single item to the database
 
         :param db_conn: a database connection
@@ -160,6 +161,151 @@ class SqlStorage(_Storage):
         :param db_conn: a database connection
         :param items: a list of (vrs_id, vrs_object) tuples
         """
+
+    @abstractmethod
+    def __getitem__(self, name: str) -> Any | None:  # noqa: ANN401
+        """Fetch item from DB given key.
+
+        :param name: key to retrieve the value of
+        :return: result object from the underlying storage
+        :raise KeyError if name not found
+        """
+
+    def __contains__(self, name: str) -> bool:
+        """Check whether storage contains entry with name.
+
+        :param name: key to look up
+        :return: True if the key is contained in the storage
+        """
+        try:
+            _ = self.__getitem__(name)
+        except KeyError:
+            return False
+        return True
+
+    @abstractmethod
+    def __delitem__(self, name: str) -> None:
+        """Delete item (not cascading -- doesn't delete referenced items)
+
+        :param name: key to delete object for
+        """
+
+    def wait_for_writes(self) -> None:
+        """Return once any currently pending database modifications have been completed."""
+        if hasattr(self, "batch_thread") and self.batch_thread is not None:
+            _logger.debug(
+                "wait_for_writes: len(pending_batch_list): %s, len(flushing_batch_list): %s",
+                len(self.batch_thread.pending_batch_list),
+                len(self.batch_thread.flushing_batch_list),
+            )
+            # short circuit if the queue is empty
+            with self.batch_thread.cond:
+                if (
+                    not self.batch_thread.pending_batch_list
+                    and not self.batch_thread.flushing_batch_list
+                ):
+                    return
+
+            # queue an empty batch
+            batch = []
+            self.batch_thread.queue_batch(batch)
+            # wait for the batch to be removed from the pending queue
+            while True:
+                with self.batch_thread.cond:
+                    if list(
+                        filter(
+                            lambda x: x is batch, self.batch_thread.pending_batch_list
+                        )
+                    ):
+                        self.batch_thread.cond.wait()
+                    else:
+                        break
+
+    def close(self) -> None:
+        """Stop the batch thread and wait for it to complete"""
+        if hasattr(self, "batch_thread") and self.batch_thread is not None:
+            self.batch_thread.stop()
+            self.batch_thread.join()
+            self.batch_thread = None
+        # Terminate connection if necessary.
+        if hasattr(self, "conn_pool") and self.conn_pool is not None:
+            self.conn_pool.dispose()
+            self.conn_pool = None
+
+    def __del__(self) -> None:
+        """Flush pending writes and tear down DB connection."""
+        self.close()
+
+    def __len__(self) -> int:
+        """Return the total number of objects in the table"""
+        with self._get_connection() as conn:
+            result = conn.execute(
+                f"SELECT COUNT(*) FROM {self.table_name}"  # noqa: S608
+            )
+            return result.scalar()
+
+    def __iter__(self) -> Any:  # noqa: ANN401
+        """Iterate over all rows in the table"""
+        with self._get_connection() as conn:
+            result = conn.execute(f"SELECT * FROM {self.table_name}")  # noqa: S608
+            yield from result
+
+    @abstractmethod
+    def keys(self) -> list:
+        """Return a list of all keys in the database"""
+
+    def wipe_db(self) -> None:
+        """Remove all stored records from the database"""
+        with self._get_connection() as conn:  # noqa: SIM117
+            with conn.begin():
+                conn.execute(sql_text(f"DELETE FROM {self.table_name}"))  # noqa: S608
+
+    def num_pending_batches(self) -> int:
+        """Return the number of pending insert batches"""
+        if self.batch_thread:
+            pending = len(self.batch_thread.pending_batch_list)
+            flushing = len(self.batch_thread.flushing_batch_list)
+            _logger.debug(
+                "Pending batches: %s, flushing batches: %s",
+                pending,
+                flushing,
+            )
+            return pending + flushing
+        return 0
+
+
+class VrsSqlStorage(SqlStorage):
+    """Relational database storage backend. Uses SQLAlchemy as a DB abstraction layer and pool.
+    Methods that utilize straightforward SQL are implemented in this class.  Methods that require
+    specialized SQL statements must be implemented in a database specific subclass.
+    """
+
+    def __init__(
+        self,
+        db_url: str,
+        batch_limit: int | None = None,
+        table_name: str | None = None,
+        max_pending_batches: int | None = None,
+        flush_on_batchctx_exit: bool | None = None,
+    ) -> None:
+        """Initialize SqlStorage."""
+        super().__init__(
+            db_url, batch_limit, table_name, max_pending_batches, flush_on_batchctx_exit
+        )
+
+    def __setitem__(self, name: str, value: Any) -> None:  # noqa: ANN401
+        """Add item to database. If batch mode is on, add item to batch and submit batch
+        for write only if batch size is exceeded.
+
+        :param name: value for `vrs_id` field
+        :param value: value for `vrs_object` field
+        :raise ValueError: if not given VRS object
+        """
+        if not ga4gh.core.is_pydantic_instance(value):
+            msg = "ga4gh.vrs object value required"
+            raise ValueError(msg)
+        name = str(name)  # in case str-like
+        super().__setitem__(name, value)
 
     def __getitem__(self, name: str) -> Any | None:  # noqa: ANN401
         """Fetch item from DB given key.
@@ -183,6 +329,7 @@ class SqlStorage(_Storage):
                     return models.CopyNumberChange(**result)
                 if object_type == "SequenceLocation":
                     return models.SequenceLocation(**result)
+                # TODO add SequenceReference
                 raise NotImplementedError
             raise KeyError(name)
 
@@ -233,46 +380,6 @@ class SqlStorage(_Storage):
             sql_text(f"DELETE FROM {self.table_name} WHERE vrs_id = :vrs_id"),  # noqa: S608
             {"vrs_id": vrs_id},
         )
-
-    def wait_for_writes(self) -> None:
-        """Return once any currently pending database modifications have been completed."""
-        _logger.debug("Waiting for writes")
-
-        if hasattr(self, "batch_thread") and self.batch_thread is not None:
-            # short circuit if the queue is empty
-            with self.batch_thread.cond:
-                if not self.batch_thread.pending_batch_list:
-                    return
-
-            # queue an empty batch
-            batch = []
-            self.batch_thread.queue_batch(batch)
-            # wait for the batch to be removed from the pending queue
-            while True:
-                with self.batch_thread.cond:
-                    if list(
-                        filter(
-                            lambda x: x is batch, self.batch_thread.pending_batch_list
-                        )
-                    ):
-                        self.batch_thread.cond.wait()
-                    else:
-                        break
-
-    def close(self) -> None:
-        """Stop the batch thread and wait for it to complete"""
-        if hasattr(self, "batch_thread") and self.batch_thread is not None:
-            self.batch_thread.stop()
-            self.batch_thread.join()
-            self.batch_thread = None
-        # Terminate connection if necessary.
-        if hasattr(self, "conn_pool") and self.conn_pool is not None:
-            self.conn_pool.dispose()
-            self.conn_pool = None
-
-    def __del__(self) -> None:
-        """Tear down DB instance."""
-        self.close()
 
     def __len__(self) -> int:
         """Return the total number of VRS objects"""
@@ -401,12 +508,6 @@ class SqlStorage(_Storage):
             with conn.begin():
                 conn.execute(sql_text(f"DELETE FROM {self.table_name}"))  # noqa: S608
 
-    def num_pending_batches(self) -> int:
-        """Return the number of pending insert batches"""
-        if self.batch_thread:
-            return len(self.batch_thread.pending_batch_list)
-        return 0
-
 
 class SqlStorageBatchManager(_BatchManager):
     """Context manager enabling bulk insertion statements
@@ -474,9 +575,10 @@ class SqlStorageBatchThread(Thread):
         """
         super().__init__(daemon=True)
         self.sql_store = sql_store
-        self.cond = Condition()
+        self.cond = Condition()  # Used to lock batch lists and wait/notify for changes
         self.run_flag = True
-        self.pending_batch_list = []
+        self.pending_batch_list = []  # Batches awaiting flushing
+        self.flushing_batch_list = []  # Batches currently being flushed
         self.max_pending_batches = max_pending_batches
 
     def run(self) -> None:
@@ -510,24 +612,43 @@ class SqlStorageBatchThread(Thread):
             self.cond.notify_all()
 
     def process_pending_batches(self) -> None:
-        """As long as batches are available for processing, merges them into the database"""
+        """As long as batches are available for processing, merges them into the database.
+
+        When a batch begins processing, removes it from the pending list and adds it to the flushing list. When a batch finishes processing, removes it from the flushing list. This need to track in-flight batches was detected in testing duckdb. If a client wants to wait for all batches to be flushed, we need to know that the batch write has not yet returned.
+        """
         _logger.info("Processing %s queued batches", len(self.pending_batch_list))
         while True:
             batch_insert_values = None
+            _logger.debug("process_pending_batches acquiring self.cond")
             with self.cond:
+                _logger.debug("process_pending_batches acquired self.cond")
                 if len(self.pending_batch_list) > 0:
                     batch_insert_values = self.pending_batch_list[0]
+                    if batch_insert_values:
+                        self.flushing_batch_list.append(batch_insert_values)
                     del self.pending_batch_list[0]
+                    _logger.debug(
+                        "Popped first pending batch of %s items, %s pending batches remaining",
+                        len(batch_insert_values),
+                        len(self.pending_batch_list),
+                    )
                     self.cond.notify_all()
                 else:
                     self.cond.notify_all()
                     break
-
             if batch_insert_values:
-                self._run_copy_insert(batch_insert_values)
-                _logger.info(
-                    "Processed queued batch of %s items", len(batch_insert_values)
+                _logger.debug(
+                    "Calling _run_copy_insert on %s items", len(batch_insert_values)
                 )
+                self._run_copy_insert(batch_insert_values)
+                _logger.debug(
+                    "Flushed batch of %s items",
+                    len(batch_insert_values),
+                )
+                with self.cond:
+                    self.flushing_batch_list.remove(batch_insert_values)
+                    self.cond.notify_all()
+                _logger.debug("Removed flushed batch from self.flushing_batch_list")
 
     def _run_copy_insert(self, batch_insert_values):  # noqa: ANN001 ANN202
         try:
