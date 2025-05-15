@@ -216,7 +216,7 @@ curl http://localhost:8000/info
 
 4. Within your venv, run `make testready` if you've never done so before. Otherwise, skip this step.
 
-4. Within your venv, export the following environment variables. (Note: if you ever `deactivate` your venv, you'll need to export all of these again)
+5. Within your venv, export the following environment variables. (Note: if you ever `deactivate` your venv, you'll need to export all of these again)
     - `SEQREPO_DATAPROXY_URI` - See the quickstart guide above.
     - `ANYVAR_STORAGE_URI` - See the quickstart guide above.
     - `ANYVAR_TEST_STORAGE_URI` - This specifies the database to use for tests. If you set up a postgres database by following the README-pg guide suggested in step 1, then you can just copy/paste the example `ANYVAR_TEST_STORAGE_URI` found below.
