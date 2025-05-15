@@ -77,7 +77,6 @@ testready:
 #=> test: execute tests
 .PHONY: test
 test:
-	@export UTA_DB_URL=postgresql://anonymous:anonymous@localhost:5433/uta/uta_20241220; \
 	python -m pytest tests
 
 ############################################################################
