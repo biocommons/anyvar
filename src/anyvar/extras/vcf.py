@@ -2,7 +2,7 @@
 
 import logging
 
-import pathlib
+from pathlib import Path
 
 from ga4gh.vrs.extras.annotator.vcf import VcfAnnotator
 
@@ -53,23 +53,22 @@ class VcfRegistrar(VcfAnnotator):
             storage = self.av.object_store
             with storage.batch_manager(storage):
                 return super().annotate(
-                    pathlib.Path(vcf_in),
-                    pathlib.Path(vcf_out),
-                    vrs_attributes,
-                    assembly,
-                    compute_for_ref,
-                    vrs_pickle_out,
+                    input_vcf_path=Path(vcf_in),
+                    output_vcf_path=Path(vcf_out) if vcf_out else None,
+                    vrs_pickle_out=vrs_pickle_out,
+                    vrs_attributes=vrs_attributes,
+                    assembly=assembly,
+                    compute_for_ref=compute_for_ref,
                 )
         else:
-            super().annotate(
-                pathlib.Path(vcf_in),
-                pathlib.Path(vcf_out),
-                vrs_attributes,
-                assembly,
-                compute_for_ref,
-                vrs_pickle_out,
+            return super().annotate(
+                input_vcf_path=Path(vcf_in),
+                output_vcf_path=Path(vcf_out) if vcf_out else None,
+                vrs_pickle_out=vrs_pickle_out,
+                vrs_attributes=vrs_attributes,
+                assembly=assembly,
+                compute_for_ref=compute_for_ref,
             )
-        return None
 
     def _get_vrs_object(
         self,
