@@ -206,7 +206,7 @@ curl http://localhost:8000/info
 
 ## Testing
 
-1. Set up a postgres database for testing by following the instructions found here: `src/anyvar/storage/README-pg.md`.
+1. Set up a database for testing. The default is a postgres database, which you can set up by following the instructions found here: `src/anyvar/storage/README-pg.md`.
 
 2. Follow the [quickstart guide](#quick-start) to get AnyVar running
 
@@ -214,19 +214,21 @@ curl http://localhost:8000/info
 
     Otherwise, you can skip straight to sourcing your venv: `source venv/3.11/bin/activate`
 
-4. Within your venv, export the following environment variables:
-    - `SEQREPO_DATAPROXY_URI` - see the quickstart guide above
-    - `ANYVAR_STORAGE_URI` - see the quickstart guide above
-    - `ANYVAR_TEST_STORAGE_URI` - this specifies the database to use for tests
+4. Within your venv, run `make testready` if you've never done so before. Otherwise, skip this step.
+
+4. Within your venv, export the following environment variables. (Note: if you ever `deactivate` your venv, you'll need to export all of these again)
+    - `SEQREPO_DATAPROXY_URI` - See the quickstart guide above.
+    - `ANYVAR_STORAGE_URI` - See the quickstart guide above.
+    - `ANYVAR_TEST_STORAGE_URI` - This specifies the database to use for tests. If you set up a postgres database by following the README-pg guide suggested in step 1, then you can just copy/paste the example `ANYVAR_TEST_STORAGE_URI` found below.
 
     For example:
       ```shell
-      export SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/latest
-      export ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@localhost:5432/anyvar
       export ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_test
+      export ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@localhost:5432/anyvar
+      export SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/latest
       ```
 
-6. Then, run tests with the following command:
+6. Finally, run tests with the following command:
 
     ```shell
     make test
