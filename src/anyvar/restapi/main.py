@@ -357,7 +357,7 @@ def register_vrs_object(
         VrsVariation,
         Body(
             description="Valid VRS object.",
-            example={
+            examples={
                 "location": {
                     "id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8",
                     "end": 87894077,
@@ -476,6 +476,8 @@ async def annotate_vcf(
         )
     # Run synchronously
     else:  # noqa: RET505
+        print("from annoate_vcf:", vcf)
+
         return await _annotate_vcf_sync(
             request=request,
             response=response,

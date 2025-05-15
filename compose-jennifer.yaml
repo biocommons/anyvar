@@ -1,0 +1,86 @@
+services:
+
+  # If you have a SeqRepo database already on your local filesystem,
+  # you can comment this `seqrepo` container out and replace `seqrepo_vol`
+  # everywhere in this file with that path, or read the path from a variable
+  # like SEQREPO_ROOT_DIR.
+  # e.g. under the `anyvar` container, replace
+  # volumes:
+  #   - seqrepo_vol:/usr/local/share/seqrepo
+  #
+  # with
+  #
+  # volumes:
+  #   - $SEQREPO_ROOT_DIR:/usr/local/share/seqrepo
+  # seqrepo:
+  #   image: biocommons/seqrepo:2024-12-20
+  #   volumes:
+  #     - $SEQREPO_ROOT_DIR:/usr/local/share/seqrepo
+
+  # This can also be used in place of the `seqrepo` container if you have
+  # an existing SeqRepo database on your local filesystem and want to copy it
+  # to a docker volume.
+  # Export SEQREPO_ROOT_DIR for the compose command
+  # e.g. SEQREPO_ROOT_DIR=/my/seqrepo docker-compose up
+  # If using this container, make sure you have commented out the `seqrepo` container
+  # and changed the `depends_on` for the `anyvar` container to depend on  `seqrepo_local_populator` instead of `seqrepo`.
+  # seqrepo_local_populator:
+  #   # image: alpine
+  #   image: eeacms/rsync
+  #   volumes:
+  #     - seqrepo_vol:/usr/local/share/seqrepo
+  #     - $SEQREPO_ROOT_DIR:/seqrepo:ro
+  #   command: >
+  #     /bin/sh -c "rsync -a --delete /seqrepo/2024-12-20/ /usr/local/share/seqrepo/2024-12-20/"
+
+  uta:
+    # Test:
+    # psql -XAt postgres://anonymous@localhost:5433/uta -c 'select count(*) from uta_20241220.transcript'
+    # 314227
+    image: biocommons/uta:uta_20241220
+    environment:
+      - POSTGRES_PASSWORD=some-password-that-you-make-up
+    volumes:
+      - uta_vol:/var/lib/postgresql/data
+    ports:
+      - 127.0.0.1:5433:5432
+
+  anyvar_db:
+    image: postgres:17
+    volumes:
+      - anyvar_vol:/var/lib/postgresql/data
+      - ./src/anyvar/storage/postgres_init.sql:/docker-entrypoint-initdb.d/postgres_init.sql:ro
+    ports:
+      - 127.0.0.1:5432:5432
+    environment:
+      - POSTGRES_PASSWORD=postgres
+
+  anyvar:
+    image: docker.io/clingendevs/anyvar:latest
+    volumes:
+      - /usr/local/share/seqrepo:/usr/local/share/seqrepo
+    depends_on:
+      anyvar_db:
+        required: true
+        condition: service_started
+      # seqrepo:
+      #   required: true
+      #   condition: service_completed_successfully
+    environment:
+      - SEQREPO_ROOT_DIR=/usr/local/share/seqrepo/2024-12-20
+      - SEQREPO_INSTANCE_DIR=/usr/local/share/seqrepo/2024-12-20
+      - SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/2024-12-20
+      - UTA_DB_URL=postgresql://anonymous:anonymous@uta:5432/uta/uta_20241220
+
+      # The anyvar credentials are initialized by postgres_init in the anyvar_db startup scripts. Values must be changed if you are making it publicly accessible.
+      - ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@anyvar_db:5432/anyvar
+    ports:
+      - 127.0.0.1:8010:8000
+
+volumes:
+  # seqrepo_vol:
+  #   external: true
+  uta_vol:
+    external: true
+  anyvar_vol:
+    external: true

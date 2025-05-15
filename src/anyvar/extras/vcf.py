@@ -2,6 +2,8 @@
 
 import logging
 
+import pathlib
+
 from ga4gh.vrs.extras.annotator.vcf import VcfAnnotator
 
 from anyvar.anyvar import AnyVar
@@ -43,25 +45,29 @@ class VcfRegistrar(VcfAnnotator):
         :param assembly: The assembly used in `vcf_in` data
         :param compute_for_ref: If `True`, compute VRS IDs for REF alleles
         """
+        print("============================================")
+        print("vcf_in:\ntype:", type(vcf_in), "vcf_in = ", vcf_in)
+        print("vcf_out:\ntype", type(vcf_out), "vcf_out = ", vcf_out)
+        
         if self.av.object_store.batch_manager:
             storage = self.av.object_store
             with storage.batch_manager(storage):
                 return super().annotate(
-                    vcf_in,
-                    vcf_out,
-                    vrs_pickle_out,
+                    pathlib.Path(vcf_in),
+                    pathlib.Path(vcf_out),
                     vrs_attributes,
                     assembly,
                     compute_for_ref,
+                    vrs_pickle_out,
                 )
         else:
             super().annotate(
-                vcf_in,
-                vcf_out,
-                vrs_pickle_out,
+                pathlib.Path(vcf_in),
+                pathlib.Path(vcf_out),
                 vrs_attributes,
                 assembly,
                 compute_for_ref,
+                vrs_pickle_out,
             )
         return None
 
