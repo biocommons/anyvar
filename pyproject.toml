@@ -46,6 +46,7 @@ test = [
 dev = [
     "ruff==0.11.2",
     "pre-commit>=3.7.1",
+    "ipykernel",
 ]
 
 [project.urls]
@@ -97,6 +98,7 @@ exclude_lines = [
 
 [tool.ruff]
 src = ["src"]
+include = ["src/**/*.py", "tests/**/*.py", "demo/**/*.py"]
 
 [tool.ruff.lint]
 select = [
@@ -165,6 +167,7 @@ fixable = [
 # E114 - indentation-with-invalid-multiple-comment*
 # E117 - over-indented*
 # E501 - line-too-long*
+# EM101, EM102, EM103 - assign exception string to variable
 # W191 - tab-indentation*
 # S321 - suspicious-ftp-lib-usage
 # *ignored for compatibility with formatter
@@ -172,6 +175,7 @@ ignore = [
     "ANN003",
     "D203", "D205", "D206", "D213", "D300", "D400", "D415",
     "E111", "E114", "E117", "E501",
+    "EM101", "EM102", "EM103",
     "W191",
     "S321",
 ]
@@ -198,6 +202,7 @@ ignore = [
 "tests/*" = ["ANN001", "ANN002", "ANN2", "ANN102", "S101", "B011", "INP001", "D", "C400"]
 "tests/storage/test_snowflake.py" = ["S608"]
 "tests/storage/test_postgres.py" = ["S608"]
+"tests/storage/test_duckdb.py" = ["S608"]
 "tests/storage/sqlalchemy_mocks.py" = ["ARG002", "A002"]
 "demo/*" = ["T201"]
 

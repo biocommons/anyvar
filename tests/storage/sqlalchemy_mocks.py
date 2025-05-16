@@ -1,6 +1,10 @@
+import difflib
 import json
+import logging
 import re
 import time
+
+logger = logging.getLogger(__name__)
 
 
 class MockResult(list):
@@ -45,7 +49,7 @@ class MockStmt:
 
     def matches(self, sql: str, params):
         norm_sql = re.sub(r"\s+", " ", sql).strip()
-        if norm_sql == self.sql:  # noqa: SIM102
+        if norm_sql == self.sql:
             if (
                 self.params is True
                 or (
@@ -55,6 +59,15 @@ class MockStmt:
                 or self.params == params
             ):
                 return True
+            else:  # noqa: RET505
+                # Log the mismatch for debugging
+                logger.debug(
+                    "Expected params: %s, Actual params: %s", self.params, params
+                )
+        else:
+            # Log the mismatch for debugging
+            diff = difflib.ndiff(self.sql.splitlines(), norm_sql.splitlines())
+            logger.debug("SQL did not match MockStmt:\n%s", "\n".join(diff))
         return False
 
 
