@@ -415,29 +415,36 @@ async def _annotate_vcf_sync(
 ) -> FileResponse | ErrorResponse:
     """Annotate with VRS IDs synchronously.  See `annotate_vcf()` for parameter definitions."""
     av: AnyVar = request.app.state.anyvar
-    registrar = VcfRegistrar(av.translator.dp, av=av)
-    with tempfile.NamedTemporaryFile(delete=False) as temp_out_file:
-        try:
-            registrar.annotate(
-                Path(vcf.filename),
-                Path(temp_out_file.name),
-                compute_for_ref=for_ref,
-                assembly=assembly,
-            )
-        except (TranslatorConnectionError, OSError) as e:
-            _logger.error("Encountered error during VCF registration: %s", e)
-            response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-            return ErrorResponse(error="VCF registration failed.")
-        except ValueError as e:
-            _logger.error("Encountered error during VCF registration: %s", e)
-            response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-            return ErrorResponse(error="Encountered ValueError when registering VCF")
+    registrar = VcfRegistrar(data_proxy=av.translator.dp, av=av)
 
-        if not allow_async_write:
-            _logger.info("Waiting for object store writes from API handler method")
-            av.object_store.wait_for_writes()
-        bg_tasks.add_task(os.unlink, temp_out_file.name)
-        return FileResponse(temp_out_file.name)
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".vcf") as temp_in:
+        contents = await vcf.read()
+        temp_in.write(contents)
+        temp_in_path = pathlib.Path(temp_in.name)
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".vcf") as temp_out:
+        temp_out_path = pathlib.Path(temp_out.name)
+
+    try:
+        registrar.annotate(
+            input_vcf_path=temp_in_path,
+            output_vcf_path=temp_out_path,
+            compute_for_ref=for_ref,
+            assembly=assembly,
+        )
+    except (TranslatorConnectionError, OSError, ValueError) as e:
+        _logger.error("Encountered error during VCF registration: %s", e)
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ErrorResponse(error="VCF registration failed.")
+
+    if not allow_async_write:
+        _logger.info("Waiting for object store writes from API handler method")
+        av.object_store.wait_for_writes()
+
+    bg_tasks.add_task(os.unlink, temp_in_path)
+    bg_tasks.add_task(os.unlink, temp_out_path)
+
+    return FileResponse(temp_out_path)
 
 
 @app.get(
