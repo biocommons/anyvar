@@ -33,13 +33,14 @@ help:
 ############################################################################
 #= SETUP, INSTALLATION, PACKAGING
 
-#=> venv: make a Python 3 virtual environment
+#=> venv: make a Python 3 virtual environment & install the basic dependencies
 .PHONY: venv/%
 venv/%:
 	python$* -m venv $@; \
 	. $@/bin/activate; \
 	python -m ensurepip --upgrade; \
-	pip install --upgrade pip setuptools
+	pip install --upgrade pip setuptools; \
+	pip install .
 
 #=> develop: install package in develop mode
 .PHONY: develop
@@ -62,12 +63,7 @@ bdist bdist_egg bdist_wheel build sdist install: %:
 
 .PHONY: start
 start:
-	@bash ./startup.sh
-
-.PHONY: setup
-setup:
-	make ${VEDIR} && source ${VEDIR}/bin/activate \
-	pip install .
+	PYV=$(PYV) VEDIR=$(VEDIR) bash ./startup.sh
 
 
 ############################################################################
