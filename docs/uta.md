@@ -28,8 +28,8 @@ A local Docker setup is recommended for consistent performance and reliability.
 1. **Fetch UTA Docker Image:**
 
     ```shell
-    uta_v=uta_20241220
-    docker pull biocommons/uta:${uta_v}
+    uta_version=uta_20241220
+    docker pull biocommons/uta:${uta_version}
     ```
 
 2. **Create and Populate Docker Volume:**
@@ -47,13 +47,13 @@ A local Docker setup is recommended for consistent performance and reliability.
     ```shell
     docker run -d --rm -e POSTGRES_PASSWORD=uta \
       -v uta_vol:/var/lib/postgresql/data \
-      --name $uta_v -p 5432:5432 biocommons/uta:${uta_v}
+      --name $uta_version -p 5432:5432 biocommons/uta:${uta_version}
     ```
 
 4. **Monitor data population (initial run only):**
 
     ```shell
-    docker logs -f $uta_v
+    docker logs -f $uta_version
     ```
 
 Once the log indicates readiness (`database system is ready`), your UTA installation is active.
@@ -83,7 +83,7 @@ A successful query returns metadata indicating the version and setup details.
   ```shell
   docker run -d --rm -e POSTGRES_PASSWORD=uta \
   -v uta_vol:/var/lib/postgresql/data \
-  --name $uta_v -p 5433:5432 biocommons/uta:${uta_v}
+  --name $uta_version -p 5433:5432 biocommons/uta:${uta_version}
 
   export UTA_DB_URL=postgresql://anonymous@localhost:5433/uta/uta_20241220
   ```
@@ -97,7 +97,7 @@ A successful query returns metadata indicating the version and setup details.
 * **Docker Container Logs:** Check logs for container issues:
 
   ```shell
-  docker logs $uta_v
+  docker logs $uta_version
   ```
 
 ## Additional Environment Variables
