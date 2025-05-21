@@ -1,6 +1,6 @@
 # AnyVar
 
-*AnyVar* provides Python and REST interfaces to validate, normalize, generate identifiers, and register biological sequence variation according to the [GA4GH Variation Representation Specification (VRS)](https://github.com/ga4gh/vrs).
+_AnyVar_ provides Python and REST interfaces to validate, normalize, generate identifiers, and register biological sequence variation according to the [GA4GH Variation Representation Specification (VRS)](https://github.com/ga4gh/vrs).
 
 ## Information
 
@@ -9,7 +9,7 @@
 ## Development
 
 [![issues](https://img.shields.io/github/issues-raw/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar/issues)
-[![GitHub Open Pull Requests](https://img.shields.io/github/issues-pr/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar/pull/) [![GitHub Contributors](https://img.shields.io/github/contributors/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar/graphs/contributors/) [![GitHub stars](https://img.shields.io/github/stars/biocommons/anyvar.svg?style=social\&label=Stars)](https://github.com/biocommons/anyvar/stargazers) [![GitHub forks](https://img.shields.io/github/forks/biocommons/anyvar.svg?style=social\&label=Forks)](https://github.com/biocommons/anyvar/network)
+[![GitHub Open Pull Requests](https://img.shields.io/github/issues-pr/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar/pull/) [![GitHub Contributors](https://img.shields.io/github/contributors/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar/graphs/contributors/) [![GitHub stars](https://img.shields.io/github/stars/biocommons/anyvar.svg?style=social&label=Stars)](https://github.com/biocommons/anyvar/stargazers) [![GitHub forks](https://img.shields.io/github/forks/biocommons/anyvar.svg?style=social&label=Forks)](https://github.com/biocommons/anyvar/network)
 
 ## Known Issues
 
