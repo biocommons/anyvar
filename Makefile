@@ -33,7 +33,7 @@ help:
 ############################################################################
 #= SETUP, INSTALLATION, PACKAGING
 
-#=> venv: make a Python 3 virtual environment & install the basic dependencies
+#=> venv: make a Python 3 virtual environment & install basic dependencies
 .PHONY: venv/%
 venv/%:
 	python$* -m venv $@; \
