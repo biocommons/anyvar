@@ -30,19 +30,6 @@ _AnyVar_ provides Python and REST interfaces to validate, normalize, generate id
 	AnyVar has several required dependencies and a few optional ones. See [Setting up Dependencies](#setting-up-dependencies) for detailed instructions.
 
 
-
-<!--
-	- Point `ANYVAR_STORAGE_URI` to an available database if you configured one in step 2. If you prefer to run AnyVar without a database backend (e.g., for lightweight testing), set this to `null`
-	- Set `SEQREPO_DATAPROXY_URI` to local SeqRepo files or to a REST service instance
-
-	Example:
-
-	```shell
-	export ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@localhost:5432/anyvar
-	export SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/2024-12-20
-	```
-	See [Setting up Dependencies](#setting-up-dependencies) for detailed instructions regarding setting up environment variables -->
-
 4. **Start the AnyVar server:**
 
 	```shell
@@ -65,6 +52,8 @@ UTA (Universal Transcript Archive) stores transcripts aligned to sequence refere
 
 ### Optional Dependencies
 
+AnyVar optionally supports several storage types. For general information about AnyVar's SQL storage options, see [the SQL Storage documentation](docss/sql.md). See below for more specific details on the various storage implementation options.
+
 #### PostgreSQL (Optional)
 
 AnyVar supports PostgreSQL databases. [Configure PostgreSQL for AnyVar.](docs/postgres.md)
@@ -76,6 +65,26 @@ AnyVar can also utilize Snowflake. [Detailed instructions available.](docs/snowf
 ## Asynchronous Operations
 
 AnyVar supports asynchronous VCF annotation for improved scalability. [See asynchronous operations README.](docs/async.md)
+
+## Developers
+
+This section is intended for developers who contribute to AnyVar.
+
+### Prerequisites
+
+- Python >= 3.9
+  - _Note: Python 3.11 is required for developers contributing to AnyVar_
+- [Docker](https://docs.docker.com/engine/install/)
+
+### Installing for development
+
+```shell
+git clone https://github.com/biocommons/anyvar.git
+cd anyvar
+make devready
+source venv/3.11/bin/activate
+pre-commit install
+```
 
 ## Testing
 
