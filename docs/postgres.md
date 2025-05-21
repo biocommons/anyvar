@@ -37,7 +37,7 @@ cat src/anyvar/storage/postgres_init.sql | psql -h localhost -U postgres -p 5432
 Confirm your PostgreSQL container is running:
 
 ```shell
-docker ps | grep anyvar-postgres
+docker ps | grep anyvar-pg
 ```
 
 You should see the container listed and running.
