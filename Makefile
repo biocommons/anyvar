@@ -37,7 +37,7 @@ help:
 .PHONY: venv/%
 venv/%:
 	python$* -m venv $@; \
-	source $@/bin/activate; \
+	. $@/bin/activate; \
 	python -m ensurepip --upgrade; \
 	pip install --upgrade pip setuptools
 
@@ -59,6 +59,16 @@ devready:
 .PHONY: bdist bdist_egg bdist_wheel build build_sphinx sdist install
 bdist bdist_egg bdist_wheel build sdist install: %:
 	python setup.py $@
+
+.PHONY: start
+start:
+	@bash ./startup.sh
+
+.PHONY: setup
+setup:
+	make ${VEDIR} && source ${VEDIR}/bin/activate \
+	pip install .
+
 
 ############################################################################
 #= TESTING
