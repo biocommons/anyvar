@@ -17,57 +17,62 @@
 
 ## Quick Start
 
-Clone the AnyVar repository:
+1. Clone the AnyVar repository:
 
-```shell
-git clone https://github.com/biocommons/anyvar
-cd anyvar
-```
+	```shell
+	git clone https://github.com/biocommons/anyvar
+	cd anyvar
+	```
+2. If desired, create/start a database for AnyVar to use. See [Setting up Dependencies](#setting-up-dependencies) for detailed instructions on how to set up a database
 
-Configure required environment variables:
+3. **Configure required dependencies:**
 
-```shell
-export ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@localhost:5432/anyvar
-export SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/latest
-```
+	AnyVar has several required dependencies and a few optional ones. See [Setting up Dependencies](#setting-up-dependencies) for detailed instructions.
 
-Start the AnyVar server:
 
-```shell
-uvicorn anyvar.restapi.main:app --reload
-```
 
-Visit [`http://localhost:8000`](http://localhost:8000) to verify the REST API is running.
+<!--
+	- Point `ANYVAR_STORAGE_URI` to an available database if you configured one in step 2. If you prefer to run AnyVar without a database backend (e.g., for lightweight testing), set this to `null`
+	- Set `SEQREPO_DATAPROXY_URI` to local SeqRepo files or to a REST service instance
+
+	Example:
+
+	```shell
+	export ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@localhost:5432/anyvar
+	export SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/2024-12-20
+	```
+	See [Setting up Dependencies](#setting-up-dependencies) for detailed instructions regarding setting up environment variables -->
+
+4. **Start the AnyVar server:**
+
+	```shell
+	uvicorn anyvar.restapi.main:app --reload
+	```
+
+5. Visit [`http://localhost:8000`](http://localhost:8000) to verify the REST API is running.
 
 ## Setting up Dependencies
 
-AnyVar relies on the following components:
+### Required Dependencies
 
-### SeqRepo
+#### SeqRepo
 
 SeqRepo stores biological sequence data and can be accessed locally or via REST API. [Read how to set up SeqRepo locally or through Docker.](docs/seqrepo.md)
 
-### UTA (Optional)
+#### UTA
 
-UTA is required only for interpreting non-genomic sequences (e.g., transcript accessions). [Instructions for setting up UTA locally or via Docker.](docs/uta.md)
+UTA (Universal Transcript Archive) stores transcripts aligned to sequence references. [Read how to set up UTA locally or via Docker.](docs/uta.md)
 
-### PostgreSQL
+### Optional Dependencies
+
+#### PostgreSQL (Optional)
 
 AnyVar supports PostgreSQL databases. [Configure PostgreSQL for AnyVar.](docs/postgres.md)
 
-### Snowflake (Optional)
+#### Snowflake (Optional)
 
 AnyVar can also utilize Snowflake. [Detailed instructions available.](docs/snowflake.md)
 
-## Advanced Usage
-
-### Visual Studio Code Dev Containers
-
-AnyVar supports VS Code Dev Containers. [Read more here.](https://github.com/ga4gh/vrs-python/tree/main/notebooks/getting_started#dev-containers)
-
-### GitHub Codespaces
-
-AnyVar can be run easily using GitHub Codespaces for in-browser editing. [More details.](https://docs.github.com/en/codespaces/setting-your-user-preferences/setting-your-timeout-period-for-github-codespaces#about-the-idle-timeout)
 
 ### Docker Compose
 

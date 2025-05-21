@@ -58,7 +58,7 @@ This section is intended for developers who contribute to AnyVar.
 ### Prerequisites
 
 - Python >= 3.9
-  - _Note: Python 3.11 is required for developers contributing to AnyVar
+  - _Note: Python 3.11 is required for developers contributing to AnyVar_
 - [Docker](https://docs.docker.com/engine/install/)
 
 ### Installing for development
@@ -179,8 +179,8 @@ CREATE TABLE ... (
 ```
 
 #### Skipping Database Setup
-It is also possible to run AnyVar with no database. This is primarily useful for bulk annotations, 
-such as annotating a VCF, where there is no real need to reuse previously computed VRS IDs. 
+It is also possible to run AnyVar with no database. This is primarily useful for bulk annotations,
+such as annotating a VCF, where there is no real need to reuse previously computed VRS IDs.
 To run AnyVar with no database, set the `ANYVAR_STORAGE_URI` environment variable to `null`.
 
 ### Enabling Asynchronous VCF Annotation

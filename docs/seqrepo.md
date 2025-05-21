@@ -1,102 +1,96 @@
 # AnyVar SeqRepo Setup
 
-SeqRepo is a repository system designed to store and manage biological sequence data efficiently. It is a critical dependency for AnyVar, enabling rapid retrieval of sequences during variation normalization and validation.
+SeqRepo is a repository system designed to store and manage biological sequence data efficiently.
 
-## How SeqRepo Works
-
-SeqRepo stores sequence data locally or provides access via a REST API, enabling fast querying and efficient storage management. AnyVar uses SeqRepo via its DataProxy interface, which can connect to local directories or REST endpoints.
-
-## Recommended Local Installation
+## Recommended: Local Installation
 
 The simplest and most efficient method for most users is a direct local file installation.
 
-### Step-by-Step Local Setup
 
 1. **Download the SeqRepo Archive:**
 
-```shell
-curl -O https://storage.googleapis.com/clingen-public/seqrepo_2024-12-20.tar.gz
-```
+	```shell
+	curl -O https://storage.googleapis.com/clingen-public/seqrepo_2024-12-20.tar.gz
+	```
 
 2. **Create a SeqRepo Directory:**
 
-```shell
-mkdir seqrepo
-tar -xzvf seqrepo_2024-12-20.tar.gz -C seqrepo
-```
+	Create a SeqRepo directory, then extract the download inside of it
+
+	```shell
+	mkdir seqrepo
+	tar -xzvf seqrepo_2024-12-20.tar.gz -C seqrepo
+	```
 
 3. **Set the Environment Variable:**
 
-Configure your environment to point to this SeqRepo location:
+	Configure your environment to point to this SeqRepo location:
 
-```shell
-export SEQREPO_DATAPROXY_URI=seqrepo+file:///full_path_to_seqrepo/2024-12-20
-```
+	```shell
+	export SEQREPO_DATAPROXY_URI=seqrepo+file:///full_path_to_seqrepo/2024-12-20
+	```
 
-Replace `full_path_to_seqrepo` with your absolute path.
+	Replace `full_path_to_seqrepo` with your absolute path.
 
 ## Docker-based Installation
 
 Docker is suitable for containerized environments or users preferring isolation.
 
-### Step-by-Step Docker Setup
 
 1. **Create and Populate Docker Volume:**
 
-```shell
-docker volume create seqrepo-vol
-docker run -it --rm -v seqrepo-vol:/usr/local/share/seqrepo docker.io/biocommons/seqrepo:2024-12-20
-```
+	```shell
+	docker volume create seqrepo-vol
+	docker run -it --rm -v seqrepo-vol:/usr/local/share/seqrepo docker.io/biocommons/seqrepo:2024-12-20
+	```
 
 2. **Start SeqRepo REST Service:**
 
-Run the REST service to provide access through HTTP:
+	Run the REST service to provide access through HTTP:
 
-```shell
-docker run -d --name seqrepo-rest \
--v seqrepo-vol:/usr/local/share/seqrepo \
--p 5001:5000 biocommons/seqrepo-rest-service \
-seqrepo-rest-service /usr/local/share/seqrepo/2024-12-20
-```
+	```shell
+	docker run -d --name seqrepo-rest \
+	-v seqrepo-vol:/usr/local/share/seqrepo \
+	-p 5001:5000 biocommons/seqrepo-rest-service \
+	seqrepo-rest-service /usr/local/share/seqrepo/2024-12-20
+	```
 
-Set your environment variable to the REST API:
+	Set your environment variable to the REST API:
 
-```shell
-export SEQREPO_DATAPROXY_URI=seqrepo+http://localhost:5001/seqrepo
-```
+	```shell
+	export SEQREPO_DATAPROXY_URI=seqrepo+http://localhost:5001/seqrepo
+	```
 
-## Native Installation (rsync method)
+## Native Installation (Rrsync Method)
 
 Useful when direct file or Docker setups are not feasible.
 
-### Step-by-Step Native Setup
-
 1. **Install SeqRepo:**
 
-```shell
-pip install seqrepo
-```
+	```shell
+	pip install seqrepo
+	```
 
 2. **Prepare Directories:**
 
-```shell
-export SEQREPO_VERSION=2024-12-20
-sudo mkdir -p /usr/local/share/seqrepo
-sudo chown $USER /usr/local/share/seqrepo
-```
+	```shell
+	export SEQREPO_VERSION=2024-12-20
+	sudo mkdir -p /usr/local/share/seqrepo
+	sudo chown $USER /usr/local/share/seqrepo
+	```
 
 3. **Fetch Data with Rsync:**
 
-```shell
-seqrepo pull -i $SEQREPO_VERSION
-seqrepo update-latest
-```
+	```shell
+	seqrepo pull -i $SEQREPO_VERSION
+	seqrepo update-latest
+	```
 
-Set the environment variable accordingly:
+4. Set the environment variable accordingly:
 
-```shell
-export SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/$SEQREPO_VERSION
-```
+	```shell
+	export SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/$SEQREPO_VERSION
+	```
 
 ### Troubleshooting Rsync Issues
 

@@ -2,10 +2,6 @@
 
 UTA (Universal Transcript Archive) is used to interpret variations on non-genomic sequences, such as transcript-based accessions. It is required for AnyVar operations involving transcript coordinates.
 
-## When UTA is Required
-
-UTA is necessary only if your workflows involve interpreting variants on transcript sequences (e.g., using transcript accessions like RefSeq NM identifiers).
-
 ## Recommended Public Instance Usage (for small use cases)
 
 For minimal usage scenarios, utilize the public UTA instance hosted by biocommons.org:
@@ -24,34 +20,34 @@ A local Docker setup is recommended for consistent performance and reliability.
 
 1. **Fetch UTA Docker Image:**
 
-```shell
-uta_v=uta_20241220
-docker pull biocommons/uta:${uta_v}
-```
+    ```shell
+    uta_v=uta_20241220
+    docker pull biocommons/uta:${uta_v}
+    ```
 
 2. **Create and Populate Docker Volume:**
 
-Create a persistent volume to store UTA data:
+    Create a persistent volume to store UTA data:
 
-```shell
-docker volume create uta_vol
-```
+    ```shell
+    docker volume create uta_vol
+    ```
 
 3. **Run the UTA Docker Container:**
 
-Start the container and populate the database:
+    Start the container and populate the database:
 
-```shell
-docker run -d --rm -e POSTGRES_PASSWORD=uta \
-  -v uta_vol:/var/lib/postgresql/data \
-  --name $uta_v -p 5432:5432 biocommons/uta:${uta_v}
-```
+    ```shell
+    docker run -d --rm -e POSTGRES_PASSWORD=uta \
+      -v uta_vol:/var/lib/postgresql/data \
+      --name $uta_v -p 5432:5432 biocommons/uta:${uta_v}
+    ```
 
-Monitor data population (initial run only):
+4. **Monitor data population (initial run only):**
 
-```shell
-docker logs -f $uta_v
-```
+    ```shell
+    docker logs -f $uta_v
+    ```
 
 Once the log indicates readiness (`database system is ready`), your UTA installation is active.
 
