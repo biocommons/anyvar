@@ -45,7 +45,7 @@ A local Docker setup is recommended for consistent performance and reliability.
     Start the container and populate the database:
 
     ```shell
-    docker run -d --rm -e POSTGRES_PASSWORD=uta \
+    docker run  --platform linux/amd64 -d --rm -e POSTGRES_PASSWORD=uta \
       -v uta_vol:/var/lib/postgresql/data \
       --name $uta_version -p 5432:5432 biocommons/uta:${uta_version}
     ```
@@ -81,7 +81,7 @@ A successful query returns metadata indicating the version and setup details.
 * **Connection Issues:** Ensure port 5432 is available or change the port if conflicts arise.
 
   ```shell
-  docker run -d --rm -e POSTGRES_PASSWORD=uta \
+  docker run --platform linux/amd64 -d --rm -e POSTGRES_PASSWORD=uta \
   -v uta_vol:/var/lib/postgresql/data \
   --name $uta_version -p 5433:5432 biocommons/uta:${uta_version}
 
