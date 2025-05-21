@@ -36,6 +36,14 @@ The simplest and most efficient method for most users is a direct local file ins
 
 Docker is suitable for containerized environments or users preferring isolation.
 
+### Prerequisites
+
+* Ensure Docker and Docker Compose are installed.
+
+  * [Docker Installation](https://docs.docker.com/get-docker/)
+  * [Docker Compose Installation](https://docs.docker.com/compose/install/)
+
+### Step-by-Step Docker Installation
 
 1. **Create and Populate Docker Volume:**
 

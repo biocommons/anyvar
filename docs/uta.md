@@ -16,6 +16,13 @@ This public instance is convenient but may experience slower performance during 
 
 A local Docker setup is recommended for consistent performance and reliability.
 
+### Prerequisites
+
+* Ensure Docker and Docker Compose are installed.
+
+  * [Docker Installation](https://docs.docker.com/get-docker/)
+  * [Docker Compose Installation](https://docs.docker.com/compose/install/)
+
 ### Step-by-Step Docker Installation
 
 1. **Fetch UTA Docker Image:**
