@@ -15,7 +15,7 @@ Docker is the simplest and most efficient method to set up PostgreSQL quickly.
 1. **Pull PostgreSQL Docker Image:**
 
 ```shell
-docker pull postgres:latest
+docker pull postgres
 ```
 
 2. **Start PostgreSQL Docker Container:**
@@ -24,12 +24,12 @@ Create and run a PostgreSQL container:
 
 ```shell
 docker run -d \
-  --name anyvar-postgres \
-  -e POSTGRES_USER=anyvar \
-  -e POSTGRES_PASSWORD=anyvar-pw \
-  -e POSTGRES_DB=anyvar \
+  --name anyvar-pg \
   -p 5432:5432 \
-  postgres:latest
+  -e POSTGRES_PASSWORD=postgres \
+  postgres
+
+cat src/anyvar/storage/postgres_init.sql | psql -h localhost -U postgres -p 5432
 ```
 
 ### Verifying PostgreSQL Setup
@@ -45,18 +45,6 @@ You should see the container listed and running.
 ## Initializing Database Schema and User Permissions
 
 AnyVar expects specific database credentials (`anyvar` user and `anyvar` database by default).
-
-### Schema Initialization
-
-Use AnyVar-provided SQL script or manual setup:
-
-```sql
-CREATE USER anyvar WITH PASSWORD 'anyvar-pw';
-CREATE DATABASE anyvar;
-GRANT ALL PRIVILEGES ON DATABASE anyvar TO anyvar;
-```
-
-Ensure the database and user are properly initialized.
 
 ## Configuring AnyVar with PostgreSQL
 
