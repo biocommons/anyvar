@@ -73,11 +73,6 @@ AnyVar supports PostgreSQL databases. [Configure PostgreSQL for AnyVar.](docs/po
 
 AnyVar can also utilize Snowflake. [Detailed instructions available.](docs/snowflake.md)
 
-
-### Docker Compose
-
-A complete environment can be set up using Docker Compose. [Full Docker Compose instructions.](docs/docker.md)
-
 ## Asynchronous Operations
 
 AnyVar supports asynchronous VCF annotation for improved scalability. [See asynchronous operations README.](docs/async.md)
@@ -98,8 +93,4 @@ export ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_t
 
 ## Logging
 
-AnyVar uses Python's built-in logging. [Customize logging settings.](docs/logging-setup.md)
-
-## Example Variation Data
-
-For testing AnyVar with public datasets, [see example variation data.](docs/example-data.md)
+AnyVar uses Python's built-in logging. To customize logging settings see [docs/logging.md](docs/logging.md)
