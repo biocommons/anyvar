@@ -65,6 +65,10 @@ bdist bdist_egg bdist_wheel build sdist install: %:
 start:
 	PYV=$(PYV) VEDIR=$(VEDIR) bash ./startup.sh
 
+.PHONY: dev-start
+dev-start:
+	PYV=$(PYV) VEDIR=$(VEDIR) DEV_MODE=true bash ./startup.sh
+
 
 ############################################################################
 #= TESTING

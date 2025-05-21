@@ -12,4 +12,9 @@ if [ -z "${VIRTUAL_ENV:-}" ]; then
 fi;
 
 # 4. Start the server
-exec uvicorn anyvar.restapi.main:app --app-dir src
+
+if [ "${DEV_MODE:-false}" = "true" ]; then
+  exec uvicorn anyvar.restapi.main:app --app-dir src --reload
+else
+  exec uvicorn anyvar.restapi.main:app
+fi
