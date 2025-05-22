@@ -45,16 +45,26 @@ Docker is suitable for containerized environments or users preferring isolation.
 
 ### Step-by-Step Docker Installation
 
-1. **Create and Populate Docker Volume:**
+1. **Create a Docker Volume:**
 
 	```shell
 	docker volume create seqrepo-vol
-	docker run -it --rm -v seqrepo-vol:/usr/local/share/seqrepo docker.io/biocommons/seqrepo:2024-12-20
 	```
 
-2. **Start SeqRepo REST Service:**
+2. **Populate the Volume With a SeqRepo Snapshot:**
+	```shell
+	docker run -it --rm -v seqrepo-vol:/usr/local/share/seqrepo docker.io/biocommons/seqrepo:2024-12-20
+	```
+	_Note: This downloads and syncs the SeqRepo database into the volume. It may take a while._
 
-	Run the REST service to provide access through HTTP:
+3. **Pull the SeqRepo REST Service Image:**
+	```shell
+	docker pull biocommons/seqrepo-rest-service
+	```
+
+4. **Start SeqRepo REST Service:**
+
+	Run the REST service to provide access through HTTP. Choose an appropriate local port - the example below uses `5001`, but you can pick anything you'd like.
 
 	```shell
 	docker run -d --name seqrepo-rest \
@@ -63,7 +73,7 @@ Docker is suitable for containerized environments or users preferring isolation.
 	seqrepo-rest-service /usr/local/share/seqrepo/2024-12-20
 	```
 
-	Set your environment variable to the REST API:
+5. **Set your environment variable to the REST API:**
 
 	```shell
 	export SEQREPO_DATAPROXY_URI=seqrepo+http://localhost:5001/seqrepo
@@ -100,16 +110,22 @@ Useful when direct file or Docker setups are not feasible.
 	export SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/$SEQREPO_VERSION
 	```
 
-### Troubleshooting Rsync Issues
+### Troubleshooting
 
 * If your institution blocks rsync, consider using the direct download method or Docker.
 * Ensure you have the correct `rsync` CLI (GNU Rsync, not OpenRsync).
-
-Check Rsync version:
-
-```shell
-rsync --version
-```
+* Check your Rsync version:
+	```shell
+	rsync --version
+	```
+* If you encounter a permission error similar to the one below:
+	```shell
+	PermissionError: [Error 13] Permission denied: '/usr/local/share/seqrepo/2024-02-20._fkuefgd' -> '/usr/local/share/seqrepo/2024-02-20'
+	```
+	Try moving data manually with **sudo**:
+	```shell
+	sudo mv /usr/local/share/seqrepo/$SEQREPO_VERSION.* /usr/local/share/seqrepo/$SEQREPO_VERSION
+	```
 
 ## Verifying SeqRepo Installation
 
@@ -131,15 +147,6 @@ curl http://localhost:5001/seqrepo/1/sequence/refseq:NM_000551.3
 
 Successful completion of these steps confirms a working SeqRepo installation.
 
-## Additional Environment Variables
-
-| Variable                | Description                             | Example                                              |
-| ----------------------- | --------------------------------------- | ---------------------------------------------------- |
-| `SEQREPO_VERSION`       | Specifies the SeqRepo snapshot version. | `2024-12-20`                                         |
-| `SEQREPO_ROOT_DIR`      | Sets the root directory of SeqRepo.     | `/usr/local/share/seqrepo`                           |
-| `SEQREPO_DATAPROXY_URI` | URI for SeqRepo DataProxy interface.    | `seqrepo+file:///usr/local/share/seqrepo/2024-12-20` |
-
-Ensure these environment variables are correctly set before using AnyVar.
 
 ---
 
