@@ -1,5 +1,0 @@
-DROP DATABASE IF EXISTS anyvar_test;
-DROP USER IF EXISTS anyvar;
-
-CREATE USER anyvar WITH PASSWORD 'anyvar-pw';
-CREATE DATABASE anyvar_test WITH OWNER anyvar;
