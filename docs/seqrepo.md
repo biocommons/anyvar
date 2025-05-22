@@ -147,6 +147,13 @@ curl http://localhost:5001/seqrepo/1/sequence/refseq:NM_000551.3
 
 Successful completion of these steps confirms a working SeqRepo installation.
 
+## Cheat Sheet: Environment Variables
+
+| Variable                | Description                             | Example                                              |
+| ----------------------- | --------------------------------------- | ---------------------------------------------------- |
+| `SEQREPO_DATAPROXY_URI` | URI for SeqRepo DataProxy interface.    | `seqrepo+file:///usr/local/share/seqrepo/2024-12-20` |
+
+Ensure this environment variable is correctly set before using AnyVar.
 
 ---
 
