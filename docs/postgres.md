@@ -12,13 +12,13 @@ Docker is the simplest and most efficient method to set up PostgreSQL quickly.
 
 ### Step-by-Step Docker Installation
 
-1. **Pull PostgreSQL Docker Image:**
+#### 1. Pull PostgreSQL Docker Image:
 
 ```shell
 docker pull postgres
 ```
 
-2. **Start PostgreSQL Docker Container:**
+#### 2. Start PostgreSQL Docker Container:
 
 Create and run a PostgreSQL container:
 
@@ -31,6 +31,12 @@ docker run -d \
 
 cat src/anyvar/storage/postgres_init.sql | psql -h localhost -U postgres -p 5432
 ```
+#### 3. Configure the environment variable to connect AnyVar to PostgreSQL:
+
+```shell
+export ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@localhost:5432/anyvar
+```
+
 
 ### Verifying PostgreSQL Setup
 
@@ -46,13 +52,6 @@ You should see the container listed and running.
 
 AnyVar expects specific database credentials (`anyvar` user and `anyvar` database by default).
 
-## Configuring AnyVar with PostgreSQL
-
-Configure the environment variable to connect AnyVar to PostgreSQL:
-
-```shell
-export ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@localhost:5432/anyvar
-```
 
 ## Troubleshooting and Validation
 
@@ -84,13 +83,12 @@ psql -h localhost -U anyvar -d anyvar
 
 A successful connection confirms correct setup.
 
-## Additional Environment Variables
+## Cheat Sheet: Environment Variables
 
 | Variable             | Description               | Example                                               |
 | -------------------- | ------------------------- | ----------------------------------------------------- |
 | `ANYVAR_STORAGE_URI` | PostgreSQL connection URL | `postgresql://anyvar:anyvar-pw@localhost:5432/anyvar` |
 
-Always verify the environment variable before running AnyVar.
 
 ---
 

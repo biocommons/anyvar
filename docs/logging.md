@@ -96,6 +96,11 @@ Logging changes take effect immediately upon application restart.
 * **Incorrect Log Levels:** Check handler and logger configurations.
 * **Environment Variable Issues:** Ensure `ANYVAR_LOGGING_CONFIG` correctly points to your YAML file.
 
+## Cheat Sheet: Environment Variables
+
+| Variable             | Description               | Example                                               |
+| -------------------- | ------------------------- | ----------------------------------------------------- |
+| `ANYVAR_LOGGING_CONFIG` | Path to custom logging configuration YAML file | `/path/to/logging.yaml` |
 ---
 
 Your customized logging setup is now complete. Refer to the primary AnyVar documentation for additional usage and operational details.
