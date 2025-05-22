@@ -130,7 +130,6 @@ def get_info() -> dict:
             "version": anyvar.__version__,
         },
         "ga4gh_vrs": {"version": ga4gh.vrs.__version__},
-        "ANYVAR_STORAGE_URI": os.getenv("ANYVAR_STORAGE_URI"),
     }
 
 
