@@ -28,7 +28,7 @@ CREATE TABLE vrs_objects (
 
 This setup meets AnyVar’s minimal requirements to store variant data.
 
-## Snowflake Connection Setup
+### 3. Snowflake Connection Setup
 
 Set the environment variable to allow AnyVar to connect with your Snowflake instance:
 
@@ -38,7 +38,7 @@ export ANYVAR_STORAGE_URI=snowflake://<username>:<password>@<account_identifier>
 
 Replace `<username>`, `<password>`, `<account_identifier>`, `<database_name>`, and `<schema_name>` with your Snowflake credentials and details.
 
-### Using Encrypted Private Keys (Optional)
+#### Using Encrypted Private Keys (Optional)
 
 Snowflake allows authentication using encrypted private keys:
 
@@ -63,14 +63,6 @@ Configure batch mode using:
 ```shell
 export ANYVAR_SNOWFLAKE_BATCH_ADD_MODE=merge
 ```
-
-### Environment Variables
-
-| Variable                                        | Description                                              | Example                                   |
-| ----------------------------------------------- | -------------------------------------------------------- | ----------------------------------------- |
-| `ANYVAR_STORAGE_URI`                            | Snowflake connection URL                                 | `snowflake://user:pass@account/db/schema` |
-| `ANYVAR_SNOWFLAKE_BATCH_ADD_MODE`               | Batch insertion mode (`merge`, `insert_notin`, `insert`) | `merge`                                   |
-| `ANYVAR_SNOWFLAKE_STORE_PRIVATE_KEY_PASSPHRASE` | Passphrase for encrypted private keys                    | `<passphrase>`                            |
 
 ## Security Considerations
 
@@ -99,6 +91,14 @@ Successful results indicate a correctly configured Snowflake environment.
 * **Connection Issues:** Verify account credentials, account identifiers, and network permissions.
 * **Permission Errors:** Ensure the Snowflake user has proper permissions for schema creation and data manipulation.
 * **Batch Operations:** Adjust `ANYVAR_SNOWFLAKE_BATCH_ADD_MODE` if performance issues occur during bulk inserts.
+
+## Cheat Sheet: Environment Variables
+
+| Variable                                        | Description                                              | Example                                   |
+| ----------------------------------------------- | -------------------------------------------------------- | ----------------------------------------- |
+| `ANYVAR_STORAGE_URI`                            | Snowflake connection URL                                 | `snowflake://user:pass@account/db/schema` |
+| `ANYVAR_SNOWFLAKE_BATCH_ADD_MODE`               | Batch insertion mode (`merge`, `insert_notin`, `insert`) | `merge`                                   |
+| `ANYVAR_SNOWFLAKE_STORE_PRIVATE_KEY_PASSPHRASE` | Passphrase for encrypted private keys                    | `<passphrase>`                            |
 
 ---
 
