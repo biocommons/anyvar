@@ -23,7 +23,7 @@ _AnyVar_ provides Python and REST interfaces to validate, normalize, generate id
 	git clone https://github.com/biocommons/anyvar
 	cd anyvar
 	```
-2. If desired, create/start a database for AnyVar to use. See [Setting up Dependencies](#setting-up-dependencies) for detailed instructions on how to set up a database
+2. If desired, create/start a database for AnyVar to use. See [Optional Dependencies - Databases](#optional-dependencies---databases) for detailed instructions on how to set up a database. Otherwise, set the `ANYVAR_STORAGE_URI` environment variable to `null` to use AnyVar without a database.
 
 3. **Configure required dependencies:**
 
