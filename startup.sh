@@ -11,8 +11,7 @@ if [ -z "${VIRTUAL_ENV:-}" ]; then
 	. "$VEDIR/bin/activate"
 fi;
 
-# 4. Start the server
-
+# 3. Start the server
 if [ "${DEV_MODE:-false}" = "true" ]; then
   exec uvicorn anyvar.restapi.main:app --app-dir src --reload
 else
