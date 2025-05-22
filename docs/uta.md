@@ -12,7 +12,7 @@ export UTA_DB_URL=postgresql://anonymous:anonymous@uta.biocommons.org:5432/uta/u
 
 This public instance is convenient but may experience slower performance during peak usage.
 
-## Local Docker Installation (Recommended for larger workloads)
+## Docker Installation (Recommended for larger workloads)
 
 A local Docker setup is recommended for consistent performance and reliability.
 
@@ -31,6 +31,7 @@ A local Docker setup is recommended for consistent performance and reliability.
     uta_version=uta_20241220
     docker pull biocommons/uta:${uta_version}
     ```
+    _This process will likely take 1-3 minutes._
 
 2. **Create and Populate Docker Volume:**
 
@@ -46,7 +47,7 @@ A local Docker setup is recommended for consistent performance and reliability.
 
     ```shell
     docker run  --platform linux/amd64 -d --rm -e POSTGRES_PASSWORD=uta \
-      -v uta_vol:/var/lib/postgresql/data \
+      -v uta_vol:/var/lib/postgresql/dat  a \
       --name $uta_version -p 5432:5432 biocommons/uta:${uta_version}
     ```
 
@@ -55,16 +56,14 @@ A local Docker setup is recommended for consistent performance and reliability.
     ```shell
     docker logs -f $uta_version
     ```
+    Once the log indicates readiness (`database system is ready`), your UTA installation is active.
 
-Once the log indicates readiness (`database system is ready`), your UTA installation is active.
+5. **Set Environment Variable:**
 
-### Set Environment Variable
-
-Configure your AnyVar environment to connect to the local UTA instance:
-
-```shell
-export UTA_DB_URL=postgresql://anonymous@localhost:5432/uta/uta_20241220
-```
+    Configure AnyVar to use UTA.
+    ```shell
+    export UTA_DB_URL=postgresql://anonymous@localhost:5432/uta/uta_20241220
+    ```
 
 ### Verifying UTA Installation
 
@@ -78,7 +77,7 @@ A successful query returns metadata indicating the version and setup details.
 
 ## Troubleshooting and Validation
 
-* **Connection Issues:** Ensure port 5432 is available or change the port if conflicts arise.
+* **Connection Issues:** Ensure port 5432 is available, or change the port if conflicts arise. Be sure to update your `UTA_DB_URL` environment variable if you change the port number.
 
   ```shell
   docker run --platform linux/amd64 -d --rm -e POSTGRES_PASSWORD=uta \
@@ -100,13 +99,13 @@ A successful query returns metadata indicating the version and setup details.
   docker logs $uta_version
   ```
 
-## Additional Environment Variables
+## Cheat Sheat: Environment Variables
 
 | Variable     | Description                     | Example                                                  |
 | ------------ | ------------------------------- | -------------------------------------------------------- |
 | `UTA_DB_URL` | Database connection URL for UTA | `postgresql://anonymous@localhost:5432/uta/uta_20241220` |
 
-Ensure the environment variable is consistently set before starting AnyVar.
+Ensure the environment variable is set before starting AnyVar.
 
 ---
 
