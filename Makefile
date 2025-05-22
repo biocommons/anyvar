@@ -33,13 +33,14 @@ help:
 ############################################################################
 #= SETUP, INSTALLATION, PACKAGING
 
-#=> venv: make a Python 3 virtual environment
+#=> venv: make a Python 3 virtual environment & install basic dependencies
 .PHONY: venv/%
 venv/%:
 	python$* -m venv $@; \
-	source $@/bin/activate; \
+	. $@/bin/activate; \
 	python -m ensurepip --upgrade; \
-	pip install --upgrade pip setuptools
+	pip install --upgrade pip setuptools; \
+	pip install .
 
 #=> develop: install package in develop mode
 .PHONY: develop
@@ -59,6 +60,15 @@ devready:
 .PHONY: bdist bdist_egg bdist_wheel build build_sphinx sdist install
 bdist bdist_egg bdist_wheel build sdist install: %:
 	python setup.py $@
+
+.PHONY: start
+start:
+	PYV=$(PYV) VEDIR=$(VEDIR) bash ./startup.sh
+
+.PHONY: start-dev
+start-dev:
+	PYV=$(PYV) VEDIR=$(VEDIR) DEV_MODE=true bash ./startup.sh
+
 
 ############################################################################
 #= TESTING
