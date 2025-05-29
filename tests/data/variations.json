@@ -60,18 +60,18 @@
     }
   },
   "copy_numbers": {
-    "ga4gh:CX.bY_40M893gdWmNhU598V-T_dYtPJs-pp": {
+    "ga4gh:CX.eVlFPLW5eFChqk1GX5QBpHent0UchVhG": {
       "params": {
         "definition": "NC_000013.11:g.26440969_26443305del",
-        "copy_change": "EFO:0030069",
+        "copy_change": "complete genomic loss",
         "input_type": "CopyNumberChange"
       },
       "copy_number_response": {
         "messages": [],
         "object": {
-          "id": "ga4gh:CX.bY_40M893gdWmNhU598V-T_dYtPJs-pp",
+          "id": "ga4gh:CX.eVlFPLW5eFChqk1GX5QBpHent0UchVhG",
           "type": "CopyNumberChange",
-          "digest": "bY_40M893gdWmNhU598V-T_dYtPJs-pp",
+          "digest": "eVlFPLW5eFChqk1GX5QBpHent0UchVhG",
           "location": {
             "id": "ga4gh:SL.4akcjXlbAu4xBKnxjOL_b4DM_20HOCA3",
             "type": "SequenceLocation",
@@ -83,9 +83,9 @@
             "start": 26440968,
             "end": 26443305
           },
-          "copyChange": "EFO:0030069"
+          "copyChange": "complete genomic loss"
         },
-        "object_id": "ga4gh:CX.bY_40M893gdWmNhU598V-T_dYtPJs-pp"
+        "object_id": "ga4gh:CX.eVlFPLW5eFChqk1GX5QBpHent0UchVhG"
       }
     },
     "ga4gh:CN.QnU97C-cRW431O9qWia9UCVRBDvGDH7I": {

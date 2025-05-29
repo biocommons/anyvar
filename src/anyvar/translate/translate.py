@@ -66,16 +66,6 @@ class _Translator(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def translate_vcf_row(self, assembly: str, coords: str) -> VrsVariation | None:
-        """Translate VCF-like data to a normalized VRS object.
-
-        :param coords: string formatted a la "<chr>-<pos>-<ref>-<alt>"
-        :param assembly: The assembly used in `coords`
-        :return: VRS variation (using VRS-Python class) if translation is successful
-        """
-        raise NotImplementedError
-
-    @abstractmethod
     def get_sequence_id(self, accession_id: str) -> str:
         """Get GA4GH sequence identifier for provided accession ID
 
