@@ -72,7 +72,7 @@ cqa:
 
 .PHONY: testready
 testready:
-	pip install -e '.[postgres,snowflake,queueing,test,dev]'
+	pip install -e '.[postgres,snowflake,queueing,test]'
 
 #=> test: execute tests
 .PHONY: test
