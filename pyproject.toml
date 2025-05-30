@@ -22,6 +22,7 @@ dependencies = [
     "ga4gh.vrs[extras]~=2.1.2",
     "sqlalchemy~=1.4.54",
     "pyyaml",
+    "agct"
 ]
 dynamic = ["version"]
 
@@ -134,7 +135,6 @@ select = [
     "PERF",  # https://docs.astral.sh/ruff/rules/#perflint-perf
     "FURB",  # https://docs.astral.sh/ruff/rules/#refurb-furb
     "RUF",  # https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
-    "FAST", # https://docs.astral.sh/ruff/rules/#fastapi-fast
 ]
 fixable = [
     "I",
