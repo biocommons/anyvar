@@ -296,47 +296,51 @@ async def add_creation_timestamp_annotation(
     return response
 
 
-# @app.middleware("http")
-# async def add_genomic_liftover_annotation(
-#     request: Request, call_next: Callable
-# ) -> Response:
-# Do nothing on request. Pass downstream.
-# response = await call_next(request)
+@app.middleware("http")
+async def add_genomic_liftover_annotation(
+    request: Request, call_next: Callable
+) -> Response:
+    """Perform genomic liftover"""
+    # Do nothing on request. Pass downstream.
+    response = await call_next(request)
 
-# only add liftover annotation on inital registration
-# if request.url.path == "/variation":
-# annotator: AnyAnnotation = getattr(request.app.state, "anyannotation", None)
-# if annotator:
-#     response_chunks = [chunk async for chunk in response.body_iterator]
-#     response_body = b"".join(response_chunks)
-#     response_body = response_body.decode("utf-8")
-#     response_json: dict = json.loads(response_body)
-#     vrs_id = response_json.get("object", {}).get("id")
-#     annotations = annotator.get_annotation(vrs_id, "liftover_of")
-# if not annotations:
-# av: AnyVar = request.app.state.anyvar
-# seqrepo_data_proxy = av.translator.dp
-# seqrepo_data_proxy. # RIP there's not a function here to get chromosome # or +/- strand
+    # only add liftover annotation on inital registration
+    # if request.url.path == "/variation":
+    annotator: AnyAnnotation = getattr(request.app.state, "anyannotation", None)
+    if annotator:
+        response_chunks = [chunk async for chunk in response.body_iterator]
+        response_body = b"".join(response_chunks)
+        response_body = response_body.decode("utf-8")
+        response_json: dict = json.loads(response_body)
+        vrs_id = response_json.get("object", {}).get("id")
+        annotations = annotator.get_annotation(vrs_id, "liftover_of")
+        if not annotations:
+            # av: AnyVar = request.app.state.anyvar
+            # seqrepo_data_proxy = av.translator.dp
+            # seqrepo_data_proxy. # RIP there's not a function here to get chromosome # or +/- strand
 
-# converter = Converter(Genome.HG38, Genome.HG19)
+            # converter = Converter(Genome.HG38, Genome.HG19)
 
-# annotator.put_annotation(
-#     object_id=vrs_id,
-#     annotation_type="liftover_of",
-#     annotation={
-#         # TODO
-#     },
-# )
+            # seqrepo = SeqRepo(os.environ.get("SEQREPO_DATAPROXY_URI"))
+            # digest = request.body["location"]["sequenceReference"]["refgetAccession"].split(".")[1]
 
-# Create a new response object since we have exhausted the response body iterator
-# return JSONResponse(
-#     content=response_json,
-#     status_code=response.status_code,
-#     headers=response.headers,
-#     media_type=response.media_type,
-# )
+            annotator.put_annotation(
+                object_id=vrs_id,
+                annotation_type="liftover_of",
+                annotation={
+                    # TODO
+                },
+            )
 
-# return response
+        # Create a new response object since we have exhausted the response body iterator
+        return JSONResponse(
+            content=response_json,
+            status_code=response.status_code,
+            headers=response.headers,
+            media_type=response.media_type,
+        )
+
+    return response
 
 
 @app.put(
