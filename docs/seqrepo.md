@@ -79,7 +79,7 @@ Docker is suitable for containerized environments or users preferring isolation.
 	export SEQREPO_DATAPROXY_URI=seqrepo+http://localhost:5001/seqrepo
 	```
 
-## Native Installation (Rrsync Method)
+## Native Installation (Rsync Method)
 
 Useful when direct file or Docker setups are not feasible.
 
