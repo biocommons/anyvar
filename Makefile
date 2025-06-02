@@ -70,6 +70,10 @@ cqa:
 	black --check src
 	bandit -ll -r src
 
+.PHONY: testready
+testready:
+	pip install -e '.[postgres,snowflake,queueing,test]'
+
 #=> test: execute tests
 .PHONY: test
 test:
