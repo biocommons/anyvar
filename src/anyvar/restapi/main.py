@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import pathlib
+import re
 import tempfile
 import uuid
 from collections.abc import Callable
@@ -14,6 +15,7 @@ from http import HTTPStatus
 from typing import Annotated
 
 import ga4gh.vrs
+from biocommons.seqrepo import SeqRepo
 from fastapi import (
     BackgroundTasks,
     Body,
@@ -303,6 +305,7 @@ async def add_genomic_liftover_annotation(
     """Perform genomic liftover"""
     # Do nothing on request. Pass downstream.
     response = await call_next(request)
+    # print("\n===============================================================")
 
     # only add liftover annotation on inital registration
     # if request.url.path == "/variation":
@@ -312,12 +315,40 @@ async def add_genomic_liftover_annotation(
         response_body = b"".join(response_chunks)
         response_body = response_body.decode("utf-8")
         response_json: dict = json.loads(response_body)
-        vrs_id = response_json.get("object", {}).get("id")
+        # print("response:", json.dumps(response_json, indent=2))
+
+        vrs_allele = response_json.get("object", {})
+        # print("vrs_allele:", json.dumps(vrs_allele, indent=2))
+        vrs_id = response_json.get("object_id")
+        # print("vrs_id:", vrs_id)
         annotations = annotator.get_annotation(vrs_id, "liftover_of")
         if not annotations:
-            # av: AnyVar = request.app.state.anyvar
-            # seqrepo_data_proxy = av.translator.dp
-            # seqrepo_data_proxy. # RIP there's not a function here to get chromosome # or +/- strand
+            # TODO: error handling here
+            seqrepo_location_match_set = re.search(
+                r"(/usr/.*)", os.environ.get("SEQREPO_DATAPROXY_URI", "")
+            )
+            seqrepo_location = (
+                seqrepo_location_match_set.group(1)
+                if seqrepo_location_match_set
+                else None
+            )
+            seqrepo = SeqRepo(seqrepo_location)
+
+            grch38_seq = seqrepo.fetch(
+                "GRCH38",
+                "",
+                start=vrs_allele["location"]["start"],
+                end=vrs_allele["location"]["end"],
+            )
+            grch37_seq = seqrepo.fetch(
+                "GRCH37",
+                "",
+                start=vrs_allele["location"]["start"],
+                end=vrs_allele["location"]["end"],
+            )
+
+            result = grch38_seq or grch37_seq
+            # print(grch38_seq, grch37_seq)
 
             # converter = Converter(Genome.HG38, Genome.HG19)
 
@@ -328,7 +359,7 @@ async def add_genomic_liftover_annotation(
                 object_id=vrs_id,
                 annotation_type="liftover_of",
                 annotation={
-                    # TODO
+                    result  # TODO
                 },
             )
 
@@ -340,6 +371,7 @@ async def add_genomic_liftover_annotation(
             media_type=response.media_type,
         )
 
+    # print("===============================================================\n")
     return response
 
 
