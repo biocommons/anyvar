@@ -1,6 +1,6 @@
 # SQL Database Setup
 
-A Postgres or Snowflake database may optionally be used with AnyVar. Use the  `ANYVAR_STORAGE_URI` environment variable
+A Postgres, Snowflake, or DuckDB database may optionally be used with AnyVar. This database is used to cache variants that have been transformed by AnyVar. Use the  `ANYVAR_STORAGE_URI` environment variable
 to define the database connection URL (see the documentation for your chosen database implementation for more details). AnyVar uses
 [SQLAlchemy 1.4](https://docs.sqlalchemy.org/en/14/index.html) to provide database
 connection management. The default database connection URL
