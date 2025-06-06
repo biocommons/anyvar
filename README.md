@@ -93,14 +93,49 @@ pre-commit install
 
 Run tests:
 
-```shell
-make test
-```
+1. Set up a database for testing. The default is a postgres database, which you can set up by following the instructions found here: `src/docs/postgres.md`.
 
-Specify test database with:
+2. Follow the [quickstart guide](#quick-start) to get AnyVar running
 
+3. If you haven't run `make devready` before, open a new terminal and do so now. Then, source your venv by running: `source venv/3.11/bin/activate`
+
+    Otherwise, you can skip straight to sourcing your venv: `source venv/3.11/bin/activate`
+
+4. Within your venv, run `make testready` if you've never done so before. Otherwise, skip this step.
+
+5. Within your venv, export the following environment variables. (Note: if you ever `deactivate` your venv, you'll need to export all of these again)
+    - `SEQREPO_DATAPROXY_URI` - See the quickstart guide above.
+    - `ANYVAR_STORAGE_URI` - See the quickstart guide above.
+    - `ANYVAR_TEST_STORAGE_URI` - This specifies the database to use for tests. If you set up a postgres database by following the README-pg guide suggested in step 1, then you can just copy/paste the example `ANYVAR_TEST_STORAGE_URI` found below.
+
+    For example:
+      ```shell
+      export ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_test
+      export ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@localhost:5432/anyvar
+      export SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/latest
+      ```
+
+6. Finally, run tests with the following command:
+
+    ```shell
+    make test
+    ```
+
+### Notes
+Currently, there is some interdependency between test modules -- namely, tests that rely
+on reading data from storage assume that the data from `test_variation` has been
+uploaded. A pytest hook ensures correct test order, but some test modules may not be
+able to pass when run in isolation. By default, the tests will use a Postgres database
+installation. To run the tests against a Snowflake database, change the
+`ANYVAR_TEST_STORAGE_URI` to a Snowflake URI and run the tests.
+
+For the `tests/test_vcf::test_vcf_registration_async` unit test to pass, a real broker and backend
+are required for Celery to interact with.  Set the `CELERY_BROKER_URL` and `CELERY_BACKEND_URL`
+environment variables.  The simplest solution is to run Redis locally and use that for both
+the broker and the backend, eg:
 ```shell
-export ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_test
+% export CELERY_BROKER_URL="redis://"
+% export CELERY_BACKEND_URL="redis://"
 ```
 
 ## Logging
