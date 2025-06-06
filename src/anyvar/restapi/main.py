@@ -15,7 +15,7 @@ from http import HTTPStatus
 from typing import Annotated
 
 import ga4gh.vrs
-from biocommons.seqrepo import SeqRepo
+from agct import Converter, Genome, Strand
 from fastapi import (
     BackgroundTasks,
     Body,
@@ -308,68 +308,113 @@ async def add_genomic_liftover_annotation(
     # print("\n===============================================================")
 
     # only add liftover annotation on inital registration
-    # if request.url.path == "/variation":
-    annotator: AnyAnnotation = getattr(request.app.state, "anyannotation", None)
-    if annotator:
-        response_chunks = [chunk async for chunk in response.body_iterator]
-        response_body = b"".join(response_chunks)
-        response_body = response_body.decode("utf-8")
-        response_json: dict = json.loads(response_body)
-        # print("response:", json.dumps(response_json, indent=2))
-
-        vrs_allele = response_json.get("object", {})
-        # print("vrs_allele:", json.dumps(vrs_allele, indent=2))
-        vrs_id = response_json.get("object_id")
-        # print("vrs_id:", vrs_id)
-        annotations = annotator.get_annotation(vrs_id, "liftover_of")
-        if not annotations:
-            # TODO: error handling here
-            seqrepo_location_match_set = re.search(
-                r"(/usr/.*)", os.environ.get("SEQREPO_DATAPROXY_URI", "")
-            )
-            seqrepo_location = (
-                seqrepo_location_match_set.group(1)
-                if seqrepo_location_match_set
-                else None
-            )
-            seqrepo = SeqRepo(seqrepo_location)
-
-            grch38_seq = seqrepo.fetch(
-                "GRCH38",
-                "",
-                start=vrs_allele["location"]["start"],
-                end=vrs_allele["location"]["end"],
-            )
-            grch37_seq = seqrepo.fetch(
-                "GRCH37",
-                "",
-                start=vrs_allele["location"]["start"],
-                end=vrs_allele["location"]["end"],
-            )
-
-            result = grch38_seq or grch37_seq
-            # print(grch38_seq, grch37_seq)
-
-            # converter = Converter(Genome.HG38, Genome.HG19)
-
-            # seqrepo = SeqRepo(os.environ.get("SEQREPO_DATAPROXY_URI"))
-            # digest = request.body["location"]["sequenceReference"]["refgetAccession"].split(".")[1]
-
-            annotator.put_annotation(
-                object_id=vrs_id,
-                annotation_type="liftover_of",
-                annotation={
-                    result  # TODO
-                },
-            )
-
-        # Create a new response object since we have exhausted the response body iterator
-        return JSONResponse(
-            content=response_json,
-            status_code=response.status_code,
-            headers=response.headers,
-            media_type=response.media_type,
+    if request.url.path == "/variation" or request.url.path == "/vrs_variation":
+        annotator: AnyAnnotation | None = getattr(
+            request.app.state, "anyannotation", None
         )
+        if annotator:
+            response_chunks = [chunk async for chunk in response.body_iterator]
+            response_body = b"".join(response_chunks)
+            response_body = response_body.decode("utf-8")
+            response_json: dict = json.loads(response_body)
+
+            vrs_allele = response_json.get("object")
+            vrs_id = response_json.get("object_id")
+            # TODO: Error handling
+
+            # print("vrs_allele:")
+            # print("id:", vrs_id)
+            # pprint(vrs_allele)
+
+            liftover_annotation = annotator.get_annotation(vrs_id, "liftover_of")
+            if not liftover_annotation:
+                av: AnyVar = request.app.state.anyvar
+                seqrepo_dataproxy = av.translator.dp
+
+                # metadata = seqrepo_dataproxy.get_metadata(vrs_id)
+                # print("aliases:", metadata)
+
+                refget_accession = (
+                    vrs_allele.get("location", {})
+                    .get("sequenceReference", {})
+                    .get("refgetAccession")
+                )
+                # print("refget_accession:", refget_accession)
+
+                grch37_aliases = list(
+                    seqrepo_dataproxy.translate_sequence_identifier(
+                        f"ga4gh:{refget_accession}", "GRCh37"
+                    )
+                )
+                grch38_aliases = list(
+                    seqrepo_dataproxy.translate_sequence_identifier(
+                        f"ga4gh:{refget_accession}", "GRCh38"
+                    )
+                )
+
+                # print("grch37_translation:", grch37_aliases)
+                # print("grch38_translation:", grch38_aliases)
+
+                from_assembly = None
+                to_assembly = None
+                aliases = []
+                if grch37_aliases:
+                    from_assembly = Genome.HG19
+                    to_assembly = Genome.HG38
+                    aliases = grch37_aliases
+                elif grch38_aliases:
+                    from_assembly = Genome.HG38
+                    to_assembly = Genome.HG19
+                    aliases = grch38_aliases
+
+                # extract chromosome number
+                match_group = re.search(r":(?:chr)?(\d+)$", aliases[0])
+                chromosome_number: str | None = (
+                    match_group.group(1) if match_group else None
+                )
+                # converted_object = perform_liftover(from_assembly, to_assembly, chromosome_number, int(vrs_allele.get("location", {}).get("start")))
+                converter = Converter(from_assembly, to_assembly)
+                converted_object = converter.convert_coordinate(
+                    f"chr{chromosome_number}",
+                    int(vrs_allele.get("location", {}).get("start")),
+                    Strand.POSITIVE,
+                )
+
+                # print("converted_object:", converted_object)
+
+                # grch38_seq = seqrepo.fetch(
+                #     "GRCH38",
+                #     "",
+                #     start=vrs_allele["location"]["start"],
+                #     end=vrs_allele["location"]["end"],
+                # )
+                # grch37_seq = seqrepo.fetch(
+                #     "GRCH37",
+                #     "",
+                #     start=vrs_allele["location"]["start"],
+                #     end=vrs_allele["location"]["end"],
+                # )
+
+                # result = grch38_seq or grch37_seq
+
+                # seqrepo = SeqRepo(os.environ.get("SEQREPO_DATAPROXY_URI"))
+                # digest = request.body["location"]["sequenceReference"]["refgetAccession"].split(".")[1]
+
+                annotator.put_annotation(
+                    object_id=vrs_id,
+                    annotation_type="liftover_of",
+                    annotation={
+                        "converted_obj": converted_object  # TODO
+                    },
+                )
+
+            # Create a new response object since we have exhausted the response body iterator
+            return JSONResponse(
+                content=response_json,
+                status_code=response.status_code,
+                headers=response.headers,
+                media_type=response.media_type,
+            )
 
     # print("===============================================================\n")
     return response
