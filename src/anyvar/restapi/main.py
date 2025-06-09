@@ -280,9 +280,7 @@ async def add_creation_timestamp_annotation(
                     object_id=vrs_id,
                     annotation_type="creation_timestamp",
                     annotation={
-                        "timestamp": datetime.datetime.now(
-                            tz=datetime.timezone.utc
-                        ).isoformat()
+                        "timestamp": datetime.datetime.now(tz=datetime.UTC).isoformat()
                     },
                 )
             # Create a new response object since we have exhausted the response body iterator
