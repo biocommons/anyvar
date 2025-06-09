@@ -298,6 +298,54 @@ async def add_creation_timestamp_annotation(
     return response
 
 
+# def build_converter(refget_accession, seqrepo_dataproxy) -> Converter | None:
+#     prefixed_accession = f"ga4gh:{refget_accession}"
+
+#     grch37_aliases = list(
+#         seqrepo_dataproxy.translate_sequence_identifier(
+#             prefixed_accession, "GRCh37"
+#         )
+#     )
+#     grch38_aliases = list(
+#         seqrepo_dataproxy.translate_sequence_identifier(
+#             prefixed_accession, "GRCh38"
+#         )
+#     )
+
+#     from_assembly = None
+#     to_assembly = None
+#     if grch37_aliases and grch38_aliases: # sequence is present in both assemblies
+#         return None
+#     elif grch37_aliases:
+#         from_assembly = Genome.HG19
+#         to_assembly = Genome.HG38
+#     elif grch38_aliases:
+#         from_assembly = Genome.HG38
+#         to_assembly = Genome.HG19
+
+#     return Converter(from_assembly, to_assembly)
+
+
+def get_chromosome_from_aliases(aliases: list[str]) -> str:
+    """:param aliases: the list of aliases to search through for the chromosome number
+    :return: a string chromosome number, prefixed by "chr"
+    """
+    reference_alias = None
+    for alias in aliases:
+        if "GRCh" in alias:
+            reference_alias = alias
+
+    if reference_alias is None:
+        raise Exception  # TODO: make this more explicit
+
+    match_group = re.search(r":(?:chr)?(\d+)$", reference_alias)
+    chromosome_number: str | None = match_group.group(1) if match_group else None
+    if chromosome_number is None:
+        raise Exception  # TODO: make this more explicit
+
+    return f"chr{chromosome_number}"
+
+
 @app.middleware("http")
 async def add_genomic_liftover_annotation(
     request: Request, call_next: Callable
@@ -305,7 +353,6 @@ async def add_genomic_liftover_annotation(
     """Perform genomic liftover"""
     # Do nothing on request. Pass downstream.
     response = await call_next(request)
-    # print("\n===============================================================")
 
     # only add liftover annotation on inital registration
     if request.url.path == "/variation" or request.url.path == "/vrs_variation":
@@ -322,7 +369,7 @@ async def add_genomic_liftover_annotation(
             vrs_id = response_json.get("object_id")
             # TODO: Error handling
 
-            liftover_annotation = annotator.get_annotation(vrs_id, "liftover_of")
+            liftover_annotation = annotator.get_annotation(vrs_id, "liftover_to")
             if not liftover_annotation:
                 av: AnyVar = request.app.state.anyvar
                 seqrepo_dataproxy = av.translator.dp
@@ -345,102 +392,69 @@ async def add_genomic_liftover_annotation(
                     )
                 )
 
-                # TODO: handle cases where sequence is unchanged between reference assemblies
                 from_assembly = None
                 to_assembly = None
                 aliases = []
-                if grch37_aliases:
+                if grch37_aliases and not grch38_aliases:
                     from_assembly = Genome.HG19
                     to_assembly = Genome.HG38
                     aliases = grch37_aliases
-                elif grch38_aliases:
+                elif grch38_aliases and not grch37_aliases:
                     from_assembly = Genome.HG38
                     to_assembly = Genome.HG19
                     aliases = grch38_aliases
 
-                match_group = re.search(
-                    r":(?:chr)?(\d+)$", aliases[0]
-                )  # TODO: might not always be first entry
-                chromosome_number: str | None = (
-                    match_group.group(1) if match_group else None
-                )
-                chromsome_string = f"chr{chromosome_number}"
+                # Perform liftover conversion
+                # Note: if sequence is present in both assemblies, no need to liftover. Annotate with empty object.
+                converted_vrs_allele = {}
+                if to_assembly and from_assembly:
+                    converter = Converter(from_assembly, to_assembly)
+                    chromosome = get_chromosome_from_aliases(aliases)
 
-                converter = Converter(from_assembly, to_assembly)
-                converted_start = converter.convert_coordinate(
-                    chromsome_string,
-                    int(vrs_allele.get("location", {}).get("start")),
-                    Strand.POSITIVE,
-                )[0][1]
-                converted_end = converter.convert_coordinate(
-                    chromsome_string,
-                    int(vrs_allele.get("location", {}).get("end")),
-                    Strand.POSITIVE,
-                )[0][1]
+                    converted_start = converter.convert_coordinate(
+                        chromosome,
+                        int(vrs_allele.get("location", {}).get("start")),
+                        Strand.POSITIVE,
+                    )[0][1]
+                    converted_end = converter.convert_coordinate(
+                        chromosome,
+                        int(vrs_allele.get("location", {}).get("end")),
+                        Strand.POSITIVE,
+                    )[0][1]
 
-                assembly_map = {Genome.HG19: "GRCh37", Genome.HG38: "GRCh38"}
-                new_alias = f"{assembly_map[to_assembly]}:{chromosome_number}"
+                    assembly_map = {Genome.HG19: "GRCh37", Genome.HG38: "GRCh38"}
+                    new_alias = f"{assembly_map[to_assembly]}:{chromosome}"
 
-                converted_id = seqrepo_dataproxy.translate_sequence_identifier(
-                    new_alias, "ga4gh"
-                )
+                    converted_id = seqrepo_dataproxy.translate_sequence_identifier(
+                        new_alias, "ga4gh"
+                    )[0]
+                    # print("converted_id:", converted_id)
 
-                # cool_seq_tool = CoolSeqTool(sr=seqrepo)
-                # seqrepo_access = cool_seq_tool.seqrepo_access
-                # lifted_sequence = seqrepo_access.get_reference_sequence(new_alias, converted_start, converted_end)
-                # print("lifted_sequence:", lifted_sequence)
+                    converted_vrs_allele = vrs_allele
+                    converted_vrs_allele["location"]["id"] = ""  # TODO
+                    converted_vrs_allele["location"]["start"] = converted_start
+                    converted_vrs_allele["location"]["end"] = converted_end
+                    converted_vrs_allele["location"]["sequenceReference"][
+                        "refgetAccession"
+                    ] = converted_id.split("ga4gh:")[1]
+                    # print("CONVERTED_ALLELE:")
+                    # pprint(converted_vrs_allele)
 
-                # seqrepo = SeqRepo(os.environ.get("SEQREPO_DATAPROXY_URI", "").split("file://")[1])
-                # lifted_sequence = seqrepo.fetch(new_alias, converted_start, converted_end)
-                # print("lifted_sequence:", lifted_sequence)
-
-                # reference_sequence_id = refget_accession.split(".", 1)[1] # removes the 'SQ' prefix
-
-                # cool_seq_tool = CoolSeqTool()
-                # seqrepo_access = cool_seq_tool.seqrepo_access
-                # new_reference_sequence = seqrepo_access.get_reference_sequence()
-
-                # converted_digest = sha512t24u_digest(accession_sequence)
-
-                # grch38_seq = seqrepo.fetch(
-                #     "GRCH38",
-                #     "",
-                #     start=vrs_allele["location"]["start"],
-                #     end=vrs_allele["location"]["end"],
+                # annotator.put_annotation(
+                #     object_id=vrs_id,
+                #     annotation_type="liftover_to",
+                #     annotation={
+                #         "liftover_to": converted_vrs_allele
+                #     },
                 # )
-                # grch37_seq = seqrepo.fetch(
-                #     "GRCH37",
-                #     "",
-                #     start=vrs_allele["location"]["start"],
-                #     end=vrs_allele["location"]["end"],
-                # )
-
-                # result = grch38_seq or grch37_seq
-
-                # seqrepo = SeqRepo(os.environ.get("SEQREPO_DATAPROXY_URI"))
-                # digest = request.body["location"]["sequenceReference"]["refgetAccession"].split(".")[1]
-
-                annotator.put_annotation(
-                    object_id=vrs_id,
-                    annotation_type="liftover_of",
-                    annotation={
-                        "converted_obj": [
-                            converted_start,
-                            converted_end,
-                            converted_id,
-                        ]  # TODO
-                    },
-                )
 
             # Create a new response object since we have exhausted the response body iterator
             return JSONResponse(
                 content=response_json,
                 status_code=response.status_code,
-                headers=response.headers,
                 media_type=response.media_type,
             )
 
-    # print("===============================================================\n")
     return response
 
 
