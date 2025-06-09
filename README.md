@@ -19,17 +19,24 @@ identifiers, and register biological sequence variation according to the
 
 ## Quick Start
 
-1. Clone the AnyVar repository:
+1. **Clone the AnyVar repository:**
 
 	```shell
 	git clone https://github.com/biocommons/anyvar
 	cd anyvar
 	```
-2. If desired, create/start a database for AnyVar to use. See [Optional Dependencies - Databases](#optional-dependencies---databases) for detailed instructions on how to set up a database. Otherwise, set the `ANYVAR_STORAGE_URI` environment variable to `null` to use AnyVar without a database.
+
+
+2. **Set Environment Variables**
+
+    Create a new file in the root directory of the repo called `.env`. In the next two steps, you will populate this file. You may want to see `.env.example` for reference.
+
+
+2. If desired, create/start a database for AnyVar to use. See [Optional Dependencies - Databases](#optional-dependencies---databases) for detailed instructions on how to set up a database. Otherwise, set the `ANYVAR_STORAGE_URI` environment variable to `null` in your `.env` file to use AnyVar without a database.
 
 3. **Configure required dependencies:**
 
-	AnyVar has several required dependencies and a few optional ones. See [Setting up Dependencies](#setting-up-dependencies) for detailed instructions.
+	AnyVar has several required dependencies and a few optional ones. See [Setting up Dependencies](#setting-up-dependencies) for detailed instructions. Remember to set any environment variables in your `.env` file as directed.
 
 
 4. **Start the AnyVar server:**
@@ -57,7 +64,7 @@ UTA (Universal Transcript Archive) stores transcripts aligned to sequence refere
 AnyVar optionally supports several storage types. For general information about AnyVar's SQL storage options, see [the SQL Storage documentation](docss/sql.md). See below for more specific details on the various storage implementation options.
 
 
-It is also possible to run AnyVar with no database. This is primarily useful for bulk annotations, such as annotating a VCF, where there is no real need to reuse previously computed VRS IDs. To run AnyVar with no database, set the `ANYVAR_STORAGE_URI` environment variable to `null`.
+It is also possible to run AnyVar with no database. This is primarily useful for bulk annotations, such as annotating a VCF, where there is no real need to reuse previously computed VRS IDs. To run AnyVar with no database, set the `ANYVAR_STORAGE_URI` environment variable to `null` in your `.env` file.
 
 #### PostgreSQL (Optional)
 
@@ -105,7 +112,7 @@ Run tests:
 
 4. Within your venv, run `make testready` if you've never done so before. Otherwise, skip this step.
 
-5. Within your venv, export the following environment variables. (Note: if you ever `deactivate` your venv, you'll need to export all of these again)
+5. Ensure the following environment variables are set in your `.env` file:
 
    - `SEQREPO_DATAPROXY_URI` - See the quickstart guide above.
    - `ANYVAR_STORAGE_URI` - See the quickstart guide above.
@@ -114,9 +121,9 @@ Run tests:
    For example:
 
    ```shell
-   export ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_test
-   export ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@localhost:5432/anyvar
-   export SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/latest
+   ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_test
+   ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@localhost:5432/anyvar
+   SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/latest
    ```
 
 6. Finally, run tests with the following command:
