@@ -22,8 +22,10 @@ dependencies = [
     "ga4gh.vrs[extras]~=2.1.2",
     "sqlalchemy~=1.4.54",
     "pyyaml",
-    "cool-seq-tool",
-    "seqrepo"
+    "cool-seq-tool", #TODO: Remove?
+    "seqrepo", #TODO: Remove?
+    "agct",
+    "refget"
 ]
 dynamic = ["version"]
 
