@@ -281,7 +281,7 @@ async def add_creation_timestamp_annotation(
                     annotation_type="creation_timestamp",
                     annotation={
                         "timestamp": datetime.datetime.now(
-                            tz=datetime.timezone.utc
+                            tz=datetime.UTC
                         ).isoformat()
                     },
                 )
