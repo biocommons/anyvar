@@ -43,7 +43,7 @@ def test_iter(storage):
         try:
             next(obj_iter)
             count += 1
-        except StopIteration:  # noqa: PERF203
+        except StopIteration:
             break
     assert count == (
         18
