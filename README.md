@@ -1,6 +1,6 @@
 # AnyVar
 
-*AnyVar* provides Python and REST interfaces to validate, normalize, generate
+_AnyVar_ provides Python and REST interfaces to validate, normalize, generate
 identifiers, and register biological sequence variation according to the
 [GA4GH Variation Representation Specification (VRS)](https://github.com/ga4gh/vrs).
 
@@ -15,41 +15,61 @@ identifiers, and register biological sequence variation according to the
 
 ## Known Issues
 
-**You are encouraged to** [browse issues](https://github.com/biocommons/anyvar/issues).
-All known issues are listed there. Please report any issues you find.
+**You are encouraged to** [browse issues](https://github.com/biocommons/anyvar/issues). All known issues are listed there. Please report any issues you find.
 
 ## Quick Start
 
-Clone the repo and navigate to it:
+1. Clone the AnyVar repository:
 
-```shell
-git clone https://github.com/biocommons/anyvar
-cd anyvar
-```
+	```shell
+	git clone https://github.com/biocommons/anyvar
+	cd anyvar
+	```
+2. If desired, create/start a database for AnyVar to use. See [Optional Dependencies - Databases](#optional-dependencies---databases) for detailed instructions on how to set up a database. Otherwise, set the `ANYVAR_STORAGE_URI` environment variable to `null` to use AnyVar without a database.
 
-Point `ANYVAR_STORAGE_URI` to an available PostgreSQL database:
+3. **Configure required dependencies:**
 
-```shell
-export ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@localhost:5432/anyvar
-```
+	AnyVar has several required dependencies and a few optional ones. See [Setting up Dependencies](#setting-up-dependencies) for detailed instructions.
 
-Set `SEQREPO_DATAPROXY_URI` to local SeqRepo files:
 
-```shell
-export SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/latest
-```
+4. **Start the AnyVar server:**
 
-Or set `SEQREPO_DATAPROXY_URI` to a REST service instance:
+	```shell
+	uvicorn anyvar.restapi.main:app --reload
+	```
 
-```shell
-export SEQREPO_DATAPROXY_URI=seqrepo+http://localhost:5000/seqrepo
-```
+5. Visit [`http://localhost:8000`](http://localhost:8000) to verify the REST API is running.
 
-Start the AnyVar server:
+## Setting up Dependencies
 
-```shell
-uvicorn anyvar.restapi.main:app --reload
-```
+### Required Dependencies
+
+#### SeqRepo
+
+SeqRepo stores biological sequence data and can be accessed locally or via REST API. [Read how to set up SeqRepo locally or through Docker.](docs/seqrepo.md)
+
+#### UTA
+
+UTA (Universal Transcript Archive) stores transcripts aligned to sequence references. [Read how to set up UTA locally or via Docker.](docs/uta.md)
+
+### Optional Dependencies - Databases
+
+AnyVar optionally supports several storage types. For general information about AnyVar's SQL storage options, see [the SQL Storage documentation](docss/sql.md). See below for more specific details on the various storage implementation options.
+
+
+It is also possible to run AnyVar with no database. This is primarily useful for bulk annotations, such as annotating a VCF, where there is no real need to reuse previously computed VRS IDs. To run AnyVar with no database, set the `ANYVAR_STORAGE_URI` environment variable to `null`.
+
+#### PostgreSQL (Optional)
+
+AnyVar supports PostgreSQL databases. [Configure PostgreSQL for AnyVar.](docs/postgres.md)
+
+#### Snowflake (Optional)
+
+AnyVar can also utilize Snowflake. [Detailed instructions available.](docs/snowflake.md)
+
+## Asynchronous Operations
+
+AnyVar supports asynchronous VCF annotation for improved scalability. [See asynchronous operations README.](docs/async.md)
 
 ## Developers
 
@@ -57,8 +77,8 @@ This section is intended for developers who contribute to AnyVar.
 
 ### Prerequisites
 
-- Python >= 3.9
-  - _Note: Python 3.11 is required for developers contributing to AnyVar
+- Python >= 3.11
+  - \_Note: Python 3.11 is required for developers contributing to AnyVar
 - [Docker](https://docs.docker.com/engine/install/)
 
 ### Installing for development
@@ -71,170 +91,42 @@ source venv/3.11/bin/activate
 pre-commit install
 ```
 
-### SeqRepo
-
-First, you must install a local [SeqRepo](https://github.com/biocommons/biocommons.seqrepo):
-
-```shell
-pip install seqrepo
-export SEQREPO_VERSION=2024-02-20
-sudo mkdir -p /usr/local/share/seqrepo
-sudo chown $USER /usr/local/share/seqrepo
-seqrepo pull -i $SEQREPO_VERSION
-seqrepo update-latest
-```
-
-> NOTE: To check for the presence of newer snapshots, use the seqrepo list-remote-instances CLI command.
-
-If you encounter a permission error similar to the one below:
-
-```shell
-PermissionError: [Error 13] Permission denied: '/usr/local/share/seqrepo/2024-02-20._fkuefgd' -> '/usr/local/share/seqrepo/2024-02-20'
-```
-
-Try moving data manually with `sudo`:
-
-```shell
-sudo mv /usr/local/share/seqrepo/$SEQREPO_VERSION.* /usr/local/share/seqrepo/$SEQREPO_VERSION
-```
-
-#### SeqRepo REST
-
-We recommend using Docker to install
-[SeqRepo REST](https://github.com/biocommons/seqrepo-rest-service).
-
-### SQL Database Setup
-
-A Postgres or Snowflake database may optionally be used with *AnyVar*. The Postgres database
-may be either local or remote. Use the  `ANYVAR_STORAGE_URI` environment variable
-to define the database connection URL. *AnyVar* uses
-[SQLAlchemy 1.4](https://docs.sqlalchemy.org/en/14/index.html) to provide database
-connection management. The default database connection URL
-is `postgresql://postgres@localhost:5432/anyvar`.
-
-The database integrations can be modified using the following parameters:
-
-- `ANYVAR_SQL_STORE_BATCH_LIMIT` - in batch mode, limit VRS object upsert batches to
-  this number; defaults to `100,000`
-- `ANYVAR_SQL_STORE_TABLE_NAME` - the name of the table that stores VRS objects;
-  defaults to `vrs_objects`
-- `ANYVAR_SQL_STORE_MAX_PENDING_BATCHES` - the maximum number of pending batches to
-  allow before blocking; defaults to `50`
-- `ANYVAR_SQL_STORE_FLUSH_ON_BATCHCTX_EXIT` - whether or not flush all pending database
-  writes when the batch manager exists; defaults to `True`
-
-The Postgres and Snowflake database connectors utilize a background thread
-to write VRS objects to the database when operating in batch mode (e.g. annotating
-a VCF file). Queries and statistics query only against the already committed database
-state. Therefore, queries issued immediately after a batch operation may not reflect
-all pending changes if the `ANYVAR_SQL_STORE_FLUSH_ON_BATCHCTX_EXIT` parameter is sett
-to `False`.
-
-#### Setting up Postgres
-
-The following instructions are for using a docker-based Postgres instance.
-
-First, run the commands in [README-pg.md](src/anyvar/storage/README-pg.md).
-This will create and start a local Postgres docker instance. It will also create the
-`anyvar` user with the appropriate permissions and create the `anyvar` database.
-
-#### Setting up Snowflake
-
-The Snowflake database and schema must exist prior to starting *AnyVar*. To point
-*AnyVar* at Snowflake, specify a Snowflake URI in the `ANYVAR_STORAGE_URI` environment
-variable. For example:
-
-```markdown
-snowflake://sf_username:@sf_account_identifier/sf_db_name/sf_schema_name?password=sf_password
-```
-
-[Snowflake connection parameter reference](https://docs.snowflake.com/en/developer-guide/python-connector/python-connector-api)
-
-When running interactively and connecting to a Snowflake account that utilizes
-federated authentication or SSO, add the parameter `authenticator=externalbrowser`.
-Non-interactive execution in a federated authentication or SSO environment
-requires a service account to connect. Connections using an encrypted or unencrypted
-private key are also supported by specifying the parameter `private_key=path/to/file.p8`.
-The key material may be URL-encoded and inlined in the connection URI,
-for example: `private_key=-----BEGIN+PRIVATE+KEY-----%0AMIIEvAIBA...`
-
-Environment variables that can be used to modify Snowflake database integration:
-
-- `ANYVAR_SNOWFLAKE_STORE_PRIVATE_KEY_PASSPHRASE` - the passphrase for an encrypted private key
-- `ANYVAR_SNOWFLAKE_BATCH_ADD_MODE` - the SQL statement type to use when adding new VRS objects, one of:
-  - `merge` (default) - use a MERGE statement. This guarantees that duplicate VRS IDs will
-    not be added, but also locks the VRS object table, limiting throughput.
-  - `insert_notin` - use INSERT INTO vrs_objects SELECT FROM tmp WHERE vrs_id NOT IN (...).
-    This narrows the chance of duplicates and does not require a table lock.
-  - `insert` - use INSERT INTO. This maximizes throughput at the cost of not checking for
-    duplicates at all.
-
-If you choose to create the VRS objects table in advance, the minimal table specification is as follows:
-
-```sql
-CREATE TABLE ... (
-    vrs_id VARCHAR(500) COLLATE 'utf8',
-    vrs_object VARIANT
-)
-```
-
-#### Skipping Database Setup
-It is also possible to run AnyVar with no database. This is primarily useful for bulk annotations,
-such as annotating a VCF, where there is no real need to reuse previously computed VRS IDs.
-To run AnyVar with no database, set the `ANYVAR_STORAGE_URI` environment variable to `null`.
-
-### Enabling Asynchronous VCF Annotation
-AnyVar can support using the asynchronous request-response pattern when annotating VCF files.
-This can improve reliability when serving remote clients by eliminating long lived connections
-and allow AnyVar to scale out instead of up to serve a larger request volume.
-
-See [README-async.md](README-async.md) for more details.
-
-### Starting the REST service locally
-
-Once the data dependencies are setup, start the REST server with:
-
-```shell
-uvicorn anyvar.restapi.main:app
-```
-
-In another terminal:
-
-```shell
-curl http://localhost:8000/info
-```
-
 ## Testing
 
-1. Set up a database for testing. The default is a postgres database, which you can set up by following the instructions found here: `src/anyvar/storage/README-pg.md`.
+Run tests:
+
+1. Set up a database for testing. The default is a postgres database, which you can set up by following the instructions found here: `src/docs/postgres.md`.
 
 2. Follow the [quickstart guide](#quick-start) to get AnyVar running
 
 3. If you haven't run `make devready` before, open a new terminal and do so now. Then, source your venv by running: `source venv/3.11/bin/activate`
 
-    Otherwise, you can skip straight to sourcing your venv: `source venv/3.11/bin/activate`
+   Otherwise, you can skip straight to sourcing your venv: `source venv/3.11/bin/activate`
 
 4. Within your venv, run `make testready` if you've never done so before. Otherwise, skip this step.
 
 5. Within your venv, export the following environment variables. (Note: if you ever `deactivate` your venv, you'll need to export all of these again)
-    - `SEQREPO_DATAPROXY_URI` - See the quickstart guide above.
-    - `ANYVAR_STORAGE_URI` - See the quickstart guide above.
-    - `ANYVAR_TEST_STORAGE_URI` - This specifies the database to use for tests. If you set up a postgres database by following the README-pg guide suggested in step 1, then you can just copy/paste the example `ANYVAR_TEST_STORAGE_URI` found below.
 
-    For example:
-      ```shell
-      export ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_test
-      export ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@localhost:5432/anyvar
-      export SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/latest
-      ```
+   - `SEQREPO_DATAPROXY_URI` - See the quickstart guide above.
+   - `ANYVAR_STORAGE_URI` - See the quickstart guide above.
+   - `ANYVAR_TEST_STORAGE_URI` - This specifies the database to use for tests. If you set up a postgres database by following the README-pg guide suggested in step 1, then you can just copy/paste the example `ANYVAR_TEST_STORAGE_URI` found below.
+
+   For example:
+
+   ```shell
+   export ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_test
+   export ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@localhost:5432/anyvar
+   export SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/latest
+   ```
 
 6. Finally, run tests with the following command:
 
-    ```shell
-    make test
-    ```
+   ```shell
+   make test
+   ```
 
 ### Notes
+
 Currently, there is some interdependency between test modules -- namely, tests that rely
 on reading data from storage assume that the data from `test_variation` has been
 uploaded. A pytest hook ensures correct test order, but some test modules may not be
@@ -243,51 +135,15 @@ installation. To run the tests against a Snowflake database, change the
 `ANYVAR_TEST_STORAGE_URI` to a Snowflake URI and run the tests.
 
 For the `tests/test_vcf::test_vcf_registration_async` unit test to pass, a real broker and backend
-are required for Celery to interact with.  Set the `CELERY_BROKER_URL` and `CELERY_BACKEND_URL`
-environment variables.  The simplest solution is to run Redis locally and use that for both
+are required for Celery to interact with. Set the `CELERY_BROKER_URL` and `CELERY_BACKEND_URL`
+environment variables. The simplest solution is to run Redis locally and use that for both
 the broker and the backend, eg:
+
 ```shell
 % export CELERY_BROKER_URL="redis://"
 % export CELERY_BACKEND_URL="redis://"
 ```
 
 ## Logging
-AnyVar uses the [Python Logging Module](https://docs.python.org/3/howto/logging.html) to
-output information and diagnostics.  By default, log output is directed to standard output
-and the level is set to `INFO`.  Alternatively, a YAML logging configuration may be specified
-using the `ANYVAR_LOGGING_CONFIG` environment variable.  The value must be the relative or
-absolute path of a YAML file containing a valid logging configuration. The configuration
-in this file will be loaded and used to configured the logging module.
 
-For example:
-```yaml
-version: 1
-disable_existing_loggers: true
-
-formatters:
-  standard:
-    format: "%(threadName)s %(asctime)s - %(name)s - %(levelname)s - %(message)s"
-
-handlers:
-  console:
-    class: logging.StreamHandler
-    level: DEBUG
-    formatter: standard
-    stream: ext://sys.stdout
-
-root:
-  level: INFO
-  handlers: [console]
-  propagate: yes
-
-loggers:
-  anyvar.restapi.main:
-    level: INFO
-    handlers: [console]
-    propagate: no
-
-  anyvar.storage.sql_storage:
-    level: DEBUG
-    handlers: [console]
-    propagate: no
-```
+AnyVar uses Python's built-in logging. To customize logging settings see [docs/logging.md](docs/logging.md)
