@@ -31,6 +31,7 @@ from fastapi import (
     status,
 )
 from fastapi.responses import FileResponse, JSONResponse
+from ga4gh.vrs import models
 from pydantic import StrictStr
 
 import anyvar
@@ -300,34 +301,6 @@ async def add_creation_timestamp_annotation(
     return response
 
 
-# def build_converter(refget_accession, seqrepo_dataproxy) -> Converter | None:
-#     prefixed_accession = f"ga4gh:{refget_accession}"
-
-#     grch37_aliases = list(
-#         seqrepo_dataproxy.translate_sequence_identifier(
-#             prefixed_accession, "GRCh37"
-#         )
-#     )
-#     grch38_aliases = list(
-#         seqrepo_dataproxy.translate_sequence_identifier(
-#             prefixed_accession, "GRCh38"
-#         )
-#     )
-
-#     from_assembly = None
-#     to_assembly = None
-#     if grch37_aliases and grch38_aliases: # sequence is present in both assemblies
-#         return None
-#     elif grch37_aliases:
-#         from_assembly = Genome.HG19
-#         to_assembly = Genome.HG38
-#     elif grch38_aliases:
-#         from_assembly = Genome.HG38
-#         to_assembly = Genome.HG19
-
-#     return Converter(from_assembly, to_assembly)
-
-
 def get_chromosome_from_aliases(aliases: list[str]) -> str:
     """:param aliases: the list of aliases to search through for the chromosome number
     :return: a string chromosome number, prefixed by "chr"
@@ -348,6 +321,23 @@ def get_chromosome_from_aliases(aliases: list[str]) -> str:
     return f"chr{chromosome_number}"
 
 
+async def _parse_response(response: Response) -> dict:
+    """Convert a Response object to a dict.
+    WARNING: This consumes the response iterator. Middleware functions will need to
+    re-construct the response object before passing it on.
+
+    :param response: the Response object to parse
+    :return: a dictionary representation of the response
+    """
+    response_chunks = [chunk async for chunk in response.body_iterator]
+    response_body_encoded = b"".join(response_chunks)
+    response_body = response_body_encoded.decode("utf-8")
+    return json.loads(response_body)
+
+
+# def
+
+
 @app.middleware("http")
 async def add_genomic_liftover_annotation(
     request: Request, call_next: Callable
@@ -362,17 +352,16 @@ async def add_genomic_liftover_annotation(
             request.app.state, "anyannotation", None
         )
         if annotator:
-            response_chunks = [chunk async for chunk in response.body_iterator]
-            response_body = b"".join(response_chunks)
-            response_body = response_body.decode("utf-8")
-            response_json: dict = json.loads(response_body)
+            response_json: dict = await _parse_response(response)
 
-            vrs_allele_json = response_json.get("object")
-            if vrs_allele_json is None:
+            vrs_allele_object = response_json.get("object")
+            if vrs_allele_object is None:
                 raise Exception  # TODO: be more specific
 
             av: AnyVar = request.app.state.anyvar
-            vrs_allele = av.translator.translate_object(vrs_allele_json)
+            vrs_allele: models.Allele = av.translator.translate_object(
+                vrs_allele_object
+            )
 
             vrs_id = response_json.get("object_id")
             # TODO: Error handling
@@ -445,11 +434,11 @@ async def add_genomic_liftover_annotation(
 
                     converted_vrs_allele_object = converted_vrs_allele.model_dump()
 
-                annotator.put_annotation(
-                    object_id=vrs_id,
-                    annotation_type="liftover_to",
-                    annotation={"liftover_to": converted_vrs_allele_object},
-                )
+                # annotator.put_annotation(
+                #     object_id=vrs_id,
+                #     annotation_type="liftover_to",
+                #     annotation={"liftover_to": converted_vrs_allele_object},
+                # )
 
             # Create a new response object since we have exhausted the response body iterator
             return JSONResponse(
