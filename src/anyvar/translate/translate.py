@@ -59,6 +59,15 @@ class _Translator(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def translate_object(self, allele_object: dict) -> models.Allele:
+        """Translate the provided object into a VRS Allele object
+
+        :param object: the dictionary object that will be used to construct the VRS Allele
+        :returns: A VRS Allele object
+        :raises TranslationError: if the object lacks all required fields to construct a VRS Allele
+        """
+
+    @abstractmethod
     def translate_cnv(self, var: str) -> VrsVariation | None:
         """Translate provided variation text into a normalized VRS object.
 

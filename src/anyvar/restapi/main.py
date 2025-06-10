@@ -16,6 +16,7 @@ from typing import Annotated
 
 import ga4gh.vrs
 from agct import Converter, Genome, Strand
+from dotenv import load_dotenv
 from fastapi import (
     BackgroundTasks,
     Body,
@@ -67,6 +68,7 @@ try:
 except ImportError:
     pass
 
+load_dotenv()
 _logger = logging.getLogger(__name__)
 
 
@@ -365,20 +367,21 @@ async def add_genomic_liftover_annotation(
             response_body = response_body.decode("utf-8")
             response_json: dict = json.loads(response_body)
 
-            vrs_allele = response_json.get("object")
+            vrs_allele_json = response_json.get("object")
+            if vrs_allele_json is None:
+                raise Exception  # TODO: be more specific
+
+            av: AnyVar = request.app.state.anyvar
+            vrs_allele = av.translator.translate_object(vrs_allele_json)
+
             vrs_id = response_json.get("object_id")
             # TODO: Error handling
 
             liftover_annotation = annotator.get_annotation(vrs_id, "liftover_to")
             if not liftover_annotation:
-                av: AnyVar = request.app.state.anyvar
                 seqrepo_dataproxy = av.translator.dp
 
-                refget_accession = (
-                    vrs_allele.get("location", {})
-                    .get("sequenceReference", {})
-                    .get("refgetAccession")
-                )
+                refget_accession = vrs_allele.location.sequenceReference.refgetAccession
                 prefixed_accession = f"ga4gh:{refget_accession}"
 
                 grch37_aliases = list(
@@ -413,12 +416,12 @@ async def add_genomic_liftover_annotation(
 
                     converted_start = converter.convert_coordinate(
                         chromosome,
-                        int(vrs_allele.get("location", {}).get("start")),
+                        int(vrs_allele.location.start),
                         Strand.POSITIVE,
                     )[0][1]
                     converted_end = converter.convert_coordinate(
                         chromosome,
-                        int(vrs_allele.get("location", {}).get("end")),
+                        int(vrs_allele.location.end),
                         Strand.POSITIVE,
                     )[0][1]
 
@@ -428,25 +431,23 @@ async def add_genomic_liftover_annotation(
                     converted_id = seqrepo_dataproxy.translate_sequence_identifier(
                         new_alias, "ga4gh"
                     )[0]
-                    # print("converted_id:", converted_id)
 
-                    converted_vrs_allele = vrs_allele
-                    converted_vrs_allele["location"]["id"] = ""  # TODO
-                    converted_vrs_allele["location"]["start"] = converted_start
-                    converted_vrs_allele["location"]["end"] = converted_end
-                    converted_vrs_allele["location"]["sequenceReference"][
+                    converted_vrs_allele_object = vrs_allele.model_dump()
+                    converted_vrs_allele_object["location"]["start"] = converted_start
+                    converted_vrs_allele_object["location"]["end"] = converted_end
+                    converted_vrs_allele_object["location"]["sequenceReference"][
                         "refgetAccession"
                     ] = converted_id.split("ga4gh:")[1]
-                    # print("CONVERTED_ALLELE:")
-                    # pprint(converted_vrs_allele)
 
-                # annotator.put_annotation(
-                #     object_id=vrs_id,
-                #     annotation_type="liftover_to",
-                #     annotation={
-                #         "liftover_to": converted_vrs_allele
-                #     },
-                # )
+                    converted_vrs_allele = av.translator.translate_object(
+                        converted_vrs_allele_object
+                    )
+
+                annotator.put_annotation(
+                    object_id=vrs_id,
+                    annotation_type="liftover_to",
+                    annotation={"liftover_to": converted_vrs_allele},
+                )
 
             # Create a new response object since we have exhausted the response body iterator
             return JSONResponse(
