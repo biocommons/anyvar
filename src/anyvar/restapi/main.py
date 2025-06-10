@@ -321,10 +321,9 @@ def get_chromosome_from_aliases(aliases: list[str]) -> str:
     return f"chr{chromosome_number}"
 
 
-async def _parse_response(response: Response) -> dict:
-    """Convert a Response object to a dict.
-    WARNING: This consumes the response iterator. Middleware functions will need to
-    re-construct the response object before passing it on.
+async def _parse_and_rebuild_response(response: Response) -> tuple[dict, Response]:
+    """Convert a Response object to a dict, then re-build a new Response object.
+    Rebuilding is necessary because parsing exhausts the response `body_iterator`.
 
     :param response: the Response object to parse
     :return: a dictionary representation of the response
@@ -332,7 +331,15 @@ async def _parse_response(response: Response) -> dict:
     response_chunks = [chunk async for chunk in response.body_iterator]
     response_body_encoded = b"".join(response_chunks)
     response_body = response_body_encoded.decode("utf-8")
-    return json.loads(response_body)
+    response_json = json.loads(response_body)
+
+    new_response = JSONResponse(
+        content=response_json,
+        status_code=response.status_code,
+        media_type=response.media_type,
+    )
+
+    return response_json, new_response
 
 
 # def
@@ -352,7 +359,7 @@ async def add_genomic_liftover_annotation(
             request.app.state, "anyannotation", None
         )
         if annotator:
-            response_json: dict = await _parse_response(response)
+            response_json, new_response = await _parse_and_rebuild_response(response)
 
             vrs_allele_object = response_json.get("object")
             if vrs_allele_object is None:
@@ -440,12 +447,8 @@ async def add_genomic_liftover_annotation(
                 #     annotation={"liftover_to": converted_vrs_allele_object},
                 # )
 
-            # Create a new response object since we have exhausted the response body iterator
-            return JSONResponse(
-                content=response_json,
-                status_code=response.status_code,
-                media_type=response.media_type,
-            )
+            # Return the new response object since we have exhausted the response body iterator
+            return new_response
 
     return response
 
