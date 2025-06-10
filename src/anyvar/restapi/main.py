@@ -409,7 +409,7 @@ async def add_genomic_liftover_annotation(
 
                 # Perform liftover conversion
                 # Note: if sequence is present in both assemblies, no need to liftover. Annotate with empty object.
-                converted_vrs_allele = {}
+                converted_vrs_allele_object = {}
                 if to_assembly and from_assembly:
                     converter = Converter(from_assembly, to_assembly)
                     chromosome = get_chromosome_from_aliases(aliases)
@@ -443,10 +443,12 @@ async def add_genomic_liftover_annotation(
                         converted_vrs_allele_object
                     )
 
+                    converted_vrs_allele_object = converted_vrs_allele.model_dump()
+
                 annotator.put_annotation(
                     object_id=vrs_id,
                     annotation_type="liftover_to",
-                    annotation={"liftover_to": converted_vrs_allele},
+                    annotation={"liftover_to": converted_vrs_allele_object},
                 )
 
             # Create a new response object since we have exhausted the response body iterator
