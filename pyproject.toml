@@ -44,7 +44,7 @@ test = [
     "celery[pytest]",
 ]
 dev = [
-    "ruff==0.4.1",
+    "ruff==0.11.2",
     "pre-commit>=3.7.1",
     "ipykernel",
 ]
