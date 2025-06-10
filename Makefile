@@ -61,15 +61,6 @@ devready:
 bdist bdist_egg bdist_wheel build sdist install: %:
 	python setup.py $@
 
-.PHONY: start
-start:
-	PYV=$(PYV) VEDIR=$(VEDIR) bash ./startup.sh
-
-.PHONY: start-dev
-start-dev:
-	PYV=$(PYV) VEDIR=$(VEDIR) DEV_MODE=true bash ./startup.sh
-
-
 ############################################################################
 #= TESTING
 # see test configuration in setup.cfg

@@ -44,7 +44,7 @@ test = [
     "celery[pytest]",
 ]
 dev = [
-    "ruff==0.11.2",
+    "ruff==0.4.1",
     "pre-commit>=3.7.1",
     "ipykernel",
 ]
@@ -134,9 +134,7 @@ select = [
     "PERF",  # https://docs.astral.sh/ruff/rules/#perflint-perf
     "FURB",  # https://docs.astral.sh/ruff/rules/#refurb-furb
     "RUF",  # https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
-    "FAST001", #https://docs.astral.sh/ruff/rules/#fastapi-fast
-    "FAST002", #https://docs.astral.sh/ruff/rules/#fastapi-fast
-    "FAST003" #https://docs.astral.sh/ruff/rules/#fastapi-fast
+    # "FAST" #https://docs.astral.sh/ruff/rules/#fastapi-fast
 ]
 fixable = [
     "I",
