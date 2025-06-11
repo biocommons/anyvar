@@ -2,7 +2,6 @@
 
 from os import environ
 
-from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import models
 from ga4gh.vrs.dataproxy import _DataProxy, create_dataproxy
 from ga4gh.vrs.extras.translator import AlleleTranslator, CnvTranslator
@@ -95,22 +94,6 @@ class VrsPythonTranslator(_Translator):
             return self.allele_tlr.translate_from(var, fmt=None)
         except ValueError as e:
             msg = f"{var} isn't supported by the VRS-Python AlleleTranslator."
-            raise TranslationError(msg) from e
-
-    def translate_object(self, allele_object: dict) -> models.Allele:
-        """Translate the provided object into a VRS Allele object
-
-        :param object: the dictionary object that will be used to construct the VRS Allele
-        :returns: A VRS Allele object
-        :raises TranslationError: if the object lacks all required fields to construct a VRS Allele
-        """
-        try:
-            allele = models.Allele(**allele_object)
-            allele.id = ga4gh_identify(allele)
-            allele.model_dump(exclude_none=True)
-            return allele
-        except Exception as e:
-            msg = "Unable to translate object to Vrs Allele"
             raise TranslationError(msg) from e
 
     def translate_cnv(

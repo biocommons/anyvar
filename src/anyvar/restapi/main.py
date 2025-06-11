@@ -31,6 +31,7 @@ from fastapi import (
     status,
 )
 from fastapi.responses import FileResponse, JSONResponse
+from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import models
 from pydantic import StrictStr
 
@@ -360,92 +361,122 @@ async def add_genomic_liftover_annotation(
         )
         if annotator:
             response_json, new_response = await _parse_and_rebuild_response(response)
-
-            vrs_allele_object = response_json.get("object")
-            if vrs_allele_object is None:
-                raise Exception  # TODO: be more specific
-
-            av: AnyVar = request.app.state.anyvar
-            vrs_allele: models.Allele = av.translator.translate_object(
-                vrs_allele_object
-            )
-
-            vrs_id = response_json.get("object_id")
-            # TODO: Error handling
-
+            vrs_id = response_json.get("object_id", "")
             liftover_annotation = annotator.get_annotation(vrs_id, "liftover_to")
             if not liftover_annotation:
+                av: AnyVar = request.app.state.anyvar
                 seqrepo_dataproxy = av.translator.dp
 
-                refget_accession = vrs_allele.location.sequenceReference.refgetAccession
-                prefixed_accession = f"ga4gh:{refget_accession}"
+                variation_object = response_json.get("object", {})
+                annotation_value = ""
 
-                grch37_aliases = list(
-                    seqrepo_dataproxy.translate_sequence_identifier(
-                        prefixed_accession, "GRCh37"
-                    )
+                refget_accession = (
+                    variation_object.get("location", {})
+                    .get("sequenceReference", {})
+                    .get("refgetAccession")
                 )
-                grch38_aliases = list(
-                    seqrepo_dataproxy.translate_sequence_identifier(
-                        prefixed_accession, "GRCh38"
+                start_position = variation_object.get("location", {}).get("start")
+                end_position = variation_object.get("location", {}).get("end")
+                if not refget_accession or not start_position or not end_position:
+                    annotation_value = "unable to complete liftover: refget accession, start position, end position required"
+                else:
+                    prefixed_accession = f"ga4gh:{refget_accession}"
+
+                    grch37_aliases = list(
+                        seqrepo_dataproxy.translate_sequence_identifier(
+                            prefixed_accession, "GRCh37"
+                        )
                     )
+                    grch38_aliases = list(
+                        seqrepo_dataproxy.translate_sequence_identifier(
+                            prefixed_accession, "GRCh38"
+                        )
+                    )
+
+                    from_assembly = None
+                    to_assembly = None
+                    aliases = []
+                    if grch37_aliases and not grch38_aliases:
+                        from_assembly = Genome.HG19
+                        to_assembly = Genome.HG38
+                        aliases = grch37_aliases
+                    elif grch38_aliases and not grch37_aliases:
+                        from_assembly = Genome.HG38
+                        to_assembly = Genome.HG19
+                        aliases = grch38_aliases
+                    if grch37_aliases and grch38_aliases:
+                        annotation_value = "variation is identical in both assemblies"
+                    else:
+                        annotation_value = (
+                            "unable to complete liftover: no chromosome found"
+                        )
+
+                    # Perform liftover conversion
+                    converted_variation_object = {}
+                    if to_assembly and from_assembly:
+                        converter = Converter(from_assembly, to_assembly)
+                        chromosome = get_chromosome_from_aliases(aliases)
+
+                        converted_start = converter.convert_coordinate(
+                            chromosome,
+                            int(start_position),
+                            Strand.POSITIVE,
+                        )[0][1]
+                        converted_end = converter.convert_coordinate(
+                            chromosome,
+                            int(end_position),
+                            Strand.POSITIVE,
+                        )[0][1]
+
+                        assembly_map = {Genome.HG19: "GRCh37", Genome.HG38: "GRCh38"}
+                        new_alias = f"{assembly_map[to_assembly]}:{chromosome}"
+
+                        converted_refget_accession = (
+                            seqrepo_dataproxy.translate_sequence_identifier(
+                                new_alias, "ga4gh"
+                            )[0]
+                        )
+
+                        converted_variation_object = variation_object
+                        converted_variation_location = {
+                            "start": converted_start,
+                            "end": converted_end,
+                            "id": None,
+                            "sequenceReference": {
+                                "type": "SequenceReference",
+                                "refgetAccession": converted_refget_accession.split(
+                                    "ga4gh:"
+                                )[1],
+                            },
+                        }
+
+                        # get the location identifier
+                        converted_variation_location = models.SequenceLocation(
+                            **converted_variation_location
+                        )
+                        converted_variation_location_id = ga4gh_identify(
+                            converted_variation_location
+                        )
+
+                        # convert location back to a dict object and add the ID in
+                        converted_variation_location = (
+                            converted_variation_location.model_dump()
+                        )
+                        converted_variation_location["id"] = (
+                            converted_variation_location_id
+                        )
+
+                        converted_variation_object["location"] = (
+                            converted_variation_location
+                        )
+
+                        annotation_value = converted_variation_object
+
+                annotator.put_annotation(
+                    object_id=vrs_id,
+                    annotation_type="liftover",
+                    annotation={"liftover": annotation_value},
                 )
-
-                from_assembly = None
-                to_assembly = None
-                aliases = []
-                if grch37_aliases and not grch38_aliases:
-                    from_assembly = Genome.HG19
-                    to_assembly = Genome.HG38
-                    aliases = grch37_aliases
-                elif grch38_aliases and not grch37_aliases:
-                    from_assembly = Genome.HG38
-                    to_assembly = Genome.HG19
-                    aliases = grch38_aliases
-
-                # Perform liftover conversion
-                # Note: if sequence is present in both assemblies, no need to liftover. Annotate with empty object.
-                converted_vrs_allele_object = {}
-                if to_assembly and from_assembly:
-                    converter = Converter(from_assembly, to_assembly)
-                    chromosome = get_chromosome_from_aliases(aliases)
-
-                    converted_start = converter.convert_coordinate(
-                        chromosome,
-                        int(vrs_allele.location.start),
-                        Strand.POSITIVE,
-                    )[0][1]
-                    converted_end = converter.convert_coordinate(
-                        chromosome,
-                        int(vrs_allele.location.end),
-                        Strand.POSITIVE,
-                    )[0][1]
-
-                    assembly_map = {Genome.HG19: "GRCh37", Genome.HG38: "GRCh38"}
-                    new_alias = f"{assembly_map[to_assembly]}:{chromosome}"
-
-                    converted_id = seqrepo_dataproxy.translate_sequence_identifier(
-                        new_alias, "ga4gh"
-                    )[0]
-
-                    converted_vrs_allele_object = vrs_allele.model_dump()
-                    converted_vrs_allele_object["location"]["start"] = converted_start
-                    converted_vrs_allele_object["location"]["end"] = converted_end
-                    converted_vrs_allele_object["location"]["sequenceReference"][
-                        "refgetAccession"
-                    ] = converted_id.split("ga4gh:")[1]
-
-                    converted_vrs_allele = av.translator.translate_object(
-                        converted_vrs_allele_object
-                    )
-
-                    converted_vrs_allele_object = converted_vrs_allele.model_dump()
-
-                # annotator.put_annotation(
-                #     object_id=vrs_id,
-                #     annotation_type="liftover_to",
-                #     annotation={"liftover_to": converted_vrs_allele_object},
-                # )
 
             # Return the new response object since we have exhausted the response body iterator
             return new_response
