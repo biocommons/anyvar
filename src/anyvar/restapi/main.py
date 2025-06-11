@@ -360,9 +360,10 @@ async def add_genomic_liftover_annotation(
             request.app.state, "anyannotation", None
         )
         if annotator:
+            annotation_id = "liftover"
             response_json, new_response = await _parse_and_rebuild_response(response)
             vrs_id = response_json.get("object_id", "")
-            liftover_annotation = annotator.get_annotation(vrs_id, "liftover_to")
+            liftover_annotation = annotator.get_annotation(vrs_id, annotation_id)
             if not liftover_annotation:
                 av: AnyVar = request.app.state.anyvar
                 seqrepo_dataproxy = av.translator.dp
@@ -474,8 +475,8 @@ async def add_genomic_liftover_annotation(
 
                 annotator.put_annotation(
                     object_id=vrs_id,
-                    annotation_type="liftover",
-                    annotation={"liftover": annotation_value},
+                    annotation_type=annotation_id,
+                    annotation={annotation_id: annotation_value},
                 )
 
             # Return the new response object since we have exhausted the response body iterator
