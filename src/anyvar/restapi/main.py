@@ -302,7 +302,7 @@ async def add_creation_timestamp_annotation(
     return response
 
 
-def get_chromosome_from_aliases(aliases: list[str]) -> str | None:
+def _get_chromosome_from_aliases(aliases: list[str]) -> str | None:
     """:param aliases: the list of aliases to search through for the chromosome number
     :return: a string chromosome number, prefixed by "chr"
     """
@@ -345,7 +345,30 @@ async def _parse_and_rebuild_response(response: Response) -> tuple[dict, Respons
     return response_json, new_response
 
 
-# def
+def _get_to_and_from_assemblies(aliases: dict) -> tuple[Genome | None, Genome | None]:
+    """Determine which assembly we're starting from, and which we're lifting over to.
+
+    Takes in a dictionary containing two lists of aliases, one for each supported reference assembly (GRCh37 and GRCh38):
+    - If an assembly contains aliases for the variant, the variant is part of that assembly.
+    - If *both* assemblies contain aliases for the variant, then it is identical across assemblies and requires no liftover.
+    - If *neither* assembly contains the variant, something has gone wrong: raises an exception
+
+    :param: aliases: A dictionary containing a list of aliases for both supported reference assemblies (GRCh37 and GRCh38)
+    :return: A tuple containing the assembly we're converting to and the one we're converting from
+    :raises: An Exception if neither assembly contains the variant
+    """
+    from_assembly = None
+    to_assembly = None
+    if aliases[Genome.HG19] and not aliases[Genome.HG38]:
+        from_assembly = Genome.HG19
+        to_assembly = Genome.HG38
+    elif aliases[Genome.HG38] and not aliases[Genome.HG19]:
+        from_assembly = Genome.HG38
+        to_assembly = Genome.HG19
+    elif not aliases[Genome.HG19] and not aliases[Genome.HG38]:
+        raise Exception  # TODO - be more specific
+
+    return to_assembly, from_assembly
 
 
 @app.middleware("http")
@@ -388,36 +411,35 @@ async def add_genomic_liftover_annotation(
                 annotation_value = "unable to complete liftover: refget accession, start position, end position required"
             else:
                 prefixed_accession = f"ga4gh:{refget_accession}"
+                aliases = {
+                    Genome.HG19: list(
+                        seqrepo_dataproxy.translate_sequence_identifier(
+                            prefixed_accession, "GRCh37"
+                        )
+                    ),
+                    Genome.HG38: list(
+                        seqrepo_dataproxy.translate_sequence_identifier(
+                            prefixed_accession, "GRCh38"
+                        )
+                    ),
+                }
 
-                grch37_aliases = list(
-                    seqrepo_dataproxy.translate_sequence_identifier(
-                        prefixed_accession, "GRCh37"
-                    )
-                )
-                grch38_aliases = list(
-                    seqrepo_dataproxy.translate_sequence_identifier(
-                        prefixed_accession, "GRCh38"
-                    )
-                )
-
-                from_assembly = None
                 to_assembly = None
+                from_assembly = None
                 chromosome = None
-                if grch37_aliases and not grch38_aliases:
-                    from_assembly = Genome.HG19
-                    to_assembly = Genome.HG38
-                    chromosome = get_chromosome_from_aliases(grch37_aliases)
-                elif grch38_aliases and not grch37_aliases:
-                    from_assembly = Genome.HG38
-                    to_assembly = Genome.HG19
-                    chromosome = get_chromosome_from_aliases(grch38_aliases)
-                elif grch37_aliases and grch38_aliases:
-                    annotation_value = "variation is identical in both assemblies"
-
-                if (not grch37_aliases and not grch38_aliases) or not chromosome:
+                try:
+                    to_assembly, from_assembly = _get_to_and_from_assemblies(aliases)
+                except Exception:
                     annotation_value = (
-                        "unable to complete liftover: no chromosome found"
+                        "unable to complete liftover: could not find liftover aliases"
                     )
+                else:
+                    if not to_assembly and not from_assembly:
+                        annotation_value = "variation is identical in both assemblies"
+                    elif not to_assembly or not from_assembly:
+                        annotation_value = "unable to complete liftover: error finding liftover aliases"
+                    else:
+                        chromosome = _get_chromosome_from_aliases(aliases[to_assembly])
 
                 # Perform liftover conversion
                 converted_variation_object = {}
