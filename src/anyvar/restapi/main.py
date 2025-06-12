@@ -374,6 +374,10 @@ def _get_to_and_from_assemblies(aliases: dict) -> tuple[Genome | None, Genome | 
     return to_assembly, from_assembly
 
 
+def _convert_range_to_int(range_position: models.Range) -> int | None:
+    return range_position.root[1] if range_position.root[1] else range_position.root[0]
+
+
 @app.middleware("http")
 async def add_genomic_liftover_annotation(
     request: Request, call_next: Callable
@@ -456,58 +460,73 @@ async def add_genomic_liftover_annotation(
                         assembly_map[from_assembly], assembly_map[to_assembly]
                     )
 
-                    # TODO: How do we handle start and end positions that are ranges??
-                    converted_start = converter.convert_coordinate(
-                        chromosome,
-                        int(start_position),
-                        Strand.POSITIVE,
-                    )[0][1]
-                    converted_end = converter.convert_coordinate(
-                        chromosome,
-                        int(end_position),
-                        Strand.POSITIVE,
-                    )[0][1]
-
-                    new_alias = f"{to_assembly}:{chromosome}"
-                    converted_refget_accession = (
-                        seqrepo_dataproxy.translate_sequence_identifier(
-                            new_alias, "ga4gh"
-                        )[0]
+                    start_position = (
+                        _convert_range_to_int(start_position)
+                        if isinstance(start_position, models.Range)
+                        else int(start_position)
+                    )
+                    end_position = (
+                        _convert_range_to_int(end_position)
+                        if isinstance(end_position, models.Range)
+                        else int(end_position)
                     )
 
-                    converted_variation_location = {
-                        "start": converted_start,
-                        "end": converted_end,
-                        "id": None,
-                        "sequenceReference": {
-                            "type": "SequenceReference",
-                            "refgetAccession": converted_refget_accession.split(
-                                "ga4gh:"
-                            )[1],
-                        },
-                    }
+                    if start_position is None or end_position is None:
+                        annotation_value = "unable to complete liftover: could not convert start or end position to integer"
+                    else:
+                        converted_start = converter.convert_coordinate(
+                            chromosome,
+                            start_position,
+                            Strand.POSITIVE,
+                        )[0][1]
+                        converted_end = converter.convert_coordinate(
+                            chromosome,
+                            end_position,
+                            Strand.POSITIVE,
+                        )[0][1]
 
-                    # convert the location to a SequenceLocation so we can retrieve a ga4gh identifier
-                    converted_variation_location = models.SequenceLocation(
-                        **converted_variation_location
-                    )
-                    converted_variation_location_id = ga4gh_identify(
-                        converted_variation_location
-                    )
+                        new_alias = f"{to_assembly}:{chromosome}"
+                        converted_refget_accession = (
+                            seqrepo_dataproxy.translate_sequence_identifier(
+                                new_alias, "ga4gh"
+                            )[0]
+                        )
 
-                    # convert location back to a dict object and add the ID in
-                    converted_variation_location = (
-                        converted_variation_location.model_dump()
-                    )
-                    converted_variation_location["id"] = converted_variation_location_id
+                        converted_variation_location = {
+                            "start": converted_start,
+                            "end": converted_end,
+                            "id": None,
+                            "sequenceReference": {
+                                "type": "SequenceReference",
+                                "refgetAccession": converted_refget_accession.split(
+                                    "ga4gh:"
+                                )[1],
+                            },
+                        }
 
-                    # Build the liftover variation object w/ converted location
-                    converted_variation_object = variation_object
-                    converted_variation_object["location"] = (
-                        converted_variation_location
-                    )
+                        # convert the location to a SequenceLocation so we can retrieve a ga4gh identifier
+                        converted_variation_location = models.SequenceLocation(
+                            **converted_variation_location
+                        )
+                        converted_variation_location_id = ga4gh_identify(
+                            converted_variation_location
+                        )
 
-                    annotation_value = converted_variation_object
+                        # convert location back to a dict object and add the ID in
+                        converted_variation_location = (
+                            converted_variation_location.model_dump()
+                        )
+                        converted_variation_location["id"] = (
+                            converted_variation_location_id
+                        )
+
+                        # Build the liftover variation object w/ converted location
+                        converted_variation_object = variation_object
+                        converted_variation_object["location"] = (
+                            converted_variation_location
+                        )
+
+                        annotation_value = converted_variation_object
 
             annotator.put_annotation(
                 object_id=vrs_id,
