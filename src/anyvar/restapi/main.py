@@ -330,6 +330,7 @@ def _get_chromosome_from_aliases(aliases: list[str]) -> str | None:
     for alias in aliases:
         if "GRCh" in alias:
             reference_alias = alias
+            break
 
     if reference_alias is None:
         return None
@@ -357,15 +358,17 @@ def _get_to_and_from_assemblies(aliases: dict) -> tuple[Genome | None, Genome | 
     :return: A tuple containing the assembly we're converting to and the one we're converting from
     :raises: An Exception if neither assembly contains the variant
     """
+    grch37, grch38 = sorted(aliases.keys())
+
     from_assembly = None
     to_assembly = None
-    if aliases[Genome.HG19] and not aliases[Genome.HG38]:
-        from_assembly = Genome.HG19
-        to_assembly = Genome.HG38
-    elif aliases[Genome.HG38] and not aliases[Genome.HG19]:
-        from_assembly = Genome.HG38
-        to_assembly = Genome.HG19
-    elif not aliases[Genome.HG19] and not aliases[Genome.HG38]:
+    if aliases[grch37] and not aliases[grch38]:
+        from_assembly = grch37
+        to_assembly = grch38
+    elif aliases[grch38] and not aliases[grch37]:
+        from_assembly = grch38
+        to_assembly = grch37
+    elif not aliases[grch37] and not aliases[grch38]:
         raise Exception  # TODO - be more specific
 
     return to_assembly, from_assembly
@@ -411,15 +414,19 @@ async def add_genomic_liftover_annotation(
                 annotation_value = "unable to complete liftover: refget accession, start position, end position required"
             else:
                 prefixed_accession = f"ga4gh:{refget_accession}"
+
+                grch37 = "GRCh37"
+                grch38 = "GRCh38"
+
                 aliases = {
-                    Genome.HG19: list(
+                    grch37: list(
                         seqrepo_dataproxy.translate_sequence_identifier(
-                            prefixed_accession, "GRCh37"
+                            prefixed_accession, grch37
                         )
                     ),
-                    Genome.HG38: list(
+                    grch38: list(
                         seqrepo_dataproxy.translate_sequence_identifier(
-                            prefixed_accession, "GRCh38"
+                            prefixed_accession, grch38
                         )
                     ),
                 }
@@ -444,7 +451,10 @@ async def add_genomic_liftover_annotation(
                 # Perform liftover conversion
                 converted_variation_object = {}
                 if to_assembly and from_assembly and chromosome:
-                    converter = Converter(from_assembly, to_assembly)
+                    assembly_map = {grch37: Genome.HG19, grch38: Genome.HG38}
+                    converter = Converter(
+                        assembly_map[from_assembly], assembly_map[to_assembly]
+                    )
 
                     # TODO: How do we handle start and end positions that are ranges??
                     converted_start = converter.convert_coordinate(
@@ -458,8 +468,7 @@ async def add_genomic_liftover_annotation(
                         Strand.POSITIVE,
                     )[0][1]
 
-                    assembly_map = {Genome.HG19: "GRCh37", Genome.HG38: "GRCh38"}
-                    new_alias = f"{assembly_map[to_assembly]}:{chromosome}"
+                    new_alias = f"{to_assembly}:{chromosome}"
                     converted_refget_accession = (
                         seqrepo_dataproxy.translate_sequence_identifier(
                             new_alias, "ga4gh"
