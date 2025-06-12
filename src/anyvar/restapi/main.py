@@ -302,29 +302,6 @@ async def add_creation_timestamp_annotation(
     return response
 
 
-def _get_chromosome_from_aliases(aliases: list[str]) -> str | None:
-    """:param aliases: the list of aliases to search through for the chromosome number
-    :return: a string chromosome number, prefixed by "chr"
-    """
-    reference_alias = None
-    for alias in aliases:
-        if "GRCh" in alias:
-            reference_alias = alias
-
-    if reference_alias is None:
-        return None
-
-    # matches strings that start with any characters, followed by a `:` character,
-    # then optionally the string "chr", then a group of digits -> returns the digits
-    # Example: "GRCh38:chr10" -> returns "10"
-    match_group = re.search(r":(?:chr)?(\d+)$", reference_alias)
-    chromosome_number: str | None = match_group.group(1) if match_group else None
-    if chromosome_number is None:
-        return None
-
-    return f"chr{chromosome_number}"
-
-
 async def _parse_and_rebuild_response(response: Response) -> tuple[dict, Response]:
     """Convert a Response object to a dict, then re-build a new Response object (since parsing exhausts the response `body_iterator`).
 
@@ -343,6 +320,29 @@ async def _parse_and_rebuild_response(response: Response) -> tuple[dict, Respons
     )
 
     return response_json, new_response
+
+
+def _get_chromosome_from_aliases(aliases: list[str]) -> str | None:
+    """:param aliases: the list of aliases to search through for the chromosome number
+    :return: a string chromosome number, prefixed by "chr"
+    """
+    reference_alias = None
+    for alias in aliases:
+        if "GRCh" in alias:
+            reference_alias = alias
+
+    if reference_alias is None:
+        return None
+
+    # matches strings that start with a `:` character, then optionally the string "chr",
+    # then a group of digits -> returns the digits
+    # Example: "GRCh38:chr10" -> returns "10"
+    match_group = re.search(r":(?:chr)?(\d+)$", reference_alias)
+    chromosome_number: str | None = match_group.group(1) if match_group else None
+    if chromosome_number is None:
+        return None
+
+    return f"chr{chromosome_number}"
 
 
 def _get_to_and_from_assemblies(aliases: dict) -> tuple[Genome | None, Genome | None]:
@@ -436,15 +436,16 @@ async def add_genomic_liftover_annotation(
                 else:
                     if not to_assembly and not from_assembly:
                         annotation_value = "variation is identical in both assemblies"
-                    elif not to_assembly or not from_assembly:
-                        annotation_value = "unable to complete liftover: error finding liftover aliases"
-                    else:
-                        chromosome = _get_chromosome_from_aliases(aliases[to_assembly])
+                    elif to_assembly and from_assembly:
+                        chromosome = _get_chromosome_from_aliases(
+                            aliases.get(from_assembly, [])
+                        )
 
                 # Perform liftover conversion
                 converted_variation_object = {}
                 if to_assembly and from_assembly and chromosome:
                     converter = Converter(from_assembly, to_assembly)
+
                     # TODO: How do we handle start and end positions that are ranges??
                     converted_start = converter.convert_coordinate(
                         chromosome,
@@ -459,7 +460,6 @@ async def add_genomic_liftover_annotation(
 
                     assembly_map = {Genome.HG19: "GRCh37", Genome.HG38: "GRCh38"}
                     new_alias = f"{assembly_map[to_assembly]}:{chromosome}"
-
                     converted_refget_accession = (
                         seqrepo_dataproxy.translate_sequence_identifier(
                             new_alias, "ga4gh"
@@ -478,7 +478,7 @@ async def add_genomic_liftover_annotation(
                         },
                     }
 
-                    # get the location identifier
+                    # convert the location to a SequenceLocation so we can retrieve a ga4gh identifier
                     converted_variation_location = models.SequenceLocation(
                         **converted_variation_location
                     )
