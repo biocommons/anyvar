@@ -355,7 +355,7 @@ def _get_to_and_from_assemblies(aliases: dict) -> tuple[Genome | None, Genome | 
     - If *neither* assembly contains the variant, something has gone wrong: raises an exception
 
     :param: aliases: A dictionary containing a list of aliases for both supported reference assemblies (GRCh37 and GRCh38)
-    :return: A tuple containing the assembly we're converting to and the one we're converting from
+    :return: A tuple containing the assembly we're converting from and the one we're converting to
     :raises: An Exception if neither assembly contains the variant
     """
     grch37, grch38 = sorted(aliases.keys())
