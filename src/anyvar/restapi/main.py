@@ -371,7 +371,7 @@ def _get_to_and_from_assemblies(aliases: dict) -> tuple[Genome | None, Genome | 
     elif not aliases[grch37] and not aliases[grch38]:
         raise Exception  # TODO - be more specific
 
-    return to_assembly, from_assembly
+    return from_assembly, to_assembly
 
 
 def _convert_range_to_int(range_position: models.Range) -> int | None:
@@ -386,7 +386,7 @@ async def add_genomic_liftover_annotation(
     # Do nothing on request. Pass downstream.
     response = await call_next(request)
 
-    # only add liftover annotation on inital registration
+    # Only add liftover annotation on registration
     if request.url.path == "/variation" or request.url.path == "/vrs_variation":
         annotator: AnyAnnotation | None = getattr(
             request.app.state, "anyannotation", None
@@ -397,16 +397,14 @@ async def add_genomic_liftover_annotation(
             vrs_id = response_json.get("object_id", "")
             liftover_annotation = annotator.get_annotation(vrs_id, annotation_id)
 
-            # Only perform liftover once, on initial registration
+            # If we've already registered and lifted over this variant before, no need to do it again
             if liftover_annotation:
                 return new_response  # Return the new response object since we have exhausted the response body iterator
 
-            av: AnyVar = request.app.state.anyvar
-            seqrepo_dataproxy = av.translator.dp
-
-            variation_object = response_json.get("object", {})
+            # Get variant start position, end position, and reget accession - liftover is currently unsupported without these
             annotation_value = ""
 
+            variation_object = response_json.get("object", {})
             refget_accession = (
                 variation_object.get("location", {})
                 .get("sequenceReference", {})
@@ -415,13 +413,15 @@ async def add_genomic_liftover_annotation(
             start_position = variation_object.get("location", {}).get("start")
             end_position = variation_object.get("location", {}).get("end")
             if not refget_accession or not start_position or not end_position:
-                annotation_value = "unable to complete liftover: refget accession, start position, end position required"
+                annotation_value = "unable to complete liftover: liftover is unsupported for variants without refget accession, start position and end position"
             else:
+                # Determine which assembly we're converting from/to
+                av: AnyVar = request.app.state.anyvar
+                seqrepo_dataproxy = av.translator.dp
                 prefixed_accession = f"ga4gh:{refget_accession}"
 
                 grch37 = "GRCh37"
                 grch38 = "GRCh38"
-
                 aliases = {
                     grch37: list(
                         seqrepo_dataproxy.translate_sequence_identifier(
@@ -435,16 +435,17 @@ async def add_genomic_liftover_annotation(
                     ),
                 }
 
-                to_assembly = None
                 from_assembly = None
+                to_assembly = None
                 chromosome = None
                 try:
-                    to_assembly, from_assembly = _get_to_and_from_assemblies(aliases)
+                    from_assembly, to_assembly = _get_to_and_from_assemblies(aliases)
                 except Exception:
                     annotation_value = (
                         "unable to complete liftover: could not find liftover aliases"
                     )
                 else:
+                    # Determine which chromosome we're on
                     if not to_assembly and not from_assembly:
                         annotation_value = "variation is identical in both assemblies"
                     elif to_assembly and from_assembly:
@@ -460,6 +461,7 @@ async def add_genomic_liftover_annotation(
                         assembly_map[from_assembly], assembly_map[to_assembly]
                     )
 
+                    # Get converted start/end positions
                     start_position = (
                         _convert_range_to_int(start_position)
                         if isinstance(start_position, models.Range)
@@ -472,7 +474,7 @@ async def add_genomic_liftover_annotation(
                     )
 
                     if start_position is None or end_position is None:
-                        annotation_value = "unable to complete liftover: could not convert start or end position to integer"
+                        annotation_value = "unable to complete liftover: could not convert start and/or end position to integer"
                     else:
                         converted_start = converter.convert_coordinate(
                             chromosome,
@@ -485,26 +487,26 @@ async def add_genomic_liftover_annotation(
                             Strand.POSITIVE,
                         )[0][1]
 
+                        # Get converted refget_accession
                         new_alias = f"{to_assembly}:{chromosome}"
                         converted_refget_accession = (
                             seqrepo_dataproxy.translate_sequence_identifier(
                                 new_alias, "ga4gh"
-                            )[0]
+                            )[0].split("ga4gh:")[1]
                         )
 
+                        # Build the converted location dict
                         converted_variation_location = {
                             "start": converted_start,
                             "end": converted_end,
                             "id": None,
                             "sequenceReference": {
                                 "type": "SequenceReference",
-                                "refgetAccession": converted_refget_accession.split(
-                                    "ga4gh:"
-                                )[1],
+                                "refgetAccession": converted_refget_accession,
                             },
                         }
 
-                        # convert the location to a SequenceLocation so we can retrieve a ga4gh identifier
+                        # Convert the location dict to a SequenceLocation so we can compute a ga4gh identifier
                         converted_variation_location = models.SequenceLocation(
                             **converted_variation_location
                         )
@@ -512,7 +514,7 @@ async def add_genomic_liftover_annotation(
                             converted_variation_location
                         )
 
-                        # convert location back to a dict object and add the ID in
+                        # Convert location back to a dict and add the ID in
                         converted_variation_location = (
                             converted_variation_location.model_dump()
                         )
