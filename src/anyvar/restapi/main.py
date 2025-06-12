@@ -257,6 +257,52 @@ def get_variation_annotation(
 
 
 @app.middleware("http")
+async def add_input_string_annotation(request: Request, call_next: Callable):
+    request_body = await request.body()
+    try:
+        request_json = json.loads(request_body)
+    except Exception:
+        request_json = {}
+    response = await call_next(request)
+
+    if request.url.path == "/variation":
+        input_expr = request_json.get("input_string")
+        if input_expr:
+            annotator = getattr(request.app.state, "anyannotation", None)
+            if annotator:
+                response_chunks = [chunk async for chunk in response.body_iterator]
+                response_body = b"".join(response_chunks)
+                response_json = json.loads(response_body.decode("utf-8"))
+
+                vrs_id = response_json.get("object", {}).get("id")
+
+                #checking if input exists
+                existing_annotations = annotator.get_annotation(vrs_id, "input_string")
+                already_annotated = False
+                if existing_annotations:
+                    for ann in existing_annotations:
+                        if ann.get("input_string") == input_expr:
+                            already_annotated = True
+                            break
+
+                #if it does not add it
+                if not already_annotated:
+                    annotator.put_annotation(
+                        object_id=vrs_id,
+                        annotation_type="input_string",
+                        annotation={"input_string": input_expr},
+                    )
+
+                return JSONResponse(
+                    content=response_json,
+                    status_code=response.status_code,
+                    headers=response.headers,
+                    media_type=response.media_type,
+                )
+    #default return
+    return response
+
+@app.middleware("http")
 async def add_creation_timestamp_annotation(
     request: Request, call_next: Callable
 ) -> Response:
