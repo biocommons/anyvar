@@ -257,7 +257,9 @@ def get_variation_annotation(
 
 
 @app.middleware("http")
-async def add_input_string_annotation(request: Request, call_next: Callable) -> Response:
+async def add_input_string_annotation(
+    request: Request, call_next: Callable
+) -> Response:
     """Middleware to add input_string annotation to a variation if it doesn't already exist."""
     request_body = await request.body()
     try:
@@ -277,7 +279,7 @@ async def add_input_string_annotation(request: Request, call_next: Callable) -> 
 
                 vrs_id = response_json.get("object", {}).get("id")
 
-                #checking if input exists
+                # checking if input exists
                 existing_annotations = annotator.get_annotation(vrs_id, "input_string")
                 already_annotated = False
                 if existing_annotations:
@@ -286,7 +288,7 @@ async def add_input_string_annotation(request: Request, call_next: Callable) -> 
                             already_annotated = True
                             break
 
-                #if it does not add it
+                # if it does not add it
                 if not already_annotated:
                     annotator.put_annotation(
                         object_id=vrs_id,
@@ -300,8 +302,9 @@ async def add_input_string_annotation(request: Request, call_next: Callable) -> 
                     headers=response.headers,
                     media_type=response.media_type,
                 )
-    #default return
+    # default return
     return response
+
 
 @app.middleware("http")
 async def add_creation_timestamp_annotation(
