@@ -75,10 +75,11 @@ Docker is suitable for containerized environments or users preferring isolation.
 
 5. **Set your environment variable to the REST API:**
 
-    Set the following environment variable in your `.env` file:
+    Set the following environment variables in your `.env` file:
 
 	```shell
 	SEQREPO_DATAPROXY_URI="seqrepo+http://localhost:5001/seqrepo"
+	SEQREPO_INSTANCE_DIR="/usr/local/share/seqrepo/2024-12-20"
 	```
 
 ## Native Installation (Rsync Method)
@@ -154,6 +155,7 @@ Successful completion of these steps confirms a working SeqRepo installation.
 | Variable                | Description                             | Example                                              |
 | ----------------------- | --------------------------------------- | ---------------------------------------------------- |
 | `SEQREPO_DATAPROXY_URI` | URI for SeqRepo DataProxy interface.    | `seqrepo+file:///usr/local/share/seqrepo/2024-12-20` |
+| `SEQREPO_INSTANCE_DIR` | Path to the SeqRepo install (only required Docker-based installation) | `"/usr/local/share/seqrepo/2024-12-20"` |
 
 Ensure this environment variable is correctly set before using AnyVar.
 
