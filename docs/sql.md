@@ -18,7 +18,7 @@ to `False`.
 
 ## Cheat Sheet: Environment Variables
 
-The database integrations can be modified using the following parameters:
+The database integrations can be modified using the following parameters in your `.env` file:
 
 | Variable | Description | Default |
 | -------- | ------- | ------- |

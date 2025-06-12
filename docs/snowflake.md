@@ -30,10 +30,10 @@ This setup meets AnyVar’s minimal requirements to store variant data.
 
 ### 3. Snowflake Connection Setup
 
-Set the environment variable to allow AnyVar to connect with your Snowflake instance:
+Set the environment variable in your `.env` file to allow AnyVar to connect with your Snowflake instance:
 
 ```shell
-export ANYVAR_STORAGE_URI=snowflake://<username>:<password>@<account_identifier>/<database_name>/<schema_name>
+ANYVAR_STORAGE_URI="snowflake://<username>:<password>@<account_identifier>/<database_name>/<schema_name>"
 ```
 
 Replace `<username>`, `<password>`, `<account_identifier>`, `<database_name>`, and `<schema_name>` with your Snowflake credentials and details.
@@ -43,7 +43,7 @@ Replace `<username>`, `<password>`, `<account_identifier>`, `<database_name>`, a
 Snowflake allows authentication using encrypted private keys:
 
 ```shell
-export ANYVAR_STORAGE_URI=snowflake://<username>@<account_identifier>/<database_name>/<schema_name>?private_key=<path_to_your_private_key>
+ANYVAR_STORAGE_URI=snowflake://<username>@<account_identifier>/<database_name>/<schema_name>?private_key=<path_to_your_private_key>
 ```
 
 You can also embed URL-encoded private keys directly into your connection string.
@@ -58,10 +58,10 @@ AnyVar supports multiple batch operation modes with Snowflake:
 * `insert_notin`: Inserts new data without strict locking, improving concurrency.
 * `insert`: High-throughput insertion without duplicate checking (not recommended for all scenarios).
 
-Configure batch mode using:
+Configure batch mode by setting the following variable in your `.env` file:
 
 ```shell
-export ANYVAR_SNOWFLAKE_BATCH_ADD_MODE=merge
+ANYVAR_SNOWFLAKE_BATCH_ADD_MODE="merge"
 ```
 
 ## Security Considerations
