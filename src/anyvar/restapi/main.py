@@ -257,7 +257,8 @@ def get_variation_annotation(
 
 
 @app.middleware("http")
-async def add_input_string_annotation(request: Request, call_next: Callable):
+async def add_input_string_annotation(request: Request, call_next: Callable) -> Response:
+    """Middleware to add input_string annotation to a variation if it doesn't already exist."""
     request_body = await request.body()
     try:
         request_json = json.loads(request_body)
