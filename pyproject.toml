@@ -133,7 +133,7 @@ select = [
     "PERF",  # https://docs.astral.sh/ruff/rules/#perflint-perf
     "FURB",  # https://docs.astral.sh/ruff/rules/#refurb-furb
     "RUF",  # https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
-    "FAST", # https://docs.astral.sh/ruff/rules/#fastapi-fast
+    # "FAST", # https://docs.astral.sh/ruff/rules/#fastapi-fast
 ]
 fixable = [
     "I",

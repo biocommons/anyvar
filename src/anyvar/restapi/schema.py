@@ -64,18 +64,6 @@ class RegisterVariationRequest(BaseModel):
     copies: int | None = None
     copy_change: models.CopyChange | None = None
 
-    class Config:
-        """Configure RegisterAlleleRequest class"""
-
-        schema_extra = {  # noqa: RUF012
-            "example": {
-                "definition": "BRAF V600E",
-                "input_type": None,
-                "copies": None,
-                "copy_change": None,
-            }
-        }
-
 
 class AddAnnotationResponse(BaseModel):
     """Response for the add variation annotation endpoint"""
