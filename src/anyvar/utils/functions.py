@@ -1,4 +1,4 @@
-"""Defines utility functions used in routing handlers"""
+"""Defines utility functions"""
 
 import json
 import re
@@ -7,6 +7,10 @@ from typing import Literal
 from fastapi import Response
 from fastapi.responses import JSONResponse
 from ga4gh.vrs import models
+
+
+class ReferenceAssemblyResolutionError(Exception):
+    """Indicates a failure to resolve a variant's reference assembly"""
 
 
 async def parse_and_rebuild_response(response: Response) -> tuple[dict, Response]:
@@ -78,7 +82,7 @@ def get_from_and_to_assemblies(aliases: dict) -> tuple[str | None, str | None]:
         from_assembly = grch38
         to_assembly = grch37
     elif not aliases[grch37] and not aliases[grch38]:
-        raise Exception  # TODO - be more specific
+        raise ReferenceAssemblyResolutionError
 
     return from_assembly, to_assembly
 

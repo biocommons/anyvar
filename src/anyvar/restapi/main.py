@@ -34,6 +34,7 @@ from ga4gh.vrs import models
 from pydantic import StrictStr
 
 import anyvar
+import anyvar.utils.functions as util_funcs
 from anyvar.anyvar import AnyAnnotation, AnyVar
 from anyvar.extras.vcf import VcfRegistrar
 from anyvar.restapi.schema import (
@@ -57,9 +58,8 @@ from anyvar.translate.translate import (
     TranslationError,
     TranslatorConnectionError,
 )
+from anyvar.utils.functions import ReferenceAssemblyResolutionError
 from anyvar.utils.types import VrsVariation, variation_class_map
-
-from . import utils
 
 try:
     import aiofiles  # noqa: I001
@@ -275,7 +275,7 @@ async def add_creation_timestamp_annotation(
         # With response, check if timestamp exists
         annotator: AnyAnnotation = getattr(request.app.state, "anyannotation", None)
         if annotator:
-            response_json, new_response = await utils.parse_and_rebuild_response(
+            response_json, new_response = await util_funcs.parse_and_rebuild_response(
                 response
             )
             vrs_id = response_json.get("object", {}).get("id")
@@ -312,7 +312,7 @@ async def add_genomic_liftover_annotation(
         )
         if annotator:
             annotation_id = "liftover"
-            response_json, new_response = await utils.parse_and_rebuild_response(
+            response_json, new_response = await util_funcs.parse_and_rebuild_response(
                 response
             )
             vrs_id = response_json.get("object_id", "")
@@ -360,10 +360,10 @@ async def add_genomic_liftover_annotation(
                 to_assembly = None
                 chromosome = None
                 try:
-                    from_assembly, to_assembly = utils.get_from_and_to_assemblies(
+                    from_assembly, to_assembly = util_funcs.get_from_and_to_assemblies(
                         aliases
                     )
-                except Exception:
+                except ReferenceAssemblyResolutionError:
                     annotation_value = (
                         "unable to complete liftover: could not find liftover aliases"
                     )
@@ -372,7 +372,7 @@ async def add_genomic_liftover_annotation(
                         annotation_value = "No liftover required: variant is identical in both assemblies"
                     elif to_assembly and from_assembly:
                         # Determine which chromosome we're on
-                        chromosome = utils.get_chromosome_from_aliases(
+                        chromosome = util_funcs.get_chromosome_from_aliases(
                             aliases.get(from_assembly, [])
                         )
 
@@ -386,12 +386,12 @@ async def add_genomic_liftover_annotation(
 
                     # Get converted start/end positions
                     start_position = (
-                        utils.convert_range_to_int(start_position, "lower")
+                        util_funcs.convert_range_to_int(start_position, "lower")
                         if isinstance(start_position, models.Range)
                         else int(start_position)
                     )
                     end_position = (
-                        utils.convert_range_to_int(end_position, "upper")
+                        util_funcs.convert_range_to_int(end_position, "upper")
                         if isinstance(end_position, models.Range)
                         else int(end_position)
                     )
