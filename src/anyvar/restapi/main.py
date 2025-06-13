@@ -6,7 +6,6 @@ import json
 import logging
 import os
 import pathlib
-import re
 import tempfile
 import uuid
 from collections.abc import Callable
@@ -60,6 +59,8 @@ from anyvar.translate.translate import (
     TranslatorConnectionError,
 )
 from anyvar.utils.types import VrsVariation, variation_class_map
+
+from . import utils
 
 try:
     import aiofiles  # noqa: I001
@@ -302,82 +303,6 @@ async def add_creation_timestamp_annotation(
     return response
 
 
-async def _parse_and_rebuild_response(response: Response) -> tuple[dict, Response]:
-    """Convert a Response object to a dict, then re-build a new Response object (since parsing exhausts the response `body_iterator`).
-
-    :param response: the Response object to parse
-    :return: a dictionary representation of the response
-    """
-    response_chunks = [chunk async for chunk in response.body_iterator]
-    response_body_encoded = b"".join(response_chunks)
-    response_body = response_body_encoded.decode("utf-8")
-    response_json = json.loads(response_body)
-
-    new_response = JSONResponse(
-        content=response_json,
-        status_code=response.status_code,
-        media_type=response.media_type,
-    )
-
-    return response_json, new_response
-
-
-def _get_chromosome_from_aliases(aliases: list[str]) -> str | None:
-    """:param aliases: the list of aliases to search through for the chromosome number
-    :return: a string chromosome number, prefixed by "chr"
-    """
-    reference_alias = None
-    for alias in aliases:
-        if "GRCh" in alias:
-            reference_alias = alias
-            break
-
-    if reference_alias is None:
-        return None
-
-    # matches strings that start with a `:` character, then optionally the string "chr",
-    # then a group of digits -> returns the digits
-    # Example: "GRCh38:chr10" -> returns "10"
-    match_group = re.search(r":(?:chr)?(\d+)$", reference_alias)
-    chromosome_number: str | None = match_group.group(1) if match_group else None
-    if chromosome_number is None:
-        return None
-
-    return f"chr{chromosome_number}"
-
-
-def _get_to_and_from_assemblies(aliases: dict) -> tuple[Genome | None, Genome | None]:
-    """Determine which assembly we're starting from, and which we're lifting over to.
-
-    Takes in a dictionary containing two lists of aliases, one for each supported reference assembly (GRCh37 and GRCh38):
-    - If an assembly contains aliases for the variant, the variant is part of that assembly.
-    - If *both* assemblies contain aliases for the variant, then it is identical across assemblies and requires no liftover.
-    - If *neither* assembly contains the variant, something has gone wrong: raises an exception
-
-    :param: aliases: A dictionary containing a list of aliases for both supported reference assemblies (GRCh37 and GRCh38)
-    :return: A tuple containing the assembly we're converting from and the one we're converting to
-    :raises: An Exception if neither assembly contains the variant
-    """
-    grch37, grch38 = sorted(aliases.keys())
-
-    from_assembly = None
-    to_assembly = None
-    if aliases[grch37] and not aliases[grch38]:
-        from_assembly = grch37
-        to_assembly = grch38
-    elif aliases[grch38] and not aliases[grch37]:
-        from_assembly = grch38
-        to_assembly = grch37
-    elif not aliases[grch37] and not aliases[grch38]:
-        raise Exception  # TODO - be more specific
-
-    return from_assembly, to_assembly
-
-
-def _convert_range_to_int(range_position: models.Range) -> int | None:
-    return range_position.root[1] if range_position.root[1] else range_position.root[0]
-
-
 @app.middleware("http")
 async def add_genomic_liftover_annotation(
     request: Request, call_next: Callable
@@ -393,7 +318,9 @@ async def add_genomic_liftover_annotation(
         )
         if annotator:
             annotation_id = "liftover"
-            response_json, new_response = await _parse_and_rebuild_response(response)
+            response_json, new_response = await utils.parse_and_rebuild_response(
+                response
+            )
             vrs_id = response_json.get("object_id", "")
             liftover_annotation = annotator.get_annotation(vrs_id, annotation_id)
 
@@ -401,7 +328,7 @@ async def add_genomic_liftover_annotation(
             if liftover_annotation:
                 return new_response  # Return the new response object since we have exhausted the response body iterator
 
-            # Get variant start position, end position, and reget accession - liftover is currently unsupported without these
+            # Get variant start position, end position, and refget accession - liftover is currently unsupported without these
             annotation_value = ""
 
             variation_object = response_json.get("object", {})
@@ -439,17 +366,19 @@ async def add_genomic_liftover_annotation(
                 to_assembly = None
                 chromosome = None
                 try:
-                    from_assembly, to_assembly = _get_to_and_from_assemblies(aliases)
+                    from_assembly, to_assembly = utils.get_from_and_to_assemblies(
+                        aliases
+                    )
                 except Exception:
                     annotation_value = (
                         "unable to complete liftover: could not find liftover aliases"
                     )
                 else:
-                    # Determine which chromosome we're on
-                    if not to_assembly and not from_assembly:
+                    if not from_assembly and not to_assembly:
                         annotation_value = "variation is identical in both assemblies"
                     elif to_assembly and from_assembly:
-                        chromosome = _get_chromosome_from_aliases(
+                        # Determine which chromosome we're on
+                        chromosome = utils.get_chromosome_from_aliases(
                             aliases.get(from_assembly, [])
                         )
 
@@ -463,12 +392,12 @@ async def add_genomic_liftover_annotation(
 
                     # Get converted start/end positions
                     start_position = (
-                        _convert_range_to_int(start_position)
+                        utils.convert_range_to_int(start_position, "lower")
                         if isinstance(start_position, models.Range)
                         else int(start_position)
                     )
                     end_position = (
-                        _convert_range_to_int(end_position)
+                        utils.convert_range_to_int(end_position, "upper")
                         if isinstance(end_position, models.Range)
                         else int(end_position)
                     )
@@ -487,7 +416,7 @@ async def add_genomic_liftover_annotation(
                             Strand.POSITIVE,
                         )[0][1]
 
-                        # Get converted refget_accession
+                        # Get converted refget_accession (without 'ga4gh:' prefix)
                         new_alias = f"{to_assembly}:{chromosome}"
                         converted_refget_accession = (
                             seqrepo_dataproxy.translate_sequence_identifier(
