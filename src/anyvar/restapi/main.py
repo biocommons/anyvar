@@ -2,7 +2,6 @@
 
 import asyncio
 import datetime
-import json
 import logging
 import os
 import pathlib
@@ -29,7 +28,7 @@ from fastapi import (
     UploadFile,
     status,
 )
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import models
 from pydantic import StrictStr
@@ -276,10 +275,9 @@ async def add_creation_timestamp_annotation(
         # With response, check if timestamp exists
         annotator: AnyAnnotation = getattr(request.app.state, "anyannotation", None)
         if annotator:
-            response_chunks = [chunk async for chunk in response.body_iterator]
-            response_body = b"".join(response_chunks)
-            response_body = response_body.decode("utf-8")
-            response_json: dict = json.loads(response_body)
+            response_json, new_response = await utils.parse_and_rebuild_response(
+                response
+            )
             vrs_id = response_json.get("object", {}).get("id")
             annotations = annotator.get_annotation(vrs_id, "creation_timestamp")
             if not annotations:
@@ -293,12 +291,7 @@ async def add_creation_timestamp_annotation(
                     },
                 )
             # Create a new response object since we have exhausted the response body iterator
-            return JSONResponse(
-                content=response_json,
-                status_code=response.status_code,
-                headers=response.headers,
-                media_type=response.media_type,
-            )
+            return new_response
 
     return response
 
