@@ -300,12 +300,13 @@ async def add_creation_timestamp_annotation(
 async def add_genomic_liftover_annotation(
     request: Request, call_next: Callable
 ) -> Response:
-    """Perform genomic liftover"""
+    """Perform genomic liftover between GRCh37 <-> GRCh38 and store the converted variant as an annotation of the original"""
     # Do nothing on request. Pass downstream.
     response = await call_next(request)
 
     # Only add liftover annotation on registration
-    if request.url.path == "/variation" or request.url.path == "/vrs_variation":
+    registration_endpoints = ["/variation", "/vrs_variation", "/vcf"]
+    if request.url.path in registration_endpoints:
         annotator: AnyAnnotation | None = getattr(
             request.app.state, "anyannotation", None
         )
@@ -368,7 +369,7 @@ async def add_genomic_liftover_annotation(
                     )
                 else:
                     if not from_assembly and not to_assembly:
-                        annotation_value = "variation is identical in both assemblies"
+                        annotation_value = "No liftover required: variant is identical in both assemblies"
                     elif to_assembly and from_assembly:
                         # Determine which chromosome we're on
                         chromosome = utils.get_chromosome_from_aliases(
