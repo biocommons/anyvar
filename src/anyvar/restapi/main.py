@@ -255,26 +255,22 @@ def get_variation_annotation(
 
     return {"annotations": annotations}
 
+
 @app.middleware("http")
 async def store_input_payload_annotation(
     request: Request, call_next: Callable
 ) -> Response:
     """Store the input payload as an annotation on the resulting VRS object."""
-    
-    # ⬇️ Add: Log when middleware is triggered
-    print("Middleware triggered")
-
     request_body = await request.body()
 
     try:
         input_payload = json.loads(request_body)
-        print("Input payload:", input_payload)  # ⬅️ Log parsed input
     except json.JSONDecodeError:
         input_payload = None
-        print("Failed to parse input payload")
 
     async def receive() -> dict:
         return {"type": "http.request", "body": request_body}
+
     request = Request(request.scope, receive)
 
     response = await call_next(request)
@@ -286,25 +282,20 @@ async def store_input_payload_annotation(
         try:
             response_json = json.loads(response_body)
             vrs_id = response_json.get("object", {}).get("id")
-            print("VRS ID:", vrs_id)  # ⬅️ Log extracted VRS ID
         except (json.JSONDecodeError, TypeError, AttributeError):
             vrs_id = None
-            print("Failed to extract VRS ID")
 
         if vrs_id:
             annotator: AnyAnnotation = getattr(request.app.state, "anyannotation", None)
-            print("Annotator object:", annotator)  # ⬅️ Log annotator object
 
             if annotator:
                 existing = annotator.get_annotation(vrs_id, "input_payload")
-                print("Existing input_payload annotations:", existing)  # ⬅️ Log existing
                 if not existing:
                     annotator.put_annotation(
                         object_id=vrs_id,
                         annotation_type="input_payload",
-                        annotation=input_payload
+                        annotation=input_payload,
                     )
-                    print("Annotation stored!")
 
         return JSONResponse(
             content=response_json,
