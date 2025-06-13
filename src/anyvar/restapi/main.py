@@ -2,7 +2,6 @@
 
 import asyncio
 import datetime
-import json
 import logging
 import os
 import pathlib
@@ -14,6 +13,8 @@ from http import HTTPStatus
 from typing import Annotated
 
 import ga4gh.vrs
+from agct import Converter, Genome, Strand
+from dotenv import load_dotenv
 from fastapi import (
     BackgroundTasks,
     Body,
@@ -27,10 +28,13 @@ from fastapi import (
     UploadFile,
     status,
 )
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
+from ga4gh.core import ga4gh_identify
+from ga4gh.vrs import models
 from pydantic import StrictStr
 
 import anyvar
+import anyvar.utils.functions as util_funcs
 from anyvar.anyvar import AnyAnnotation, AnyVar
 from anyvar.extras.vcf import VcfRegistrar
 from anyvar.restapi.schema import (
@@ -54,6 +58,7 @@ from anyvar.translate.translate import (
     TranslationError,
     TranslatorConnectionError,
 )
+from anyvar.utils.functions import ReferenceAssemblyResolutionError
 from anyvar.utils.types import VrsVariation, variation_class_map
 
 try:
@@ -65,6 +70,7 @@ try:
 except ImportError:
     pass
 
+load_dotenv()
 _logger = logging.getLogger(__name__)
 
 
@@ -269,10 +275,9 @@ async def add_creation_timestamp_annotation(
         # With response, check if timestamp exists
         annotator: AnyAnnotation = getattr(request.app.state, "anyannotation", None)
         if annotator:
-            response_chunks = [chunk async for chunk in response.body_iterator]
-            response_body = b"".join(response_chunks)
-            response_body = response_body.decode("utf-8")
-            response_json: dict = json.loads(response_body)
+            response_json, new_response = await util_funcs.parse_and_rebuild_response(
+                response
+            )
             vrs_id = response_json.get("object", {}).get("id")
             annotations = annotator.get_annotation(vrs_id, "creation_timestamp")
             if not annotations:
@@ -284,12 +289,176 @@ async def add_creation_timestamp_annotation(
                     },
                 )
             # Create a new response object since we have exhausted the response body iterator
-            return JSONResponse(
-                content=response_json,
-                status_code=response.status_code,
-                headers=response.headers,
-                media_type=response.media_type,
+            return new_response
+
+    return response
+
+
+@app.middleware("http")
+async def add_genomic_liftover_annotation(
+    request: Request, call_next: Callable
+) -> Response:
+    """Perform genomic liftover between GRCh37 <-> GRCh38 and store the converted variant as an annotation of the original"""
+    # Do nothing on request. Pass downstream.
+    response = await call_next(request)
+
+    # Only add liftover annotation on registration
+    registration_endpoints = ["/variation", "/vrs_variation", "/vcf"]
+    if request.url.path in registration_endpoints:
+        annotator: AnyAnnotation | None = getattr(
+            request.app.state, "anyannotation", None
+        )
+        if annotator:
+            annotation_id = "liftover"
+            response_json, new_response = await util_funcs.parse_and_rebuild_response(
+                response
             )
+            vrs_id = response_json.get("object_id", "")
+            liftover_annotation = annotator.get_annotation(vrs_id, annotation_id)
+
+            # If we've already registered and lifted over this variant before, no need to do it again
+            if liftover_annotation:
+                return new_response  # Return the new response object since we have exhausted the response body iterator
+
+            # Get variant start position, end position, and refget accession - liftover is currently unsupported without these
+            annotation_value = ""
+
+            variation_object = response_json.get("object", {})
+            refget_accession = (
+                variation_object.get("location", {})
+                .get("sequenceReference", {})
+                .get("refgetAccession")
+            )
+            start_position = variation_object.get("location", {}).get("start")
+            end_position = variation_object.get("location", {}).get("end")
+            if not refget_accession or not start_position or not end_position:
+                annotation_value = "unable to complete liftover: liftover is unsupported for variants without refget accession, start position and end position"
+            else:
+                # Determine which assembly we're converting from/to
+                av: AnyVar = request.app.state.anyvar
+                seqrepo_dataproxy = av.translator.dp
+                prefixed_accession = f"ga4gh:{refget_accession}"
+
+                grch37 = "GRCh37"
+                grch38 = "GRCh38"
+                aliases = {
+                    grch37: list(
+                        seqrepo_dataproxy.translate_sequence_identifier(
+                            prefixed_accession, grch37
+                        )
+                    ),
+                    grch38: list(
+                        seqrepo_dataproxy.translate_sequence_identifier(
+                            prefixed_accession, grch38
+                        )
+                    ),
+                }
+
+                from_assembly = None
+                to_assembly = None
+                chromosome = None
+                try:
+                    from_assembly, to_assembly = util_funcs.get_from_and_to_assemblies(
+                        aliases
+                    )
+                except ReferenceAssemblyResolutionError:
+                    annotation_value = (
+                        "unable to complete liftover: could not find liftover aliases"
+                    )
+                else:
+                    if not from_assembly and not to_assembly:
+                        annotation_value = "No liftover required: variant is identical in both assemblies"
+                    elif to_assembly and from_assembly:
+                        # Determine which chromosome we're on
+                        chromosome = util_funcs.get_chromosome_from_aliases(
+                            aliases.get(from_assembly, [])
+                        )
+
+                # Perform liftover conversion
+                converted_variation_object = {}
+                if to_assembly and from_assembly and chromosome:
+                    assembly_map = {grch37: Genome.HG19, grch38: Genome.HG38}
+                    converter = Converter(
+                        assembly_map[from_assembly], assembly_map[to_assembly]
+                    )
+
+                    # Get converted start/end positions
+                    start_position = (
+                        util_funcs.convert_range_to_int(start_position, "lower")
+                        if isinstance(start_position, models.Range)
+                        else int(start_position)
+                    )
+                    end_position = (
+                        util_funcs.convert_range_to_int(end_position, "upper")
+                        if isinstance(end_position, models.Range)
+                        else int(end_position)
+                    )
+
+                    if start_position is None or end_position is None:
+                        annotation_value = "unable to complete liftover: could not convert start and/or end position to integer"
+                    else:
+                        converted_start = converter.convert_coordinate(
+                            chromosome,
+                            start_position,
+                            Strand.POSITIVE,
+                        )[0][1]
+                        converted_end = converter.convert_coordinate(
+                            chromosome,
+                            end_position,
+                            Strand.POSITIVE,
+                        )[0][1]
+
+                        # Get converted refget_accession (without 'ga4gh:' prefix)
+                        new_alias = f"{to_assembly}:{chromosome}"
+                        converted_refget_accession = (
+                            seqrepo_dataproxy.translate_sequence_identifier(
+                                new_alias, "ga4gh"
+                            )[0].split("ga4gh:")[1]
+                        )
+
+                        # Build the converted location dict
+                        converted_variation_location = {
+                            "start": converted_start,
+                            "end": converted_end,
+                            "id": None,
+                            "sequenceReference": {
+                                "type": "SequenceReference",
+                                "refgetAccession": converted_refget_accession,
+                            },
+                        }
+
+                        # Convert the location dict to a SequenceLocation so we can compute a ga4gh identifier
+                        converted_variation_location = models.SequenceLocation(
+                            **converted_variation_location
+                        )
+                        converted_variation_location_id = ga4gh_identify(
+                            converted_variation_location
+                        )
+
+                        # Convert location back to a dict and add the ID in
+                        converted_variation_location = (
+                            converted_variation_location.model_dump()
+                        )
+                        converted_variation_location["id"] = (
+                            converted_variation_location_id
+                        )
+
+                        # Build the liftover variation object w/ converted location
+                        converted_variation_object = variation_object
+                        converted_variation_object["location"] = (
+                            converted_variation_location
+                        )
+
+                        annotation_value = converted_variation_object
+
+            annotator.put_annotation(
+                object_id=vrs_id,
+                annotation_type=annotation_id,
+                annotation={annotation_id: annotation_value},
+            )
+
+            # Return the new response object since we have exhausted the response body iterator
+            return new_response
 
     return response
 

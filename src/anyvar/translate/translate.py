@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 
 from ga4gh.vrs import models
+from ga4gh.vrs.dataproxy import _DataProxy
 
 from anyvar.utils.types import VrsVariation
 
@@ -23,6 +24,8 @@ class TranslationError(Exception):
 
 class _Translator(ABC):
     """Base Translator class."""
+
+    dp: _DataProxy
 
     @abstractmethod
     def translate_variation(

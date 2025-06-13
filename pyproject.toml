@@ -21,6 +21,10 @@ dependencies = [
     "ga4gh.vrs[extras]~=2.1.2",
     "sqlalchemy~=1.4.54",
     "pyyaml",
+    "cool-seq-tool", #TODO: Remove?
+    "seqrepo", #TODO: Remove?
+    "agct",
+    "refget"
 ]
 dynamic = ["version"]
 
@@ -133,7 +137,6 @@ select = [
     "PERF",  # https://docs.astral.sh/ruff/rules/#perflint-perf
     "FURB",  # https://docs.astral.sh/ruff/rules/#refurb-furb
     "RUF",  # https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
-    "FAST", # https://docs.astral.sh/ruff/rules/#fastapi-fast
 ]
 fixable = [
     "I",
@@ -154,6 +157,7 @@ fixable = [
     "RUF",
     "W",
 ]
+# ANN101 - missing-type-self
 # ANN003 - missing-type-kwargs
 # D203 - one-blank-line-before-class
 # D205 - blank-line-after-summary
@@ -171,6 +175,7 @@ fixable = [
 # S321 - suspicious-ftp-lib-usage
 # *ignored for compatibility with formatter
 ignore = [
+    "ANN101",
     "ANN003",
     "D203", "D205", "D206", "D213", "D300", "D400", "D415",
     "E111", "E114", "E117", "E501",
