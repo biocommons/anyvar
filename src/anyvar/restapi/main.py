@@ -375,7 +375,6 @@ async def add_genomic_liftover_annotation(
                         )
 
                 # Perform liftover conversion
-                converted_variation_object = {}
                 if to_assembly and from_assembly and chromosome:
                     assembly_map = {grch37: Genome.HG19, grch38: Genome.HG38}
                     converter = Converter(
@@ -432,7 +431,7 @@ async def add_genomic_liftover_annotation(
                         converted_variation_dict["location"] = (
                             converted_variation_location
                         )
-                        # Get rid of the identifiers since these are for the original variation object
+                        # Get rid of the identifiers since these were from the original variation object and we need to re-compute them
                         converted_variation_dict["digest"] = None
                         converted_variation_dict["id"] = None
 
