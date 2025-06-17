@@ -14,7 +14,6 @@ from typing import Annotated
 
 import ga4gh.vrs
 from agct import Converter, Genome, Strand
-from dotenv import load_dotenv
 from fastapi import (
     BackgroundTasks,
     Body,
@@ -70,7 +69,6 @@ try:
 except ImportError:
     pass
 
-load_dotenv()
 _logger = logging.getLogger(__name__)
 
 
@@ -313,7 +311,9 @@ async def add_genomic_liftover_annotation(
             response_json, new_response = await util_funcs.parse_and_rebuild_response(
                 response
             )
-            vrs_id = response_json.get("object_id", "")
+            vrs_id = response_json.get(
+                "object_id", ""
+            )  # TODO: Handle cases where no vrs_id is found
             liftover_annotation = annotator.get_annotation(vrs_id, annotation_id)
 
             # If we've already lifted over this variant before, no need to do it again
