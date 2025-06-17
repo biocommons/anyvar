@@ -29,8 +29,8 @@ from fastapi import (
     status,
 )
 from fastapi.responses import FileResponse
-from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import models
+from ga4gh.vrs.enderef import vrs_enref
 from pydantic import StrictStr
 
 import anyvar
@@ -59,7 +59,7 @@ from anyvar.translate.translate import (
     TranslatorConnectionError,
 )
 from anyvar.utils.functions import ReferenceAssemblyResolutionError
-from anyvar.utils.types import VrsVariation, variation_class_map
+from anyvar.utils.types import VrsObject, VrsVariation, variation_class_map
 
 try:
     import aiofiles  # noqa: I001
@@ -320,7 +320,7 @@ async def add_genomic_liftover_annotation(
             if liftover_annotation:
                 return new_response  # Return the new response object since we have exhausted the response body iterator
 
-            # Get variant start position, end position, and refget accession - liftover is currently unsupported without these
+            # Get variant start position, end position, a nd refget accession - liftover is currently unsupported without these
             annotation_value = ""
 
             variation_object = response_json.get("object", {})
@@ -427,29 +427,25 @@ async def add_genomic_liftover_annotation(
                             },
                         }
 
-                        # Convert the location dict to a SequenceLocation so we can compute a ga4gh identifier
-                        converted_variation_location = models.SequenceLocation(
-                            **converted_variation_location
-                        )
-                        converted_variation_location_id = ga4gh_identify(
-                            converted_variation_location
-                        )
-
-                        # Convert location back to a dict and add the ID in
-                        converted_variation_location = (
-                            converted_variation_location.model_dump()
-                        )
-                        converted_variation_location["id"] = (
-                            converted_variation_location_id
-                        )
-
                         # Build the liftover variation object w/ converted location
-                        converted_variation_object = variation_object
-                        converted_variation_object["location"] = (
+                        converted_variation_dict = variation_object
+                        converted_variation_dict["location"] = (
                             converted_variation_location
                         )
+                        # Get rid of the identifiers since these are for the original variation object
+                        converted_variation_dict["digest"] = None
+                        converted_variation_dict["id"] = None
 
-                        annotation_value = converted_variation_object
+                        # Convert the dict into a VrsObject class instance so we can compute the identifiers
+                        converted_variation_object: VrsObject = variation_class_map[
+                            variation_object.get("type")
+                        ](**converted_variation_dict)
+                        converted_variation_object = vrs_enref(
+                            converted_variation_object
+                        )
+
+                        # Convert the VrsObject back into a dict for storage
+                        annotation_value = converted_variation_object.model_dump()
 
             annotator.put_annotation(
                 object_id=vrs_id,
