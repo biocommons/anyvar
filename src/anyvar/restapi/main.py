@@ -14,7 +14,6 @@ from typing import Annotated
 
 import ga4gh.vrs
 from agct import Converter, Genome, Strand
-from dotenv import load_dotenv
 from fastapi import (
     BackgroundTasks,
     Body,
@@ -70,7 +69,6 @@ try:
 except ImportError:
     pass
 
-load_dotenv()
 _logger = logging.getLogger(__name__)
 
 
