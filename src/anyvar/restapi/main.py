@@ -320,7 +320,7 @@ async def add_genomic_liftover_annotation(
             if liftover_annotation:
                 return new_response  # Return the new response object since we have exhausted the response body iterator
 
-            # Get variant start position, end position, a nd refget accession - liftover is currently unsupported without these
+            # Get variant start position, end position, and refget accession - liftover is currently unsupported without these
             annotation_value = ""
 
             variation_object = response_json.get("object", {})
