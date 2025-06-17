@@ -305,7 +305,7 @@ async def add_genomic_liftover_annotation(
     response = await call_next(request)
 
     # Only add liftover annotation on registration
-    registration_endpoints = ["/variation", "/vrs_variation", "/vcf"]
+    registration_endpoints = ["/variation", "/vrs_variation"]
     if request.url.path in registration_endpoints:
         annotator: AnyAnnotation | None = getattr(
             request.app.state, "anyannotation", None
