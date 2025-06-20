@@ -260,9 +260,8 @@ def get_variation_annotation(
 async def store_input_payload_annotation(
     request: Request, call_next: Callable
 ) -> Response:
-    """Store the input payload as an annotation on the resulting VRS object."""
+    """Store input payload for /variation and registered VRS ID for /vrs_variation."""
     request_body = await request.body()
-
     try:
         input_payload = json.loads(request_body)
     except json.JSONDecodeError:
@@ -272,23 +271,26 @@ async def store_input_payload_annotation(
         return {"type": "http.request", "body": request_body}
 
     request = Request(request.scope, receive)
-
     response = await call_next(request)
 
-    if request.url.path.rstrip("/") == "/variation" and input_payload:
-        response_chunks = [chunk async for chunk in response.body_iterator]
-        response_body = b"".join(response_chunks).decode("utf-8")
+    response_chunks = [chunk async for chunk in response.body_iterator]
+    response_body = b"".join(response_chunks).decode("utf-8")
 
-        try:
-            response_json = json.loads(response_body)
+    try:
+        response_json = json.loads(response_body)
+    except json.JSONDecodeError:
+        response_json = {}
+
+    annotator: AnyAnnotation = getattr(request.app.state, "anyannotation", None)
+
+    if annotator:
+        path = request.url.path.rstrip("/")
+
+        # Case 1: /variation — store input payload
+        if path == "/variation" and input_payload:
             vrs_id = response_json.get("object", {}).get("id")
-        except (json.JSONDecodeError, TypeError, AttributeError):
-            vrs_id = None
 
-        if vrs_id:
-            annotator: AnyAnnotation = getattr(request.app.state, "anyannotation", None)
-
-            if annotator:
+            if vrs_id:
                 existing = annotator.get_annotation(vrs_id, "input_payload")
                 if not existing:
                     annotator.put_annotation(
@@ -297,14 +299,26 @@ async def store_input_payload_annotation(
                         annotation=input_payload,
                     )
 
-        return JSONResponse(
-            content=response_json,
-            status_code=response.status_code,
-            headers=response.headers,
-            media_type=response.media_type,
-        )
+        # Case 2: /vrs_variation — store object_id as an annotation
+        elif path == "/vrs_variation":
+            vrs_id = response_json.get("object_id")
 
-    return response
+            if vrs_id:
+                existing = annotator.get_annotation(vrs_id, "vrs_registered_id")
+                if not existing:
+                    annotator.put_annotation(
+                        object_id=vrs_id,
+                        annotation_type="vrs_registered_id",
+                        annotation={"registered_id": vrs_id},
+                    )
+
+    # Return the rebuilt response
+    return JSONResponse(
+        content=response_json,
+        status_code=response.status_code,
+        headers=response.headers,
+        media_type=response.media_type,
+    )
 
 
 @app.middleware("http")
