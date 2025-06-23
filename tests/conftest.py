@@ -19,6 +19,7 @@ def pytest_collection_modifyitems(items):
         "test_general",
         "test_location",
         "test_search",
+        "test_liftover",
         "test_vcf",
         "test_sql_storage_mapping",
         "test_postgres",
