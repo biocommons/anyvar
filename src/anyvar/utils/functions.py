@@ -25,10 +25,10 @@ class AmbiguousReferenceAssemblyError(Exception):
 async def parse_and_rebuild_response(
     response: StreamingResponse,
 ) -> tuple[dict, Response]:
-    """Convert a Response object to a dict, then re-build a new Response object (since parsing exhausts the response `body_iterator`).
+    """Convert a `Response` object to a dict, then re-build a new Response object (since parsing exhausts the Response `body_iterator`).
 
     :param response: the `Response` object to parse
-    :return: a dictionary representation of the response
+    :return: a dictionary representation of the Response
     """
     response_chunks: list[bytes] = [
         cast(bytes, chunk) async for chunk in response.body_iterator
@@ -134,7 +134,7 @@ def get_liftover_annotation(
     """Liftover a variant from GRCh37 or GRCH38 into the opposite assembly, and return the string identifier for the converted variant to be stored as an annotation.
     If liftover is unsuccessful, return a string error message to store as an annotation instead.
 
-    :param variation_object: A dictionary representation of a VRS Object.
+    :param variation_object: A dictionary representation of a `VrsVariation`.
     :param seqrepo_dataproxy: A SeqrepoDataproxy instance.
     :return: The string ga4gh identifier of the lifted-over variant on success; else a string error message indicating why liftover was unsuccessful on failure.
     """
@@ -173,7 +173,7 @@ def get_liftover_annotation(
     try:
         from_assembly, to_assembly = get_from_and_to_assemblies(aliases)
     except AliasRetrievalError:
-        return f"{error_msg}: could not resolve reference assembly - no alias data found in any supported assembly"
+        return f"{error_msg}: could not resolve reference assembly - alias data not found in any supported assembly"
     except AmbiguousReferenceAssemblyError:
         return f"{error_msg}: could not resolve reference assembly - alias data found in multiple supported assemblies"
 

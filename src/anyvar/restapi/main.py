@@ -313,7 +313,7 @@ async def add_genomic_liftover_annotation(
             if not vrs_id:  # If there's no vrs_id, registration was unsuccessful
                 return new_response  # Return the new response object since we have exhausted the response body iterator
 
-            # Check if we've already lifted over this variant before - no need to do it twice
+            # Check if we've already lifted over this variant before - no need to do it more than once
             annotation_id = "liftover"
             liftover_annotation = annotator.get_annotation(vrs_id, annotation_id)
             if liftover_annotation:
