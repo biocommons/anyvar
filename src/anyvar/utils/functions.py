@@ -227,4 +227,4 @@ def get_liftover_annotation(
     ](**converted_variation_dict)
 
     # Compute the identifiers and return the ga4gh id of the converted variant
-    return vrs_enref(converted_variation_object, True)[1]
+    return vrs_enref(converted_variation_object, return_id_obj_tuple=True)[0]
