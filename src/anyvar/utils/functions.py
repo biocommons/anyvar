@@ -131,8 +131,8 @@ def convert_position(
 def get_liftover_annotation(
     variation_object: dict, seqrepo_dataproxy: _DataProxy
 ) -> str:
-    """Liftover a variant from GRCh37 or GRCH38 into the opposite assembly, and return the string identifier for the converted variant to be stored as an annotation.
-    If liftover is unsuccessful, return a string error message to store as an annotation instead.
+    """Liftover a variant from GRCh37 or GRCH38 into the opposite assembly, and return the string identifier for the converted variant.
+    If liftover is unsuccessful, return a string error message instead.
 
     :param variation_object: A dictionary representation of a `VrsVariation`.
     :param seqrepo_dataproxy: A SeqrepoDataproxy instance.
