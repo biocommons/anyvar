@@ -7,7 +7,6 @@ from typing import cast
 from agct import Converter, Genome, Strand
 from fastapi import Response
 from fastapi.responses import JSONResponse, StreamingResponse
-from ga4gh.vrs import models
 from ga4gh.vrs.dataproxy import _DataProxy
 from ga4gh.vrs.enderef import vrs_enref
 
@@ -101,20 +100,20 @@ def get_from_and_to_assemblies(aliases: dict) -> tuple[str, str]:
 
 
 def convert_position(
-    converter: Converter, chromosome: str, position: models.Range | int
-) -> models.Range | int:
-    """Convert a SequenceLocation position (i.e., `start` or `end`) to another reference Genome. `position` can either be a `Range` or an `int` - return type will match.
+    converter: Converter, chromosome: str, position: list | int
+) -> list | int:
+    """Convert a SequenceLocation position (i.e., `start` or `end`) to another reference Genome. `position` can either be a `List` or an `int` - return type will match.
 
     :param converter: An AGCT Converter instance.
     :param chromosome: The chromosome number where the position is found. Must be a string consisting of the prefix "chr" plus a number, i.e. "chr10".
-    :param position: A SequenceLocation start or end position. Can be a `Range` or an `int`.
+    :param position: A SequenceLocation start or end position. Can be a `List` or an `int`.
 
-    :return: A lifted-over position. Type (`Range` or `int`) will match that of `position`
+    :return: A lifted-over position. Type (`List` or `int`) will match that of `position`
     """
     if isinstance(position, int):
         return converter.convert_coordinate(chromosome, position, Strand.POSITIVE)[0][1]
 
-    lower, upper = position.root
+    lower, upper = position
     lower = (
         converter.convert_coordinate(chromosome, lower, Strand.POSITIVE)[0][1]
         if lower
@@ -125,7 +124,7 @@ def convert_position(
         if upper
         else None
     )
-    return models.Range([lower, upper])
+    return [lower, upper]
 
 
 def get_liftover_annotation(
