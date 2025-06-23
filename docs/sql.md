@@ -12,7 +12,7 @@ The Postgres and Snowflake database connectors utilize a background thread
 to write VRS objects to the database when operating in batch mode (e.g. annotating
 a VCF file). Queries and statistics query only against the already committed database
 state. Therefore, queries issued immediately after a batch operation may not reflect
-all pending changes if the `ANYVAR_SQL_STORE_FLUSH_ON_BATCHCTX_EXIT` parameter is sett
+all pending changes if the `ANYVAR_SQL_STORE_FLUSH_ON_BATCHCTX_EXIT` parameter is set
 to `False`.
 
 
