@@ -22,7 +22,7 @@ The database integrations can be modified using the following parameters in your
 
 | Variable | Description | Default |
 | -------- | ------- | ------- |
-| `ANYVAR_STORAGE_URI` | The URI for your chosen storage method. Set to `null` if running AnyVar without a storage option configured | _No default_ |
+| `ANYVAR_STORAGE_URI` | The URI for your chosen storage method. Set to an empty string (`""`) if running AnyVar without a storage option configured | _No default_ |
 | `ANYVAR_SQL_STORE_BATCH_LIMIT`| In batch mode, limit VRS object upsert batches to this number | `100,000` |
 | `ANYVAR_SQL_STORE_TABLE_NAME` | The name of the table that stores VRS objects | `vrs_objects` |
 | `ANYVAR_SQL_STORE_MAX_PENDING_BATCHES` | The maximum number of pending batches to allow before blocking | `50` |
