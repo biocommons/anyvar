@@ -16,7 +16,7 @@ class ReferenceAssemblyResolutionError(Exception):
 async def parse_and_rebuild_response(response: Response) -> tuple[dict, Response]:
     """Convert a Response object to a dict, then re-build a new Response object (since parsing exhausts the response `body_iterator`).
 
-    :param: response: the `Response` object to parse
+    :param response: the `Response` object to parse
     :return: a dictionary representation of the response
     """
     response_chunks = [chunk async for chunk in response.body_iterator]
@@ -36,7 +36,7 @@ async def parse_and_rebuild_response(response: Response) -> tuple[dict, Response
 def get_chromosome_from_aliases(aliases: list[str]) -> str | None:
     """Extract a string chromosome number from a list of aliases for a refget accession.
 
-    :param: aliases: the list of aliases to search through for the chromosome number
+    :param aliases: the list of aliases to search through for the chromosome number
     :return: a string chromosome number, prefixed by "chr"
     """
     reference_alias = None
@@ -67,9 +67,9 @@ def get_from_and_to_assemblies(aliases: dict) -> tuple[str | None, str | None]:
     - If *both* assemblies contain aliases for the variant, then it is identical across assemblies and requires no liftover.
     - If *neither* assembly contains the variant, something has gone wrong: raises an exception
 
-    :param: aliases: A dictionary containing a list of aliases for both supported reference assemblies (GRCh37 and GRCh38)
+    :param aliases: A dictionary containing a list of aliases for both supported reference assemblies (GRCh37 and GRCh38)
     :return: A tuple containing the assembly we're converting from and the one we're converting to
-    :raises: An Exception if neither assembly contains the variant
+    :raise: A ReferenceAssemblyResolutionError if neither assembly contains the variant
     """
     grch37, grch38 = sorted(aliases.keys())
 
@@ -94,8 +94,8 @@ def convert_range_to_int(
     max of the Range as dictated by the value of the param `bound`. If one bound is missing, returns the one that is
     present. Returns `None` if both are missing.
 
-    :param: range_object: the VRS Range object to convert
-    :returns: An `int` representing the specified upper or lower value in the Range if possible, else `None` if neither bound is defined
+    ::param range_object: the VRS Range object to convert
+    :return: An `int` representing the specified upper or lower value in the Range if possible, else `None` if neither bound is defined
     """
     lower, upper = range_object.root
 
