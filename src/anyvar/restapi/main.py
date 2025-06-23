@@ -307,7 +307,13 @@ def register_variation(
     variation: Annotated[
         RegisterVariationRequest,
         Body(
-            description="Variation description, including (at minimum) a definition property. Can provide optional input_type if the expected output representation is known. If representing copy number, provide copies or copy_change."
+            description="Variation description, including (at minimum) a definition property. Can provide optional input_type if the expected output representation is known. If representing copy number, provide copies or copy_change.",
+            example={
+                "definition": "NC_000007.13:g.36561662_36561663del",
+                "input_type": "Allele",
+                "copies": 0,
+                "copy_change": "complete genomic loss",
+            },
         ),
     ],
 ) -> dict:
