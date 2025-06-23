@@ -2,10 +2,11 @@
 
 import json
 import re
+from typing import cast
 
 from agct import Converter, Genome, Strand
 from fastapi import Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from ga4gh.vrs import models
 from ga4gh.vrs.dataproxy import _DataProxy
 from ga4gh.vrs.enderef import vrs_enref
@@ -21,13 +22,17 @@ class AmbiguousReferenceAssemblyError(Exception):
     """Indicates a failure to determine which reference assembly a variant is one due to alias matches in multiple reference assemblies, making the result ambiguous"""
 
 
-async def parse_and_rebuild_response(response: Response) -> tuple[dict, Response]:
+async def parse_and_rebuild_response(
+    response: StreamingResponse,
+) -> tuple[dict, Response]:
     """Convert a Response object to a dict, then re-build a new Response object (since parsing exhausts the response `body_iterator`).
 
     :param response: the `Response` object to parse
     :return: a dictionary representation of the response
     """
-    response_chunks = [chunk async for chunk in response.body_iterator]
+    response_chunks: list[bytes] = [
+        cast(bytes, chunk) async for chunk in response.body_iterator
+    ]
     response_body_encoded = b"".join(response_chunks)
     response_body = response_body_encoded.decode("utf-8")
     response_json = json.loads(response_body)
