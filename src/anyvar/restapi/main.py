@@ -73,6 +73,14 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
     """Initialize AnyVar instance and associate with FastAPI app on startup
     and teardown the AnyVar instance on shutdown
     """
+    # initialize logs
+    name = __name__.split(".")[0]
+    logging.basicConfig(
+        filename=f"{name}.log",
+        format="[%(asctime)s] - %(name)s - %(levelname)s : %(message)s",
+    )
+    logging.getLogger(name).setLevel(logging.DEBUG)
+
     # create anyvar instance
     storage = anyvar.anyvar.create_storage()
     translator = anyvar.anyvar.create_translator()
@@ -211,7 +219,9 @@ def add_variation_annotation(
                 annotation=annotation.annotation,
             )
         except ValueError as e:
-            _logger.error("Failed to add annotation: %s", e)
+            _logger.error(
+                "Failed to add annotation `%s` on variation `%s`", annotation, vrs_id
+            )
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                 detail=f"Failed to add annotation: {annotation}",
@@ -587,8 +597,10 @@ async def _annotate_vcf_sync(
             compute_for_ref=for_ref,
             assembly=assembly,
         )
-    except (TranslatorConnectionError, OSError, ValueError) as e:
-        _logger.error("Encountered error during VCF registration: %s", e)
+    except (TranslatorConnectionError, OSError, ValueError):
+        _logger.exception(
+            "Encountered error during registration of VCF file %s", vcf.filename
+        )
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return ErrorResponse(error="VCF registration failed.")
 
