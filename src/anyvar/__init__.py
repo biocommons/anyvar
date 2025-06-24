@@ -1,21 +1,11 @@
 """Import basic AnyVar objects."""
 
-import logging
-
-import pkg_resources
-
-_logger = logging.getLogger(__name__)
-
-__all__ = ["AnyVar"]
-
+from importlib.metadata import PackageNotFoundError, version
 
 try:
-    __version__ = pkg_resources.get_distribution(__name__).version
-    _logger.info("Package %s, version = %s", __name__, __version__)
-except pkg_resources.DistributionNotFound:
+    __version__ = version(__package__)
+except PackageNotFoundError:  # pragma: no cover
+    # package is not installed
     __version__ = "unknown"
-finally:
-    del pkg_resources
-
 
 from .anyvar import AnyVar  # isort:skip

@@ -19,10 +19,10 @@ By default, AnyVar logs at the `INFO` level to standard output, providing suffic
 Logging can be customized extensively using YAML configuration files. To enable customized logging:
 
 1. Create a YAML configuration file (e.g., `logging.yaml`).
-2. Set the environment variable `ANYVAR_LOGGING_CONFIG` to point to this file:
+2. Set the environment variable `ANYVAR_LOGGING_CONFIG` to point to this file in your `.env` file:
 
 ```shell
-export ANYVAR_LOGGING_CONFIG=/path/to/logging.yaml
+ANYVAR_LOGGING_CONFIG="/path/to/logging.yaml"
 ```
 
 ### Example YAML Configuration
@@ -100,7 +100,7 @@ Logging changes take effect immediately upon application restart.
 
 | Variable             | Description               | Example                                               |
 | -------------------- | ------------------------- | ----------------------------------------------------- |
-| `ANYVAR_LOGGING_CONFIG` | Path to custom logging configuration YAML file | `/path/to/logging.yaml` |
+| `ANYVAR_LOGGING_CONFIG` | Path to custom logging configuration YAML file | `"/path/to/logging.yaml"` |
 ---
 
 Your customized logging setup is now complete. Refer to the primary AnyVar documentation for additional usage and operational details.

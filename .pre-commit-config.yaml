@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0  # pre-commit-hooks version
+    rev: v5.0.0  # pre-commit-hooks version
     hooks:
       - id: check-added-large-files
       - id: detect-private-key
@@ -9,10 +9,12 @@ repos:
       - id: check-merge-conflict
       - id: detect-aws-credentials
         args: [ --allow-missing-credentials ]
+      - id: mixed-line-ending
+        args: [ --fix=lf ]
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.2  # ruff version
     hooks:
       - id: ruff-format
       - id: ruff
         args: [ --fix, --exit-non-zero-on-fix ]
-minimum_pre_commit_version: 3.7.1
+minimum_pre_commit_version: 4.0.1

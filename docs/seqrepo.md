@@ -24,10 +24,10 @@ The simplest and most efficient method for most users is a direct local file ins
 
 3. **Set the Environment Variable:**
 
-	Configure your environment to point to this SeqRepo location:
+	Configure your environment to point to this SeqRepo location by setting the following variable in your `.env` file:
 
 	```shell
-	export SEQREPO_DATAPROXY_URI=seqrepo+file:///full_path_to_seqrepo/2024-12-20
+	SEQREPO_DATAPROXY_URI="seqrepo+file:///full_path_to_seqrepo/2024-12-20"
 	```
 
 	Replace `full_path_to_seqrepo` with your absolute path.
@@ -75,8 +75,11 @@ Docker is suitable for containerized environments or users preferring isolation.
 
 5. **Set your environment variable to the REST API:**
 
+    Set the following environment variables in your `.env` file:
+
 	```shell
-	export SEQREPO_DATAPROXY_URI=seqrepo+http://localhost:5001/seqrepo
+	SEQREPO_DATAPROXY_URI="seqrepo+http://localhost:5001/seqrepo"
+	SEQREPO_INSTANCE_DIR="/usr/local/share/seqrepo/2024-12-20"
 	```
 
 ## Native Installation (Rsync Method)
@@ -104,10 +107,10 @@ Useful when direct file or Docker setups are not feasible.
 	seqrepo update-latest
 	```
 
-4. Set the environment variable accordingly:
+4. Set the environment variable in your `.env` accordingly:
 
 	```shell
-	export SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/$SEQREPO_VERSION
+	SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/$SEQREPO_VERSION
 	```
 
 ### Troubleshooting
@@ -152,6 +155,7 @@ Successful completion of these steps confirms a working SeqRepo installation.
 | Variable                | Description                             | Example                                              |
 | ----------------------- | --------------------------------------- | ---------------------------------------------------- |
 | `SEQREPO_DATAPROXY_URI` | URI for SeqRepo DataProxy interface.    | `seqrepo+file:///usr/local/share/seqrepo/2024-12-20` |
+| `SEQREPO_INSTANCE_DIR` | Path to the SeqRepo install (only required Docker-based installation) | `"/usr/local/share/seqrepo/2024-12-20"` |
 
 Ensure this environment variable is correctly set before using AnyVar.
 

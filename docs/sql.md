@@ -12,17 +12,17 @@ The Postgres and Snowflake database connectors utilize a background thread
 to write VRS objects to the database when operating in batch mode (e.g. annotating
 a VCF file). Queries and statistics query only against the already committed database
 state. Therefore, queries issued immediately after a batch operation may not reflect
-all pending changes if the `ANYVAR_SQL_STORE_FLUSH_ON_BATCHCTX_EXIT` parameter is sett
+all pending changes if the `ANYVAR_SQL_STORE_FLUSH_ON_BATCHCTX_EXIT` parameter is set
 to `False`.
 
 
 ## Cheat Sheet: Environment Variables
 
-The database integrations can be modified using the following parameters:
+The database integrations can be modified using the following parameters in your `.env` file:
 
 | Variable | Description | Default |
 | -------- | ------- | ------- |
-| `ANYVAR_STORAGE_URI` | The URI for your chosen storage method. Set to `null` if running AnyVar without a storage option configured | _No default_ |
+| `ANYVAR_STORAGE_URI` | The URI for your chosen storage method. Set to an empty string (`""`) if running AnyVar without a storage option configured | _No default_ |
 | `ANYVAR_SQL_STORE_BATCH_LIMIT`| In batch mode, limit VRS object upsert batches to this number | `100,000` |
 | `ANYVAR_SQL_STORE_TABLE_NAME` | The name of the table that stores VRS objects | `vrs_objects` |
 | `ANYVAR_SQL_STORE_MAX_PENDING_BATCHES` | The maximum number of pending batches to allow before blocking | `50` |
