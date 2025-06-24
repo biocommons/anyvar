@@ -219,7 +219,7 @@ def add_variation_annotation(
                 annotation=annotation.annotation,
             )
         except ValueError as e:
-            _logger.error(
+            _logger.exception(
                 "Failed to add annotation `%s` on variation `%s`", annotation, vrs_id
             )
             raise HTTPException(
