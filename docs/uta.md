@@ -4,10 +4,10 @@ UTA (Universal Transcript Archive) is used to interpret variations on non-genomi
 
 ## Recommended Public Instance Usage (for small use cases)
 
-For minimal usage scenarios, utilize the public UTA instance hosted by biocommons.org:
+For minimal usage scenarios, utilize the public UTA instance hosted by biocommons.org by setting the following variable in your `.env` file:
 
 ```shell
-export UTA_DB_URL=postgresql://anonymous:anonymous@uta.biocommons.org:5432/uta/uta_20210129b
+UTA_DB_URL="postgresql://anonymous:anonymous@uta.biocommons.org:5432/uta/uta_20210129b"
 ```
 
 This public instance is convenient but may experience slower performance during peak usage.
@@ -60,9 +60,9 @@ A local Docker setup is recommended for consistent performance and reliability.
 
 5. **Set Environment Variable:**
 
-    Configure AnyVar to use UTA.
+    Configure AnyVar to use UTA by setting the following variable in your `.env` file:
     ```shell
-    export UTA_DB_URL=postgresql://anonymous@localhost:5432/uta/uta_20241220
+    UTA_DB_URL="postgresql://anonymous@localhost:5432/uta/uta_20241220"
     ```
 
 ### Verifying UTA Installation

@@ -73,13 +73,18 @@ AnyVar does not store the actual VCF files in Redis for asynchronous processing,
 This allows very large VCF files to be asychronously processed.  All REST API and worker instances of AnyVar
 require access to the same shared file system.
 
+### 3. Set Environment Variables
+Set the following environment variables in your `.env` file:
+```shell
+CELERY_BROKER_URL="redis://localhost:6379/0"
+CELERY_BACKEND_URL="redis://localhost:6379/0"
+ANYVAR_VCF_ASYNC_WORK_DIR="/path/to/shared/file/system"
+```
+
 ### 4. Start the REST API
 Start the REST API with environment variables to set shared resource locations:
 ```shell
-% CELERY_BROKER_URL="redis://localhost:6379/0" \
-    CELERY_BACKEND_URL="redis://localhost:6379/0" \
-    ANYVAR_VCF_ASYNC_WORK_DIR="/path/to/shared/file/system" \
-    uvicorn anyvar.restapi.main:app
+uvicorn anyvar.restapi.main:app
 ```
 
 ### 5. Start a Celery Worker

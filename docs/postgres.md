@@ -32,9 +32,10 @@ docker run -d \
 cat src/anyvar/storage/postgres_init.sql | psql -h localhost -U postgres -p 5432
 ```
 #### 3. Configure the environment variable to connect AnyVar to PostgreSQL:
+Set the follwoing environment variable in your `.env` file:
 
 ```shell
-export ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@localhost:5432/anyvar
+ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@localhost:5432/anyvar
 ```
 
 
@@ -55,7 +56,7 @@ AnyVar expects specific database credentials (`anyvar` user and `anyvar` databas
 
 ## Troubleshooting and Validation
 
-* **Port Conflicts:** If the default port (`5432`) is unavailable:
+* **Port Conflicts:** If the default port (`5432`) is unavailable, try running the following command:
 
   ```shell
   docker run -d \
