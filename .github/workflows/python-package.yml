@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: lint
@@ -21,3 +24,22 @@ jobs:
 
       - name: Check style
         run: python3 -m ruff check . && python3 -m ruff format --check .
+  precommit_hooks:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cmd:
+          - "end-of-file-fixer"
+          - "trailing-whitespace"
+          - "mixed-line-ending"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: ${{ matrix.cmd }} --all-files

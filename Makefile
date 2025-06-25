@@ -33,13 +33,14 @@ help:
 ############################################################################
 #= SETUP, INSTALLATION, PACKAGING
 
-#=> venv: make a Python 3 virtual environment
+#=> venv: make a Python 3 virtual environment & install basic dependencies
 .PHONY: venv/%
 venv/%:
 	python$* -m venv $@; \
-	source $@/bin/activate; \
+	. $@/bin/activate; \
 	python -m ensurepip --upgrade; \
-	pip install --upgrade pip setuptools
+	pip install --upgrade pip setuptools; \
+	pip install .
 
 #=> develop: install package in develop mode
 .PHONY: develop
