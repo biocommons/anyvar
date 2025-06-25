@@ -56,7 +56,6 @@ def test_variation_input_annotation():
         annotation=variation_input
     )
 
-  
 def test_vrs_variation_output_annotation():
     """Should store object_id for /vrs_variation if not already annotated."""
 
