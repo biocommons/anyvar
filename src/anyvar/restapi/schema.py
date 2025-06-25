@@ -1,7 +1,7 @@
 """Provide response definitions to REST API endpoint."""
 
 from enum import Enum
-from typing import Any, Optional
+from typing import Optional
 
 from ga4gh.vrs import models
 from pydantic import BaseModel, ConfigDict, StrictInt, StrictStr
@@ -129,38 +129,32 @@ class RegisterVrsVariationResponse(BaseModel):
 class GetVariationResponse(BaseModel):
     """Describe response for the GET /variation endpoint"""
 
-    @staticmethod
-    def _json_schema_extra(
-        schema: dict[str, Any],
-        model: type["GetVariationResponse"],  # noqa: ARG004
-    ) -> None:
-        """Configure OpenAPI schema"""
-        if "title" in schema:
-            schema.pop("title", None)
-        for prop in schema.get("properties", {}).values():
-            prop.pop("title", None)
-        schema["example"] = {
-            "messages": [],
-            "data": {
-                "digest": "K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU",
-                "id": "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU",
-                "location": {
-                    "digest": "01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
-                    "id": "ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
-                    "start": 87894076,
-                    "end": 87894077,
-                    "sequenceReference": {
-                        "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
-                        "type": "SequenceReference",
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "messages": [],
+                    "data": {
+                        "digest": "K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU",
+                        "id": "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU",
+                        "location": {
+                            "digest": "01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
+                            "id": "ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
+                            "start": 87894076,
+                            "end": 87894077,
+                            "sequenceReference": {
+                                "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
+                                "type": "SequenceReference",
+                            },
+                            "type": "SequenceLocation",
+                        },
+                        "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
+                        "type": "Allele",
                     },
-                    "type": "SequenceLocation",
-                },
-                "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
-                "type": "Allele",
-            },
+                }
+            ]
         }
-
-    model_config = ConfigDict(json_schema_extra=_json_schema_extra)
+    )
 
     messages: list[StrictStr]
     data: models.Variation
