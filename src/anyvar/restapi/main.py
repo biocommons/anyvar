@@ -456,7 +456,8 @@ async def annotate_vcf(
             description="When running asynchronously, use the specified value as the run id instead generating a random uuid",
         ),
     ] = None,
-) -> FileResponse | RunStatusResponse | ErrorResponse:
+    return_annotated_vcf: bool = True,
+) -> FileResponse | RunStatusResponse | ErrorResponse | None:
     """Register alleles from a VCF and return a file annotated with VRS IDs.
 
     :param request: FastAPI request object
@@ -468,6 +469,7 @@ async def annotate_vcf(
     :param assembly: the reference assembly for the VCF
     :param run_async: whether to run the VCF annotation synchronously or asynchronously
     :param run_id: user provided id for asynchronous VCF annotation
+    :param return_annotated_vcf: if True, prepare and return an annotated VCF
     :return: streamed annotated file or a run status response for an asynchronous run
     """
     # If async requested but not enabled, return an error
@@ -500,6 +502,7 @@ async def annotate_vcf(
             for_ref=for_ref,
             allow_async_write=allow_async_write,
             assembly=assembly,
+            return_annotated_vcf=return_annotated_vcf,
         )
 
 
@@ -579,7 +582,8 @@ async def _annotate_vcf_sync(
     for_ref: bool,
     allow_async_write: bool,
     assembly: str,
-) -> FileResponse | ErrorResponse:
+    return_annotated_vcf: bool,
+) -> FileResponse | None | ErrorResponse:
     """Annotate with VRS IDs synchronously.  See `annotate_vcf()` for parameter definitions."""
     av: AnyVar = request.app.state.anyvar
     registrar = VcfRegistrar(data_proxy=av.translator.dp, av=av)
@@ -589,8 +593,11 @@ async def _annotate_vcf_sync(
         temp_in.write(contents)
         temp_in_path = pathlib.Path(temp_in.name)
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".vcf") as temp_out:
-        temp_out_path = pathlib.Path(temp_out.name)
+    if return_annotated_vcf:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".vcf") as temp_out:
+            temp_out_path = pathlib.Path(temp_out.name)
+    else:
+        temp_out_path = None
 
     try:
         registrar.annotate(
@@ -611,9 +618,11 @@ async def _annotate_vcf_sync(
         av.object_store.wait_for_writes()
 
     bg_tasks.add_task(os.unlink, temp_in_path)
-    bg_tasks.add_task(os.unlink, temp_out_path)
 
-    return FileResponse(temp_out_path)
+    if return_annotated_vcf:
+        bg_tasks.add_task(os.unlink, temp_out_path)
+        return FileResponse(temp_out_path)
+    return None
 
 
 @app.get(
