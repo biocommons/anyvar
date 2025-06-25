@@ -49,6 +49,10 @@ from anyvar.restapi.schema import (
     RegisterVrsVariationResponse,
     RunStatusResponse,
     SearchResponse,
+    ServiceEnvironment,
+    ServiceInfo,
+    ServiceOrganization,
+    ServiceType,
     VariationStatisticType,
 )
 from anyvar.translate.translate import (
@@ -139,6 +143,24 @@ def get_info() -> dict:
         },
         "ga4gh_vrs": {"version": ga4gh.vrs.__version__},
     }
+
+
+@app.get(
+    "/service-info",
+    summary="Get basic service information",
+    description="Retrieve service metadata, such as versioning and contact info. Structured in conformance with the [GA4GH service info API specification](https://www.ga4gh.org/product/service-info/)",
+    tags=[EndpointTag.GENERAL],
+)
+def service_info() -> ServiceInfo:
+    """Provide service info per GA4GH Service Info spec
+
+    :return: conformant service info description
+    """
+    return ServiceInfo(
+        organization=ServiceOrganization(),
+        type=ServiceType(),
+        environment=ServiceEnvironment.DEV,
+    )
 
 
 @app.get(
