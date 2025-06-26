@@ -29,7 +29,7 @@ class LiftoverError(str, Enum):
     """Errors that can occur during variant liftover"""
 
     INPUT_ERROR = "Input Error"
-    UNSUPPORTED_VARIANT_TYPE = "Unsupported Variant Type"
+    UNSUPPORTED_VARIANT_LOCATION_TYPE = "Unsupported Variant Location Type"
     UNSUPPORTED_REFERENCE_ASSEMBLY = "Unsupported Reference Assembly Error"
     AMBIGUOUS_REFERENCE_ASSEMBLY = "Ambiguous Reference Assembly Error"
     CHROMOSOME_RESOLUTION_ERROR = "Chromosome Resolution Error"
@@ -39,7 +39,7 @@ class LiftoverError(str, Enum):
 
 LIFTOVER_ERROR_ANNOTATIONS = {
     LiftoverError.INPUT_ERROR: f"{liftover_error_prefix}: no variation found",
-    LiftoverError.UNSUPPORTED_VARIANT_TYPE: f"{liftover_error_prefix}: liftover is unsupported for variants without refget accession, start position and end position",
+    LiftoverError.UNSUPPORTED_VARIANT_LOCATION_TYPE: f"{liftover_error_prefix}: liftover is unsupported for variants without refget accession, start position and end position",
     LiftoverError.UNSUPPORTED_REFERENCE_ASSEMBLY: f"{liftover_error_prefix}: could not resolve reference assembly - accession not found in any supported assembly",
     LiftoverError.AMBIGUOUS_REFERENCE_ASSEMBLY: f"{liftover_error_prefix}: could not resolve reference assembly - accession found in multiple supported assemblies",
     LiftoverError.CHROMOSOME_RESOLUTION_ERROR: f"{liftover_error_prefix}: unable to resolve variant's chromosome",
@@ -54,7 +54,7 @@ async def parse_and_rebuild_response(
     """Convert a `Response` object to a dict, then re-build a new Response object (since parsing exhausts the Response `body_iterator`).
 
     :param response: the `Response` object to parse
-    :return: a dictionary representation of the Response
+    :return: a tuple with a dictionary representation of the Response and a new `Response` object
     """
     response_chunks: list[bytes] = [
         cast(bytes, chunk) async for chunk in response.body_iterator
@@ -69,7 +69,7 @@ async def parse_and_rebuild_response(
         media_type=response.media_type,
     )
 
-    return response_json, new_response
+    return (response_json, new_response)
 
 
 def get_chromosome_from_aliases(aliases: list[str]) -> str | None:
@@ -129,13 +129,13 @@ def get_from_and_to_assemblies(aliases: dict) -> tuple[str, str]:
 def convert_position(
     converter: Converter, chromosome: str, position: list | int
 ) -> list | int:
-    """Convert a SequenceLocation position (i.e., `start` or `end`) to another reference Genome. `position` can either be a `List` or an `int` - return type will match.
+    """Convert a SequenceLocation position (i.e., `start` or `end`) to another reference Genome. `position` can either be a `list` or an `int` - return type will match.
 
     :param converter: An AGCT Converter instance.
     :param chromosome: The chromosome number where the position is found. Must be a string consisting of the prefix "chr" plus a number, i.e. "chr10".
-    :param position: A SequenceLocation start or end position. Can be a `List` or an `int`.
+    :param position: A SequenceLocation start or end position. Can be a `list` or an `int`.
 
-    :return: A lifted-over position. Type (`List` or `int`) will match that of `position`
+    :return: A lifted-over position. Type (`list` or `int`) will match that of `position`
     """
     if isinstance(position, int):
         return converter.convert_coordinate(chromosome, position, Strand.POSITIVE)[0][1]
@@ -176,7 +176,9 @@ def get_liftover_annotation(
     start_position = variation_object.get("location", {}).get("start")
     end_position = variation_object.get("location", {}).get("end")
     if not refget_accession or not start_position or not end_position:
-        return LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.UNSUPPORTED_VARIANT_TYPE]
+        return LIFTOVER_ERROR_ANNOTATIONS[
+            LiftoverError.UNSUPPORTED_VARIANT_LOCATION_TYPE
+        ]
 
     # Determine which assembly we're converting from/to
     prefixed_accession = f"ga4gh:{refget_accession}"
