@@ -2,6 +2,7 @@
 
 import json
 import re
+from enum import Enum
 from typing import cast
 
 from agct import Converter, Genome, Strand
@@ -13,12 +14,38 @@ from ga4gh.vrs.enderef import vrs_enref
 from anyvar.utils.types import VrsObject, variation_class_map
 
 
-class AliasRetrievalError(Exception):
+class UnsupportedReferenceAssemblyError(Exception):
     """Indicates a failure to retrieve alias data for a refget accession in any supported reference assembly."""
 
 
 class AmbiguousReferenceAssemblyError(Exception):
     """Indicates a failure to determine which reference assembly a variant is one due to alias matches in multiple reference assemblies, making the result ambiguous"""
+
+
+liftover_error_prefix = "Unable to complete liftover: "
+
+
+class LiftoverError(str, Enum):
+    """Errors that can occur during variant liftover"""
+
+    INPUT_ERROR = "Input Error"
+    UNSUPPORTED_VARIANT_TYPE = "Unsupported Variant Type"
+    UNSUPPORTED_REFERENCE_ASSEMBLY = "Unsupported Reference Assembly Error"
+    AMBIGUOUS_REFERENCE_ASSEMBLY = "Ambiguous Reference Assembly Error"
+    CHROMOSOME_RESOLUTION_ERROR = "Chromosome Resolution Error"
+    COORDINATE_CONVERSION_ERROR = "Coordinate Conversion Error"
+    ACCESSION_CONVERSION_ERROR = "Accession Conversion Error"
+
+
+LIFTOVER_ERROR_ANNOTATIONS = {
+    LiftoverError.INPUT_ERROR: f"{liftover_error_prefix}: no variation found",
+    LiftoverError.UNSUPPORTED_VARIANT_TYPE: f"{liftover_error_prefix}: liftover is unsupported for variants without refget accession, start position and end position",
+    LiftoverError.UNSUPPORTED_REFERENCE_ASSEMBLY: f"{liftover_error_prefix}: could not resolve reference assembly - accession not found in any supported assembly",
+    LiftoverError.AMBIGUOUS_REFERENCE_ASSEMBLY: f"{liftover_error_prefix}: could not resolve reference assembly - accession found in multiple supported assemblies",
+    LiftoverError.CHROMOSOME_RESOLUTION_ERROR: f"{liftover_error_prefix}: unable to resolve variant's chromosome",
+    LiftoverError.COORDINATE_CONVERSION_ERROR: f"{liftover_error_prefix}: could not convert start and/or end position(s)",
+    LiftoverError.ACCESSION_CONVERSION_ERROR: f"{liftover_error_prefix}: could not convert refget accession",
+}
 
 
 async def parse_and_rebuild_response(
@@ -92,7 +119,7 @@ def get_from_and_to_assemblies(aliases: dict) -> tuple[str, str]:
         from_assembly = grch38
         to_assembly = grch37
     elif not aliases[grch37] and not aliases[grch38]:
-        raise AliasRetrievalError
+        raise UnsupportedReferenceAssemblyError
     else:
         raise AmbiguousReferenceAssemblyError
 
@@ -137,10 +164,8 @@ def get_liftover_annotation(
     :param seqrepo_dataproxy: A SeqrepoDataproxy instance.
     :return: The string ga4gh identifier of the lifted-over variant on success; else a string error message indicating why liftover was unsuccessful on failure.
     """
-    error_msg = "Unable to complete liftover"
-
     if not variation_object:
-        return f"{error_msg}: no variation found"
+        return LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.INPUT_ERROR]
 
     # Get variant start position, end position, and refget accession - liftover is currently unsupported without these
     refget_accession = (
@@ -151,7 +176,7 @@ def get_liftover_annotation(
     start_position = variation_object.get("location", {}).get("start")
     end_position = variation_object.get("location", {}).get("end")
     if not refget_accession or not start_position or not end_position:
-        return f"{error_msg}: liftover is unsupported for variants without refget accession, start position and end position"
+        return LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.UNSUPPORTED_VARIANT_TYPE]
 
     # Determine which assembly we're converting from/to
     prefixed_accession = f"ga4gh:{refget_accession}"
@@ -171,15 +196,15 @@ def get_liftover_annotation(
     to_assembly = None
     try:
         from_assembly, to_assembly = get_from_and_to_assemblies(aliases)
-    except AliasRetrievalError:
-        return f"{error_msg}: could not resolve reference assembly - alias data not found in any supported assembly"
+    except UnsupportedReferenceAssemblyError:
+        return LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.UNSUPPORTED_REFERENCE_ASSEMBLY]
     except AmbiguousReferenceAssemblyError:
-        return f"{error_msg}: could not resolve reference assembly - alias data found in multiple supported assemblies"
+        return LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.AMBIGUOUS_REFERENCE_ASSEMBLY]
 
     # Determine which chromosome the variant is on
     chromosome = get_chromosome_from_aliases(aliases.get(from_assembly, []))
     if not chromosome:
-        return f"{error_msg}: unable to resolve variant's chromosome"
+        return LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.CHROMOSOME_RESOLUTION_ERROR]
 
     # Begin liftover conversion
     assembly_map = {grch37: Genome.HG19, grch38: Genome.HG38}
@@ -192,7 +217,7 @@ def get_liftover_annotation(
         converted_start = convert_position(converter, chromosome, start_position)
         converted_end = convert_position(converter, chromosome, end_position)
     except Exception:
-        return f"{error_msg}: could not convert start and/or end position(s)"
+        return LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.COORDINATE_CONVERSION_ERROR]
 
     # Get converted refget_accession (without 'ga4gh:' prefix)
     new_alias = f"{to_assembly}:{chromosome}"
@@ -200,7 +225,7 @@ def get_liftover_annotation(
         new_alias, "ga4gh"
     )[0].split("ga4gh:")[1]
     if not converted_refget_accession:
-        return f"{error_msg}: could not convert refget accession"
+        return LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.ACCESSION_CONVERSION_ERROR]
 
     # Build the converted location dict
     converted_variation_location = {
