@@ -144,7 +144,9 @@ def seqrepo_dataproxy() -> _DataProxy:
     return anyvar_instance.translator.dp
 
 
-# Tests for 'get_liftover_annotation' function
+################################################################################
+# Tests for src/anyvar/utils/functions.py > 'get_liftover_annotation' function #
+################################################################################
 @pytest.mark.parametrize(
     ("variation_input", "expected_output"),
     [
@@ -162,7 +164,34 @@ def test_liftover_annotation(variation_input, expected_output, seqrepo_dataproxy
     assert annotation_value == expected_output
 
 
-# Tests for the middleware function 'add_genomic_liftover_annotation'
+####################################################################################################
+# Tests for the middleware function src/anyvar/restapi/main.py > 'add_genomic_liftover_annotation' #
+####################################################################################################
+def test_valid_vrs_variant_liftover_annotation(client, alleles):
+    allele_id, allele_object = next(iter(alleles.items()))
+    client.put("/variation", json=allele_object)
+
+    annotator: AnyAnnotation | None = getattr(client.app.state, "anyannotation", None)
+    if annotator:
+        liftover_annotations = annotator.get_annotation(allele_id, "liftover")
+        assert len(liftover_annotations) > 0
+    else:
+        raise Exception  # TODO: use a more specific error?
+
+
+def test_invalid_vrs_variant_liftover_annotation(client, invalid_variant):
+    response = client.put("/variation", json=invalid_variant)
+    response_object = response.json()
+    vrs_id = response_object.get("id", "")
+
+    annotator: AnyAnnotation | None = getattr(client.app.state, "anyannotation", None)
+    if annotator:
+        liftover_annotations = annotator.get_annotation(vrs_id, "liftover")
+        assert len(liftover_annotations) == 0
+    else:
+        raise Exception  # TODO: use a more specific error?
+
+
 def test_duplicate_liftover_annotation(client, alleles):
     allele_id, allele_object = next(iter(alleles.items()))
 
@@ -175,14 +204,5 @@ def test_duplicate_liftover_annotation(client, alleles):
     if annotator:
         liftover_annotations = annotator.get_annotation(allele_id, "liftover")
         assert len(liftover_annotations) == 1
-
-
-def test_invalid_vrs_variant_registration(client, invalid_variant):
-    response = client.put("/variation", json=invalid_variant)
-    response_object = response.json()
-    vrs_id = response_object.get("id", "")
-
-    annotator: AnyAnnotation | None = getattr(client.app.state, "anyannotation", None)
-    if annotator:
-        liftover_annotations = annotator.get_annotation(vrs_id, "liftover")
-        assert len(liftover_annotations) == 0
+    else:
+        raise Exception  # TODO: use a more specific error?
