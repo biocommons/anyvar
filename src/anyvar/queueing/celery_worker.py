@@ -9,10 +9,12 @@ from pathlib import Path
 import celery.signals
 from celery import Celery, Task
 from celery.result import AsyncResult
+from dotenv import load_dotenv
 
 import anyvar
 from anyvar.extras.vcf import VcfRegistrar
 
+load_dotenv()
 _logger = logging.getLogger(__name__)
 
 # Configure the Celery app
