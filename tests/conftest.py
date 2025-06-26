@@ -49,9 +49,15 @@ def storage():
 
 @pytest.fixture(scope="session")
 def client(storage):
-    translator = create_translator()
-    anyvar_restapi.state.anyvar = AnyVar(object_store=storage, translator=translator)
-    return TestClient(app=anyvar_restapi)
+    # Allow FastAPI to initialize via lifespan
+    with TestClient(anyvar_restapi) as test_client:
+        # Inject custom anyvar instance into app state
+        translator = create_translator()
+        test_client.app.state.anyvar = AnyVar(
+            object_store=storage, translator=translator
+        )
+
+        yield test_client
 
 
 @pytest.fixture(scope="session")
