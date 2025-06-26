@@ -284,7 +284,11 @@ async def add_creation_timestamp_annotation(
             response_json, new_response = await util_funcs.parse_and_rebuild_response(
                 response
             )
+
             vrs_id = response_json.get("object", {}).get("id")
+            if not vrs_id:  # If there's no vrs_id, registration was unsuccessful
+                return new_response
+
             annotations = annotator.get_annotation(vrs_id, "creation_timestamp")
             if not annotations:
                 annotator.put_annotation(
@@ -320,16 +324,16 @@ async def add_genomic_liftover_annotation(
         if annotator:
             response_json, new_response = await util_funcs.parse_and_rebuild_response(
                 response
-            )
+            )  # When we return, we'll need to return the `new_response` object since we have now exhausted the original response body iterator
             vrs_id = response_json.get("object_id", "")
             if not vrs_id:  # If there's no vrs_id, registration was unsuccessful
-                return new_response  # Return the new response object since we have exhausted the response body iterator
+                return new_response
 
             # Check if we've already lifted over this variant before - no need to do it more than once
             annotation_id = "liftover"
             liftover_annotation = annotator.get_annotation(vrs_id, annotation_id)
             if liftover_annotation:
-                return new_response  # Return the new response object since we have exhausted the response body iterator
+                return new_response
 
             # Perform the liftover
             variation_object = response_json.get("object", {})
@@ -344,7 +348,6 @@ async def add_genomic_liftover_annotation(
                 annotation={annotation_id: annotation_value},
             )
 
-            # Return the new response object since we have exhausted the response body iterator
             return new_response
 
     return response
