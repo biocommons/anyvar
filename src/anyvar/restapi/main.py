@@ -38,6 +38,7 @@ from anyvar.restapi.schema import (
     AddAnnotationRequest,
     AddAnnotationResponse,
     AnyVarStatsResponse,
+    DependencyInfo,
     EndpointTag,
     ErrorResponse,
     GetAnnotationResponse,
@@ -130,19 +131,16 @@ app = FastAPI(
 
 @app.get(
     "/info",
-    response_model=InfoResponse,
     summary="Check system status and configurations",
     description="System status check and configurations",
     tags=[EndpointTag.GENERAL],
 )
-def get_info() -> dict:
+def get_info() -> InfoResponse:
     """Get system status check and configuration"""
-    return {
-        "anyvar": {
-            "version": anyvar.__version__,
-        },
-        "ga4gh_vrs": {"version": ga4gh.vrs.__version__},
-    }
+    return InfoResponse(
+        anyvar=DependencyInfo(version=anyvar.__version__),
+        ga4gh_vrs=DependencyInfo(version=ga4gh.vrs.__version__),
+    )
 
 
 @app.get(
@@ -165,7 +163,6 @@ def service_info() -> ServiceInfo:
 
 @app.get(
     "/locations/{location_id}",
-    response_model=GetSequenceLocationResponse,
     response_model_exclude_none=True,
     summary="Retrieve sequence location",
     description="Retrieve registered sequence location by ID",
@@ -174,7 +171,7 @@ def service_info() -> ServiceInfo:
 def get_location_by_id(
     request: Request,
     location_id: Annotated[StrictStr, Path(..., description="Location VRS ID")],
-) -> dict:
+) -> GetSequenceLocationResponse:
     """Retrieve stored location object by ID.
 
     :param request: FastAPI request object
@@ -184,14 +181,14 @@ def get_location_by_id(
     """
     av: AnyVar = request.app.state.anyvar
     try:
-        location = av.get_object(location_id)
+        location: ga4gh.vrs.models.SequenceLocation = av.get_object(location_id)  # type: ignore[reportAssignmentType]
     except KeyError as e:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail=f"Location {location_id} not found"
         ) from e
 
     if location:
-        return {"location": location}
+        return GetSequenceLocationResponse(location=location)
     raise HTTPException(
         status_code=HTTPStatus.NOT_FOUND, detail=f"Location {location_id} not found"
     )
@@ -199,7 +196,6 @@ def get_location_by_id(
 
 @app.post(
     "/variation/{vrs_id}/annotations",
-    response_model=AddAnnotationResponse,
     response_model_exclude_none=True,
     summary="Add annotation to a variation",
     description="Provide an annotation to associate with a Variation object. The Variation must be registered with AnyVar before adding annotations.",
@@ -214,7 +210,7 @@ def add_variation_annotation(
             description="Annotation to associate with the variation",
         ),
     ],
-) -> dict | HTTPException:
+) -> AddAnnotationResponse:
     """Store an annotation for a variation.
 
     :param request: FastAPI request object
@@ -223,7 +219,7 @@ def add_variation_annotation(
     :return: the variation and annotations if stored
     :raise HTTPException: if requested location isn't found
     """
-    messages = []
+    messages: list[str] = []
     # Look up the variation from the AnyVar store
     av: AnyVar = request.app.state.anyvar
     try:
@@ -251,18 +247,17 @@ def add_variation_annotation(
                 detail=f"Failed to add annotation: {annotation}",
             ) from e
 
-    return {
-        "messages": messages,
-        "object": variation,
-        "object_id": vrs_id,
-        "annotation_type": annotation.annotation_type,
-        "annotation": annotation.annotation,
-    }
+    return AddAnnotationResponse(
+        messages=messages,
+        object=variation,
+        object_id=vrs_id,
+        annotation_type=annotation.annotation_type,
+        annotation=annotation.annotation,
+    )
 
 
 @app.get(
     "/variation/{vrs_id}/annotations/{annotation_type}",
-    response_model=GetAnnotationResponse,
     response_model_exclude_none=True,
     summary="Retrieve annotations for a variation",
     description="Retrieve annotations for a variation by VRS ID and annotation type",
@@ -272,13 +267,13 @@ def get_variation_annotation(
     request: Request,
     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
     annotation_type: Annotated[StrictStr, Path(..., description="Annotation type")],
-) -> list[GetAnnotationResponse]:
+) -> GetAnnotationResponse:
     """Retrieve annotations for a variation.
 
     :param request: FastAPI request object
     :param vrs_id: VRS ID for variation
     :param annotation_type: type of annotation to retrieve
-    :return: list of annotations for the variation
+    :return: response object containing list of annotations for the variation
     """
     # Retrieve the annotation from the annotation store
     if hasattr(request.app.state, "anyannotation"):
@@ -287,7 +282,7 @@ def get_variation_annotation(
     else:
         annotations = []
 
-    return {"annotations": annotations}
+    return GetAnnotationResponse(annotations=annotations)
 
 
 @app.middleware("http")
@@ -330,7 +325,6 @@ async def add_creation_timestamp_annotation(
 
 @app.put(
     "/variation",
-    response_model=RegisterVariationResponse,
     response_model_exclude_none=True,
     summary="Register a new allele or copy number object",
     description="Provide a variation definition to be normalized and registered with AnyVar. A complete VRS Allele or Copy Number object and digest is returned for later reference.",
@@ -342,15 +336,17 @@ def register_variation(
         RegisterVariationRequest,
         Body(
             description="Variation description, including (at minimum) a definition property. Can provide optional input_type if the expected output representation is known. If representing copy number, provide copies or copy_change.",
-            example={
-                "definition": "NC_000007.13:g.36561662_36561663del",
-                "input_type": "Allele",
-                "copies": 0,
-                "copy_change": "complete genomic loss",
-            },
+            examples=[
+                {
+                    "definition": "NC_000007.13:g.36561662_36561663del",
+                    "input_type": "Allele",
+                    "copies": 0,
+                    "copy_change": "complete genomic loss",
+                }
+            ],
         ),
     ],
-) -> dict:
+) -> RegisterVariationResponse:
     """Register a variation based on a provided description or reference.
 
     :param request: FastAPI request object
@@ -360,6 +356,7 @@ def register_variation(
     """
     av: AnyVar = request.app.state.anyvar
     definition = variation.definition
+
     result = {"object": None, "messages": [], "object_id": None}
     try:
         translated_variation = av.translator.translate_variation(
@@ -378,14 +375,13 @@ def register_variation(
             result["object_id"] = v_id
         else:
             result["messages"].append(f"Translation of {definition} failed.")
-    return result
+    return RegisterVariationResponse(**result)
 
 
 @app.put(
     "/vrs_variation",
     summary="Register a VRS variation",
     description="Provide a valid VRS variation object to be registered with AnyVar. A digest is returned for later reference.",
-    response_model=RegisterVrsVariationResponse,
     response_model_exclude_none=True,
     tags=[EndpointTag.VARIATIONS],
 )
@@ -395,23 +391,25 @@ def register_vrs_object(
         VrsVariation,
         Body(
             description="Valid VRS object.",
-            example={
-                "location": {
-                    "id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8",
-                    "end": 87894077,
-                    "start": 87894076,
-                    "sequenceReference": {
-                        "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
-                        "type": "SequenceReference",
+            examples=[
+                {
+                    "location": {
+                        "id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8",
+                        "end": 87894077,
+                        "start": 87894076,
+                        "sequenceReference": {
+                            "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
+                            "type": "SequenceReference",
+                        },
+                        "type": "SequenceLocation",
                     },
-                    "type": "SequenceLocation",
-                },
-                "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
-                "type": "Allele",
-            },
+                    "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
+                    "type": "Allele",
+                }
+            ],
         ),
     ],
-) -> dict:
+) -> RegisterVrsVariationResponse:
     """Register a complete VRS object. No additional normalization is performed.
 
     :param request: FastAPI request object
@@ -434,7 +432,7 @@ def register_vrs_object(
     v_id = av.put_object(variation_object)
     result["object"] = variation_object
     result["object_id"] = v_id
-    return result
+    return RegisterVrsVariationResponse(**result)
 
 
 @app.put(
@@ -758,7 +756,6 @@ async def get_result(
 
 @app.get(
     "/variation/{variation_id}",
-    response_model=GetVariationResponse,
     response_model_exclude_none=True,
     operation_id="getVariation",
     summary="Retrieve a variation object",
@@ -768,7 +765,7 @@ async def get_result(
 def get_variation_by_id(
     request: Request,
     variation_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
-) -> dict:
+) -> GetVariationResponse:
     """Get registered variation given VRS ID.
 
     :param request: FastAPI request object
@@ -785,17 +782,16 @@ def get_variation_by_id(
             detail=f"Variation {variation_id} not found",
         ) from e
 
-    if variation:
-        return {"messages": [], "data": variation}
-    raise HTTPException(
-        status_code=HTTPStatus.NOT_FOUND,
-        detail=f"Variation {variation_id} not found",
-    )
+    if not variation:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"Variation {variation_id} not found",
+        )
+    return GetVariationResponse(messages=[], data=variation)
 
 
 @app.get(
     "/search",
-    response_model=SearchResponse,
     response_model_exclude_none=True,
     operation_id="searchVariations",
     summary="Search for registered variations by genomic region",
@@ -807,7 +803,7 @@ def search_variations(
     accession: Annotated[str, Query(..., description="Sequence accession identifier")],
     start: Annotated[int, Query(..., description="Start position for genomic region")],
     end: Annotated[int, Query(..., description="End position for genomic region")],
-) -> dict:
+) -> SearchResponse:
     """Fetch all registered variations within the provided genomic coordinates.
 
     :param request: FastAPI request object
@@ -844,12 +840,11 @@ def search_variations(
                 continue
             inline_alleles.append(var_object)
 
-    return {"variations": inline_alleles}
+    return SearchResponse(variations=inline_alleles)
 
 
 @app.get(
     "/stats/{variation_type}",
-    response_model=AnyVarStatsResponse,
     operation_id="getStats",
     summary="Summary statistics for registered variations",
     description="Retrieve summary statistics for registered variation objects.",
@@ -860,7 +855,7 @@ def get_stats(
     variation_type: Annotated[
         VariationStatisticType, Path(..., description="category of variation")
     ],
-) -> dict:
+) -> AnyVarStatsResponse:
     """Get summary statistics for registered variants. Currently just returns totals.
 
     :param request: FastAPI request object
@@ -877,4 +872,4 @@ def get_stats(
             status_code=HTTPStatus.NOT_IMPLEMENTED,
             detail="Stats not available for current storage backend",
         ) from e
-    return {"variation_type": variation_type, "count": count}
+    return AnyVarStatsResponse(variation_type=variation_type, count=count)
