@@ -9,7 +9,7 @@ from agct import Converter, Genome, Strand
 from fastapi import Response
 from fastapi.responses import JSONResponse, StreamingResponse
 from ga4gh.vrs.dataproxy import _DataProxy
-from ga4gh.vrs.enderef import vrs_enref
+from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 
 from anyvar.utils.types import VrsObject, variation_class_map
 
@@ -138,16 +138,16 @@ def convert_position(
     :return: A lifted-over position. Type (`list` or `int`) will match that of `position`
     """
     if isinstance(position, int):
-        return converter.convert_coordinate(chromosome, position, Strand.POSITIVE)[0][1]
+        return converter.convert_coordinate(chromosome, position, Strand.NEGATIVE)[0][1]
 
     lower, upper = position
     lower = (
-        converter.convert_coordinate(chromosome, lower, Strand.POSITIVE)[0][1]
+        converter.convert_coordinate(chromosome, lower, Strand.NEGATIVE)[0][1]
         if lower
         else None
     )
     upper = (
-        converter.convert_coordinate(chromosome, upper, Strand.POSITIVE)[0][1]
+        converter.convert_coordinate(chromosome, upper, Strand.NEGATIVE)[0][1]
         if upper
         else None
     )
@@ -156,7 +156,7 @@ def convert_position(
 
 def get_liftover_annotation(
     variation_object: dict, seqrepo_dataproxy: _DataProxy
-) -> str:
+) -> str | dict:
     """Liftover a variant from GRCh37 or GRCH38 into the opposite assembly, and return the string identifier for the converted variant.
     If liftover is unsuccessful, return a string error message instead.
 
@@ -252,5 +252,13 @@ def get_liftover_annotation(
         variation_object.get("type", "")
     ](**converted_variation_dict)
 
-    # Compute the identifiers and return the ga4gh id of the converted variant
-    return vrs_enref(converted_variation_object, return_id_obj_tuple=True)[0]
+    # Compute the identifiers
+    object_store = {}
+    enreffed_variant, variant_id = vrs_enref(
+        o=converted_variation_object,
+        object_store=object_store,
+        return_id_obj_tuple=True,
+    )
+
+    # deref and convert back to a dict for storage
+    return vrs_deref(o=enreffed_variant, object_store=object_store).model_dump()
