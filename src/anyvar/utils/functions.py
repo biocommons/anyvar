@@ -1,7 +1,6 @@
 """Defines utility functions"""
 
 import json
-import os
 import re
 from enum import Enum
 from typing import cast
@@ -11,8 +10,6 @@ from fastapi import Response
 from fastapi.responses import JSONResponse, StreamingResponse
 from ga4gh.vrs.dataproxy import _DataProxy
 from ga4gh.vrs.enderef import vrs_deref, vrs_enref
-from sqlalchemy import create_engine, text
-from sqlalchemy.engine import Connection
 
 from anyvar.utils.types import VrsObject, variation_class_map
 
@@ -23,10 +20,6 @@ class UnsupportedReferenceAssemblyError(Exception):
 
 class AmbiguousReferenceAssemblyError(Exception):
     """Indicates a failure to determine which reference assembly a variant is one due to alias matches in multiple reference assemblies, making the result ambiguous"""
-
-
-class StrandResolutionError(Exception):
-    """Indicates a failure to determine which strand an incoming variant is on"""
 
 
 liftover_error_prefix = "Unable to complete liftover"
@@ -40,7 +33,6 @@ class LiftoverError(str, Enum):
     UNSUPPORTED_REFERENCE_ASSEMBLY = "Unsupported Reference Assembly Error"
     AMBIGUOUS_REFERENCE_ASSEMBLY = "Ambiguous Reference Assembly Error"
     CHROMOSOME_RESOLUTION_ERROR = "Chromosome Resolution Error"
-    STRAND_RESOLUTION_ERROR = "Strand Resolution Error"
     COORDINATE_CONVERSION_ERROR = "Coordinate Conversion Error"
     ACCESSION_CONVERSION_ERROR = "Accession Conversion Error"
 
@@ -51,7 +43,6 @@ LIFTOVER_ERROR_ANNOTATIONS = {
     LiftoverError.UNSUPPORTED_REFERENCE_ASSEMBLY: f"{liftover_error_prefix}: could not resolve reference assembly - accession not found in any supported assembly",
     LiftoverError.AMBIGUOUS_REFERENCE_ASSEMBLY: f"{liftover_error_prefix}: could not resolve reference assembly - accession found in multiple supported assemblies",
     LiftoverError.CHROMOSOME_RESOLUTION_ERROR: f"{liftover_error_prefix}: unable to resolve variant's chromosome",
-    LiftoverError.STRAND_RESOLUTION_ERROR: f"{liftover_error_prefix}: unable to resolve variant's strand",
     LiftoverError.COORDINATE_CONVERSION_ERROR: f"{liftover_error_prefix}: could not convert start and/or end position(s)",
     LiftoverError.ACCESSION_CONVERSION_ERROR: f"{liftover_error_prefix}: could not convert refget accession",
 }
@@ -136,110 +127,31 @@ def get_from_and_to_assemblies(aliases: dict) -> tuple[str, str]:
 
 
 def convert_position(
-    converter: Converter, chromosome: str, position: list | int, strand: Strand
+    converter: Converter, chromosome: str, position: list | int
 ) -> list | int:
     """Convert a SequenceLocation position (i.e., `start` or `end`) to another reference Genome. `position` can either be a `list` or an `int` - return type will match.
 
     :param converter: An AGCT Converter instance.
     :param chromosome: The chromosome number where the position is found. Must be a string consisting of the prefix "chr" plus a number, i.e. "chr10".
     :param position: A SequenceLocation start or end position. Can be a `list` or an `int`.
-    :param strand: The strand on which the variant is found (either Strand.POSITIVE or Strand.NEGATIVE)
 
     :return: A lifted-over position. Type (`list` or `int`) will match that of `position`
     """
     if isinstance(position, int):
-        return converter.convert_coordinate(chromosome, position, strand)[0][1]
+        return converter.convert_coordinate(chromosome, position, Strand.POSITIVE)[0][1]
 
     lower, upper = position
     lower = (
-        converter.convert_coordinate(chromosome, lower, strand)[0][1] if lower else None
-    )
-    upper = (
-        converter.convert_coordinate(chromosome, upper, strand)[0][1] if upper else None
-    )
-    return [lower, upper]
-
-
-def get_strand(
-    prefixed_accession: str,
-    start_position: int | list,
-    end_position: int | list,
-    seqrepo_dataproxy: _DataProxy,
-) -> Strand | None:
-    """Retrieve the strand (POSITIVE or NEGATIVE) of a variant based on its accession, start position, and end position.
-
-    :param refget_accession: The variant's refget_accession
-    :param start_position: The variant's start position. May be an `int` or a `list`
-    :param end_position: The variant's end position. May be an `int` or a `list`
-    :return: The Strand (POSITIVE or NEGATIVE) that the variant is one
-    :raise: StrandResolutionError if the strand cannot be determined
-    """
-    # Get the refseq version of the accession
-    refseq_accession_aliases = seqrepo_dataproxy.translate_sequence_identifier(
-        prefixed_accession, "refseq"
-    )
-    accession = (
-        refseq_accession_aliases[0].removeprefix("refseq:")
-        if refseq_accession_aliases
+        converter.convert_coordinate(chromosome, lower, Strand.POSITIVE)[0][1]
+        if lower
         else None
     )
-    if accession is None:
-        raise StrandResolutionError(
-            "Unable to find a refseq alias for variant's accession"
-        )
-
-    # Convert ranged positions into ints (using the lowest provided start position and highest provided end position)
-    if type(start_position) is list:
-        start_position = (
-            start_position[0] if start_position[0] is not None else start_position[1]
-        )
-    if type(end_position) is list:
-        end_position = (
-            end_position[1] if end_position[1] is not None else end_position[0]
-        )
-
-    # Parse UTA_DB_URL into the {base URL} + {schema name}
-    uta_db_url = os.environ.get("UTA_DB_URL", "")
-    match = re.match(r"^(postgresql://[^/]+/[^/]+)(?:/([^/]+))?$", uta_db_url)
-    if match:
-        base_url = match.group(1)  # e.g., "postgresql://.../uta"
-        schema = match.group(2) or None  # e.g., "uta_20210129b" or None
-    else:
-        raise StrandResolutionError("Invalid UTA_DB_URL format")
-
-    engine = create_engine(base_url)
-    connection: Connection = engine.connect()
-    with connection as connection:
-        connection.execute(text("SET search_path TO :schema"), {"schema": schema})
-
-        query = text("""
-            SELECT DISTINCT(alt_strand)
-            FROM tx_exon_aln_v
-            WHERE alt_ac = ':refget_accession'
-            AND :start_position BETWEEN alt_start_i AND alt_end_i
-            AND :end_position BETWEEN alt_start_i AND alt_end_i;
-        """)
-
-        result = connection.execute(
-            query,
-            {
-                "refget_accession": accession,
-                "start_position": start_position,
-                "end_position": end_position,
-            },
-        )
-
-        if result is None:
-            raise StrandResolutionError("No strand results found")
-
-        strand_values = [row[0] for row in result.fetchall()]
-        if not strand_values:
-            raise StrandResolutionError("No strand results")
-
-        strand_value = strand_values[0]
-        if strand_value < 0:
-            return Strand.NEGATIVE
-        return Strand.POSITIVE
+    upper = (
+        converter.convert_coordinate(chromosome, upper, Strand.POSITIVE)[0][1]
+        if upper
+        else None
+    )
+    return [lower, upper]
 
 
 def get_liftover_annotation(
@@ -273,7 +185,7 @@ def get_liftover_annotation(
 
     grch37 = "GRCh37"
     grch38 = "GRCh38"
-    accession_aliases = {
+    aliases = {
         grch37: list(
             seqrepo_dataproxy.translate_sequence_identifier(prefixed_accession, grch37)
         ),
@@ -285,24 +197,16 @@ def get_liftover_annotation(
     from_assembly = None
     to_assembly = None
     try:
-        from_assembly, to_assembly = get_from_and_to_assemblies(accession_aliases)
+        from_assembly, to_assembly = get_from_and_to_assemblies(aliases)
     except UnsupportedReferenceAssemblyError:
         return LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.UNSUPPORTED_REFERENCE_ASSEMBLY]
     except AmbiguousReferenceAssemblyError:
         return LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.AMBIGUOUS_REFERENCE_ASSEMBLY]
 
     # Determine which chromosome the variant is on
-    chromosome = get_chromosome_from_aliases(accession_aliases.get(from_assembly, []))
+    chromosome = get_chromosome_from_aliases(aliases.get(from_assembly, []))
     if not chromosome:
         return LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.CHROMOSOME_RESOLUTION_ERROR]
-
-    # Determine which strand the variant is on
-    try:
-        strand = get_strand(
-            prefixed_accession, start_position, end_position, seqrepo_dataproxy
-        )
-    except StrandResolutionError:
-        return LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.STRAND_RESOLUTION_ERROR]
 
     # Begin liftover conversion
     assembly_map = {grch37: Genome.HG19, grch38: Genome.HG38}
@@ -312,10 +216,8 @@ def get_liftover_annotation(
     converted_start = None
     converted_end = None
     try:
-        converted_start = convert_position(
-            converter, chromosome, start_position, strand
-        )
-        converted_end = convert_position(converter, chromosome, end_position, strand)
+        converted_start = convert_position(converter, chromosome, start_position)
+        converted_end = convert_position(converter, chromosome, end_position)
     except Exception:
         return LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.COORDINATE_CONVERSION_ERROR]
 
