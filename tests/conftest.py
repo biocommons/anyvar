@@ -27,6 +27,7 @@ def pytest_collection_modifyitems(items):
         "test_postgres_annotation",
         "test_duckdb_annotation",
         "test_no_db",
+        "test_annotation_middleware",
     ]
     # remember to add new test modules to the order constant:
     assert len(module_order) == len(list(Path(__file__).parent.rglob("test_*.py")))
