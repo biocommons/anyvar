@@ -28,7 +28,42 @@ copynumber_ranged_positive_grch37_variant_object = (
         },
         "copies": 3,
     },
-    "ga4gh:CN.LQAMim_Q7_sXVRLX2UFVsHNOolDsK4Bo",  # verified externally
+    {
+        "id": "ga4gh: CN.LQAMim_Q7_sXVRLX2UFVsHNOolDsK4Bo",  # verified externally
+        "type": "CopyNumberCount",
+        "name": None,
+        "description": None,
+        "aliases": None,
+        "extensions": None,
+        "digest": "LQAMim_Q7_sXVRLX2UFVsHNOolDsK4Bo",
+        "expressions": None,
+        "location": {
+            "id": "ga4gh: SL.7HsIbSybxJRfiRNr2r0gz1JNsV-wJJfQ",
+            "type": "SequenceLocation",
+            "name": None,
+            "description": None,
+            "aliases": None,
+            "extensions": None,
+            "digest": "7HsIbSybxJRfiRNr2r0gz1JNsV-wJJfQ",
+            "sequenceReference": {
+                "id": None,
+                "type": "SequenceReference",
+                "name": None,
+                "description": None,
+                "aliases": None,
+                "extensions": None,
+                "refgetAccession": "SQ.-A1QmD_MatoqxvgVxBLZTONHz9-c7nQo",
+                "residueAlphabet": None,
+                "circular": None,
+                "sequence": None,
+                "moleculeType": None,
+            },
+            "start": [None, 30417575],
+            "end": [31394018, None],
+            "sequence": None,
+        },
+        "copies": 3,
+    },
 )
 
 # liftover from GRCh38 > GRCh37, integer start/end coordinates, negative strand:
@@ -52,18 +87,11 @@ allele_int_negative_grch38_variant_object = (
     },
     "ga4gh:VA.nmp-bzYpO00NYIqr3CaVF0ZH2ZpSj1ly",  # verified externally
 )
+# GRCH38 version's (above) HGVS: NC_000007.14:g.140753336A>T
+# GRCH37 version's (liftover) HGVS: NC_000007.13:g.140453136A>T
 
 
 # FAILURES
-
-# - /vrs_variation input that can NOT be lifted over successfully > where original location doesn't exist in the other reference assembly
-# - /variation input that can NOT be lifted over successfully > where original location doesn't exist in the other reference assembly
-
-# - don't need to liftover because we already have a stored liftover annotation
-# ^ Run any of the above a second time
-
-# - case where initial registration failed and we don't have a vrs_id
-
 
 # - case where the variant is on an unsupported assembly (GRCh36)
 grch36_variant = (
@@ -109,6 +137,10 @@ unconvertible_grch37_variant = (
     LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.COORDINATE_CONVERSION_ERROR],
 )
 
+# STILL NEED:
+# unconvertible_grch38_variant = (
+# )
+
 empty_variation_object = ({}, LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.INPUT_ERROR])
 
 
@@ -131,6 +163,7 @@ def invalid_variant() -> dict:
 
 
 # STILL NEED:
+# - A variant that exists on GRCh38 but not GRCH37
 # - A variant with a "location" type that's not "SequenceLocation"
 # - A variant where the chromosome can't be determined?? (Is this even a thing?)
 # - A variant where the accession can't be converted (not sure if this case would ever get hit, as the coordinate conversion error would probably trigger first?)
@@ -151,7 +184,7 @@ def seqrepo_dataproxy() -> _DataProxy:
     ("variation_input", "expected_output"),
     [
         copynumber_ranged_positive_grch37_variant_object,
-        # allele_int_negative_grch38_variant_object
+        allele_int_negative_grch38_variant_object,
         grch36_variant,
         # unconvertible_grch37_variant,
         empty_variation_object,
@@ -184,6 +217,7 @@ def test_invalid_vrs_variant_liftover_annotation(client, invalid_variant):
     response_object = response.json()
     vrs_id = response_object.get("id", "")
 
+    # Variant was invalid, so it should not have been registered, and therefore shouldn't have an ID, so we shouldn't make an annotation for it
     annotator: AnyAnnotation | None = getattr(client.app.state, "anyannotation", None)
     if annotator:
         liftover_annotations = annotator.get_annotation(vrs_id, "liftover")

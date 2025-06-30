@@ -22,7 +22,7 @@ class AmbiguousReferenceAssemblyError(Exception):
     """Indicates a failure to determine which reference assembly a variant is one due to alias matches in multiple reference assemblies, making the result ambiguous"""
 
 
-liftover_error_prefix = "Unable to complete liftover: "
+liftover_error_prefix = "Unable to complete liftover"
 
 
 class LiftoverError(str, Enum):
@@ -138,16 +138,16 @@ def convert_position(
     :return: A lifted-over position. Type (`list` or `int`) will match that of `position`
     """
     if isinstance(position, int):
-        return converter.convert_coordinate(chromosome, position, Strand.NEGATIVE)[0][1]
+        return converter.convert_coordinate(chromosome, position, Strand.POSITIVE)[0][1]
 
     lower, upper = position
     lower = (
-        converter.convert_coordinate(chromosome, lower, Strand.NEGATIVE)[0][1]
+        converter.convert_coordinate(chromosome, lower, Strand.POSITIVE)[0][1]
         if lower
         else None
     )
     upper = (
-        converter.convert_coordinate(chromosome, upper, Strand.NEGATIVE)[0][1]
+        converter.convert_coordinate(chromosome, upper, Strand.POSITIVE)[0][1]
         if upper
         else None
     )
@@ -254,10 +254,10 @@ def get_liftover_annotation(
 
     # Compute the identifiers
     object_store = {}
-    enreffed_variant, variant_id = vrs_enref(
+    enreffed_variant = vrs_enref(
         o=converted_variation_object,
         object_store=object_store,
-        return_id_obj_tuple=True,
+        return_id_obj_tuple=False,
     )
 
     # deref and convert back to a dict for storage
