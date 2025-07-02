@@ -89,7 +89,7 @@ class ServiceInfo(BaseModel):
         "https://github.com/biocommons/anyvar"
     )
     createdAt: Literal["2025-06-01T00:00:00Z"] = "2025-06-01T00:00:00Z"  # noqa: N815
-    updatedAt: str | None = None  # noqa: N815
+    updatedAt: Literal["2025-06-01T00:00:00Z"] = "2025-06-01T00:00:00Z"  # noqa: N815
     environment: ServiceEnvironment
     version: Literal[__version__] = __version__
 
