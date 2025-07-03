@@ -87,10 +87,13 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
                 contents = await f.read()
                 config = yaml.safe_load(contents)
                 logging.config.dictConfig(config)
+                _logger.info("Logging using configs set from %s", logging_config_file)
             except Exception:
-                logging.exception(  # noqa: LOG015
+                _logger.exception(
                     "Error in Logging Configuration. Using default configs"
                 )
+    else:
+        _logger.info("Logging with default configs.")
 
     # create anyvar instance
     storage = anyvar.anyvar.create_storage()
