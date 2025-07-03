@@ -4,6 +4,7 @@ import asyncio
 import datetime
 import json
 import logging
+import logging.config
 import os
 import pathlib
 import tempfile
@@ -13,7 +14,9 @@ from contextlib import asynccontextmanager
 from http import HTTPStatus
 from typing import Annotated
 
+import anyio
 import ga4gh.vrs
+import yaml
 from dotenv import load_dotenv
 from fastapi import (
     BackgroundTasks,
@@ -76,13 +79,21 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
     """Initialize AnyVar instance and associate with FastAPI app on startup
     and teardown the AnyVar instance on shutdown
     """
-    # initialize logs
-    name = __name__.split(".")[0]
-    logging.basicConfig(
-        filename=f"{name}.log",
-        format="[%(asctime)s] - %(name)s - %(levelname)s : %(message)s",
-    )
-    logging.getLogger(name).setLevel(logging.DEBUG)
+    # Configure logging from file or use default
+    logging_config_file = os.environ.get("ANYVAR_LOGGING_CONFIG", None)
+    if logging_config_file and pathlib.Path(logging_config_file).is_file():
+        async with await anyio.open_file(logging_config_file) as f:
+            try:
+                contents = await f.read()
+                config = yaml.safe_load(contents)
+                logging.config.dictConfig(config)
+                _logger.info("Logging using configs set from %s", logging_config_file)
+            except Exception:
+                _logger.exception(
+                    "Error in Logging Configuration. Using default configs"
+                )
+    else:
+        _logger.info("Logging with default configs.")
 
     # create anyvar instance
     storage = anyvar.anyvar.create_storage()
