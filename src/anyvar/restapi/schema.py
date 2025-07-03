@@ -1,11 +1,18 @@
 """Provide response definitions to REST API endpoint."""
 
 from enum import Enum
-from typing import Optional
+from typing import Literal, Optional
 
-from ga4gh.vrs import models
+from ga4gh.vrs import (
+    VRS_VERSION,
+    models,
+)
+from ga4gh.vrs import (
+    __version__ as vrs_python_version,
+)
 from pydantic import BaseModel, ConfigDict, StrictInt, StrictStr
 
+from anyvar import __version__
 from anyvar.utils.types import Annotation, SupportedVariationType
 
 
@@ -19,28 +26,68 @@ class EndpointTag(str, Enum):
     SEARCH = "Search"
 
 
-class DependencyInfo(BaseModel):
-    """Provide information for a specific dependency"""
+class ServiceEnvironment(str, Enum):
+    """Define current runtime environment."""
 
-    version: StrictStr
+    DEV = "dev"
+    PROD = "prod"
+    TEST = "test"
+    STAGING = "staging"
 
 
-class InfoResponse(BaseModel):
-    """Describe response for the GET /info endpoint"""
+class ServiceOrganization(BaseModel):
+    """Define service_info response for organization field"""
 
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "anyvar": {"version": "0.1.2.dev58+g81eb592.d20230316"},
-                    "ga4gh_vrs": {"version": "0.7.6"},
-                }
-            ]
-        }
+    name: Literal["GA4GH Genomic Knowledge Standards Workstream"] = (
+        "GA4GH Genomic Knowledge Standards Workstream"
+    )
+    url: Literal["https://www.ga4gh.org/work_stream/genomic-knowledge-standards/"] = (
+        "https://www.ga4gh.org/work_stream/genomic-knowledge-standards/"
     )
 
-    anyvar: DependencyInfo
-    ga4gh_vrs: DependencyInfo
+
+class ServiceType(BaseModel):
+    """Define service_info response for type field"""
+
+    group: Literal["org.ga4gh.gks"] = "org.ga4gh.gks"
+    artifact: Literal["anyvar"] = "anyvar"
+    version: Literal[__version__] = __version__
+
+
+class SpecMetadata(BaseModel):
+    """Define substructure for reporting specification metadata."""
+
+    vrs_version: str = VRS_VERSION
+
+
+class ImplMetadata(BaseModel):
+    """Define substructure for reporting metadata about internal software dependencies."""
+
+    vrs_python_version: str = vrs_python_version
+
+
+class ServiceInfo(BaseModel):
+    """Define response structure for GA4GH /service_info endpoint."""
+
+    id: Literal["org.ga4gh.gks.anyvar"] = "org.ga4gh.gks.anyvar"
+    name: Literal["anyvar"] = "anyvar"
+    type: ServiceType = ServiceType()
+    description: Literal["This service provides a registry for GA4GH VRS objects."] = (
+        "This service provides a registry for GA4GH VRS objects."
+    )
+    organization: ServiceOrganization = ServiceOrganization()
+    contactUrl: Literal["Alex.Wagner@nationwidechildrens.org"] = (  # noqa: N815
+        "Alex.Wagner@nationwidechildrens.org"
+    )
+    documentationUrl: Literal["https://github.com/biocommons/anyvar"] = (  # noqa: N815
+        "https://github.com/biocommons/anyvar"
+    )
+    createdAt: Literal["2025-06-01T00:00:00Z"] = "2025-06-01T00:00:00Z"  # noqa: N815
+    updatedAt: Literal["2025-06-01T00:00:00Z"] = "2025-06-01T00:00:00Z"  # noqa: N815
+    environment: ServiceEnvironment
+    version: Literal[__version__] = __version__
+    spec_metadata: SpecMetadata = SpecMetadata()
+    impl_metadata: ImplMetadata = ImplMetadata()
 
 
 class GetSequenceLocationResponse(BaseModel):
