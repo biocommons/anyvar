@@ -38,13 +38,11 @@ from anyvar.restapi.schema import (
     AddAnnotationRequest,
     AddAnnotationResponse,
     AnyVarStatsResponse,
-    DependencyInfo,
     EndpointTag,
     ErrorResponse,
     GetAnnotationResponse,
     GetSequenceLocationResponse,
     GetVariationResponse,
-    InfoResponse,
     RegisterVariationRequest,
     RegisterVariationResponse,
     RegisterVrsVariationResponse,
@@ -52,8 +50,6 @@ from anyvar.restapi.schema import (
     SearchResponse,
     ServiceEnvironment,
     ServiceInfo,
-    ServiceOrganization,
-    ServiceType,
     VariationStatisticType,
 )
 from anyvar.translate.translate import (
@@ -130,20 +126,6 @@ app = FastAPI(
 
 
 @app.get(
-    "/info",
-    summary="Check system status and configurations",
-    description="System status check and configurations",
-    tags=[EndpointTag.GENERAL],
-)
-def get_info() -> InfoResponse:
-    """Get system status check and configuration"""
-    return InfoResponse(
-        anyvar=DependencyInfo(version=anyvar.__version__),
-        ga4gh_vrs=DependencyInfo(version=ga4gh.vrs.__version__),
-    )
-
-
-@app.get(
     "/service-info",
     summary="Get basic service information",
     description="Retrieve service metadata, such as versioning and contact info. Structured in conformance with the [GA4GH service info API specification](https://www.ga4gh.org/product/service-info/)",
@@ -152,13 +134,9 @@ def get_info() -> InfoResponse:
 def service_info() -> ServiceInfo:
     """Provide service info per GA4GH Service Info spec
 
-    :return: conformant service info description
+    :return: service info description
     """
-    return ServiceInfo(
-        organization=ServiceOrganization(),
-        type=ServiceType(),
-        environment=ServiceEnvironment.DEV,
-    )
+    return ServiceInfo(environment=ServiceEnvironment.DEV)
 
 
 @app.get(

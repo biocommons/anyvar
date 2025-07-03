@@ -3,7 +3,13 @@
 from enum import Enum
 from typing import Literal, Optional
 
-from ga4gh.vrs import models
+from ga4gh.vrs import (
+    VRS_VERSION,
+    models,
+)
+from ga4gh.vrs import (
+    __version__ as vrs_python_version,
+)
 from pydantic import BaseModel, ConfigDict, StrictInt, StrictStr
 
 from anyvar import __version__
@@ -18,30 +24,6 @@ class EndpointTag(str, Enum):
     LOCATIONS = "Locations"
     VARIATIONS = "Variations"
     SEARCH = "Search"
-
-
-class DependencyInfo(BaseModel):
-    """Provide information for a specific dependency"""
-
-    version: StrictStr
-
-
-class InfoResponse(BaseModel):
-    """Describe response for the GET /info endpoint"""
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "anyvar": {"version": "0.1.2.dev58+g81eb592.d20230316"},
-                    "ga4gh_vrs": {"version": "0.7.6"},
-                }
-            ]
-        }
-    )
-
-    anyvar: DependencyInfo
-    ga4gh_vrs: DependencyInfo
 
 
 class ServiceEnvironment(str, Enum):
@@ -72,16 +54,28 @@ class ServiceType(BaseModel):
     version: Literal[__version__] = __version__
 
 
+class SpecMetadata(BaseModel):
+    """Define substructure for reporting specification metadata."""
+
+    vrs_version: str = VRS_VERSION
+
+
+class ImplMetadata(BaseModel):
+    """Define substructure for reporting metadata about internal software dependencies."""
+
+    vrs_python_version: str = vrs_python_version
+
+
 class ServiceInfo(BaseModel):
     """Define response structure for GA4GH /service_info endpoint."""
 
     id: Literal["org.ga4gh.gks.anyvar"] = "org.ga4gh.gks.anyvar"
     name: Literal["anyvar"] = "anyvar"
-    type: ServiceType
+    type: ServiceType = ServiceType()
     description: Literal["This service provides a registry for GA4GH VRS objects."] = (
         "This service provides a registry for GA4GH VRS objects."
     )
-    organization: ServiceOrganization
+    organization: ServiceOrganization = ServiceOrganization()
     contactUrl: Literal["Alex.Wagner@nationwidechildrens.org"] = (  # noqa: N815
         "Alex.Wagner@nationwidechildrens.org"
     )
@@ -92,6 +86,8 @@ class ServiceInfo(BaseModel):
     updatedAt: Literal["2025-06-01T00:00:00Z"] = "2025-06-01T00:00:00Z"  # noqa: N815
     environment: ServiceEnvironment
     version: Literal[__version__] = __version__
+    spec_metadata: SpecMetadata = SpecMetadata()
+    impl_metadata: ImplMetadata = ImplMetadata()
 
 
 class GetSequenceLocationResponse(BaseModel):

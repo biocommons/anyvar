@@ -8,13 +8,6 @@ import yaml
 from fastapi.testclient import TestClient
 
 
-def test_info(client: TestClient):
-    response = client.get("/info")
-    assert response.status_code == HTTPStatus.OK
-    assert "anyvar" in response.json()
-    assert "ga4gh_vrs" in response.json()
-
-
 def test_service_info(client: TestClient, test_data_dir: Path):
     response = client.get("/service-info")
     response.raise_for_status()
