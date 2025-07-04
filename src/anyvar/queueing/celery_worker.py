@@ -170,40 +170,55 @@ def annotate_vcf(
     assembly: str,
     for_ref: bool,
     allow_async_write: bool,
-) -> str:
-    """Annotate the specified VCF file and return the path to the annotated file.
+    return_annotated_vcf: bool,
+) -> str | None:
+    """Annotate the specified VCF file and return the path to the annotated file, if
+    requested.
+
     The input file is deleted when the annotation completes successfully.
+
     :param input_file_path: path to the VCF file to be annotated
     :param assembly: the reference assembly for the VCF
     :param for_ref: whether to compute VRS IDs for REF alleles
     :param allow_async_write: whether to allow async database writes
+    :param return_annotated_vcf: whether to return an annotated copy of the input
     :return: path to the annotated VCF file
     """
     try:
         enter_task()
         task_start = datetime.datetime.now(tz=datetime.UTC)
 
-        # create output file path
-        output_file_path = f"{input_file_path}_outputvcf"
-        _logger.info(
-            "%s - annotating vcf file %s, outputting to %s",
-            self.request.id,
-            input_file_path,
-            output_file_path,
-        )
+        # create output file path if needed
+        if return_annotated_vcf:
+            output_file_location = Path(f"{input_file_path}_outputvcf")
+            _logger.info(
+                "%s - annotating vcf file %s, outputting to %s",
+                self.request.id,
+                input_file_path,
+                output_file_location,
+            )
+        else:
+            output_file_location = None
+            _logger.info(
+                "%s - ingesting vcf file %s, not returning annotated copy",
+                self.request.id,
+                input_file_path,
+            )
 
         # annotate vcf with VRS IDs
         anyvar_app = get_anyvar_app()
         registrar = VcfRegistrar(anyvar_app.translator.dp, av=anyvar_app)
         registrar.annotate(
             Path(input_file_path),
-            Path(output_file_path),
+            output_file_location if return_annotated_vcf else None,
             compute_for_ref=for_ref,
             assembly=assembly,
         )
         elapsed = datetime.datetime.now(tz=datetime.UTC) - task_start
         _logger.info(
-            "%s - annotation completed in %s seconds", self.request.id, elapsed.seconds
+            "%s - VCF ingestion completed in %s seconds",
+            self.request.id,
+            elapsed.seconds,
         )
 
         # wait for writes if necessary
@@ -225,7 +240,7 @@ def annotate_vcf(
         Path(input_file_path).unlink()
 
         # return output file path
-        return output_file_path
+        return str(output_file_location) if return_annotated_vcf else None
     except Exception:
         _logger.exception("%s - vcf annotation failed with exception", self.request.id)
         raise
