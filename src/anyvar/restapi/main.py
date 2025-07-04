@@ -454,7 +454,7 @@ async def annotate_vcf(
             description="When running asynchronously, use the specified value as the run id instead generating a random uuid",
         ),
     ] = None,
-    return_annotated_vcf: bool = True,
+    return_annotated_vcf: Annotated[bool, Query(description="sdlfjkj")] = True,
 ) -> FileResponse | RunStatusResponse | ErrorResponse | None:
     """Register alleles from a VCF and return a file annotated with VRS IDs.
 
@@ -511,6 +511,7 @@ async def _annotate_vcf_async(
     allow_async_write: bool,
     assembly: str,
     run_id: str | None,
+    return_annotated_vcf: bool,
 ) -> RunStatusResponse | ErrorResponse:
     """Annotate with VRS IDs asynchronously.  See `annotate_vcf()` for parameter definitions."""
     # if run_id is provided, validate it does not already exist
@@ -549,6 +550,7 @@ async def _annotate_vcf_async(
             "assembly": assembly,
             "for_ref": for_ref,
             "allow_async_write": allow_async_write,
+            "return_annotated_vcf": return_annotated_vcf,
         },
         task_id=run_id,
     )
