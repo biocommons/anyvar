@@ -420,7 +420,7 @@ def register_vrs_object(
     tags=[EndpointTag.VARIATIONS],
     response_model=None,
 )
-async def annotate_vcf(
+async def ingest_vcf(
     request: Request,
     response: Response,
     bg_tasks: BackgroundTasks,
@@ -454,7 +454,12 @@ async def annotate_vcf(
             description="When running asynchronously, use the specified value as the run id instead generating a random uuid",
         ),
     ] = None,
-    return_annotated_vcf: Annotated[bool, Query(description="sdlfjkj")] = True,
+    return_annotated_vcf: Annotated[
+        bool,
+        Query(
+            description="Whether to return an annotated VCF. Disable if ingesting a VCF that has already been annotated."
+        ),
+    ] = True,
 ) -> FileResponse | RunStatusResponse | ErrorResponse | None:
     """Register alleles from a VCF and return a file annotated with VRS IDs.
 
@@ -489,6 +494,7 @@ async def annotate_vcf(
             allow_async_write=allow_async_write,
             assembly=assembly,
             run_id=run_id,
+            return_annotated_vcf=return_annotated_vcf,
         )
     # Run synchronously
     else:  # noqa: RET505
