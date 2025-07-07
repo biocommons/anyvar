@@ -233,6 +233,85 @@ def test_vcf_get_result_no_async(client, mocker):
     )
 
 
+@pytest.fixture
+def sample_vcf_grch38_annotated():
+    """Basic GRCh38 VCF fixture, previously annotated with VRS data"""
+    file_content = b"""##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##hailversion=0.2.100-2ea2615a797a
+##INFO=<ID=QUALapprox,Number=1,Type=Integer,Description="">
+##INFO=<ID=SB,Number=.,Type=Integer,Description="">
+##INFO=<ID=MQ,Number=1,Type=Float,Description="">
+##INFO=<ID=MQRankSum,Number=1,Type=Float,Description="">
+##INFO=<ID=VarDP,Number=1,Type=Integer,Description="">
+##INFO=<ID=AS_ReadPosRankSum,Number=1,Type=Float,Description="">
+##INFO=<ID=AS_pab_max,Number=1,Type=Float,Description="">
+##INFO=<ID=AS_QD,Number=1,Type=Float,Description="">
+##INFO=<ID=AS_MQ,Number=1,Type=Float,Description="">
+##INFO=<ID=QD,Number=1,Type=Float,Description="">
+##INFO=<ID=AS_MQRankSum,Number=1,Type=Float,Description="">
+##INFO=<ID=FS,Number=1,Type=Float,Description="">
+##INFO=<ID=AS_FS,Number=1,Type=Float,Description="">
+##INFO=<ID=ReadPosRankSum,Number=1,Type=Float,Description="">
+##INFO=<ID=AS_QUALapprox,Number=1,Type=Integer,Description="">
+##INFO=<ID=AS_SB_TABLE,Number=.,Type=Integer,Description="">
+##INFO=<ID=AS_VarDP,Number=1,Type=Integer,Description="">
+##INFO=<ID=AS_SOR,Number=1,Type=Float,Description="">
+##INFO=<ID=SOR,Number=1,Type=Float,Description="">
+##INFO=<ID=singleton,Number=0,Type=Flag,Description="">
+##INFO=<ID=transmitted_singleton,Number=0,Type=Flag,Description="">
+##INFO=<ID=omni,Number=0,Type=Flag,Description="">
+##INFO=<ID=mills,Number=0,Type=Flag,Description="">
+##INFO=<ID=monoallelic,Number=0,Type=Flag,Description="">
+##INFO=<ID=AS_VQSLOD,Number=1,Type=Float,Description="">
+##INFO=<ID=InbreedingCoeff,Number=1,Type=Float,Description="">
+##FILTER=<ID=AC0,Description="Allele count is zero after filtering out low-confidence genotypes (GQ < 20; DP < 10; and AB < 0.2 for het calls)">
+##FILTER=<ID=AS_VQSR,Description="Failed VQSR filtering thresholds of -2.7739 for SNPs and -1.0606 for indels">
+##contig=<ID=chr1,length=248956422,assembly=GRCh38>
+##INFO=<ID=VRS_Allele_IDs,Number=R,Type=String,Description="The computed identifiers for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles [VRS version=2.0.1;VRS-Python version=2.1.2]">
+##INFO=<ID=VRS_Error,Number=.,Type=String,Description="If an error occurred computing a VRS Identifier, the error message">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr1	10330	.	CCCCTAACCCTAACCCTAACCCTACCCTAACCCTAACCCTAACCCTAACCCTAA	C	.	PASS	QUALapprox=21493;SB=325,1077,113,694;MQ=32.1327;MQRankSum=0.72;VarDP=2236;AS_ReadPosRankSum=-0.736;AS_pab_max=1;AS_QD=5.17857;AS_MQ=29.5449;QD=9.61225;AS_MQRankSum=0;FS=8.55065;AS_FS=.;ReadPosRankSum=0.727;AS_QUALapprox=145;AS_SB_TABLE=325,1077,2,5;AS_VarDP=28;AS_SOR=0.311749;SOR=1.481;singleton;AS_VQSLOD=13.4641;InbreedingCoeff=-0.000517845;VRS_Allele_IDs=ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe,ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"""
+    return io.BytesIO(file_content)
+
+
+def test_vcf_submit_preannotated_with_output(
+    client, sample_vcf_grch38_annotated: io.BytesIO, mocker
+):
+    """Test that a previously-annotated VCF returns an error if annotated output isn't disabled"""
+    mocker.patch.dict(
+        os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "./", "CELERY_BROKER_URL": "redis://"}
+    )
+    resp = client.put("/vcf", files={"vcf": sample_vcf_grch38_annotated})
+    assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+    assert resp.json() == {"error": "VCF registration failed.", "error_code": None}
+
+    status_resp = client.put(
+        "/vcf", files={"vcf": sample_vcf_grch38_annotated}, params={"run_async": True}
+    )
+    assert status_resp.status_code == 202
+    status_resp_json = status_resp.json()
+    assert status_resp_json["status"] == "PENDING"
+    resp = client.get(f"/vcf/{status_resp_json['run_id']}")
+    assert resp.status_code == HTTPStatus.OK
+
+
+def test_vcf_submit_preannotated_no_output(
+    client, sample_vcf_grch38_annotated: io.BytesIO, mocker
+):
+    """Test that a previously-annotated VCF can be ingested without error when output is suppressed"""
+    mocker.patch.dict(
+        os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "", "CELERY_BROKER_URL": ""}
+    )
+    resp = client.put(
+        "/vcf",
+        files={"vcf": sample_vcf_grch38_annotated},
+        params={"return_annotated_vcf": False},
+    )
+    assert resp.status_code == 200
+    # TODO how to verify record was ingested?
+
+
 def test_vcf_get_result_success(client, mocker):
     """Tests the get async VCF result endpoint when annotation was successful"""
     mocker.patch.dict(

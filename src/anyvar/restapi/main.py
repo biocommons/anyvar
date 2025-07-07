@@ -644,7 +644,7 @@ async def get_result(
     run_id: Annotated[
         str, Path(description="The run id to retrieve the result or status for")
     ],
-) -> RunStatusResponse | FileResponse | ErrorResponse:
+) -> RunStatusResponse | FileResponse | ErrorResponse | None:
     """Return the status or result of an asynchronous registration of alleles from a VCF file.
     :param response: FastAPI response object
     :param bg_tasks: FastAPI background tasks object
@@ -667,9 +667,11 @@ async def get_result(
         response.status_code = status.HTTP_200_OK
         output_file_path = async_result.result
         async_result.forget()
-        _logger.debug("%s - output file path is %s", run_id, output_file_path)
-        bg_tasks.add_task(os.unlink, output_file_path)
-        return FileResponse(path=output_file_path)
+        if output_file_path:
+            _logger.debug("%s - output file path is %s", run_id, output_file_path)
+            bg_tasks.add_task(os.unlink, output_file_path)
+            return FileResponse(path=output_file_path)
+        return None  # TODO ?
 
     # failed - return an error response
     elif (  # noqa: RET505
