@@ -283,8 +283,11 @@ def test_vcf_submit_preannotated_with_output(
         os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "./", "CELERY_BROKER_URL": "redis://"}
     )
     resp = client.put("/vcf", files={"vcf": sample_vcf_grch38_annotated})
-    assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-    assert resp.json() == {"error": "VCF registration failed.", "error_code": None}
+    assert resp.status_code == HTTPStatus.BAD_REQUEST
+    assert resp.json() == {
+        "error": "VCF registration failed: VRS annotations already present",
+        "error_code": None,
+    }
 
     status_resp = client.put(
         "/vcf", files={"vcf": sample_vcf_grch38_annotated}, params={"run_async": True}
@@ -294,6 +297,10 @@ def test_vcf_submit_preannotated_with_output(
     assert status_resp_json["status"] == "PENDING"
     resp = client.get(f"/vcf/{status_resp_json['run_id']}")
     assert resp.status_code == HTTPStatus.OK
+    assert resp.json() == {
+        "error": "VCF registration failed: VRS annotations already present",
+        "error_code": None,
+    }
 
 
 def test_vcf_submit_preannotated_no_output(
