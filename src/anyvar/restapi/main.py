@@ -2,7 +2,6 @@
 
 import asyncio
 import datetime
-import json
 import logging
 import os
 import pathlib
@@ -28,10 +27,11 @@ from fastapi import (
     UploadFile,
     status,
 )
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 from pydantic import StrictStr
 
 import anyvar
+import anyvar.utils.functions as util_funcs
 from anyvar.anyvar import AnyAnnotation, AnyVar
 from anyvar.extras.vcf import VcfRegistrar
 from anyvar.restapi.schema import (
@@ -276,11 +276,14 @@ async def add_creation_timestamp_annotation(
         # With response, check if timestamp exists
         annotator: AnyAnnotation = getattr(request.app.state, "anyannotation", None)
         if annotator:
-            response_chunks = [chunk async for chunk in response.body_iterator]
-            response_body = b"".join(response_chunks)
-            response_body = response_body.decode("utf-8")
-            response_json: dict = json.loads(response_body)
+            response_json, new_response = await util_funcs.parse_and_rebuild_response(
+                response
+            )
+
             vrs_id = response_json.get("object", {}).get("id")
+            if not vrs_id:  # If there's no vrs_id, registration was unsuccessful
+                return new_response
+
             annotations = annotator.get_annotation(vrs_id, "creation_timestamp")
             if not annotations:
                 annotator.put_annotation(
@@ -291,12 +294,56 @@ async def add_creation_timestamp_annotation(
                     },
                 )
             # Create a new response object since we have exhausted the response body iterator
-            return JSONResponse(
-                content=response_json,
-                status_code=response.status_code,
-                headers=response.headers,
-                media_type=response.media_type,
+            return new_response
+
+    return response
+
+
+@app.middleware("http")
+async def add_genomic_liftover_annotation(
+    request: Request, call_next: Callable
+) -> Response:
+    """Perform genomic liftover between GRCh37 <-> GRCh38 and store the converted variant as an annotation of the original"""
+    # Do nothing on request. Pass downstream.
+    response = await call_next(request)
+
+    # Only add liftover annotation on registration
+    registration_endpoints = [
+        "/variation",
+        "/vrs_variation",
+    ]  # TODO: add support for "/vcf" registration
+    if request.url.path in registration_endpoints:
+        annotator: AnyAnnotation | None = getattr(
+            request.app.state, "anyannotation", None
+        )
+        if annotator:
+            response_json, new_response = await util_funcs.parse_and_rebuild_response(
+                response
+            )  # When we return, we'll need to return the `new_response` object since we have now exhausted the original response body iterator
+            vrs_id = response_json.get("object_id", "")
+            if not vrs_id:  # If there's no vrs_id, registration was unsuccessful
+                return new_response
+
+            # Check if we've already lifted over this variant before - no need to do it more than once
+            annotation_id = "liftover"
+            liftover_annotation = annotator.get_annotation(vrs_id, annotation_id)
+            if liftover_annotation:
+                return new_response
+
+            # Perform the liftover
+            variation_object = response_json.get("object", {})
+            seqrepo_dataproxy = request.app.state.anyvar.translator.dp
+            annotation_value = util_funcs.get_liftover_annotation(
+                variation_object, seqrepo_dataproxy
             )
+
+            annotator.put_annotation(
+                object_id=vrs_id,
+                annotation_type=annotation_id,
+                annotation={annotation_id: annotation_value},
+            )
+
+            return new_response
 
     return response
 
