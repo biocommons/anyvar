@@ -247,11 +247,10 @@ def test_valid_vrs_variant_liftover_annotation(client, alleles):
     client.put("/variation", json=allele_object)
 
     annotator: AnyAnnotation | None = getattr(client.app.state, "anyannotation", None)
-    if annotator:
-        liftover_annotations = annotator.get_annotation(allele_id, "liftover")
-        assert len(liftover_annotations) > 0
-    else:
-        raise Exception  # TODO: use a more specific error?
+    assert annotator is not None
+
+    liftover_annotations = annotator.get_annotation(allele_id, "liftover")
+    assert len(liftover_annotations) > 0
 
 
 def test_invalid_vrs_variant_liftover_annotation(client, invalid_variant):
@@ -259,13 +258,13 @@ def test_invalid_vrs_variant_liftover_annotation(client, invalid_variant):
     response_object = response.json()
     vrs_id = response_object.get("id", "")
 
-    # Variant was invalid, so it should not have been registered, and therefore shouldn't have an ID, so we shouldn't make an annotation for it
     annotator: AnyAnnotation | None = getattr(client.app.state, "anyannotation", None)
-    if annotator:
-        liftover_annotations = annotator.get_annotation(vrs_id, "liftover")
-        assert len(liftover_annotations) == 0
-    else:
-        raise Exception  # TODO: use a more specific error?
+    assert annotator is not None
+
+    # Variant was invalid, so it should not have been registered, and therefore shouldn't have an ID,
+    # so we shouldn't make an annotation for it
+    liftover_annotations = annotator.get_annotation(vrs_id, "liftover")
+    assert len(liftover_annotations) == 0
 
 
 def test_duplicate_liftover_annotation(client, alleles):
@@ -275,10 +274,9 @@ def test_duplicate_liftover_annotation(client, alleles):
     client.put("/variation", json=allele_object["params"])
     client.put("/variation", json=allele_object["params"])
 
-    # Check annotation store - should only have ONE 'liftover' annotation for the variant
     annotator: AnyAnnotation | None = getattr(client.app.state, "anyannotation", None)
-    if annotator:
-        liftover_annotations = annotator.get_annotation(allele_id, "liftover")
-        assert len(liftover_annotations) == 1
-    else:
-        raise Exception  # TODO: use a more specific error?
+    assert annotator is not None
+
+    # Check annotation store - should only have ONE 'liftover' annotation for the variant
+    liftover_annotations = annotator.get_annotation(allele_id, "liftover")
+    assert len(liftover_annotations) == 1
