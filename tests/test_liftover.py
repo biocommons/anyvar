@@ -66,6 +66,71 @@ copynumber_ranged_positive_grch37_variant_object = (
     },
 )
 
+# BRAF V600E
+allele_int_negative_grch38_variant = (
+    {
+        # "id": "ga4gh:VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe",
+        "type": "Allele",
+        "digest": "Otc5ovrw906Ack087o1fhegB4jDRqCAe",
+        "location": {
+            "id": "ga4gh:SL.nhul5x5P_fKjGEpY9PEkMIekJfZaKom2",
+            "type": "SequenceLocation",
+            "digest": "nhul5x5P_fKjGEpY9PEkMIekJfZaKom2",
+            "sequenceReference": {
+                "type": "SequenceReference",
+                "refgetAccession": "SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
+            },
+            "start": 140753335,
+            "end": 140753336,
+        },
+        "state": {"type": "LiteralSequenceExpression", "sequence": "T"},
+    },
+    {
+        "aliases": None,
+        "description": None,
+        "digest": "dvp7PZ4uKIb9L7IpieJewYSTkgpXgaza",
+        "expressions": None,
+        "extensions": None,
+        "id": "ga4gh:VA.dvp7PZ4uKIb9L7IpieJewYSTkgpXgaza",
+        "location": {
+            "aliases": None,
+            "description": None,
+            "digest": "hVna-JOV5bBTGdXexL--IQm135MG3bGT",
+            "end": 140453136,
+            "extensions": None,
+            "id": "ga4gh:SL.hVna-JOV5bBTGdXexL--IQm135MG3bGT",
+            "name": None,
+            "sequence": None,
+            "sequenceReference": {
+                "aliases": None,
+                "circular": None,
+                "description": None,
+                "extensions": None,
+                "id": None,
+                "moleculeType": None,
+                "name": None,
+                "refgetAccession": "SQ.IW78mgV5Cqf6M24hy52hPjyyo5tCCd86",
+                "residueAlphabet": None,
+                "sequence": None,
+                "type": "SequenceReference",
+            },
+            "start": 140453135,
+            "type": "SequenceLocation",
+        },
+        "name": None,
+        "state": {
+            "aliases": None,
+            "description": None,
+            "extensions": None,
+            "id": None,
+            "name": None,
+            "sequence": "T",
+            "type": "LiteralSequenceExpression",
+        },
+        "type": "Allele",
+    },
+)
+
 allele_int_unknown_grch38_variant = (
     {
         "id": "ga4gh: VA.9gW_iJbQAIO3SIxJ9ACyAZA1X2lEgO39",
@@ -224,6 +289,7 @@ def seqrepo_dataproxy() -> _DataProxy:
     ("variation_input", "expected_output"),
     [
         copynumber_ranged_positive_grch37_variant_object,
+        allele_int_negative_grch38_variant,
         allele_int_unknown_grch38_variant,
         grch36_variant,
         # unconvertible_grch37_variant,
@@ -234,8 +300,6 @@ def test_liftover_annotation(variation_input, expected_output, seqrepo_dataproxy
     annotation_value = util_funcs.get_liftover_annotation(
         variation_input, seqrepo_dataproxy
     )
-    # print("\nannotation_value:", annotation_value)
-    # print("expected_output:", expected_output)
     assert annotation_value == expected_output
 
 
