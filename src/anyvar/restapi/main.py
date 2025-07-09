@@ -32,6 +32,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import StrictStr
 
 import anyvar
+import anyvar.utils.functions as util_funcs
 from anyvar.anyvar import AnyAnnotation, AnyVar
 from anyvar.extras.vcf import VcfRegistrar
 from anyvar.restapi.schema import (
@@ -268,64 +269,40 @@ async def store_input_payload_annotation(
     request: Request, call_next: Callable
 ) -> Response:
     """Store input payload for /variation and registered VRS ID for /vrs_variation."""
-    request_body = await request.body()
-    try:
-        input_payload = json.loads(request_body)
-    except json.JSONDecodeError:
-        input_payload = None
-
-    async def receive() -> dict:
-        return {"type": "http.request", "body": request_body}
-
-    request = Request(request.scope, receive)
+    # Do nothing on request. Pass downstream.
     response = await call_next(request)
 
-    response_chunks = [chunk async for chunk in response.body_iterator]
-    response_body = b"".join(response_chunks).decode("utf-8")
+    registration_endpoints = ["/variation", "/vrs_variation"]
+    if request.url.path in registration_endpoints:
+        annotator: AnyAnnotation | None = getattr(
+            request.app.state, "anyannotation", None
+        )
+        if annotator:
+            response_json, new_response = await util_funcs.parse_and_rebuild_response(
+                response
+            )  # We'll need to return the `new_response` object since we have now exhausted the original response body iterator
 
-    try:
-        response_json = json.loads(response_body)
-    except json.JSONDecodeError:
-        response_json = {}
+            vrs_id = response_json.get("object", {}).get("id", None)
+            if not vrs_id:  # If there's no vrs_id, registration was unsuccessful
+                return new_response
 
-    annotator: AnyAnnotation = getattr(request.app.state, "anyannotation", None)
+            annotations = annotator.get_annotation(vrs_id, "input_payload")
+            if not annotations:
+                request_body = await request.body()
+                try:
+                    input_payload = json.loads(request_body)
+                except json.JSONDecodeError:
+                    input_payload = "Error parsing input payload"
 
-    if annotator:
-        path = request.url.path.rstrip("/")
+                annotator.put_annotation(
+                    object_id=vrs_id,
+                    annotation_type="input_payload",
+                    annotation={"input_payload": input_payload},
+                )
 
-        # Case 1: /variation — store input payload
-        if path == "/variation" and input_payload:
-            vrs_id = response_json.get("object", {}).get("id")
+            return new_response
 
-            if vrs_id:
-                existing = annotator.get_annotation(vrs_id, "input_payload")
-                if not existing:
-                    annotator.put_annotation(
-                        object_id=vrs_id,
-                        annotation_type="input_payload",
-                        annotation=input_payload,
-                    )
-
-        # Case 2: /vrs_variation — store object_id as an annotation
-        elif path == "/vrs_variation":
-            vrs_id = response_json.get("object_id")
-
-            if vrs_id:
-                existing = annotator.get_annotation(vrs_id, "vrs_registered_id")
-                if not existing:
-                    annotator.put_annotation(
-                        object_id=vrs_id,
-                        annotation_type="vrs_registered_id",
-                        annotation={"registered_id": vrs_id},
-                    )
-
-    # Return the rebuilt response
-    return JSONResponse(
-        content=response_json,
-        status_code=response.status_code,
-        headers=response.headers,
-        media_type=response.media_type,
-    )
+    return response
 
 
 @app.middleware("http")
