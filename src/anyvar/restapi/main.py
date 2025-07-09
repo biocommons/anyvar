@@ -269,10 +269,21 @@ async def store_input_payload_annotation(
     request: Request, call_next: Callable
 ) -> Response:
     """Store input payload for /variation and registered VRS ID for /vrs_variation."""
-    # Do nothing on request. Pass downstream.
+    # Pull out the input payload now so we can access it later
+    registration_endpoints = ["/variation", "/vrs_variation"]
+
+    input_payload = ""
+    if request.url.path in registration_endpoints:
+        request_body = await request.body()
+        try:
+            input_payload = json.loads(request_body)
+        except json.JSONDecodeError:
+            input_payload = "Error parsing input payload"
+
+    # Pass the request downstream
     response = await call_next(request)
 
-    registration_endpoints = ["/variation", "/vrs_variation"]
+    # Add input payload annotation
     if request.url.path in registration_endpoints:
         annotator: AnyAnnotation | None = getattr(
             request.app.state, "anyannotation", None
@@ -288,12 +299,6 @@ async def store_input_payload_annotation(
 
             annotations = annotator.get_annotation(vrs_id, "input_payload")
             if not annotations:
-                request_body = await request.body()
-                try:
-                    input_payload = json.loads(request_body)
-                except json.JSONDecodeError:
-                    input_payload = "Error parsing input payload"
-
                 annotator.put_annotation(
                     object_id=vrs_id,
                     annotation_type="input_payload",
