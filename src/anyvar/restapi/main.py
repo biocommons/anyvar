@@ -293,7 +293,7 @@ async def store_input_payload_annotation(
                 response
             )  # We'll need to return the `new_response` object since we have now exhausted the original response body iterator
 
-            vrs_id = response_json.get("object", {}).get("id", None)
+            vrs_id = response_json.get("object_id", None)
             if not vrs_id:  # If there's no vrs_id, registration was unsuccessful
                 return new_response
 
