@@ -200,59 +200,21 @@ test_variants = {
             LiftoverError.UNSUPPORTED_REFERENCE_ASSEMBLY
         ],
     },
-    "unconvertible_grch37_variant": {  # Welp my code converts this just fine???
-        "variant_input": {
-            "id": "ga4gh:VA.gB6yzqX61iGXwY_sJ9B1YzGkolw_NnWX",
-            "digest": "gB6yzqX61iGXwY_sJ9B1YzGkolw_NnWX",
-            "type": "Allele",
-            "location": {
-                "id": "ga4gh:SL.RAqMKUTTt3pLnD5HclaY-a6CyZVzENUi",
-                "digest": "RAqMKUTTt3pLnD5HclaY-a6CyZVzENUi",
-                "type": "SequenceLocation",
-                "start": 40411758,
-                "end": 40411759,
-                "sequenceReference": {
-                    "refgetAccession": "SQ.ItRDD47aMoioDCNW_occY5fWKZBKlxCX",
-                    "type": "SequenceReference",
-                },
-            },
-            "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
-        },
-        "expected_output": LIFTOVER_ERROR_ANNOTATIONS[
-            LiftoverError.COORDINATE_CONVERSION_ERROR
-        ],
-    },
+    # "unconvertible_grch37_variant": {
+    # 	"variant_input": {},
+    #     "expected_output": LIFTOVER_ERROR_ANNOTATIONS[
+    #         LiftoverError.ACCESSION_CONVERSION_ERROR
+    #     ],
+    # },
     "empty_variation_object": {
         "variant_input": {},
         "expected_output": LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.INPUT_ERROR],
     },
 }
 
-# invalid start and end coordinates
-# invalid_variant = (
-#     {
-#         "location": {
-#             "id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8",
-#             "end": 0,
-#             "start": -1,
-#             "sequenceReference": {
-#                 "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
-#                 "type": "SequenceReference",
-#             },
-#             "type": "SequenceLocation",
-#         },
-#         "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
-#         "type": "Allele",
-#     }
-# )
-
 
 # STILL NEED:
-# unconvertible_grch38_variant = (
-# )
-
-# STILL NEED:
+# - A variant that exists on GRCh37 but not GRCH38
 # - A variant that exists on GRCh38 but not GRCH37
 # - A variant with a "location" type that's not "SequenceLocation"
 # - A variant where the chromosome can't be determined?? (Is this even a thing?)
-# - A variant where the accession can't be converted (not sure if this case would ever get hit, as the coordinate conversion error would probably trigger first?)

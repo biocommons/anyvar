@@ -81,7 +81,7 @@ def seqrepo_dataproxy() -> _DataProxy:
         "allele_int_negative_grch38_variant",
         "allele_int_unknown_grch38_variant",
         "grch36_variant",
-        # unconvertible_grch37_variant,
+        # "unconvertible_grch37_variant",
         "empty_variation_object",
     ],
 )
@@ -107,13 +107,13 @@ def test_valid_vrs_variant_liftover_annotation(
     annotator = client.app.state.anyannotation
     annotator.reset_mock()
 
-    input_payload, liftover_output = allele_int_negative_grch38_variant
-    client.put("/vrs_variation", json=input_payload)
+    variation_input, expected_output = allele_int_negative_grch38_variant
+    client.put("/vrs_variation", json=variation_input)
 
     annotator.put_annotation.assert_any_call(
-        object_id=input_payload.get("id"),
+        object_id=variation_input.get("id"),
         annotation_type="liftover",
-        annotation={"liftover": liftover_output},
+        annotation={"liftover": expected_output},
     )
 
 
