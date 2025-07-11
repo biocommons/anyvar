@@ -56,7 +56,7 @@ from anyvar.translate.translate import (
     TranslationError,
     TranslatorConnectionError,
 )
-from anyvar.utils.types import VrsVariation, variation_class_map
+from anyvar.utils.types import VrsObject, VrsVariation, variation_class_map
 
 try:
     import aiofiles  # noqa: I001
@@ -311,7 +311,7 @@ async def add_genomic_liftover_annotation(
     registration_endpoints = [
         "/variation",
         "/vrs_variation",
-    ]  # TODO: add support for "/vcf" registration
+    ]
     if request.url.path in registration_endpoints:
         annotator: AnyAnnotation | None = getattr(
             request.app.state, "anyannotation", None
@@ -319,29 +319,51 @@ async def add_genomic_liftover_annotation(
         if annotator:
             response_json, new_response = await util_funcs.parse_and_rebuild_response(
                 response
-            )  # When we return, we'll need to return the `new_response` object since we have now exhausted the original response body iterator
-            vrs_id = response_json.get("object_id", "")
-            if not vrs_id:  # If there's no vrs_id, registration was unsuccessful
+            )  # We'll need to return the `new_response` object since we have now exhausted the original response body iterator
+
+            original_vrs_id = response_json.get("object_id")
+            if (
+                not original_vrs_id
+            ):  # If there's no vrs_id, registration was unsuccessful
                 return new_response
 
             # Check if we've already lifted over this variant before - no need to do it more than once
             annotation_id = "liftover"
-            liftover_annotation = annotator.get_annotation(vrs_id, annotation_id)
-            if liftover_annotation:
+            preexisting_liftover_annotation = annotator.get_annotation(
+                original_vrs_id, annotation_id
+            )
+            if preexisting_liftover_annotation:
                 return new_response
 
             # Perform the liftover
-            variation_object = response_json.get("object", {})
-            seqrepo_dataproxy = request.app.state.anyvar.translator.dp
-            annotation_value = util_funcs.get_liftover_annotation(
-                variation_object, seqrepo_dataproxy
-            )
+            lifted_over_variant: VrsObject | None = None
+            try:
+                lifted_over_variant = util_funcs.get_liftover_variant(
+                    variation_object=response_json.get("object", {}),
+                    seqrepo_dataproxy=request.app.state.anyvar.translator.dp,
+                )
+                annotation = lifted_over_variant.model_dump().get("id")
+            except Exception as e:
+                annotation = util_funcs.get_liftover_error_annotation(e)
 
             annotator.put_annotation(
-                object_id=vrs_id,
+                object_id=original_vrs_id,
                 annotation_type=annotation_id,
-                annotation={annotation_id: annotation_value},
+                annotation={annotation_id: annotation},
             )
+
+            # if liftover was successful, register the lifted-over variant
+            # and add an annotation linking it back to the original
+            if lifted_over_variant:
+                av: AnyVar = request.app.state.anyvar
+                av.put_object(lifted_over_variant)
+
+                # TODO: Verify that the liftover is reversible first
+                annotator.put_annotation(
+                    object_id=lifted_over_variant.model_dump().get("id", ""),
+                    annotation_type=annotation_id,
+                    annotation={annotation_id: original_vrs_id},
+                )
 
             return new_response
 

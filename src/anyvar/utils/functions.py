@@ -2,7 +2,6 @@
 
 import json
 import re
-from enum import Enum
 from typing import cast
 
 from agct import Converter, Genome, Strand
@@ -11,7 +10,15 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from ga4gh.vrs.dataproxy import _DataProxy
 from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 
-from anyvar.utils.types import VrsObject, variation_class_map
+from anyvar.utils.types import VrsObject, VrsVariation, variation_class_map
+
+
+class MalformedInputError(Exception):
+    """Indicates a malformed variant input"""
+
+
+class UnsupportedVariantLocationTypeError(Exception):
+    """Indicates a variant with a 'location' type that is unsupported"""
 
 
 class UnsupportedReferenceAssemblyError(Exception):
@@ -22,29 +29,29 @@ class AmbiguousReferenceAssemblyError(Exception):
     """Indicates a failure to determine which reference assembly a variant is one due to alias matches in multiple reference assemblies, making the result ambiguous"""
 
 
+class ChromosomeResolutionError(Exception):
+    """Indicates a failure to resolve a variant's chromosome"""
+
+
+class CoordinateConversionError(Exception):
+    """Indicates a failure to lift over a variant's coordinate"""
+
+
+class AccessionConversionError(Exception):
+    """Indicates a failure to convert a variant's refget accession"""
+
+
 liftover_error_prefix = "Unable to complete liftover"
 
 
-class LiftoverError(str, Enum):
-    """Errors that can occur during variant liftover"""
-
-    INPUT_ERROR = "Input Error"
-    UNSUPPORTED_VARIANT_LOCATION_TYPE = "Unsupported Variant Location Type"
-    UNSUPPORTED_REFERENCE_ASSEMBLY = "Unsupported Reference Assembly Error"
-    AMBIGUOUS_REFERENCE_ASSEMBLY = "Ambiguous Reference Assembly Error"
-    CHROMOSOME_RESOLUTION_ERROR = "Chromosome Resolution Error"
-    COORDINATE_CONVERSION_ERROR = "Coordinate Conversion Error"
-    ACCESSION_CONVERSION_ERROR = "Accession Conversion Error"
-
-
 LIFTOVER_ERROR_ANNOTATIONS = {
-    LiftoverError.INPUT_ERROR: f"{liftover_error_prefix}: no variation found",
-    LiftoverError.UNSUPPORTED_VARIANT_LOCATION_TYPE: f"{liftover_error_prefix}: liftover is unsupported for variants without refget accession, start position and end position",
-    LiftoverError.UNSUPPORTED_REFERENCE_ASSEMBLY: f"{liftover_error_prefix}: could not resolve reference assembly - accession not found in any supported assembly",
-    LiftoverError.AMBIGUOUS_REFERENCE_ASSEMBLY: f"{liftover_error_prefix}: could not resolve reference assembly - accession found in multiple supported assemblies",
-    LiftoverError.CHROMOSOME_RESOLUTION_ERROR: f"{liftover_error_prefix}: unable to resolve variant's chromosome",
-    LiftoverError.COORDINATE_CONVERSION_ERROR: f"{liftover_error_prefix}: could not convert start and/or end position(s)",
-    LiftoverError.ACCESSION_CONVERSION_ERROR: f"{liftover_error_prefix}: could not convert refget accession",
+    MalformedInputError: f"{liftover_error_prefix}: malformed variant input",
+    UnsupportedVariantLocationTypeError: f"{liftover_error_prefix}: liftover is unsupported for variants without refget accession, start position and end position",
+    UnsupportedReferenceAssemblyError: f"{liftover_error_prefix}: could not resolve reference assembly - accession not found in any supported assembly",
+    AmbiguousReferenceAssemblyError: f"{liftover_error_prefix}: could not resolve reference assembly - accession found in multiple supported assemblies",
+    ChromosomeResolutionError: f"{liftover_error_prefix}: unable to resolve variant's chromosome",
+    CoordinateConversionError: f"{liftover_error_prefix}: could not convert start and/or end position(s)",
+    AccessionConversionError: f"{liftover_error_prefix}: could not convert refget accession",
 }
 
 
@@ -154,18 +161,32 @@ def convert_position(
     return [lower, upper]
 
 
-def get_liftover_annotation(
+def get_liftover_variant(
     variation_object: dict, seqrepo_dataproxy: _DataProxy
-) -> str | dict:
-    """Liftover a variant from GRCh37 or GRCH38 into the opposite assembly, and return the string identifier for the converted variant.
-    If liftover is unsuccessful, return a string error message instead.
+) -> VrsVariation:
+    """Liftover a variant from GRCh37 or GRCH38 into the opposite assembly, and return the converted variant as a VrsObject.
+    If liftover is unsuccessful, raise an Exception.
 
     :param variation_object: A dictionary representation of a `VrsVariation`.
-    :param seqrepo_dataproxy: A SeqrepoDataproxy instance.
-    :return: The string ga4gh identifier of the lifted-over variant on success; else a string error message indicating why liftover was unsuccessful on failure.
+    :param seqrepo_dataproxy: A `SeqrepoDataproxy` instance.
+    :return: The converted variant as a `VrsObject`.
+    :raises:
+        - `MalformedInputError`:  If the `variation_object` is empty or otherwise falesy
+
+        - `UnsupportedVariantLocationTypeError`: If the variant lacks a refget accession, start position or end position
+
+        - `UnsupportedReferenceAssemblyError`: If the variant's accession was not found in any supported assembly
+
+        - `AmbiguousReferenceAssemblyError`: If the variant's accession was found in multiple supported assemblies
+
+        - `ChromosomeResolutionError`: If unable to resolve variant's chromosome
+
+        - `CoordinateConversionError`: If unable to lift over the variant's start and/or end position(s)
+
+        - `AccessionConversionError`: If unable to lift over the variant's refget accession
     """
     if not variation_object:
-        return LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.INPUT_ERROR]
+        raise MalformedInputError
 
     # Get variant start position, end position, and refget accession - liftover is currently unsupported without these
     refget_accession = (
@@ -176,9 +197,7 @@ def get_liftover_annotation(
     start_position = variation_object.get("location", {}).get("start")
     end_position = variation_object.get("location", {}).get("end")
     if not refget_accession or not start_position or not end_position:
-        return LIFTOVER_ERROR_ANNOTATIONS[
-            LiftoverError.UNSUPPORTED_VARIANT_LOCATION_TYPE
-        ]
+        raise MalformedInputError
 
     # Determine which assembly we're converting from/to
     prefixed_accession = f"ga4gh:{refget_accession}"
@@ -196,17 +215,14 @@ def get_liftover_annotation(
 
     from_assembly = None
     to_assembly = None
-    try:
-        from_assembly, to_assembly = get_from_and_to_assemblies(aliases)
-    except UnsupportedReferenceAssemblyError:
-        return LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.UNSUPPORTED_REFERENCE_ASSEMBLY]
-    except AmbiguousReferenceAssemblyError:
-        return LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.AMBIGUOUS_REFERENCE_ASSEMBLY]
+    from_assembly, to_assembly = get_from_and_to_assemblies(
+        aliases
+    )  # May raise UnsupportedReferenceAssemblyError or AmbiguousReferenceAssemblyError
 
     # Determine which chromosome the variant is on
     chromosome = get_chromosome_from_aliases(aliases.get(from_assembly, []))
     if not chromosome:
-        return LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.CHROMOSOME_RESOLUTION_ERROR]
+        raise ChromosomeResolutionError
 
     # Begin liftover conversion
     assembly_map = {grch37: Genome.HG19, grch38: Genome.HG38}
@@ -218,8 +234,8 @@ def get_liftover_annotation(
     try:
         converted_start = convert_position(converter, chromosome, start_position)
         converted_end = convert_position(converter, chromosome, end_position)
-    except Exception:
-        return LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.COORDINATE_CONVERSION_ERROR]
+    except Exception as e:
+        raise CoordinateConversionError from e
 
     # Get converted refget_accession (without 'ga4gh:' prefix)
     new_alias = f"{to_assembly}:{chromosome}"
@@ -227,7 +243,7 @@ def get_liftover_annotation(
         new_alias, "ga4gh"
     )[0].split("ga4gh:")[1]
     if not converted_refget_accession:
-        return LIFTOVER_ERROR_ANNOTATIONS[LiftoverError.ACCESSION_CONVERSION_ERROR]
+        raise AccessionConversionError
 
     # Build the converted location dict
     converted_variation_location = {
@@ -260,5 +276,12 @@ def get_liftover_annotation(
         return_id_obj_tuple=False,
     )
 
-    # deref and convert back to a dict for storage
-    return vrs_deref(o=enreffed_variant, object_store=object_store).model_dump()
+    # return the dereffed lifted-over variant
+    return vrs_deref(o=enreffed_variant, object_store=object_store)
+
+
+def get_liftover_error_annotation(error: Exception) -> str:
+    """Get the annotation value for a failed liftover"""
+    return LIFTOVER_ERROR_ANNOTATIONS.get(
+        type(error), f"{liftover_error_prefix}: an unknown error occurred"
+    )
