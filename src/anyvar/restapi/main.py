@@ -328,9 +328,9 @@ async def add_genomic_liftover_annotation(
                 return new_response
 
             # Check if we've already lifted over this variant before - no need to do it more than once
-            annotation_id = "liftover"
+            annotation_type = "liftover"
             preexisting_liftover_annotation = annotator.get_annotation(
-                original_vrs_id, annotation_id
+                original_vrs_id, annotation_type
             )
             if preexisting_liftover_annotation:
                 return new_response
@@ -339,7 +339,7 @@ async def add_genomic_liftover_annotation(
             lifted_over_variant: VrsObject | None = None
             try:
                 lifted_over_variant = util_funcs.get_liftover_variant(
-                    variation_object=response_json.get("object", {}),
+                    variant_object=response_json.get("object", {}),
                     seqrepo_dataproxy=request.app.state.anyvar.translator.dp,
                 )
                 annotation = lifted_over_variant.model_dump().get("id")
@@ -348,8 +348,8 @@ async def add_genomic_liftover_annotation(
 
             annotator.put_annotation(
                 object_id=original_vrs_id,
-                annotation_type=annotation_id,
-                annotation={annotation_id: annotation},
+                annotation_type=annotation_type,
+                annotation={annotation_type: annotation},
             )
 
             # if liftover was successful, register the lifted-over variant
@@ -361,8 +361,8 @@ async def add_genomic_liftover_annotation(
                 # TODO: Verify that the liftover is reversible first
                 annotator.put_annotation(
                     object_id=lifted_over_variant.model_dump().get("id", ""),
-                    annotation_type=annotation_id,
-                    annotation={annotation_id: original_vrs_id},
+                    annotation_type=annotation_type,
+                    annotation={annotation_type: original_vrs_id},
                 )
 
             return new_response
