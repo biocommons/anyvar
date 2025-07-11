@@ -94,8 +94,8 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
     else:
         _logger.info("Logging with default configs.")
 
-    # Configure service info from file or use default
-    service_info_config_file = os.environ.get("ANYVAR_SERVICE_INFO", None)
+    # Override default service-info parameters
+    service_info_config_file = os.environ.get("ANYVAR_SERVICE_INFO")
     if service_info_config_file and pathlib.Path(service_info_config_file).is_file():
         async with await anyio.open_file(service_info_config_file) as f:
             try:
@@ -109,10 +109,8 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
                     "Error loading from service info description at %s. Using default configs",
                     service_info_config_file,
                 )
-                param_app.state.service_info = {}
     else:
         _logger.info("Using default service description.")
-        param_app.state.service_info = {}
 
     # create anyvar instance
     storage = anyvar.anyvar.create_storage()
