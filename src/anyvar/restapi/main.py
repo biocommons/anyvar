@@ -110,7 +110,7 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
                     service_info_config_file,
                 )
     else:
-        _logger.info("Using default service description.")
+        _logger.warning("Using default service description.")
 
     # create anyvar instance
     storage = anyvar.anyvar.create_storage()
