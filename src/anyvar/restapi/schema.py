@@ -39,18 +39,26 @@ class ServiceEnvironment(str, Enum):
 class ServiceOrganization(BaseModel):
     """Define service_info response for organization field"""
 
-    name: str
-    url: str
+    name: str = Field(
+        "bioccommons",
+        description="Name of the organization responsible for the service",
+    )
+    url: str = Field(
+        "https://biocommons.org",
+        description="URL of the website of the organization (RFC 3986 format)",
+    )
 
 
 class ServiceType(BaseModel):
     """Define service_info response for type field"""
 
     group: str = Field(
-        description="Namespace in reverse domain name format. Use `org.ga4gh` for implementations compliant with official GA4GH specifications. For services with custom APIs not standardized by GA4GH, or implementations diverging from official GA4GH specifications, use a different namespace (e.g. your organization''s reverse domain name)."
+        "org.biocommons",
+        description="Namespace in reverse domain name format. Use `org.ga4gh` for implementations compliant with official GA4GH specifications. For services with custom APIs not standardized by GA4GH, or implementations diverging from official GA4GH specifications, use a different namespace (e.g. your organization''s reverse domain name).",
     )
     artifact: str = Field(
-        description="Name of the API or GA4GH specification implemented. Official GA4GH types should be assigned as part of standards approval process. Custom artifacts are supported."
+        "anyvar",
+        description="Name of the API or GA4GH specification implemented. Official GA4GH types should be assigned as part of standards approval process. Custom artifacts are supported.",
     )
     version: Literal[__version__] = __version__
 
@@ -71,16 +79,20 @@ class ServiceInfo(BaseModel):
     """Define response structure for GA4GH /service_info endpoint."""
 
     id: str = Field(
-        description="Unique ID of this service. Reverse domain name notation is recommended, though not required. The identifier should attempt to be globally unique so it can be used in downstream aggregator services e.g. Service Registry."
+        "org.biocommons.anyvar",
+        description="Unique ID of this service. Reverse domain name notation is recommended, though not required. The identifier should attempt to be globally unique so it can be used in downstream aggregator services e.g. Service Registry.",
     )
     name: str = Field(
         "AnyVar", description="Name of this service. Should be human readable."
     )
-    type: ServiceType
+    type: ServiceType = Field(ServiceType(), description="Type of a GA4GH service")
     description: str = Field(
-        description="Description of the service. Should be human readable and provide information about the service."
+        "Register and retrieve GA4GH VRS variations and associated annotations.",
+        description="Description of the service. Should be human readable and provide information about the service.",
     )
-    organization: ServiceOrganization
+    organization: ServiceOrganization = Field(
+        ServiceOrganization(), description="Organization providing the service"
+    )
     contactUrl: str = Field(  # noqa: N815
         "mailto:alex.wagner@nationwidechildrens.org",
         description="URL of the contact for the provider of this service, e.g. a link to a contact form (RFC 3986 format), or an email (RFC 2368 format).",
@@ -97,7 +109,10 @@ class ServiceInfo(BaseModel):
         "2025-06-01T00:00:00Z",
         description="Timestamp describing when the service was last updated (RFC 3339 format)",
     )
-    environment: ServiceEnvironment
+    environment: ServiceEnvironment = Field(
+        ServiceEnvironment.DEV,
+        description="Environment the service is running in. Use this to distinguish between production, development and testing/staging deployments. Suggested values are prod, test, dev, staging. However this is advised and not enforced.",
+    )
     version: Literal[__version__] = __version__
     spec_metadata: SpecMetadata = SpecMetadata()
     impl_metadata: ImplMetadata = ImplMetadata()

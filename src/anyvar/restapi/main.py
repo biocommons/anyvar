@@ -51,7 +51,6 @@ from anyvar.restapi.schema import (
     RegisterVrsVariationResponse,
     RunStatusResponse,
     SearchResponse,
-    ServiceEnvironment,
     ServiceInfo,
     VariationStatisticType,
 )
@@ -94,6 +93,26 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
                 )
     else:
         _logger.info("Logging with default configs.")
+
+    # Configure service info from file or use default
+    service_info_config_file = os.environ.get("ANYVAR_SERVICE_INFO", None)
+    if service_info_config_file and pathlib.Path(service_info_config_file).is_file():
+        async with await anyio.open_file(service_info_config_file) as f:
+            try:
+                contents = await f.read()
+                param_app.state.service_info = yaml.safe_load(contents)
+                _logger.info(
+                    "Assigning service info values from %s", service_info_config_file
+                )
+            except Exception:
+                _logger.exception(
+                    "Error loading from service info description at %s. Using default configs",
+                    service_info_config_file,
+                )
+                param_app.state.service_info = {}
+    else:
+        _logger.info("Using default service description.")
+        param_app.state.service_info = {}
 
     # create anyvar instance
     storage = anyvar.anyvar.create_storage()
@@ -142,12 +161,16 @@ app = FastAPI(
     description="Retrieve service metadata, such as versioning and contact info. Structured in conformance with the [GA4GH service info API specification](https://www.ga4gh.org/product/service-info/)",
     tags=[EndpointTag.GENERAL],
 )
-def service_info() -> ServiceInfo:
+def service_info(
+    request: Request,
+) -> ServiceInfo:
     """Provide service info per GA4GH Service Info spec
 
+    :param request: FastAPI request object
     :return: service info description
     """
-    return ServiceInfo(environment=ServiceEnvironment.DEV)
+    service_info = getattr(request.app.state, "service_info", {})
+    return ServiceInfo(**service_info)
 
 
 @app.get(
