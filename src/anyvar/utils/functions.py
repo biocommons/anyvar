@@ -162,16 +162,16 @@ def convert_position(
 
 
 def get_liftover_variant(
-    variation_object: dict, seqrepo_dataproxy: _DataProxy
+    variant_object: dict, seqrepo_dataproxy: _DataProxy
 ) -> VrsVariation:
     """Liftover a variant from GRCh37 or GRCH38 into the opposite assembly, and return the converted variant as a VrsObject.
     If liftover is unsuccessful, raise an Exception.
 
-    :param variation_object: A dictionary representation of a `VrsVariation`.
+    :param variant_object: A dictionary representation of a `VrsVariation`.
     :param seqrepo_dataproxy: A `SeqrepoDataproxy` instance.
     :return: The converted variant as a `VrsObject`.
     :raises:
-        - `MalformedInputError`:  If the `variation_object` is empty or otherwise falesy
+        - `MalformedInputError`:  If the `variant_object` is empty or otherwise falesy
 
         - `UnsupportedVariantLocationTypeError`: If the variant lacks a refget accession, start position or end position
 
@@ -185,17 +185,17 @@ def get_liftover_variant(
 
         - `AccessionConversionError`: If unable to lift over the variant's refget accession
     """
-    if not variation_object:
+    if not variant_object:
         raise MalformedInputError
 
     # Get variant start position, end position, and refget accession - liftover is currently unsupported without these
     refget_accession = (
-        variation_object.get("location", {})
+        variant_object.get("location", {})
         .get("sequenceReference", {})
         .get("refgetAccession")
     )
-    start_position = variation_object.get("location", {}).get("start")
-    end_position = variation_object.get("location", {}).get("end")
+    start_position = variant_object.get("location", {}).get("start")
+    end_position = variant_object.get("location", {}).get("end")
     if not refget_accession or not start_position or not end_position:
         raise MalformedInputError
 
@@ -246,7 +246,7 @@ def get_liftover_variant(
         raise AccessionConversionError
 
     # Build the converted location dict
-    converted_variation_location = {
+    converted_variant_location = {
         "start": converted_start,
         "end": converted_end,
         "id": None,
@@ -256,22 +256,26 @@ def get_liftover_variant(
         },
     }
 
-    # Build the liftover variation object w/ converted location
-    converted_variation_dict = variation_object
-    converted_variation_dict["location"] = converted_variation_location
-    # Get rid of the identifiers since these were from the original variation object and we need to re-compute them
-    converted_variation_dict["digest"] = None
-    converted_variation_dict["id"] = None
+    # Build the liftover variant object
+    # Start by copying the original variant
+    converted_variant_dict = variant_object
+
+    # Replace the location with the lifted-over version
+    converted_variant_dict["location"] = converted_variant_location
+
+    # Get rid of the identifiers since these were from the original variant object and we need to re-compute them
+    converted_variant_dict["digest"] = None
+    converted_variant_dict["id"] = None
 
     # Convert the dict into a VrsObject class instance so we can compute the identifiers
-    converted_variation_object: VrsObject = variation_class_map[
-        variation_object.get("type", "")
-    ](**converted_variation_dict)
+    converted_variant_object: VrsObject = variation_class_map[
+        variant_object.get("type", "")
+    ](**converted_variant_dict)
 
     # Compute the identifiers
     object_store = {}
     enreffed_variant = vrs_enref(
-        o=converted_variation_object,
+        o=converted_variant_object,
         object_store=object_store,
         return_id_obj_tuple=False,
     )
