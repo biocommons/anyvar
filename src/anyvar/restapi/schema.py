@@ -1,5 +1,6 @@
 """Provide response definitions to REST API endpoint."""
 
+from datetime import datetime
 from enum import Enum
 from typing import Literal, Optional
 
@@ -10,7 +11,7 @@ from ga4gh.vrs import (
 from ga4gh.vrs import (
     __version__ as vrs_python_version,
 )
-from pydantic import BaseModel, ConfigDict, StrictInt, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 
 from anyvar import __version__
 from anyvar.utils.types import Annotation, SupportedVariationType
@@ -38,19 +39,19 @@ class ServiceEnvironment(str, Enum):
 class ServiceOrganization(BaseModel):
     """Define service_info response for organization field"""
 
-    name: Literal["GA4GH Genomic Knowledge Standards Workstream"] = (
-        "GA4GH Genomic Knowledge Standards Workstream"
-    )
-    url: Literal["https://www.ga4gh.org/work_stream/genomic-knowledge-standards/"] = (
-        "https://www.ga4gh.org/work_stream/genomic-knowledge-standards/"
-    )
+    name: str
+    url: str
 
 
 class ServiceType(BaseModel):
     """Define service_info response for type field"""
 
-    group: Literal["org.ga4gh.gks"] = "org.ga4gh.gks"
-    artifact: Literal["anyvar"] = "anyvar"
+    group: str = Field(
+        description="Namespace in reverse domain name format. Use `org.ga4gh` for implementations compliant with official GA4GH specifications. For services with custom APIs not standardized by GA4GH, or implementations diverging from official GA4GH specifications, use a different namespace (e.g. your organization''s reverse domain name)."
+    )
+    artifact: str = Field(
+        description="Name of the API or GA4GH specification implemented. Official GA4GH types should be assigned as part of standards approval process. Custom artifacts are supported."
+    )
     version: Literal[__version__] = __version__
 
 
@@ -69,21 +70,33 @@ class ImplMetadata(BaseModel):
 class ServiceInfo(BaseModel):
     """Define response structure for GA4GH /service_info endpoint."""
 
-    id: Literal["org.ga4gh.gks.anyvar"] = "org.ga4gh.gks.anyvar"
-    name: Literal["anyvar"] = "anyvar"
-    type: ServiceType = ServiceType()
-    description: Literal["This service provides a registry for GA4GH VRS objects."] = (
-        "This service provides a registry for GA4GH VRS objects."
+    id: str = Field(
+        description="Unique ID of this service. Reverse domain name notation is recommended, though not required. The identifier should attempt to be globally unique so it can be used in downstream aggregator services e.g. Service Registry."
     )
-    organization: ServiceOrganization = ServiceOrganization()
-    contactUrl: Literal["Alex.Wagner@nationwidechildrens.org"] = (  # noqa: N815
-        "Alex.Wagner@nationwidechildrens.org"
+    name: str = Field(
+        "AnyVar", description="Name of this service. Should be human readable."
     )
-    documentationUrl: Literal["https://github.com/biocommons/anyvar"] = (  # noqa: N815
-        "https://github.com/biocommons/anyvar"
+    type: ServiceType
+    description: str = Field(
+        description="Description of the service. Should be human readable and provide information about the service."
     )
-    createdAt: Literal["2025-06-01T00:00:00Z"] = "2025-06-01T00:00:00Z"  # noqa: N815
-    updatedAt: Literal["2025-06-01T00:00:00Z"] = "2025-06-01T00:00:00Z"  # noqa: N815
+    organization: ServiceOrganization
+    contactUrl: str = Field(  # noqa: N815
+        "mailto:alex.wagner@nationwidechildrens.org",
+        description="URL of the contact for the provider of this service, e.g. a link to a contact form (RFC 3986 format), or an email (RFC 2368 format).",
+    )
+    documentationUrl: str = Field(  # noqa: N815
+        "https://github.com/biocommons/anyvar",
+        description="URL of the documentation of this service (RFC 3986 format). This should help someone learn how to use your service, including any specifics required to access data, e.g. authentication.",
+    )
+    createdAt: datetime = Field(  # noqa: N815
+        "2025-06-01T00:00:00Z",
+        description="Timestamp describing when the service was first deployed and available (RFC 3339 format)",
+    )
+    updatedAt: datetime = Field(  # noqa: N815
+        "2025-06-01T00:00:00Z",
+        description="Timestamp describing when the service was last updated (RFC 3339 format)",
+    )
     environment: ServiceEnvironment
     version: Literal[__version__] = __version__
     spec_metadata: SpecMetadata = SpecMetadata()
