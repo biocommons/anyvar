@@ -9,7 +9,6 @@ import tempfile
 import uuid
 from typing import Annotated
 
-import pysam
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -22,17 +21,13 @@ from fastapi import (
     status,
 )
 from fastapi.responses import FileResponse
-from ga4gh.vrs.extras.annotator.vcf import FieldName
-from ga4gh.vrs.models import (
-    Allele,
-    LiteralSequenceExpression,
-    SequenceLocation,
-    SequenceReference,
-)
 
 import anyvar
 from anyvar.anyvar import AnyVar
-from anyvar.extras.vcf import VcfRegistrar
+from anyvar.extras.vcf import (
+    VcfRegistrar,
+    register_existing_annotations,
+)
 from anyvar.restapi.schema import EndpointTag, ErrorResponse, RunStatusResponse
 from anyvar.translate.translate import TranslatorConnectionError
 
@@ -251,21 +246,6 @@ async def annotate_vcf(
         )
 
 
-def _raise_for_missing_vcf_annotations(vcf: pysam.VariantFile) -> None:
-    """Check whether all required VRS annotations are present on a provided VCF
-
-    :vcf: file to check
-    :return: None if successful
-    :raise: ValueError if provided VCF lacks required annotations
-    """
-    field_names = {name.value for name in FieldName}
-    if not all(n in vcf.header.info for n in field_names):
-        raise ValueError(
-            "VCF missing some required INFO fields: %s",
-            field_names - set(vcf.header.info.keys()),
-        )
-
-
 async def _ingest_annotated_vcf_sync(
     request: Request,
     response: Response,
@@ -283,47 +263,7 @@ async def _ingest_annotated_vcf_sync(
         temp_in_path = pathlib.Path(temp_in.name)
 
     try:
-        variantfile = pysam.VariantFile(filename=str(temp_in_path), mode="r")
-        _raise_for_missing_vcf_annotations(variantfile)
-        for record in variantfile:
-            if not all(
-                [
-                    FieldName.IDS_FIELD in record.info,
-                    FieldName.STARTS_FIELD in record.info,
-                    FieldName.ENDS_FIELD in record.info,
-                    FieldName.STATES_FIELD in record.info,
-                ]
-            ):
-                continue
-            sequence = f"{assembly}:{record.chrom}"
-            refget_accession = av.translator.dp.derive_refget_accession(sequence)
-            if not refget_accession:
-                _logger.warning(
-                    "Unable to acquire refget accession for constructed sequence identifier %s at pos %s",
-                    sequence,
-                    record.pos,
-                )
-                continue
-            for vrs_id, start, end, state in zip(
-                record.info[FieldName.IDS_FIELD],
-                record.info[FieldName.STARTS_FIELD],
-                record.info[FieldName.ENDS_FIELD],
-                record.info[FieldName.STATES_FIELD],
-                strict=True,
-            ):
-                if vrs_id == ".":
-                    continue
-                if state == ".":
-                    state = ""
-                seq_ref = SequenceReference(refgetAccession=refget_accession)
-                location = SequenceLocation(
-                    sequenceReference=seq_ref, start=start, end=end
-                )
-                state = LiteralSequenceExpression(sequence=state)
-                allele = Allele(location=location, state=state)
-                av.put_object(allele)
-                # TODO validate ID?
-
+        register_existing_annotations(av, temp_in_path, assembly)
     except (TranslatorConnectionError, OSError, ValueError):
         _logger.exception(
             "Encountered error during registration of VCF file %s", vcf.filename

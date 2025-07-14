@@ -7,20 +7,15 @@ import threading
 from pathlib import Path
 
 import celery.signals
-import pysam
 from celery import Celery, Task
 from celery.result import AsyncResult
 from dotenv import load_dotenv
-from ga4gh.vrs.extras.annotator.vcf import FieldName
-from ga4gh.vrs.models import (
-    Allele,
-    LiteralSequenceExpression,
-    SequenceLocation,
-    SequenceReference,
-)
 
 import anyvar
-from anyvar.extras.vcf import VcfRegistrar, _raise_for_missing_vcf_annotations
+from anyvar.extras.vcf import (
+    VcfRegistrar,
+    register_existing_annotations,
+)
 
 load_dotenv()
 _logger = logging.getLogger(__name__)
@@ -183,49 +178,9 @@ def ingest_annotated_vcf(
         enter_task()
         task_start = datetime.datetime.now(tz=datetime.UTC)
 
-        # TODO ingest
         av = get_anyvar_app()
 
-        variantfile = pysam.VariantFile(filename=str(input_file_path), mode="r")
-        _raise_for_missing_vcf_annotations(variantfile)
-        for record in variantfile:
-            if not all(
-                [
-                    FieldName.IDS_FIELD in record.info,
-                    FieldName.STARTS_FIELD in record.info,
-                    FieldName.ENDS_FIELD in record.info,
-                    FieldName.STATES_FIELD in record.info,
-                ]
-            ):
-                continue
-            sequence = f"{assembly}:{record.chrom}"
-            refget_accession = av.translator.dp.derive_refget_accession(sequence)
-            if not refget_accession:
-                _logger.warning(
-                    "Unable to acquire refget accession for constructed sequence identifier %s at pos %s",
-                    sequence,
-                    record.pos,
-                )
-                continue
-            for vrs_id, start, end, state in zip(
-                record.info[FieldName.IDS_FIELD],
-                record.info[FieldName.STARTS_FIELD],
-                record.info[FieldName.ENDS_FIELD],
-                record.info[FieldName.STATES_FIELD],
-                strict=True,
-            ):
-                if vrs_id == ".":
-                    continue
-                if state == ".":
-                    state = ""
-                seq_ref = SequenceReference(refgetAccession=refget_accession)
-                location = SequenceLocation(
-                    sequenceReference=seq_ref, start=start, end=end
-                )
-                state = LiteralSequenceExpression(sequence=state)
-                allele = Allele(location=location, state=state)
-                av.put_object(allele)
-                # TODO validate ID?
+        register_existing_annotations(av, input_file_path, assembly)
 
         elapsed = datetime.datetime.now(tz=datetime.UTC) - task_start
         _logger.info(
@@ -247,7 +202,6 @@ def ingest_annotated_vcf(
                 elapsed.seconds,
             )
 
-        # remove input file
         Path(input_file_path).unlink()
     except Exception:
         _logger.exception("%s - vcf ingestion failed with exception", self.request.id)
