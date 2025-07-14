@@ -7,12 +7,20 @@ import threading
 from pathlib import Path
 
 import celery.signals
+import pysam
 from celery import Celery, Task
 from celery.result import AsyncResult
 from dotenv import load_dotenv
+from ga4gh.vrs.extras.annotator.vcf import FieldName
+from ga4gh.vrs.models import (
+    Allele,
+    LiteralSequenceExpression,
+    SequenceLocation,
+    SequenceReference,
+)
 
 import anyvar
-from anyvar.extras.vcf import VcfRegistrar
+from anyvar.extras.vcf import VcfRegistrar, _raise_for_missing_vcf_annotations
 
 load_dotenv()
 _logger = logging.getLogger(__name__)
@@ -164,6 +172,92 @@ def on_worker_shutdown(**kwargs) -> None:  # noqa: ARG001
 
 
 @celery_app.task(bind=True)
+def ingest_annotated_vcf(
+    self: Task,
+    input_file_path: str,
+    assembly: str,
+    allow_async_write: bool,
+) -> None:
+    """Describe stuff"""
+    try:
+        enter_task()
+        task_start = datetime.datetime.now(tz=datetime.UTC)
+
+        # TODO ingest
+        av = get_anyvar_app()
+
+        variantfile = pysam.VariantFile(filename=str(input_file_path), mode="r")
+        _raise_for_missing_vcf_annotations(variantfile)
+        for record in variantfile:
+            if not all(
+                [
+                    FieldName.IDS_FIELD in record.info,
+                    FieldName.STARTS_FIELD in record.info,
+                    FieldName.ENDS_FIELD in record.info,
+                    FieldName.STATES_FIELD in record.info,
+                ]
+            ):
+                continue
+            sequence = f"{assembly}:{record.chrom}"
+            refget_accession = av.translator.dp.derive_refget_accession(sequence)
+            if not refget_accession:
+                _logger.warning(
+                    "Unable to acquire refget accession for constructed sequence identifier %s at pos %s",
+                    sequence,
+                    record.pos,
+                )
+                continue
+            for vrs_id, start, end, state in zip(
+                record.info[FieldName.IDS_FIELD],
+                record.info[FieldName.STARTS_FIELD],
+                record.info[FieldName.ENDS_FIELD],
+                record.info[FieldName.STATES_FIELD],
+                strict=True,
+            ):
+                if vrs_id == ".":
+                    continue
+                if state == ".":
+                    state = ""
+                seq_ref = SequenceReference(refgetAccession=refget_accession)
+                location = SequenceLocation(
+                    sequenceReference=seq_ref, start=start, end=end
+                )
+                state = LiteralSequenceExpression(sequence=state)
+                allele = Allele(location=location, state=state)
+                av.put_object(allele)
+                # TODO validate ID?
+
+        elapsed = datetime.datetime.now(tz=datetime.UTC) - task_start
+        _logger.info(
+            "%s - annotation completed in %s seconds", self.request.id, elapsed.seconds
+        )
+
+        # wait for writes if necessary
+        if not allow_async_write:
+            _logger.info(
+                "%s - waiting for object store writes from celery worker method",
+                self.request.id,
+            )
+            write_start = datetime.datetime.now(tz=datetime.UTC)
+            av.object_store.wait_for_writes()
+            elapsed = datetime.datetime.now(tz=datetime.UTC) - write_start
+            _logger.info(
+                "%s - waited for object store writes for %s seconds",
+                self.request.id,
+                elapsed.seconds,
+            )
+
+        # remove input file
+        Path(input_file_path).unlink()
+    except Exception:
+        _logger.exception("%s - vcf ingestion failed with exception", self.request.id)
+        raise
+    finally:
+        exit_task()
+        maybe_teardown_anyvar_app()
+
+
+@celery_app.task(bind=True)
 def annotate_vcf(
     self: Task,
     input_file_path: str,
@@ -172,7 +266,9 @@ def annotate_vcf(
     allow_async_write: bool,
 ) -> str:
     """Annotate the specified VCF file and return the path to the annotated file.
+
     The input file is deleted when the annotation completes successfully.
+
     :param input_file_path: path to the VCF file to be annotated
     :param assembly: the reference assembly for the VCF
     :param for_ref: whether to compute VRS IDs for REF alleles
