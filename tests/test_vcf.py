@@ -204,7 +204,7 @@ def test_vcf_submit_duplicate_run_id(client, sample_vcf_grch38, mocker):
     mocker.patch.dict(
         os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "./", "CELERY_BROKER_URL": "redis://"}
     )
-    mock_result = mocker.patch("anyvar.restapi.main.AsyncResult")
+    mock_result = mocker.patch("anyvar.restapi.vcf.AsyncResult")
     mock_result.return_value.status = "SENT"
     resp = client.put(
         "/vcf",
@@ -238,10 +238,10 @@ def test_vcf_get_result_success(client, mocker):
     mocker.patch.dict(
         os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "./", "CELERY_BROKER_URL": "redis://"}
     )
-    mock_result = mocker.patch("anyvar.restapi.main.AsyncResult")
+    mock_result = mocker.patch("anyvar.restapi.vcf.AsyncResult")
     mock_result.return_value.status = "SUCCESS"
     mock_result.return_value.result = __file__
-    mock_bg_tasks = mocker.patch("anyvar.restapi.main.BackgroundTasks.add_task")
+    mock_bg_tasks = mocker.patch("anyvar.restapi.vcf.BackgroundTasks.add_task")
     resp = client.get("/vcf/12345")
     assert resp.status_code == HTTPStatus.OK
     with pathlib.Path(__file__).open(mode="rb") as fd:
@@ -255,11 +255,11 @@ def test_vcf_get_result_failure_timeout(client, mocker):
     mocker.patch.dict(
         os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "./", "CELERY_BROKER_URL": "redis://"}
     )
-    mock_result = mocker.patch("anyvar.restapi.main.AsyncResult")
+    mock_result = mocker.patch("anyvar.restapi.vcf.AsyncResult")
     mock_result.return_value.status = "FAILURE"
     mock_result.return_value.result = TimeLimitExceeded("task timed out")
     mock_result.return_value.kwargs = {"input_file_path": __file__}
-    mock_bg_tasks = mocker.patch("anyvar.restapi.main.BackgroundTasks.add_task")
+    mock_bg_tasks = mocker.patch("anyvar.restapi.vcf.BackgroundTasks.add_task")
     resp = client.get("/vcf/12345")
     assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
     assert "error" in resp.json()
@@ -275,11 +275,11 @@ def test_vcf_get_result_failure_worker_lost(client, mocker):
     mocker.patch.dict(
         os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "./", "CELERY_BROKER_URL": "redis://"}
     )
-    mock_result = mocker.patch("anyvar.restapi.main.AsyncResult")
+    mock_result = mocker.patch("anyvar.restapi.vcf.AsyncResult")
     mock_result.return_value.status = "FAILURE"
     mock_result.return_value.result = WorkerLostError("killed")
     mock_result.return_value.kwargs = {"input_file_path": __file__}
-    mock_bg_tasks = mocker.patch("anyvar.restapi.main.BackgroundTasks.add_task")
+    mock_bg_tasks = mocker.patch("anyvar.restapi.vcf.BackgroundTasks.add_task")
     resp = client.get("/vcf/12345")
     assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
     assert "error" in resp.json()
@@ -300,11 +300,11 @@ def test_vcf_get_result_failure_other(client, mocker):
             "ANYVAR_VCF_ASYNC_FAILURE_STATUS_CODE": "200",
         },
     )
-    mock_result = mocker.patch("anyvar.restapi.main.AsyncResult")
+    mock_result = mocker.patch("anyvar.restapi.vcf.AsyncResult")
     mock_result.return_value.status = "FAILURE"
     mock_result.return_value.result = KeyError("foo")
     mock_result.return_value.kwargs = {"input_file_path": __file__}
-    mock_bg_tasks = mocker.patch("anyvar.restapi.main.BackgroundTasks.add_task")
+    mock_bg_tasks = mocker.patch("anyvar.restapi.vcf.BackgroundTasks.add_task")
     resp = client.get("/vcf/12345")
     assert resp.status_code == HTTPStatus.OK
     assert "error" in resp.json()
@@ -320,7 +320,7 @@ def test_vcf_get_result_notfound(client, mocker):
     mocker.patch.dict(
         os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "./", "CELERY_BROKER_URL": "redis://"}
     )
-    mock_result = mocker.patch("anyvar.restapi.main.AsyncResult")
+    mock_result = mocker.patch("anyvar.restapi.vcf.AsyncResult")
     mock_result.return_value.status = "PENDING"
     resp = client.get("/vcf/12345")
     assert resp.status_code == HTTPStatus.NOT_FOUND
@@ -337,7 +337,7 @@ def test_vcf_get_result_notcomplete(client, mocker):
     mocker.patch.dict(
         os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "./", "CELERY_BROKER_URL": "redis://"}
     )
-    mock_result = mocker.patch("anyvar.restapi.main.AsyncResult")
+    mock_result = mocker.patch("anyvar.restapi.vcf.AsyncResult")
     mock_result.return_value.status = "SENT"
     resp = client.get("/vcf/12345")
     assert resp.status_code == HTTPStatus.ACCEPTED

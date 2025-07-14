@@ -173,7 +173,12 @@ def ingest_annotated_vcf(
     assembly: str,
     allow_async_write: bool,
 ) -> None:
-    """Describe stuff"""
+    """Ingest a VCF that already has VRS annotations
+
+    :param input_file_path: path to input VCF
+    :param assembly: name of assembly
+    :param allow_async_write: whether to allow async DB writes
+    """
     try:
         enter_task()
         task_start = datetime.datetime.now(tz=datetime.UTC)

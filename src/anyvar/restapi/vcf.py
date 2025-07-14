@@ -84,7 +84,7 @@ async def _annotate_vcf_async(
     _logger.debug("vcf site count of async vcf is %s", vcf_site_count)
 
     # submit async job
-    task_result = anyvar.queueing.celery_worker.ingest_annotated_vcf.apply_async(
+    task_result = anyvar.queueing.celery_worker.annotate_vcf.apply_async(
         kwargs={
             "input_file_path": str(input_file_path),
             "assembly": assembly,
@@ -248,12 +248,11 @@ async def annotate_vcf(
 
 async def _ingest_annotated_vcf_sync(
     request: Request,
-    response: Response,
     bg_tasks: BackgroundTasks,
     vcf: UploadFile,
     assembly: str,
     allow_async_write: bool,
-) -> ErrorResponse | None:
+) -> FileResponse | ErrorResponse | None:
     """Ingest annotated VCF synchronously.  See `preannotated_vcf()` for parameter definitions."""
     av: AnyVar = request.app.state.anyvar
 
@@ -262,20 +261,16 @@ async def _ingest_annotated_vcf_sync(
         temp_in.write(contents)
         temp_in_path = pathlib.Path(temp_in.name)
 
-    try:
-        register_existing_annotations(av, temp_in_path, assembly)
-    except (TranslatorConnectionError, OSError, ValueError):
-        _logger.exception(
-            "Encountered error during registration of VCF file %s", vcf.filename
-        )
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        return ErrorResponse(error="VCF registration failed.")
+    conflicts_file = register_existing_annotations(av, temp_in_path, assembly)
 
     if not allow_async_write:
         _logger.info("Waiting for object store writes from API handler method")
         av.object_store.wait_for_writes()
 
     bg_tasks.add_task(os.unlink, temp_in_path)
+    if conflicts_file:
+        bg_tasks.add_task(os.unlink, conflicts_file)
+        return FileResponse(conflicts_file)
     return None
 
 
@@ -285,15 +280,8 @@ async def _ingest_annotated_vcf_async(
     assembly: str,
     allow_async_write: bool,
     run_id: str | None,
-) -> RunStatusResponse | ErrorResponse:
+) -> RunStatusResponse:
     """Ingest annotated VCF synchronously.  See `preannotated_vcf()` for parameter definitions."""
-    if run_id:
-        existing_result = AsyncResult(id=run_id)
-        if existing_result.status != "PENDING":
-            response.status_code = status.HTTP_400_BAD_REQUEST
-            return ErrorResponse(
-                error=f"An existing run with id {run_id} is {existing_result.status}.  Fetch the completed run result before submitting with the same run_id."
-            )
     async_work_dir = os.environ.get("ANYVAR_VCF_ASYNC_WORK_DIR", None)
     utc_now = datetime.datetime.now(tz=datetime.UTC)
     file_id = str(uuid.uuid4())
@@ -378,7 +366,7 @@ async def preannotated_vcf(
             description="When running asynchronously, use the specified value as the run id instead generating a random uuid",
         ),
     ] = None,
-) -> ErrorResponse | None:
+) -> FileResponse | RunStatusResponse | ErrorResponse | None:
     """Register alleles from a VCF and return a file annotated with VRS IDs.
 
     :param request: FastAPI request object
@@ -403,6 +391,13 @@ async def preannotated_vcf(
 
     # Submit asynchronous run
     if run_async:
+        if run_id:
+            existing_result = AsyncResult(id=run_id)
+            if existing_result.status != "PENDING":
+                response.status_code = status.HTTP_400_BAD_REQUEST
+                return ErrorResponse(
+                    error=f"An existing run with id {run_id} is {existing_result.status}.  Fetch the completed run result before submitting with the same run_id."
+                )
         return await _ingest_annotated_vcf_async(
             response=response,
             vcf=vcf,
@@ -412,14 +407,21 @@ async def preannotated_vcf(
         )
     # Run synchronously
     else:  # noqa: RET505
-        return await _ingest_annotated_vcf_sync(
-            request=request,
-            response=response,
-            bg_tasks=bg_tasks,
-            vcf=vcf,
-            allow_async_write=allow_async_write,
-            assembly=assembly,
-        )
+        try:
+            return await _ingest_annotated_vcf_sync(
+                request=request,
+                response=response,
+                bg_tasks=bg_tasks,
+                vcf=vcf,
+                assembly=assembly,
+                allow_async_write=allow_async_write,
+            )
+        except (TranslatorConnectionError, OSError, ValueError):
+            _logger.exception(
+                "Encountered error during registration of VCF file %s", vcf.filename
+            )
+            response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+            return ErrorResponse(error="VCF registration failed.")
 
 
 @router.get(
