@@ -87,7 +87,7 @@ class ServiceInfo(BaseModel):
     )
     type: ServiceType = Field(ServiceType(), description="Type of a GA4GH service")
     description: str = Field(
-        "Register and retrieve GA4GH VRS variations and associated annotations.",
+        "Register and retrieve variations and associated annotations.",
         description="Description of the service. Should be human readable and provide information about the service.",
     )
     organization: ServiceOrganization = Field(
