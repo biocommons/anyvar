@@ -44,6 +44,8 @@ test = [
     "pytest-mock",
     "httpx",
     "celery[pytest]",
+    "jsonschema",
+    "pyyaml",
 ]
 dev = [
     "ruff==0.11.2",

@@ -33,16 +33,15 @@ from anyvar.restapi.schema import (
     AddAnnotationRequest,
     AddAnnotationResponse,
     AnyVarStatsResponse,
-    DependencyInfo,
     EndpointTag,
     GetAnnotationResponse,
     GetSequenceLocationResponse,
     GetVariationResponse,
-    InfoResponse,
     RegisterVariationRequest,
     RegisterVariationResponse,
     RegisterVrsVariationResponse,
     SearchResponse,
+    ServiceInfo,
     VariationStatisticType,
 )
 from anyvar.restapi.vcf import router as vcf_router
@@ -75,6 +74,24 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
                 )
     else:
         _logger.info("Logging with default configs.")
+
+    # Override default service-info parameters
+    service_info_config_file = os.environ.get("ANYVAR_SERVICE_INFO")
+    if service_info_config_file and pathlib.Path(service_info_config_file).is_file():
+        async with await anyio.open_file(service_info_config_file) as f:
+            try:
+                contents = await f.read()
+                param_app.state.service_info = yaml.safe_load(contents)
+                _logger.info(
+                    "Assigning service info values from %s", service_info_config_file
+                )
+            except Exception:
+                _logger.exception(
+                    "Error loading from service info description at %s. Using default configs",
+                    service_info_config_file,
+                )
+    else:
+        _logger.warning("Falling back on default service description.")
 
     # create anyvar instance
     storage = anyvar.anyvar.create_storage()
@@ -119,17 +136,21 @@ app.include_router(vcf_router)
 
 
 @app.get(
-    "/info",
-    summary="Check system status and configurations",
-    description="System status check and configurations",
+    "/service-info",
+    summary="Get basic service information",
+    description="Retrieve service metadata, such as versioning and contact info. Structured in conformance with the [GA4GH service info API specification](https://www.ga4gh.org/product/service-info/)",
     tags=[EndpointTag.GENERAL],
 )
-def get_info() -> InfoResponse:
-    """Get system status check and configuration"""
-    return InfoResponse(
-        anyvar=DependencyInfo(version=anyvar.__version__),
-        ga4gh_vrs=DependencyInfo(version=ga4gh.vrs.__version__),
-    )
+def service_info(
+    request: Request,
+) -> ServiceInfo:
+    """Provide service info per GA4GH Service Info spec
+
+    :param request: FastAPI request object
+    :return: service info description
+    """
+    service_info = getattr(request.app.state, "service_info", {})
+    return ServiceInfo(**service_info)
 
 
 @app.get(
