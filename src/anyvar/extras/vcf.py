@@ -51,16 +51,20 @@ class VcfRegistrar(VcfAnnotator):
         pass
 
 
+class RequiredAnnotationsError(Exception):
+    """Raise when encountering incomplete or invalid VRS annotations"""
+
+
 def _raise_for_missing_vcf_annotations(vcf: pysam.VariantFile) -> None:
     """Check whether all required VRS annotations are present on a provided VCF
 
     :vcf: file to check
     :return: None if successful
-    :raise: ValueError if provided VCF lacks required annotations
+    :raise: RequiredAnnotationsError if provided VCF lacks required annotations
     """
     field_names = {name.value for name in FieldName}
     if not all(n in vcf.header.info for n in field_names):
-        raise ValueError(
+        raise RequiredAnnotationsError(
             "VCF missing some required INFO fields: %s",
             field_names - set(vcf.header.info.keys()),
         )

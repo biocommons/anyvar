@@ -25,6 +25,7 @@ from fastapi.responses import FileResponse
 import anyvar
 from anyvar.anyvar import AnyVar
 from anyvar.extras.vcf import (
+    RequiredAnnotationsError,
     VcfRegistrar,
     register_existing_annotations,
 )
@@ -252,6 +253,7 @@ async def _ingest_annotated_vcf_sync(
     vcf: UploadFile,
     assembly: str,
     allow_async_write: bool,
+    require_validation: bool,
 ) -> FileResponse | ErrorResponse | None:
     """Ingest annotated VCF synchronously.  See `preannotated_vcf()` for parameter definitions."""
     av: AnyVar = request.app.state.anyvar
@@ -261,7 +263,9 @@ async def _ingest_annotated_vcf_sync(
         temp_in.write(contents)
         temp_in_path = pathlib.Path(temp_in.name)
 
-    conflicts_file = register_existing_annotations(av, temp_in_path, assembly)
+    conflicts_file = register_existing_annotations(
+        av, temp_in_path, assembly, require_validation
+    )
 
     if not allow_async_write:
         _logger.info("Waiting for object store writes from API handler method")
@@ -360,6 +364,12 @@ async def preannotated_vcf(
             description="If true, immediately return a '202 Accepted' response and run asynchronously",
         ),
     ] = False,
+    require_validation: Annotated[
+        bool,
+        Query(
+            description="If true, verify correctness of annotated ID and return CSV listing all validation failures"
+        ),
+    ] = False,
     run_id: Annotated[
         str | None,
         Query(
@@ -376,6 +386,7 @@ async def preannotated_vcf(
     :param allow_async_write: whether to allow async database writes
     :param assembly: the reference assembly for the VCF
     :param run_async: whether to run the VCF annotation synchronously or asynchronously
+    :param require_validation:
     :param run_id: user provided id for asynchronous VCF annotation
     :return: streamed annotated file or a run status response for an asynchronous run
     """
@@ -410,11 +421,17 @@ async def preannotated_vcf(
         try:
             return await _ingest_annotated_vcf_sync(
                 request=request,
-                response=response,
                 bg_tasks=bg_tasks,
                 vcf=vcf,
                 assembly=assembly,
                 allow_async_write=allow_async_write,
+                require_validation=require_validation,
+            )
+        except RequiredAnnotationsError:
+            _logger.exception("%s lacks required VRS annotations", vcf.filename)
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return ErrorResponse(
+                error="Required VRS annotations are missing -- ensure INFO field has VRS_Allele_IDs, VRS_Starts, VRS_Ends, and VRS_States"
             )
         except (TranslatorConnectionError, OSError, ValueError):
             _logger.exception(
