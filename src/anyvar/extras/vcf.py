@@ -95,6 +95,10 @@ def register_existing_annotations(
         cm = nullcontext(None)
 
     with cm as conflict_logfile:
+        if conflict_logfile:
+            conflict_logfile.write(
+                "vrs_id,assembly,chrom,pos,start,end,state,new_vrs_id\n"
+            )
         for record in variantfile:
             if not all(
                 [

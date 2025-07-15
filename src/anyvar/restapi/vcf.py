@@ -283,6 +283,7 @@ async def _ingest_annotated_vcf_async(
     vcf: UploadFile,
     assembly: str,
     allow_async_write: bool,
+    require_validation: bool,
     run_id: str | None,
 ) -> RunStatusResponse:
     """Ingest annotated VCF synchronously.  See `preannotated_vcf()` for parameter definitions."""
@@ -310,6 +311,7 @@ async def _ingest_annotated_vcf_async(
             "input_file_path": str(input_file_path),
             "assembly": assembly,
             "allow_async_write": allow_async_write,
+            "require_validation": require_validation,
         },
         task_id=run_id,
     )
@@ -414,6 +416,7 @@ async def preannotated_vcf(
             vcf=vcf,
             allow_async_write=allow_async_write,
             assembly=assembly,
+            require_validation=require_validation,
             run_id=run_id,
         )
     # Run synchronously
@@ -479,9 +482,15 @@ async def get_vcf_run_status(
         # TODO provide logic to handle different return based on task type
         output_file_path = async_result.result
         async_result.forget()
-        _logger.debug("%s - output file path is %s", run_id, output_file_path)
-        bg_tasks.add_task(os.unlink, output_file_path)
-        return FileResponse(path=output_file_path)
+        if output_file_path:
+            _logger.debug("%s - output file path is %s", run_id, output_file_path)
+            bg_tasks.add_task(os.unlink, output_file_path)
+            return FileResponse(path=output_file_path)
+        return RunStatusResponse(
+            run_id=run_id,
+            status="SUCCESS",
+            status_message="VCF registration complete",
+        )
 
     # failed - return an error response
     elif (  # noqa: RET505

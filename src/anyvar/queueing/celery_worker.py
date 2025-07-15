@@ -167,56 +167,6 @@ def on_worker_shutdown(**kwargs) -> None:  # noqa: ARG001
 
 
 @celery_app.task(bind=True)
-def ingest_annotated_vcf(
-    self: Task,
-    input_file_path: str,
-    assembly: str,
-    allow_async_write: bool,
-) -> None:
-    """Ingest a VCF that already has VRS annotations
-
-    :param input_file_path: path to input VCF
-    :param assembly: name of assembly
-    :param allow_async_write: whether to allow async DB writes
-    """
-    try:
-        enter_task()
-        task_start = datetime.datetime.now(tz=datetime.UTC)
-
-        av = get_anyvar_app()
-
-        register_existing_annotations(av, input_file_path, assembly)
-
-        elapsed = datetime.datetime.now(tz=datetime.UTC) - task_start
-        _logger.info(
-            "%s - annotation completed in %s seconds", self.request.id, elapsed.seconds
-        )
-
-        # wait for writes if necessary
-        if not allow_async_write:
-            _logger.info(
-                "%s - waiting for object store writes from celery worker method",
-                self.request.id,
-            )
-            write_start = datetime.datetime.now(tz=datetime.UTC)
-            av.object_store.wait_for_writes()
-            elapsed = datetime.datetime.now(tz=datetime.UTC) - write_start
-            _logger.info(
-                "%s - waited for object store writes for %s seconds",
-                self.request.id,
-                elapsed.seconds,
-            )
-
-        Path(input_file_path).unlink()
-    except Exception:
-        _logger.exception("%s - vcf ingestion failed with exception", self.request.id)
-        raise
-    finally:
-        exit_task()
-        maybe_teardown_anyvar_app()
-
-
-@celery_app.task(bind=True)
 def annotate_vcf(
     self: Task,
     input_file_path: str,
@@ -283,6 +233,62 @@ def annotate_vcf(
         return output_file_path
     except Exception:
         _logger.exception("%s - vcf annotation failed with exception", self.request.id)
+        raise
+    finally:
+        exit_task()
+        maybe_teardown_anyvar_app()
+
+
+@celery_app.task(bind=True)
+def ingest_annotated_vcf(
+    self: Task,
+    input_file_path: str,
+    assembly: str,
+    allow_async_write: bool,
+    require_validation: bool,
+) -> str:
+    """Ingest a VCF that already has VRS annotations
+
+    :param input_file_path: path to input VCF
+    :param assembly: name of assembly
+    :param allow_async_write: whether to allow async DB writes
+    :param require_validation: whether to check VRS IDs for correctness
+    :return: path to ID conflict file, if performing validation. Empty string otherwise
+    """
+    try:
+        enter_task()
+        task_start = datetime.datetime.now(tz=datetime.UTC)
+
+        av = get_anyvar_app()
+
+        conflicts_file = register_existing_annotations(
+            av, Path(input_file_path), assembly, require_validation
+        )
+
+        elapsed = datetime.datetime.now(tz=datetime.UTC) - task_start
+        _logger.info(
+            "%s - annotation completed in %s seconds", self.request.id, elapsed.seconds
+        )
+
+        # wait for writes if necessary
+        if not allow_async_write:
+            _logger.info(
+                "%s - waiting for object store writes from celery worker method",
+                self.request.id,
+            )
+            write_start = datetime.datetime.now(tz=datetime.UTC)
+            av.object_store.wait_for_writes()
+            elapsed = datetime.datetime.now(tz=datetime.UTC) - write_start
+            _logger.info(
+                "%s - waited for object store writes for %s seconds",
+                self.request.id,
+                elapsed.seconds,
+            )
+
+        Path(input_file_path).unlink()
+        return str(conflicts_file) if require_validation else ""
+    except Exception:
+        _logger.exception("%s - vcf ingestion failed with exception", self.request.id)
         raise
     finally:
         exit_task()
