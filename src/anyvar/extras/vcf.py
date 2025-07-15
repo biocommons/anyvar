@@ -79,8 +79,8 @@ def register_existing_annotations(
     :param file_path: path to VCF
     :param assembly: assembly used during VCF writing and annotation. Probably one of
         ``{"GRCh37", "GRCh38"}``
-    :param require_validation: TODO
-    :return:  TODO
+    :param require_validation: whether to check that annotated ID is correct
+    :return:  Path to ID conflict file, if requested, or None otherwise
     :raise: ValueError if input VCF lacks required annotations
     """
     _logger.info("Registering existing annotations from VCF at %s", file_path)
@@ -91,6 +91,7 @@ def register_existing_annotations(
         conflict_logfile_path = file_path.parent / f"{file_path.name}_conflictlog"
         cm = conflict_logfile_path.open("w")
     else:
+        # conflicts will be ignored, so no need to keep track of them
         conflict_logfile_path = None
         cm = nullcontext(None)
 
