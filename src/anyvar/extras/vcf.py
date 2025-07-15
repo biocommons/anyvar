@@ -3,10 +3,10 @@
 import logging
 from contextlib import nullcontext
 from pathlib import Path
-from typing import NamedTuple
 
 import pysam
-from ga4gh.vrs import vrs_enref
+from ga4gh.core import ga4gh_identify
+from ga4gh.vrs import normalize
 from ga4gh.vrs.dataproxy import _DataProxy
 from ga4gh.vrs.extras.annotator.vcf import FieldName, VcfAnnotator
 from ga4gh.vrs.models import (
@@ -70,20 +70,6 @@ def _raise_for_missing_vcf_annotations(vcf: pysam.VariantFile) -> None:
         )
 
 
-class ConflictingIdRecord(NamedTuple):
-    """Describe relevant data for a conflict between an existing VRS ID annotation and
-    a newly-calculated ID.
-    """
-
-    annotated_vrs_id: str
-    assembly: str
-    chrom: str
-    start: int
-    end: int
-    state: str
-    new_vrs_id: str
-
-
 def register_existing_annotations(
     av: AnyVar, file_path: Path, assembly: str, require_validation: bool = False
 ) -> Path | None:
@@ -145,21 +131,21 @@ def register_existing_annotations(
                 )
                 lse = LiteralSequenceExpression(sequence=state)
                 allele = Allele(location=location, state=lse)
-                if conflict_logfile:
-                    new_vrs_id, allele = vrs_enref(allele)
-                    if new_vrs_id != vrs_id:
-                        _logger.debug(
-                            "Annotated ID %s conflicts with newly-calculated ID %s for variation %s:%s %s-%s (state: %s)",
-                            vrs_id,
-                            new_vrs_id,
-                            assembly,
-                            record.chrom,
-                            start,
-                            end,
-                            state,
-                        )
-                        conflict_logfile.write(
-                            f"{vrs_id},{assembly},{record.chrom},{start},{end},{state},{new_vrs_id}"
-                        )
+                allele = normalize(allele, av.translator.dp)
+                new_vrs_id = ga4gh_identify(allele)
+                if conflict_logfile and new_vrs_id != vrs_id:
+                    _logger.debug(
+                        "Annotated ID %s conflicts with newly-calculated ID %s for variation %s:%s %s-%s (state: %s)",
+                        vrs_id,
+                        new_vrs_id,
+                        assembly,
+                        record.chrom,
+                        start,
+                        end,
+                        state,
+                    )
+                    conflict_logfile.write(
+                        f"{vrs_id},{assembly},{record.chrom},{start},{end},{state},{new_vrs_id}\n"
+                    )
                 av.put_object(allele)
     return conflict_logfile_path

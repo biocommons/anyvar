@@ -438,7 +438,7 @@ async def preannotated_vcf(
                 "Encountered error during registration of VCF file %s", vcf.filename
             )
             response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-            return ErrorResponse(error="VCF registration failed.")
+            return ErrorResponse(error="VCF ingestion failed.")
 
 
 @router.get(
