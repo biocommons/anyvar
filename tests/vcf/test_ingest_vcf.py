@@ -150,7 +150,7 @@ def test_registration_sync(
         "put_object",
         lambda allele: recorded.append(allele),
     )
-    resp = client.put("/preannotated_vcf", files={"vcf": ("test.vcf", basic_vcf)})
+    resp = client.put("/annotated_vcf", files={"vcf": ("test.vcf", basic_vcf)})
 
     assert resp.status_code == HTTPStatus.OK
     assert recorded, "put_object was never called"
@@ -158,9 +158,7 @@ def test_registration_sync(
     assert recorded[1].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
 
     # ignore wrong IDs
-    resp = client.put(
-        "/preannotated_vcf", files={"vcf": ("test.vcf", vcf_incorrect_id)}
-    )
+    resp = client.put("/annotated_vcf", files={"vcf": ("test.vcf", vcf_incorrect_id)})
 
     assert resp.status_code == HTTPStatus.OK
     assert recorded, "put_object was never called"
@@ -182,7 +180,7 @@ def test_registration_sync_validate(
         lambda allele: recorded.append(allele),
     )
     resp = client.put(
-        "/preannotated_vcf",
+        "/annotated_vcf",
         files={"vcf": ("test.vcf", basic_vcf)},
         params={"require_validation": True},
     )
@@ -195,7 +193,7 @@ def test_registration_sync_validate(
 
     # handle wrong ID
     resp = client.put(
-        "/preannotated_vcf",
+        "/annotated_vcf",
         files={"vcf": ("test.vcf", vcf_incorrect_id)},
         params={"require_validation": True},
     )
@@ -226,7 +224,7 @@ def test_registration_async(
     ):
         run_id = 12345
         resp = client.put(
-            "/preannotated_vcf",
+            "/annotated_vcf",
             files={"vcf": ("test.vcf", basic_vcf)},
             params={"run_async": True, "run_id": run_id},
         )
@@ -247,7 +245,7 @@ def test_registration_async(
         assert resp.json()["status"] == "SUCCESS"
 
         resp = client.put(
-            "/preannotated_vcf",
+            "/annotated_vcf",
             files={"vcf": ("test.vcf", vcf_incorrect_id)},
             params={"run_async": True, "run_id": run_id},
         )
@@ -288,7 +286,7 @@ def test_registration_async_validate(
     ):
         run_id = 12345
         resp = client.put(
-            "/preannotated_vcf",
+            "/annotated_vcf",
             files={"vcf": ("test.vcf", basic_vcf)},
             params={"require_validation": True, "run_async": True, "run_id": run_id},
         )
@@ -328,7 +326,7 @@ def test_registration_async_validate_wrongid(
     ):
         run_id = 12345
         resp = client.put(
-            "/preannotated_vcf",
+            "/annotated_vcf",
             files={"vcf": ("test.vcf", vcf_incorrect_id)},
             params={"require_validation": True, "run_async": True, "run_id": run_id},
         )
@@ -357,7 +355,7 @@ def test_handle_incomplete_annotation(
 ):
     """Test that client gracefully handles an incompletely-annotated VCF"""
     resp = client.put(
-        "/preannotated_vcf", files={"vcf": ("test.vcf", vcf_incomplete_annotations)}
+        "/annotated_vcf", files={"vcf": ("test.vcf", vcf_incomplete_annotations)}
     )
 
     assert resp.status_code == 400

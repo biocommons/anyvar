@@ -255,7 +255,7 @@ async def _ingest_annotated_vcf_sync(
     allow_async_write: bool,
     require_validation: bool,
 ) -> FileResponse | ErrorResponse | None:
-    """Ingest annotated VCF synchronously.  See `preannotated_vcf()` for parameter definitions."""
+    """Ingest annotated VCF synchronously.  See `annotated_vcf()` for parameter definitions."""
     av: AnyVar = request.app.state.anyvar
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".vcf") as temp_in:
@@ -286,7 +286,7 @@ async def _ingest_annotated_vcf_async(
     require_validation: bool,
     run_id: str | None,
 ) -> RunStatusResponse:
-    """Ingest annotated VCF synchronously.  See `preannotated_vcf()` for parameter definitions."""
+    """Ingest annotated VCF synchronously.  See `annotated_vcf()` for parameter definitions."""
     async_work_dir = os.environ.get("ANYVAR_VCF_ASYNC_WORK_DIR", None)
     utc_now = datetime.datetime.now(tz=datetime.UTC)
     file_id = str(uuid.uuid4())
@@ -336,17 +336,23 @@ async def _ingest_annotated_vcf_async(
 
 
 @router.put(
-    "/preannotated_vcf",
+    "/annotated_vcf",
     summary="Register alleles from a VCF that has already been annotated with VRS objects.",
     description="Provide a VCF that already has VRS position and state annotations. Ingest the objects into AnyVar.",
     tags=[EndpointTag.VARIATIONS],
     response_model=None,
 )
-async def preannotated_vcf(
+async def annotated_vcf(
     request: Request,
     response: Response,
     bg_tasks: BackgroundTasks,
-    vcf: Annotated[UploadFile, File(..., description="Preannotated VCF")],
+    vcf: Annotated[
+        UploadFile,
+        File(
+            ...,
+            description="VCF that has already been annotated with VRS ID, start/stop, and state for all alleles",
+        ),
+    ],
     allow_async_write: Annotated[
         bool,
         Query(

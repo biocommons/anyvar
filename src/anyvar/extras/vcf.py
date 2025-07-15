@@ -58,7 +58,7 @@ class RequiredAnnotationsError(Exception):
 def _raise_for_missing_vcf_annotations(vcf: pysam.VariantFile) -> None:
     """Check whether all required VRS annotations are present on a provided VCF
 
-    :vcf: file to check
+    :param vcf: file to check
     :return: None if successful
     :raise: RequiredAnnotationsError if provided VCF lacks required annotations
     """
