@@ -402,7 +402,6 @@ async def preannotated_vcf(
     # ensure the temporary file is flushed to disk
     vcf.file.rollover()
 
-    # Submit asynchronous run
     if run_async:
         if run_id:
             existing_result = AsyncResult(id=run_id)
@@ -419,29 +418,27 @@ async def preannotated_vcf(
             require_validation=require_validation,
             run_id=run_id,
         )
-    # Run synchronously
-    else:  # noqa: RET505
-        try:
-            return await _ingest_annotated_vcf_sync(
-                request=request,
-                bg_tasks=bg_tasks,
-                vcf=vcf,
-                assembly=assembly,
-                allow_async_write=allow_async_write,
-                require_validation=require_validation,
-            )
-        except RequiredAnnotationsError:
-            _logger.exception("%s lacks required VRS annotations", vcf.filename)
-            response.status_code = status.HTTP_400_BAD_REQUEST
-            return ErrorResponse(
-                error="Required VRS annotations are missing -- ensure INFO field has VRS_Allele_IDs, VRS_Starts, VRS_Ends, and VRS_States"
-            )
-        except (TranslatorConnectionError, OSError, ValueError):
-            _logger.exception(
-                "Encountered error during registration of VCF file %s", vcf.filename
-            )
-            response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-            return ErrorResponse(error="VCF ingestion failed.")
+    try:
+        return await _ingest_annotated_vcf_sync(
+            request=request,
+            bg_tasks=bg_tasks,
+            vcf=vcf,
+            assembly=assembly,
+            allow_async_write=allow_async_write,
+            require_validation=require_validation,
+        )
+    except RequiredAnnotationsError:
+        _logger.exception("%s lacks required VRS annotations", vcf.filename)
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return ErrorResponse(
+            error="Required VRS annotations are missing -- ensure INFO field has VRS_Allele_IDs, VRS_Starts, VRS_Ends, and VRS_States"
+        )
+    except (TranslatorConnectionError, OSError, ValueError):
+        _logger.exception(
+            "Encountered error during registration of VCF file %s", vcf.filename
+        )
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ErrorResponse(error="VCF ingestion failed.")
 
 
 @router.get(
@@ -486,6 +483,7 @@ async def get_vcf_run_status(
             _logger.debug("%s - output file path is %s", run_id, output_file_path)
             bg_tasks.add_task(os.unlink, output_file_path)
             return FileResponse(path=output_file_path)
+        # for tasks that don't need to return a file, just send a success notification
         return RunStatusResponse(
             run_id=run_id,
             status="SUCCESS",
