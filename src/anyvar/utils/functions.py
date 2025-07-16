@@ -198,7 +198,7 @@ def get_liftover_variant(
     start_position = variant_object.get("location", {}).get("start")
     end_position = variant_object.get("location", {}).get("end")
     if not refget_accession or not start_position or not end_position:
-        raise MalformedInputError
+        raise UnsupportedVariantLocationTypeError
 
     # Determine which assembly we're converting from/to
     prefixed_accession = f"ga4gh:{refget_accession}"
