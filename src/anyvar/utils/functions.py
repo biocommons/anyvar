@@ -134,32 +134,48 @@ def get_from_and_to_assemblies(aliases: dict) -> tuple[str, str]:
     return from_assembly, to_assembly
 
 
+def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) -> int:
+    """Convert an individual coordinate to another reference genome. If the conversion is unsuccessful, raises a `CoordinateConversionError`
+
+    :param converter: An AGCT Converter instance.
+    :param chromosome: The chromosome number where the coordinate is found. Must be a string consisting of a) the prefix "chr", and b) a number OR "X" or "Y" -> i.e. "chr10".
+    :param coordinate: A single start or end coordinate. MUST be an `int`.
+
+    :return: A converted coordinate value as an `int`
+    :raises: A `CoordinateConversionError` if the conversion is unsuccessful.
+    """
+    converted_position = converter.convert_coordinate(
+        chromosome, coordinate, Strand.POSITIVE
+    )
+    if converted_position:
+        return converted_position[0][1]
+    raise CoordinateConversionError
+
+
 def convert_position(
     converter: Converter, chromosome: str, position: list | int
 ) -> list | int:
     """Convert a SequenceLocation position (i.e., `start` or `end`) to another reference Genome. `position` can either be a `list` or an `int` - return type will match.
 
     :param converter: An AGCT Converter instance.
-    :param chromosome: The chromosome number where the position is found. Must be a string consisting of the prefix "chr" plus a number, i.e. "chr10".
+    :param chromosome: The chromosome number where the position is found. Must be a string consisting of a) the prefix "chr", and b) a number OR "X" or "Y" -> i.e. "chr10".
     :param position: A SequenceLocation start or end position. Can be a `list` or an `int`.
 
     :return: A lifted-over position. Type (`list` or `int`) will match that of `position`
     """
+    # Handle int positions
     if isinstance(position, int):
-        return converter.convert_coordinate(chromosome, position, Strand.POSITIVE)[0][1]
+        return _convert_coordinate(converter, chromosome, position)
 
-    lower, upper = position
-    lower = (
-        converter.convert_coordinate(chromosome, lower, Strand.POSITIVE)[0][1]
-        if lower
-        else None
+    # Handle Range positions
+    lower_bound, upper_bound = position
+    lower_bound = (
+        _convert_coordinate(converter, chromosome, lower_bound) if lower_bound else None
     )
-    upper = (
-        converter.convert_coordinate(chromosome, upper, Strand.POSITIVE)[0][1]
-        if upper
-        else None
+    upper_bound = (
+        _convert_coordinate(converter, chromosome, upper_bound) if upper_bound else None
     )
-    return [lower, upper]
+    return [lower_bound, upper_bound]
 
 
 def get_liftover_variant(
@@ -218,7 +234,7 @@ def get_liftover_variant(
     to_assembly = None
     from_assembly, to_assembly = get_from_and_to_assemblies(
         aliases
-    )  # May raise UnsupportedReferenceAssemblyError or AmbiguousReferenceAssemblyError
+    )  # Will raise an `UnsupportedReferenceAssemblyError` or `AmbiguousReferenceAssemblyError` if unsuccessful
 
     # Determine which chromosome the variant is on
     chromosome = get_chromosome_from_aliases(aliases.get(from_assembly, []))
@@ -229,14 +245,9 @@ def get_liftover_variant(
     assembly_map = {grch37: Genome.HG19, grch38: Genome.HG38}
     converter = Converter(assembly_map[from_assembly], assembly_map[to_assembly])
 
-    # Get converted start/end positions
-    converted_start = None
-    converted_end = None
-    try:
-        converted_start = convert_position(converter, chromosome, start_position)
-        converted_end = convert_position(converter, chromosome, end_position)
-    except Exception as e:
-        raise CoordinateConversionError from e
+    # Get converted start/end positions. `convert_position` will raise a `CoordinateConversionError` if unsuccessful
+    converted_start = convert_position(converter, chromosome, start_position)
+    converted_end = convert_position(converter, chromosome, end_position)
 
     # Get converted refget_accession (without 'ga4gh:' prefix)
     new_alias = f"{to_assembly}:{chromosome}"
