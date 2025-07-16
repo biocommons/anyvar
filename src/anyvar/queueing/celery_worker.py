@@ -173,6 +173,7 @@ def annotate_vcf(
     assembly: str,
     for_ref: bool,
     allow_async_write: bool,
+    add_vrs_attributes: bool,
 ) -> str:
     """Annotate the specified VCF file and return the path to the annotated file.
 
@@ -182,6 +183,7 @@ def annotate_vcf(
     :param assembly: the reference assembly for the VCF
     :param for_ref: whether to compute VRS IDs for REF alleles
     :param allow_async_write: whether to allow async database writes
+    :param add_vrs_attributes: Whether to annotate with VRS attributes (start, stop, state) or just IDs
     :return: path to the annotated VCF file
     """
     try:
@@ -205,6 +207,7 @@ def annotate_vcf(
             Path(output_file_path),
             compute_for_ref=for_ref,
             assembly=assembly,
+            vrs_attributes=add_vrs_attributes,
         )
         elapsed = datetime.datetime.now(tz=datetime.UTC) - task_start
         _logger.info(
