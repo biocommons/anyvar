@@ -150,7 +150,7 @@ def register_existing_annotations(
                         state,
                     )
                     conflict_logfile.write(
-                        f"{vrs_id},{assembly},{record.chrom},{start},{end},{state},{new_vrs_id}\n"
+                        f"{vrs_id},{assembly},{record.chrom},{record.pos},{start},{end},{state},{new_vrs_id}\n"
                     )
                 av.put_object(allele)
     return conflict_logfile_path
