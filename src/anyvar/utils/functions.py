@@ -95,9 +95,10 @@ def get_chromosome_from_aliases(aliases: list[str]) -> str | None:
         return None
 
     # matches strings that start with a `:` character, then optionally the string "chr",
-    # then a group of digits -> returns the digits
-    # Example: "GRCh38:chr10" -> returns "10"
-    match_group = re.search(r":(?:chr)?(\d+)$", reference_alias)
+    # then a group of digits OR the letters "X" or "Y" -> returns the group
+    # Example:  "GRCh38:chr10" -> returns "10"
+    #           "GRCh38:chrX" -> returns "X"
+    match_group = re.search(r":(?:chr)?(\d+|[XY])$", reference_alias)
     chromosome_number: str | None = match_group.group(1) if match_group else None
     if chromosome_number is None:
         return None
