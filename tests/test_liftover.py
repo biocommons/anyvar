@@ -4,7 +4,7 @@ import pytest
 from data.liftover_variants import test_variants
 from ga4gh.vrs.dataproxy import _DataProxy
 
-import anyvar.utils.functions as util_funcs
+import anyvar.utils.liftover_utils as liftover_utils
 from anyvar.anyvar import AnyVar, create_storage, create_translator
 from anyvar.storage import _Storage
 from anyvar.translate.translate import _Translator
@@ -84,7 +84,7 @@ def seqrepo_dataproxy() -> _DataProxy:
 )
 def test_liftover_annotation_success(request, variant_fixture_name, seqrepo_dataproxy):
     variant_input, expected_output = request.getfixturevalue(variant_fixture_name)
-    lifted_over_variant_output = util_funcs.get_liftover_variant(
+    lifted_over_variant_output = liftover_utils.get_liftover_variant(
         variant_input, seqrepo_dataproxy
     )
     assert lifted_over_variant_output == expected_output
@@ -101,7 +101,7 @@ def test_liftover_annotation_success(request, variant_fixture_name, seqrepo_data
 def test_liftover_annotation_failure(request, variant_fixture_name, seqrepo_dataproxy):
     variant_input, expected_error = request.getfixturevalue(variant_fixture_name)
     with pytest.raises(expected_error):
-        util_funcs.get_liftover_variant(variant_input, seqrepo_dataproxy)
+        liftover_utils.get_liftover_variant(variant_input, seqrepo_dataproxy)
 
 
 ####################################################################################################

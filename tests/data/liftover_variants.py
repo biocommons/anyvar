@@ -1,6 +1,6 @@
 from ga4gh.vrs import models
 
-from anyvar.utils.functions import (
+from anyvar.utils.liftover_utils import (
     CoordinateConversionError,
     MalformedInputError,
     UnsupportedReferenceAssemblyError,

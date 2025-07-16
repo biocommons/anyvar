@@ -31,7 +31,7 @@ from fastapi.responses import FileResponse
 from pydantic import StrictStr
 
 import anyvar
-import anyvar.utils.functions as util_funcs
+import anyvar.utils.liftover_utils as liftover_utils
 from anyvar.anyvar import AnyAnnotation, AnyVar
 from anyvar.extras.vcf import VcfRegistrar
 from anyvar.restapi.schema import (
@@ -56,6 +56,7 @@ from anyvar.translate.translate import (
     TranslationError,
     TranslatorConnectionError,
 )
+from anyvar.utils.general import parse_and_rebuild_response
 from anyvar.utils.types import VrsObject, VrsVariation, variation_class_map
 
 try:
@@ -276,9 +277,7 @@ async def add_creation_timestamp_annotation(
         # With response, check if timestamp exists
         annotator: AnyAnnotation = getattr(request.app.state, "anyannotation", None)
         if annotator:
-            response_json, new_response = await util_funcs.parse_and_rebuild_response(
-                response
-            )
+            response_json, new_response = await parse_and_rebuild_response(response)
 
             vrs_id = response_json.get("object", {}).get("id")
             if not vrs_id:  # If there's no vrs_id, registration was unsuccessful
@@ -317,7 +316,7 @@ async def add_genomic_liftover_annotation(
             request.app.state, "anyannotation", None
         )
         if annotator:
-            response_json, new_response = await util_funcs.parse_and_rebuild_response(
+            response_json, new_response = await parse_and_rebuild_response(
                 response
             )  # We'll need to return the `new_response` object since we have now exhausted the original response body iterator
 
@@ -338,13 +337,13 @@ async def add_genomic_liftover_annotation(
             # Perform the liftover
             lifted_over_variant: VrsObject | None = None
             try:
-                lifted_over_variant = util_funcs.get_liftover_variant(
+                lifted_over_variant = liftover_utils.get_liftover_variant(
                     variant_object=response_json.get("object", {}),
                     seqrepo_dataproxy=request.app.state.anyvar.translator.dp,
                 )
                 annotation_value = lifted_over_variant.model_dump().get("id")
             except Exception as e:
-                annotation_value = util_funcs.get_liftover_error_annotation(e)
+                annotation_value = liftover_utils.get_liftover_error_annotation(e)
 
             annotator.put_annotation(
                 object_id=original_vrs_id,
