@@ -342,14 +342,14 @@ async def add_genomic_liftover_annotation(
                     variant_object=response_json.get("object", {}),
                     seqrepo_dataproxy=request.app.state.anyvar.translator.dp,
                 )
-                annotation = lifted_over_variant.model_dump().get("id")
+                annotation_value = lifted_over_variant.model_dump().get("id")
             except Exception as e:
-                annotation = util_funcs.get_liftover_error_annotation(e)
+                annotation_value = util_funcs.get_liftover_error_annotation(e)
 
             annotator.put_annotation(
                 object_id=original_vrs_id,
                 annotation_type=annotation_type,
-                annotation={annotation_type: annotation},
+                annotation={annotation_type: annotation_value},
             )
 
             # if liftover was successful, register the lifted-over variant
