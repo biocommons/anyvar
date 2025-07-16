@@ -1,6 +1,7 @@
 from ga4gh.vrs import models
 
 from anyvar.utils.functions import (
+    CoordinateConversionError,
     MalformedInputError,
     UnsupportedReferenceAssemblyError,
 )
@@ -203,10 +204,26 @@ test_variants = {
         },
         "expected_output": UnsupportedReferenceAssemblyError,
     },
-    # "unconvertible_grch37_variant": {
-    # 	"variant_input": {},
-    #     "expected_output": AccessionConversionError
-    # },
+    "unconvertible_grch37_variant": {
+        "variant_input": {
+            "id": "ga4gh:VA.qP-qtMJqKhTEJfpTdAZN9CoIFCRKv4kg",
+            "type": "Allele",
+            "digest": "qP-qtMJqKhTEJfpTdAZN9CoIFCRKv4kg",
+            "location": {
+                "id": "ga4gh:SL.VqjvHF-g0sA8syECkQvnsVlK66zHtrHU",
+                "type": "SequenceLocation",
+                "digest": "VqjvHF-g0sA8syECkQvnsVlK66zHtrHU",
+                "sequenceReference": {
+                    "type": "SequenceReference",
+                    "refgetAccession": "SQ.-BOZ8Esn8J88qDwNiSEwUr5425UXdiGX",
+                },
+                "start": 47087473,
+                "end": 47087474,
+            },
+            "state": {"type": "LiteralSequenceExpression", "sequence": "T"},
+        },
+        "expected_output": CoordinateConversionError,
+    },
     "empty_variation_object": {
         "variant_input": {},
         "expected_output": MalformedInputError,
@@ -215,7 +232,5 @@ test_variants = {
 
 
 # STILL NEED:
-# - A variant that exists on GRCh37 but not GRCH38
 # - A variant that exists on GRCh38 but not GRCH37
-# - A variant with a "location" type that's not "SequenceLocation"
-# - A variant where the chromosome can't be determined?? (Is this even a thing?)
+# - A CopyNumberCount variant?

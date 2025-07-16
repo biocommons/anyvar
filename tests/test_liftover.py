@@ -94,7 +94,7 @@ def test_liftover_annotation_success(request, variant_fixture_name, seqrepo_data
     "variant_fixture_name",
     [
         "grch36_variant",
-        # "unconvertible_grch37_variant",
+        "unconvertible_grch37_variant",
         "empty_variation_object",
     ],
 )
