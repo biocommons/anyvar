@@ -11,8 +11,8 @@ from anyvar.translate.translate import _Translator
 
 
 def extract_variant(variant_name):
-    variant = copy.deepcopy(test_variants[variant_name])
-    return (variant["variant_input"], variant["expected_output"])
+    variant_test_case = copy.deepcopy(test_variants[variant_name])
+    return (variant_test_case["variant_input"], variant_test_case["expected_output"])
 
 
 @pytest.fixture
@@ -80,17 +80,28 @@ def seqrepo_dataproxy() -> _DataProxy:
         "copynumber_ranged_positive_grch37_variant",
         "allele_int_negative_grch38_variant",
         "allele_int_unknown_grch38_variant",
+    ],
+)
+def test_liftover_annotation_success(request, variant_fixture_name, seqrepo_dataproxy):
+    variant_input, expected_output = request.getfixturevalue(variant_fixture_name)
+    lifted_over_variant_output = util_funcs.get_liftover_variant(
+        variant_input, seqrepo_dataproxy
+    )
+    assert lifted_over_variant_output == expected_output
+
+
+@pytest.mark.parametrize(
+    "variant_fixture_name",
+    [
         "grch36_variant",
         # "unconvertible_grch37_variant",
         "empty_variation_object",
     ],
 )
-def test_liftover_annotation(request, variant_fixture_name, seqrepo_dataproxy):
-    variation_input, expected_output = request.getfixturevalue(variant_fixture_name)
-    annotation_value = util_funcs.get_liftover_annotation(
-        variation_input, seqrepo_dataproxy
-    )
-    assert annotation_value == expected_output
+def test_liftover_annotation_failure(request, variant_fixture_name, seqrepo_dataproxy):
+    variant_input, expected_error = request.getfixturevalue(variant_fixture_name)
+    with pytest.raises(expected_error):
+        util_funcs.get_liftover_variant(variant_input, seqrepo_dataproxy)
 
 
 ####################################################################################################
@@ -98,8 +109,6 @@ def test_liftover_annotation(request, variant_fixture_name, seqrepo_dataproxy):
 ####################################################################################################
 
 
-# PROBLEM: this test works when run on it's own, but not when I run the entire test_liftover.py file ._o
-# For some reason it thinks input_payload doesn't have an ID?????????????
 def test_valid_vrs_variant_liftover_annotation(
     client, allele_int_negative_grch38_variant
 ):
@@ -107,13 +116,21 @@ def test_valid_vrs_variant_liftover_annotation(
     annotator = client.app.state.anyannotation
     annotator.reset_mock()
 
-    variation_input, expected_output = allele_int_negative_grch38_variant
-    client.put("/vrs_variation", json=variation_input)
+    variant_input, expected_lifted_over_variant = allele_int_negative_grch38_variant
+    client.put("/vrs_variation", json=variant_input)
 
     annotator.put_annotation.assert_any_call(
-        object_id=variation_input.get("id"),
+        object_id=variant_input.get("id"),
         annotation_type="liftover",
-        annotation={"liftover": expected_output},
+        annotation={"liftover": expected_lifted_over_variant.model_dump().get("id")},
+    )
+
+    # TODO: will need to update this when we implement logic to verify that the liftover is reversible
+    # prior to adding this annotation for the lifted-over variant that links back to the original
+    annotator.put_annotation.assert_any_call(
+        object_id=expected_lifted_over_variant.model_dump().get("id"),
+        annotation_type="liftover",
+        annotation={"liftover": variant_input.get("id")},
     )
 
 
@@ -127,24 +144,3 @@ def test_invalid_vrs_variant_liftover_annotation(client, invalid_variant):
     # Variant was invalid, so it should not have been registered, and therefore shouldn't have an ID;
     # so we shouldn't have tried to make a liftover annotation for it at all
     annotator.put_annotation.assert_not_called()
-
-
-# This isn't working because I forced the mock annotator to always return an empty array
-# when `get_annotation` is called. So the check in the main function will always think
-# this liftover hasn't been done before, so it'll always run twice.
-# def test_duplicate_liftover_annotation(client):
-#     # Ensure we have a clean slate for each test case
-#     annotator = client.app.state.anyannotation
-#     annotator.reset_mock()
-
-#     input_payload, liftover_output = allele_int_unknown_grch38_variant
-
-#     # purposefully register the variant twice
-#     client.put("/vrs_variation", json=input_payload)
-#     client.put("/vrs_variation", json=input_payload)
-
-#     annotator.put_annotation.assert_called_once_with(
-#         object_id=input_payload.get("id"),
-#         annotation_type="liftover",
-#         annotation={"liftover": liftover_output},
-#     )
