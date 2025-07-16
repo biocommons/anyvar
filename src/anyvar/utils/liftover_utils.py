@@ -1,12 +1,8 @@
-"""Defines utility functions"""
+"""Defines functions used to lift over variants between GRCh37 & GRCh38"""
 
-import json
 import re
-from typing import cast
 
 from agct import Converter, Genome, Strand
-from fastapi import Response
-from fastapi.responses import JSONResponse, StreamingResponse
 from ga4gh.vrs.dataproxy import _DataProxy
 from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 
@@ -53,30 +49,6 @@ LIFTOVER_ERROR_ANNOTATIONS = {
     CoordinateConversionError: f"{liftover_error_prefix}: could not convert start and/or end position(s)",
     AccessionConversionError: f"{liftover_error_prefix}: could not convert refget accession",
 }
-
-
-async def parse_and_rebuild_response(
-    response: StreamingResponse,
-) -> tuple[dict, Response]:
-    """Convert a `Response` object to a dict, then re-build a new Response object (since parsing exhausts the Response `body_iterator`).
-
-    :param response: the `Response` object to parse
-    :return: a tuple with a dictionary representation of the Response and a new `Response` object
-    """
-    response_chunks: list[bytes] = [
-        cast(bytes, chunk) async for chunk in response.body_iterator
-    ]
-    response_body_encoded = b"".join(response_chunks)
-    response_body = response_body_encoded.decode("utf-8")
-    response_json = json.loads(response_body)
-
-    new_response = JSONResponse(
-        content=response_json,
-        status_code=response.status_code,
-        media_type=response.media_type,
-    )
-
-    return (response_json, new_response)
 
 
 def get_chromosome_from_aliases(aliases: list[str]) -> str | None:
