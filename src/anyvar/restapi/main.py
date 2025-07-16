@@ -883,3 +883,14 @@ def get_stats(
             detail="Stats not available for current storage backend",
         ) from e
     return AnyVarStatsResponse(variation_type=variation_type, count=count)
+
+
+@app.put(
+    "/vrsix",
+    operation_id="putVrsix",
+    summary="Insert VRSIX records as annotations",
+    description="TODO",
+    tags=[],
+)
+def put_vrsix(request: Request) -> RunStatusResponse | ErrorResponse | None:
+    """Add VRSIX records as AnyVar annotations."""
