@@ -9,46 +9,89 @@ from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 from anyvar.utils.types import VrsObject, VrsVariation, variation_class_map
 
 
-class MalformedInputError(Exception):
+class LiftoverError(Exception):
+    """Indicates a failure to liftover a variant between GRCh37 & GRCh38"""
+
+    error_message = "Unable to complete liftover"
+
+    def __init__(self, additional_message: str = "") -> None:
+        """Initialize the Exception's error message"""
+        self.error_message = (
+            f"{self.error_message}: {additional_message}"
+            if additional_message
+            else self.error_message
+        )
+        super().__init__()
+
+
+class MalformedInputError(LiftoverError):
     """Indicates a malformed variant input"""
 
+    error_message = "Malformed variant input"
 
-class UnsupportedVariantLocationTypeError(Exception):
+    def __init__(self) -> None:
+        """Initialize the Exception's error message"""
+        super().__init__(self.error_message)
+
+
+class UnsupportedVariantLocationTypeError(LiftoverError):
     """Indicates a variant with a 'location' type that is unsupported"""
 
+    error_message = "Liftover is unsupported for variants without refget accession, start position, and end position"
 
-class UnsupportedReferenceAssemblyError(Exception):
+    def __init__(self) -> None:
+        """Initialize the Exception's error message"""
+        super().__init__(self.error_message)
+
+
+class UnsupportedReferenceAssemblyError(LiftoverError):
     """Indicates a failure to retrieve alias data for a refget accession in any supported reference assembly."""
 
+    error_message = "Could not resolve reference assembly - accession not found in any supported assembly"
 
-class AmbiguousReferenceAssemblyError(Exception):
+    def __init__(self) -> None:
+        """Initialize the Exception's error message"""
+        super().__init__(self.error_message)
+
+
+class AmbiguousReferenceAssemblyError(LiftoverError):
     """Indicates a failure to determine which reference assembly a variant is one due to alias matches in multiple reference assemblies, making the result ambiguous"""
 
+    error_message = "Could not resolve reference assembly - accession found in multiple supported assemblies"
 
-class ChromosomeResolutionError(Exception):
+    def __init__(self) -> None:
+        """Initialize the Exception's error message"""
+        super().__init__(self.error_message)
+
+
+class ChromosomeResolutionError(LiftoverError):
     """Indicates a failure to resolve a variant's chromosome"""
 
+    error_message = "Unable to resolve variant's chromosome"
 
-class CoordinateConversionError(Exception):
+    def __init__(self) -> None:
+        """Initialize the Exception's error message"""
+        super().__init__(self.error_message)
+
+
+class CoordinateConversionError(LiftoverError):
     """Indicates a failure to lift over a variant's coordinate"""
 
+    error_message = "Could not convert start and/or end position(s)"
 
-class AccessionConversionError(Exception):
+    def __init__(self) -> None:
+        """Initialize the Exception's error message"""
+        super().__init__(self.error_message)
+
+
+class AccessionConversionError(LiftoverError):
     """Indicates a failure to convert a variant's refget accession"""
 
+    error_message = "Could not convert refget accession)"
 
-liftover_error_prefix = "Unable to complete liftover"
-
-
-LIFTOVER_ERROR_ANNOTATIONS = {
-    MalformedInputError: f"{liftover_error_prefix}: malformed variant input",
-    UnsupportedVariantLocationTypeError: f"{liftover_error_prefix}: liftover is unsupported for variants without refget accession, start position and end position",
-    UnsupportedReferenceAssemblyError: f"{liftover_error_prefix}: could not resolve reference assembly - accession not found in any supported assembly",
-    AmbiguousReferenceAssemblyError: f"{liftover_error_prefix}: could not resolve reference assembly - accession found in multiple supported assemblies",
-    ChromosomeResolutionError: f"{liftover_error_prefix}: unable to resolve variant's chromosome",
-    CoordinateConversionError: f"{liftover_error_prefix}: could not convert start and/or end position(s)",
-    AccessionConversionError: f"{liftover_error_prefix}: could not convert refget accession",
-}
+    def __init__(self) -> None:
+        """Initialize the Exception's error message"""
+        super().__init__(self.error_message)
 
 
 def get_chromosome_from_aliases(aliases: list[str]) -> str | None:
@@ -266,10 +309,3 @@ def get_liftover_variant(
 
     # return the dereffed lifted-over variant
     return vrs_deref(o=enreffed_variant, object_store=object_store)
-
-
-def get_liftover_error_annotation(error: Exception) -> str:
-    """Get the annotation value for a failed liftover"""
-    return LIFTOVER_ERROR_ANNOTATIONS.get(
-        type(error), f"{liftover_error_prefix}: an unknown error occurred"
-    )

@@ -57,6 +57,7 @@ from anyvar.translate.translate import (
     TranslatorConnectionError,
 )
 from anyvar.utils.general import parse_and_rebuild_response
+from anyvar.utils.liftover_utils import LiftoverError
 from anyvar.utils.types import VrsObject, VrsVariation, variation_class_map
 
 try:
@@ -342,8 +343,8 @@ async def add_genomic_liftover_annotation(
                     seqrepo_dataproxy=request.app.state.anyvar.translator.dp,
                 )
                 annotation_value = lifted_over_variant.model_dump().get("id")
-            except Exception as e:
-                annotation_value = liftover_utils.get_liftover_error_annotation(e)
+            except LiftoverError as e:
+                annotation_value = e.error_message
 
             annotator.put_annotation(
                 object_id=original_vrs_id,
