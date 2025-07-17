@@ -122,6 +122,7 @@ async def _annotate_vcf_sync(
     for_ref: bool,
     allow_async_write: bool,
     assembly: str,
+    add_vrs_attributes: bool,
 ) -> FileResponse | ErrorResponse:
     """Annotate with VRS IDs synchronously.  See `annotate_vcf()` for parameter definitions."""
     av: AnyVar = request.app.state.anyvar
@@ -141,6 +142,7 @@ async def _annotate_vcf_sync(
             output_vcf_path=temp_out_path,
             compute_for_ref=for_ref,
             assembly=assembly,
+            vrs_attributes=add_vrs_attributes,
         )
     except (TranslatorConnectionError, OSError, ValueError):
         _logger.exception(
@@ -188,6 +190,12 @@ async def annotate_vcf(
             description="The reference assembly for the VCF",
         ),
     ] = "GRCh38",
+    add_vrs_attributes: Annotated[
+        bool,
+        Query(
+            description="Whether to annotate with VRS attributes (start, stop, state) or just IDs"
+        ),
+    ] = False,
     run_async: Annotated[
         bool,
         Query(
@@ -210,6 +218,7 @@ async def annotate_vcf(
     :param for_ref: whether to compute VRS IDs for REF alleles
     :param allow_async_write: whether to allow async database writes
     :param assembly: the reference assembly for the VCF
+    :param add_vrs_attributes: Whether to annotate with VRS attributes (start, stop, state) or just IDs
     :param run_async: whether to run the VCF annotation synchronously or asynchronously
     :param run_id: user provided id for asynchronous VCF annotation
     :return: streamed annotated file or a run status response for an asynchronous run
@@ -232,6 +241,7 @@ async def annotate_vcf(
             for_ref=for_ref,
             allow_async_write=allow_async_write,
             assembly=assembly,
+            add_vrs_attributes=add_vrs_attributes,
             run_id=run_id,
         )
     # Run synchronously
@@ -244,6 +254,7 @@ async def annotate_vcf(
             for_ref=for_ref,
             allow_async_write=allow_async_write,
             assembly=assembly,
+            add_vrs_attributes=add_vrs_attributes,
         )
 
 

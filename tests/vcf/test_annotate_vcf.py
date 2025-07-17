@@ -69,6 +69,20 @@ def test_vcf_registration_default_assembly(
     )
 
 
+def test_vcf_registration_vrs_attrs(client: TestClient, sample_vcf_grch38: io.BytesIO):
+    """Test optional inclusion of VRS attrs"""
+    resp = client.put(
+        "/vcf",
+        files={"vcf": ("test.vcf", sample_vcf_grch38)},
+        params={"add_vrs_attributes": True},
+    )
+    assert resp.status_code == HTTPStatus.OK
+    assert (
+        b"VRS_Starts=10329,10330;VRS_Ends=10383,10392;VRS_States=CCCCTAACCCTAACCCTAACCCTACCCTAACCCTAACCCTAACCCTAACCCTAA,CCCTAACCC"
+        in resp.content
+    )
+
+
 def test_vcf_registration_grch38(client: TestClient, sample_vcf_grch38: io.BytesIO):
     """Test registration and annotation of VCFs specifying GRCh38 as the assembly to use"""
     resp = client.put(
