@@ -12,86 +12,59 @@ from anyvar.utils.types import VrsObject, VrsVariation, variation_class_map
 class LiftoverError(Exception):
     """Indicates a failure to liftover a variant between GRCh37 & GRCh38"""
 
-    error_message = "Unable to complete liftover"
+    base_error_message = "Unable to complete liftover"
+    error_details = ""
 
-    def __init__(self, additional_message: str = "") -> None:
-        """Initialize the Exception's error message"""
-        self.error_message = (
-            f"{self.error_message}: {additional_message}"
-            if additional_message
-            else self.error_message
+    @classmethod
+    def get_error_message(cls) -> str:
+        """Return the error message associated with the Exception"""
+        return (
+            f"{cls.base_error_message}: {cls.error_details}"
+            if cls.error_details
+            else cls.base_error_message
         )
-        super().__init__()
 
 
 class MalformedInputError(LiftoverError):
     """Indicates a malformed variant input"""
 
-    error_message = "Malformed variant input"
-
-    def __init__(self) -> None:
-        """Initialize the Exception's error message"""
-        super().__init__(self.error_message)
+    error_details = "Malformed variant input"
 
 
 class UnsupportedVariantLocationTypeError(LiftoverError):
     """Indicates a variant with a 'location' type that is unsupported"""
 
-    error_message = "Liftover is unsupported for variants without refget accession, start position, and end position"
-
-    def __init__(self) -> None:
-        """Initialize the Exception's error message"""
-        super().__init__(self.error_message)
+    error_details = "Liftover is unsupported for variants without refget accession, start position, and end position"
 
 
 class UnsupportedReferenceAssemblyError(LiftoverError):
     """Indicates a failure to retrieve alias data for a refget accession in any supported reference assembly."""
 
-    error_message = "Could not resolve reference assembly - accession not found in any supported assembly"
-
-    def __init__(self) -> None:
-        """Initialize the Exception's error message"""
-        super().__init__(self.error_message)
+    error_details = "Could not resolve reference assembly - accession not found in any supported assembly"
 
 
 class AmbiguousReferenceAssemblyError(LiftoverError):
     """Indicates a failure to determine which reference assembly a variant is one due to alias matches in multiple reference assemblies, making the result ambiguous"""
 
-    error_message = "Could not resolve reference assembly - accession found in multiple supported assemblies"
-
-    def __init__(self) -> None:
-        """Initialize the Exception's error message"""
-        super().__init__(self.error_message)
+    error_details = "Could not resolve reference assembly - accession found in multiple supported assemblies"
 
 
 class ChromosomeResolutionError(LiftoverError):
     """Indicates a failure to resolve a variant's chromosome"""
 
-    error_message = "Unable to resolve variant's chromosome"
-
-    def __init__(self) -> None:
-        """Initialize the Exception's error message"""
-        super().__init__(self.error_message)
+    error_details = "Unable to resolve variant's chromosome"
 
 
 class CoordinateConversionError(LiftoverError):
     """Indicates a failure to lift over a variant's coordinate"""
 
-    error_message = "Could not convert start and/or end position(s)"
-
-    def __init__(self) -> None:
-        """Initialize the Exception's error message"""
-        super().__init__(self.error_message)
+    error_details = "Could not convert start and/or end position(s)"
 
 
 class AccessionConversionError(LiftoverError):
     """Indicates a failure to convert a variant's refget accession"""
 
-    error_message = "Could not convert refget accession)"
-
-    def __init__(self) -> None:
-        """Initialize the Exception's error message"""
-        super().__init__(self.error_message)
+    error_details = "Could not convert refget accession)"
 
 
 def get_chromosome_from_aliases(aliases: list[str]) -> str | None:

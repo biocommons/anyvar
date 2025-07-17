@@ -344,7 +344,7 @@ async def add_genomic_liftover_annotation(
                 )
                 annotation_value = lifted_over_variant.model_dump().get("id")
             except LiftoverError as e:
-                annotation_value = e.error_message
+                annotation_value = e.get_error_message()
 
             annotator.put_annotation(
                 object_id=original_vrs_id,

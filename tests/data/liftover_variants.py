@@ -2,13 +2,13 @@ from ga4gh.vrs import models
 
 from anyvar.utils.liftover_utils import (
     CoordinateConversionError,
-    MalformedInputError,
     UnsupportedReferenceAssemblyError,
 )
 
 test_variants = {
     "copynumber_ranged_positive_grch37_variant": {
         "variant_input": {
+            "id": "ga4gh:CN.CTCgVehH0FEqrlaOMhUsDjKwzavnQegk",
             "type": "CopyNumberCount",
             "location": {
                 "sequenceReference": {
@@ -224,9 +224,30 @@ test_variants = {
         },
         "expected_output": CoordinateConversionError,
     },
+    "unconvertible_grch38_variant": {
+        "variant_input": {},  # TODO: Add an actual test case for this
+        "expected_output": CoordinateConversionError,
+    },
     "empty_variation_object": {
         "variant_input": {},
-        "expected_output": MalformedInputError,
+        "expected_output": None,
+    },
+    "invalid_variant": {
+        "variant_input": {
+            "location": {
+                "id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8",
+                "end": 0,
+                "start": -1,
+                "sequenceReference": {
+                    "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
+                    "type": "SequenceReference",
+                },
+                "type": "SequenceLocation",
+            },
+            "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
+            "type": "UNSUPPORTED",
+        },
+        "expected_output": None,
     },
 }
 
