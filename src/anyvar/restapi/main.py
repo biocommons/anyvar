@@ -322,9 +322,7 @@ async def add_genomic_liftover_annotation(
             )  # We'll need to return the `new_response` object since we have now exhausted the original response body iterator
 
             original_vrs_id = response_json.get("object_id")
-            if (
-                not original_vrs_id
-            ):  # If there's no vrs_id, registration was unsuccessful
+            if not original_vrs_id:  # If there's no vrs_id, registration was unsuccessful. Do not attempt liftover.
                 return new_response
 
             # Check if we've already lifted over this variant before - no need to do it more than once
@@ -342,8 +340,10 @@ async def add_genomic_liftover_annotation(
                     variant_object=response_json.get("object", {}),
                     seqrepo_dataproxy=request.app.state.anyvar.translator.dp,
                 )
+                # If liftover was successful, we'll annotate with the ID of the lifted-over variant
                 annotation_value = lifted_over_variant.model_dump().get("id")
             except LiftoverError as e:
+                # If liftover was unsuccessful, we'll annotate with an error message
                 annotation_value = e.get_error_message()
 
             annotator.put_annotation(
@@ -352,8 +352,8 @@ async def add_genomic_liftover_annotation(
                 annotation={annotation_type: annotation_value},
             )
 
-            # if liftover was successful, register the lifted-over variant
-            # and add an annotation linking it back to the original
+            # If liftover was successful, register the lifted-over variant
+            # and add another annotation linking it back to the original
             if lifted_over_variant:
                 av: AnyVar = request.app.state.anyvar
                 av.put_object(lifted_over_variant)

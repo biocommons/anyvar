@@ -135,7 +135,9 @@ def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) 
     converted_position = converter.convert_coordinate(
         chromosome, coordinate, Strand.POSITIVE
     )
-    if converted_position:
+    if (
+        converted_position and converted_position[0][2] == Strand.POSITIVE
+    ):  # TODO: Handle cases where coordinate conversion returns negative-stranded coordinates
         return converted_position[0][1]
     raise CoordinateConversionError
 
@@ -146,7 +148,7 @@ def convert_position(
     """Convert a SequenceLocation position (i.e., `start` or `end`) to another reference Genome. `position` can either be a `list` or an `int` - return type will match.
 
     :param converter: An AGCT Converter instance.
-    :param chromosome: The chromosome number where the position is found. Must be a string consisting of a) the prefix "chr", and b) a number OR "X" or "Y" -> i.e. "chr10".
+    :param chromosome: The chromosome number where the position is found. Must be a string consisting of a) the prefix "chr", and b) a number OR "X" or "Y" -> e.g. "chr10", "chrX", etc.
     :param position: A SequenceLocation start or end position. Can be a `list` or an `int`.
 
     :return: A lifted-over position. Type (`list` or `int`) will match that of `position`
@@ -155,7 +157,7 @@ def convert_position(
     if isinstance(position, int):
         return _convert_coordinate(converter, chromosome, position)
 
-    # Handle Range positions
+    # Handle Range (list) positions
     lower_bound, upper_bound = position
     lower_bound = (
         _convert_coordinate(converter, chromosome, lower_bound) if lower_bound else None
@@ -209,7 +211,10 @@ def get_liftover_variant(
 
     grch37 = "GRCh37"
     grch38 = "GRCh38"
-    aliases = {
+
+    # This is required for `get_from_and_to_assemblies` and `get_chromosome_from_aliases`
+    # See function documentation for more details
+    accession_aliases = {
         grch37: list(
             seqrepo_dataproxy.translate_sequence_identifier(prefixed_accession, grch37)
         ),
@@ -221,11 +226,11 @@ def get_liftover_variant(
     from_assembly = None
     to_assembly = None
     from_assembly, to_assembly = get_from_and_to_assemblies(
-        aliases
+        accession_aliases
     )  # Will raise an `UnsupportedReferenceAssemblyError` or `AmbiguousReferenceAssemblyError` if unsuccessful
 
     # Determine which chromosome the variant is on
-    chromosome = get_chromosome_from_aliases(aliases.get(from_assembly, []))
+    chromosome = get_chromosome_from_aliases(accession_aliases.get(from_assembly, []))
     if not chromosome:
         raise ChromosomeResolutionError
 
@@ -268,9 +273,10 @@ def get_liftover_variant(
     converted_variant_dict["id"] = None
 
     # Convert the dict into a VrsObject class instance so we can compute the identifiers
-    converted_variant_object: VrsObject = variation_class_map[
-        variant_object.get("type", "")
-    ](**converted_variant_dict)
+    variant_type = variant_object.get("type", "")
+    converted_variant_object: VrsObject = variation_class_map[variant_type](
+        **converted_variant_dict
+    )
 
     # Compute the identifiers
     object_store = {}
@@ -280,5 +286,6 @@ def get_liftover_variant(
         return_id_obj_tuple=False,
     )
 
-    # return the dereffed lifted-over variant
-    return vrs_deref(o=enreffed_variant, object_store=object_store)
+    # return the dereffed lifted-over variant as a VrsObject
+    dereffed_variant = vrs_deref(o=enreffed_variant, object_store=object_store)
+    return variation_class_map[variant_type](**dereffed_variant.model_dump())
