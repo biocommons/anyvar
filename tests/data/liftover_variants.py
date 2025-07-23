@@ -123,11 +123,11 @@ test_variants = {
     },
     "allele_int_unknown_grch38_variant": {
         "variant_input": {
-            "id": "ga4gh: VA.9gW_iJbQAIO3SIxJ9ACyAZA1X2lEgO39",
+            "id": "ga4gh:VA.9gW_iJbQAIO3SIxJ9ACyAZA1X2lEgO39",
             "digest": "9gW_iJbQAIO3SIxJ9ACyAZA1X2lEgO39",
             "type": "Allele",
             "location": {
-                "id": "ga4gh: SL.sK161kPiQBsm-qOErlsNRXeT3nvoTLLn",
+                "id": "ga4gh:SL.sK161kPiQBsm-qOErlsNRXeT3nvoTLLn",
                 "digest": "sK161kPiQBsm-qOErlsNRXeT3nvoTLLn",
                 "sequenceReference": {
                     "refgetAccession": "SQ.Zu7h9AggXxhTaGVsy7h_EZSChSZGcmgX",

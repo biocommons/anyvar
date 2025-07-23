@@ -20,7 +20,6 @@ def pytest_collection_modifyitems(items):
         "test_general",
         "test_location",
         "test_search",
-        "test_liftover",
         "test_vcf",
         "test_sql_storage_mapping",
         "test_postgres",
@@ -29,13 +28,14 @@ def pytest_collection_modifyitems(items):
         "test_postgres_annotation",
         "test_duckdb_annotation",
         "test_no_db",
+        "test_liftover",
     ]
     # remember to add new test modules to the order constant:
     assert len(module_order) == len(list(Path(__file__).parent.rglob("test_*.py")))
     items.sort(key=lambda i: module_order.index(i.module.__name__))
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", autouse=True)
 def storage():
     """Provide API client instance as test fixture"""
     if "ANYVAR_TEST_STORAGE_URI" in os.environ:
