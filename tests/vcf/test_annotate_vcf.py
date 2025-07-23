@@ -11,6 +11,8 @@ import pytest
 from billiard.exceptions import TimeLimitExceeded
 from celery.contrib.testing.worker import start_worker
 from celery.exceptions import WorkerLostError
+from fastapi.testclient import TestClient
+from pytest_mock import MockerFixture
 
 import anyvar.anyvar
 from anyvar.queueing.celery_worker import celery_app
@@ -55,7 +57,9 @@ chr1	10330	.	CCCCTAACCCTAACCCTAACCCTACCCTAACCCTAACCCTAACCCTAACCCTAA	C	.	PASS	QUA
     return io.BytesIO(file_content)
 
 
-def test_vcf_registration_default_assembly(client, sample_vcf_grch38):
+def test_vcf_registration_default_assembly(
+    client: TestClient, sample_vcf_grch38: io.BytesIO
+):
     """Test registration and annotation of VCFs with default assembly"""
     resp = client.put("/vcf", files={"vcf": ("test.vcf", sample_vcf_grch38)})
     assert resp.status_code == HTTPStatus.OK
@@ -65,7 +69,21 @@ def test_vcf_registration_default_assembly(client, sample_vcf_grch38):
     )
 
 
-def test_vcf_registration_grch38(client, sample_vcf_grch38):
+def test_vcf_registration_vrs_attrs(client: TestClient, sample_vcf_grch38: io.BytesIO):
+    """Test optional inclusion of VRS attrs"""
+    resp = client.put(
+        "/vcf",
+        files={"vcf": ("test.vcf", sample_vcf_grch38)},
+        params={"add_vrs_attributes": True},
+    )
+    assert resp.status_code == HTTPStatus.OK
+    assert (
+        b"VRS_Starts=10329,10330;VRS_Ends=10383,10392;VRS_States=CCCCTAACCCTAACCCTAACCCTACCCTAACCCTAACCCTAACCCTAACCCTAA,CCCTAACCC"
+        in resp.content
+    )
+
+
+def test_vcf_registration_grch38(client: TestClient, sample_vcf_grch38: io.BytesIO):
     """Test registration and annotation of VCFs specifying GRCh38 as the assembly to use"""
     resp = client.put(
         "/vcf",
@@ -118,7 +136,7 @@ def sample_vcf_grch37():
     return io.BytesIO(file_content)
 
 
-def test_vcf_registration_grch37(client, sample_vcf_grch37):
+def test_vcf_registration_grch37(client: TestClient, sample_vcf_grch37: io.BytesIO):
     """Test registration and annotation of VCFs with GRCh37 assembly"""
     resp = client.put(
         "/vcf",
@@ -132,7 +150,9 @@ def test_vcf_registration_grch37(client, sample_vcf_grch37):
     )
 
 
-def test_vcf_registration_invalid_assembly(client, sample_vcf_grch37):
+def test_vcf_registration_invalid_assembly(
+    client: TestClient, sample_vcf_grch37: io.BytesIO
+):
     """Test registration and annotation of VCFs with invalid assembly param value"""
     resp = client.put(
         "/vcf",
@@ -142,7 +162,9 @@ def test_vcf_registration_invalid_assembly(client, sample_vcf_grch37):
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
-def test_vcf_registration_async(client, sample_vcf_grch38, mocker):
+def test_vcf_registration_async(
+    client: TestClient, sample_vcf_grch38: io.BytesIO, mocker: MockerFixture
+):
     """Test the async VCF annotation process using a real Celery worker and background task"""
     mocker.patch.dict(
         os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "tests/tmp_async_work_dir"}
@@ -181,7 +203,9 @@ def test_vcf_registration_async(client, sample_vcf_grch38, mocker):
         shutil.rmtree("tests/tmp_async_work_dir")
 
 
-def test_vcf_submit_no_async(client, sample_vcf_grch38, mocker):
+def test_vcf_submit_no_async(
+    client: TestClient, sample_vcf_grch38: io.BytesIO, mocker: MockerFixture
+):
     """Tests that a 400 is returned when async processing is not enabled"""
     mocker.patch.dict(
         os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "", "CELERY_BROKER_URL": ""}
@@ -199,12 +223,14 @@ def test_vcf_submit_no_async(client, sample_vcf_grch38, mocker):
     )
 
 
-def test_vcf_submit_duplicate_run_id(client, sample_vcf_grch38, mocker):
+def test_vcf_submit_duplicate_run_id(
+    client: TestClient, sample_vcf_grch38: io.BytesIO, mocker: MockerFixture
+):
     """Tests the submit VCF endpoint when there is already a run for the specified run id"""
     mocker.patch.dict(
         os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "./", "CELERY_BROKER_URL": "redis://"}
     )
-    mock_result = mocker.patch("anyvar.restapi.main.AsyncResult")
+    mock_result = mocker.patch("anyvar.restapi.vcf.AsyncResult")
     mock_result.return_value.status = "SENT"
     resp = client.put(
         "/vcf",
@@ -219,7 +245,7 @@ def test_vcf_submit_duplicate_run_id(client, sample_vcf_grch38, mocker):
     )
 
 
-def test_vcf_get_result_no_async(client, mocker):
+def test_vcf_get_result_no_async(client: TestClient, mocker: MockerFixture):
     """Tests that a 400 is returned when async processing is not enabled"""
     mocker.patch.dict(
         os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "", "CELERY_BROKER_URL": ""}
@@ -233,15 +259,15 @@ def test_vcf_get_result_no_async(client, mocker):
     )
 
 
-def test_vcf_get_result_success(client, mocker):
+def test_vcf_get_result_success(client: TestClient, mocker: MockerFixture):
     """Tests the get async VCF result endpoint when annotation was successful"""
     mocker.patch.dict(
         os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "./", "CELERY_BROKER_URL": "redis://"}
     )
-    mock_result = mocker.patch("anyvar.restapi.main.AsyncResult")
+    mock_result = mocker.patch("anyvar.restapi.vcf.AsyncResult")
     mock_result.return_value.status = "SUCCESS"
     mock_result.return_value.result = __file__
-    mock_bg_tasks = mocker.patch("anyvar.restapi.main.BackgroundTasks.add_task")
+    mock_bg_tasks = mocker.patch("anyvar.restapi.vcf.BackgroundTasks.add_task")
     resp = client.get("/vcf/12345")
     assert resp.status_code == HTTPStatus.OK
     with pathlib.Path(__file__).open(mode="rb") as fd:
@@ -250,16 +276,16 @@ def test_vcf_get_result_success(client, mocker):
     mock_bg_tasks.assert_called_with(os.unlink, __file__)
 
 
-def test_vcf_get_result_failure_timeout(client, mocker):
+def test_vcf_get_result_failure_timeout(client: TestClient, mocker: MockerFixture):
     """Tests the get async VCF result endpoint when annotation fails due to task timeout"""
     mocker.patch.dict(
         os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "./", "CELERY_BROKER_URL": "redis://"}
     )
-    mock_result = mocker.patch("anyvar.restapi.main.AsyncResult")
+    mock_result = mocker.patch("anyvar.restapi.vcf.AsyncResult")
     mock_result.return_value.status = "FAILURE"
     mock_result.return_value.result = TimeLimitExceeded("task timed out")
     mock_result.return_value.kwargs = {"input_file_path": __file__}
-    mock_bg_tasks = mocker.patch("anyvar.restapi.main.BackgroundTasks.add_task")
+    mock_bg_tasks = mocker.patch("anyvar.restapi.vcf.BackgroundTasks.add_task")
     resp = client.get("/vcf/12345")
     assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
     assert "error" in resp.json()
@@ -270,16 +296,16 @@ def test_vcf_get_result_failure_timeout(client, mocker):
     mock_bg_tasks.assert_called_once()
 
 
-def test_vcf_get_result_failure_worker_lost(client, mocker):
+def test_vcf_get_result_failure_worker_lost(client: TestClient, mocker: MockerFixture):
     """Tests the get async VCF result endpoint when annotation failed due to lost worker"""
     mocker.patch.dict(
         os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "./", "CELERY_BROKER_URL": "redis://"}
     )
-    mock_result = mocker.patch("anyvar.restapi.main.AsyncResult")
+    mock_result = mocker.patch("anyvar.restapi.vcf.AsyncResult")
     mock_result.return_value.status = "FAILURE"
     mock_result.return_value.result = WorkerLostError("killed")
     mock_result.return_value.kwargs = {"input_file_path": __file__}
-    mock_bg_tasks = mocker.patch("anyvar.restapi.main.BackgroundTasks.add_task")
+    mock_bg_tasks = mocker.patch("anyvar.restapi.vcf.BackgroundTasks.add_task")
     resp = client.get("/vcf/12345")
     assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
     assert "error" in resp.json()
@@ -290,7 +316,7 @@ def test_vcf_get_result_failure_worker_lost(client, mocker):
     mock_bg_tasks.assert_called_once()
 
 
-def test_vcf_get_result_failure_other(client, mocker):
+def test_vcf_get_result_failure_other(client: TestClient, mocker: MockerFixture):
     """Tests the get async VCF result endpoint when annotation failed due to an error"""
     mocker.patch.dict(
         os.environ,
@@ -300,11 +326,11 @@ def test_vcf_get_result_failure_other(client, mocker):
             "ANYVAR_VCF_ASYNC_FAILURE_STATUS_CODE": "200",
         },
     )
-    mock_result = mocker.patch("anyvar.restapi.main.AsyncResult")
+    mock_result = mocker.patch("anyvar.restapi.vcf.AsyncResult")
     mock_result.return_value.status = "FAILURE"
     mock_result.return_value.result = KeyError("foo")
     mock_result.return_value.kwargs = {"input_file_path": __file__}
-    mock_bg_tasks = mocker.patch("anyvar.restapi.main.BackgroundTasks.add_task")
+    mock_bg_tasks = mocker.patch("anyvar.restapi.vcf.BackgroundTasks.add_task")
     resp = client.get("/vcf/12345")
     assert resp.status_code == HTTPStatus.OK
     assert "error" in resp.json()
@@ -315,12 +341,12 @@ def test_vcf_get_result_failure_other(client, mocker):
     mock_bg_tasks.assert_called_once()
 
 
-def test_vcf_get_result_notfound(client, mocker):
+def test_vcf_get_result_notfound(client: TestClient, mocker: MockerFixture):
     """Tests the get async VCF result endpoint when run id is not found"""
     mocker.patch.dict(
         os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "./", "CELERY_BROKER_URL": "redis://"}
     )
-    mock_result = mocker.patch("anyvar.restapi.main.AsyncResult")
+    mock_result = mocker.patch("anyvar.restapi.vcf.AsyncResult")
     mock_result.return_value.status = "PENDING"
     resp = client.get("/vcf/12345")
     assert resp.status_code == HTTPStatus.NOT_FOUND
@@ -332,12 +358,12 @@ def test_vcf_get_result_notfound(client, mocker):
     assert resp.json()["run_id"] == "12345"
 
 
-def test_vcf_get_result_notcomplete(client, mocker):
+def test_vcf_get_result_notcomplete(client: TestClient, mocker: MockerFixture):
     """Tests the get async VCF result endpoint when annotation is not yet complete"""
     mocker.patch.dict(
         os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "./", "CELERY_BROKER_URL": "redis://"}
     )
-    mock_result = mocker.patch("anyvar.restapi.main.AsyncResult")
+    mock_result = mocker.patch("anyvar.restapi.vcf.AsyncResult")
     mock_result.return_value.status = "SENT"
     resp = client.get("/vcf/12345")
     assert resp.status_code == HTTPStatus.ACCEPTED

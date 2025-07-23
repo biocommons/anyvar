@@ -22,7 +22,9 @@ dependencies = [
     "sqlalchemy~=1.4.54",
     "pyyaml",
     "agct",
-    "python-dotenv"
+    "pysam",
+    "python-dotenv",
+    "anyio",
 ]
 dynamic = ["version"]
 
@@ -43,6 +45,8 @@ test = [
     "pytest-mock",
     "httpx",
     "celery[pytest]",
+    "jsonschema",
+    "pyyaml",
 ]
 dev = [
     "ruff==0.11.2",

@@ -1,0 +1,14 @@
+id: org.biocommons.anyvar
+name: AnyVar
+type:
+  group: org.biocommons
+  artifact: anyvar
+description: Register and retrieve GA4GH VRS variations and associated annotations.
+organization:
+  name: bioccommons
+  url: https://biocommons.org
+contactUrl: mailto:alex.wagner@nationwidechildrens.org
+documentationUrl: https://github.com/biocommons/anyvar
+createdAt: 2025-06-01T00:00:00Z
+updatedAt: 2025-06-01T00:00:00Z
+environment: dev
