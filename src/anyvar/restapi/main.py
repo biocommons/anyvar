@@ -346,19 +346,20 @@ async def add_genomic_liftover_annotation(
                 # If liftover was unsuccessful, we'll annotate with an error message
                 annotation_value = e.get_error_message()
 
+            # Add the annotation to the original variant
             annotator.put_annotation(
                 object_id=original_vrs_id,
                 annotation_type=annotation_type,
                 annotation={annotation_type: annotation_value},
             )
 
-            # If liftover was successful, register the lifted-over variant
-            # and add another annotation linking it back to the original
+            # If liftover was successful, also register the lifted-over variant
+            # and add an annotation on the lifted-over variant linking it back to the original
             if lifted_over_variant:
                 av: AnyVar = request.app.state.anyvar
                 av.put_object(lifted_over_variant)
 
-                # TODO: Verify that the liftover is reversible first
+                # TODO: Verify that the liftover is reversible first. See Issue #195
                 annotator.put_annotation(
                     object_id=lifted_over_variant.model_dump().get("id", ""),
                     annotation_type=annotation_type,

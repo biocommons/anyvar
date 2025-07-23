@@ -69,7 +69,7 @@ SUCCESS_CASES = [
 FAILURE_CASES = [
     "grch36_variant",
     "unconvertible_grch37_variant",
-    # "unconvertible_grch38_variant", TODO: add a real test case for this.
+    # "unconvertible_grch38_variant", # TODO: add a real test case for this. See Issue #196.
 ]
 
 # Cases where liftover should not be attempted
@@ -126,8 +126,8 @@ def test_liftover_annotation_success(request, variant_fixture_name, client):
         annotation={"liftover": expected_lifted_over_variant.model_dump().get("id")},
     )
 
-    # TODO: will need to update this when we implement logic to verify that the liftover is reversible,
-    # because then if the liftover is NOT reversible, this `put_annotation` call won't trigger.
+    # TODO: we'll need to update this when we implement logic to verify that the liftover is reversible,
+    # because then if the liftover is NOT reversible, this `put_annotation` call won't trigger. See Issue # 195.
     annotator.put_annotation.assert_any_call(
         object_id=expected_lifted_over_variant.model_dump().get("id"),
         annotation_type="liftover",

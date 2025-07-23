@@ -225,7 +225,7 @@ test_variants = {
         "expected_output": CoordinateConversionError,
     },
     "unconvertible_grch38_variant": {
-        "variant_input": {},  # TODO: Add an actual test case for this
+        "variant_input": {},  # TODO: Add an actual test case for this. See Issue #196.
         "expected_output": CoordinateConversionError,
     },
     "empty_variation_object": {

@@ -137,8 +137,12 @@ def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) 
     )
     if (
         converted_position and converted_position[0][2] == Strand.POSITIVE
-    ):  # TODO: Handle cases where coordinate conversion returns negative-stranded coordinates
-        return converted_position[0][1]
+    ):  # TODO: Handle cases where coordinate conversion returns negative-stranded coordinates. See Issue #197.
+        return converted_position[
+            0
+        ][
+            1
+        ]  # TODO: Don't just return coordinates from the first result set - handle cases where coordinate map to multiple positions. See Issue #198.
     raise CoordinateConversionError
 
 
