@@ -6,6 +6,7 @@ from agct import Converter, Genome, Strand
 from ga4gh.vrs.dataproxy import _DataProxy
 from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 
+from anyvar.anyvar import AnyAnnotation, AnyVar
 from anyvar.utils.types import VrsObject, VrsVariation, variation_class_map
 
 
@@ -290,3 +291,51 @@ def get_liftover_variant(
     # return the dereffed lifted-over variant as a VrsObject
     dereffed_variant = vrs_deref(o=enreffed_variant, object_store=object_store)
     return variation_class_map[variant_type](**dereffed_variant.model_dump())
+
+
+def add_liftover_annotations(
+    original_vrs_id: str,
+    original_vrs_object: dict,
+    anyvar: AnyVar,
+    annotator: AnyAnnotation,
+) -> None:
+    """Perform liftover between GRCh37 <-> GRCh38. Store the ID of converted variant as an annotation of the original,
+    register the lifted-over variant, and store the ID of the original variant as an annotation of the lifted-over one.
+
+    :param original_vrs_id: The ID of the VRS variant to lift over
+    :param original_vrs_object: A dictionary representation of the VRS variant to lift over
+    :param anyvar: An `AnyVar` instance
+    :param annotator: An `AnyAnnotation` instance
+    """
+    annotation_type = "liftover"
+
+    lifted_over_variant: VrsObject | None = None
+    try:
+        lifted_over_variant = get_liftover_variant(
+            variant_object=original_vrs_object,
+            seqrepo_dataproxy=anyvar.translator.dp,
+        )
+        # If liftover was successful, we'll annotate with the ID of the lifted-over variant
+        annotation_value = lifted_over_variant.model_dump().get("id")
+    except LiftoverError as e:
+        # If liftover was unsuccessful, we'll annotate with an error message
+        annotation_value = e.get_error_message()
+
+    # Add the annotation to the original variant
+    annotator.put_annotation(
+        object_id=original_vrs_id,
+        annotation_type=annotation_type,
+        annotation={annotation_type: annotation_value},
+    )
+
+    # If liftover was successful, also register the lifted-over variant
+    # and add an annotation on the lifted-over variant linking it back to the original
+    if lifted_over_variant:
+        anyvar.put_object(lifted_over_variant)
+
+        # TODO: Verify that the liftover is reversible first. See Issue #195
+        annotator.put_annotation(
+            object_id=lifted_over_variant.model_dump().get("id", ""),
+            annotation_type=annotation_type,
+            annotation={annotation_type: original_vrs_id},
+        )

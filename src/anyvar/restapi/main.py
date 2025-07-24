@@ -48,8 +48,7 @@ from anyvar.translate.translate import (
     TranslationError,
 )
 from anyvar.utils.general import parse_and_rebuild_response
-from anyvar.utils.liftover_utils import LiftoverError
-from anyvar.utils.types import VrsObject, VrsVariation, variation_class_map
+from anyvar.utils.types import VrsVariation, variation_class_map
 
 load_dotenv()
 _logger = logging.getLogger(__name__)
@@ -279,109 +278,50 @@ def get_variation_annotation(
 
 
 @app.middleware("http")
-async def add_creation_timestamp_annotation(
+async def add_registration_annotations(
     request: Request, call_next: Callable
 ) -> Response:
-    """Add a creation timestamp annotation to a variation if it doesn't already exist."""
-    # Do nothing on request. Pass downstream.
+    """Add all required annotations for newly-registered variants"""
     response = await call_next(request)
 
-    # Check if the request was for the "/variation" endpoint
-    if request.url.path == "/variation":
-        # With response, check if timestamp exists
-        annotator: AnyAnnotation = getattr(request.app.state, "anyannotation", None)
-        if annotator:
-            response_json, new_response = await parse_and_rebuild_response(response)
-
-            vrs_id = response_json.get("object", {}).get("id")
-            if not vrs_id:  # If there's no vrs_id, registration was unsuccessful
-                return new_response
-
-            annotations = annotator.get_annotation(vrs_id, "creation_timestamp")
-            if not annotations:
-                annotator.put_annotation(
-                    object_id=vrs_id,
-                    annotation_type="creation_timestamp",
-                    annotation={
-                        "timestamp": datetime.datetime.now(tz=datetime.UTC).isoformat()
-                    },
-                )
-            # Create a new response object since we have exhausted the response body iterator
-            return new_response
-
-    return response
-
-
-@app.middleware("http")
-async def add_genomic_liftover_annotation(
-    request: Request, call_next: Callable
-) -> Response:
-    """Perform genomic liftover between GRCh37 <-> GRCh38 and store the converted variant as an annotation of the original"""
-    # Do nothing on request. Pass downstream.
-    response = await call_next(request)
-
-    # Only add liftover annotation on registration
+    # Make sure we're only targeting the registration endpoints
     registration_endpoints = [
         "/variation",
         "/vrs_variation",
     ]
-    if request.url.path in registration_endpoints:
-        annotator: AnyAnnotation | None = getattr(
-            request.app.state, "anyannotation", None
+
+    # Can't do annotations if we don't have an Annotator
+    annotator: AnyAnnotation | None = getattr(request.app.state, "anyannotation", None)
+
+    if not annotator or request.url.path not in registration_endpoints:
+        return response
+
+    response_json, new_response = await parse_and_rebuild_response(
+        response
+    )  # We'll need to return the `new_response` object since we have now exhausted the original response body iterator
+
+    vrs_id = response_json.get("object_id")
+    if not vrs_id:  # If there's no vrs_id, registration was unsuccessful. We can't .
+        return new_response
+
+    # Add annotations
+    timestamp_annotations = annotator.get_annotation(vrs_id, "creation_timestamp")
+    if not timestamp_annotations:
+        annotator.put_annotation(
+            object_id=vrs_id,
+            annotation_type="creation_timestamp",
+            annotation={
+                "timestamp": datetime.datetime.now(tz=datetime.UTC).isoformat()
+            },
         )
-        if annotator:
-            response_json, new_response = await parse_and_rebuild_response(
-                response
-            )  # We'll need to return the `new_response` object since we have now exhausted the original response body iterator
 
-            original_vrs_id = response_json.get("object_id")
-            if not original_vrs_id:  # If there's no vrs_id, registration was unsuccessful. Do not attempt liftover.
-                return new_response
+    preexisting_liftover_annotations = annotator.get_annotation(vrs_id, "liftover")
+    if not preexisting_liftover_annotations:
+        anyvar: AnyVar = request.app.state.anyvar
+        vrs_object = response_json.get("object", {})
+        liftover_utils.add_liftover_annotations(vrs_id, vrs_object, anyvar, annotator)
 
-            # Check if we've already lifted over this variant before - no need to do it more than once
-            annotation_type = "liftover"
-            preexisting_liftover_annotation = annotator.get_annotation(
-                original_vrs_id, annotation_type
-            )
-            if preexisting_liftover_annotation:
-                return new_response
-
-            # Perform the liftover
-            lifted_over_variant: VrsObject | None = None
-            try:
-                lifted_over_variant = liftover_utils.get_liftover_variant(
-                    variant_object=response_json.get("object", {}),
-                    seqrepo_dataproxy=request.app.state.anyvar.translator.dp,
-                )
-                # If liftover was successful, we'll annotate with the ID of the lifted-over variant
-                annotation_value = lifted_over_variant.model_dump().get("id")
-            except LiftoverError as e:
-                # If liftover was unsuccessful, we'll annotate with an error message
-                annotation_value = e.get_error_message()
-
-            # Add the annotation to the original variant
-            annotator.put_annotation(
-                object_id=original_vrs_id,
-                annotation_type=annotation_type,
-                annotation={annotation_type: annotation_value},
-            )
-
-            # If liftover was successful, also register the lifted-over variant
-            # and add an annotation on the lifted-over variant linking it back to the original
-            if lifted_over_variant:
-                av: AnyVar = request.app.state.anyvar
-                av.put_object(lifted_over_variant)
-
-                # TODO: Verify that the liftover is reversible first. See Issue #195
-                annotator.put_annotation(
-                    object_id=lifted_over_variant.model_dump().get("id", ""),
-                    annotation_type=annotation_type,
-                    annotation={annotation_type: original_vrs_id},
-                )
-
-            return new_response
-
-    return response
+    return new_response
 
 
 @app.put(
