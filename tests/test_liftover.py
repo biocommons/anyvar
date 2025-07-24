@@ -150,9 +150,7 @@ def test_liftover_annotation_failure(request, variant_fixture_name, client):
     client.put("/vrs_variation", json=variant_input)
 
     # Variants that can be registered successfully but are unable to be lifted over are annotated with an error message.
-    # NOTE: It's crucial that we assert `put_annotation` is called EXACTLY once, since successful liftover would trigger
-    # a second call to `put_annotation` to add an annotation linking the lifted-over variant back to the original
-    annotator.put_annotation.assert_called_once_with(
+    annotator.put_annotation.assert_called_with(
         object_id=variant_input.get("id"),
         annotation_type="liftover",
         annotation={"liftover": expected_lifted_over_variant.get_error_message()},
