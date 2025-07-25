@@ -1,6 +1,7 @@
 """Provide core route definitions for REST service."""
 
 import datetime
+import json
 import logging
 import logging.config
 import os
@@ -8,7 +9,7 @@ import pathlib
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from http import HTTPStatus
-from typing import Annotated
+from typing import Annotated, cast
 
 import anyio
 import ga4gh.vrs
@@ -23,6 +24,7 @@ from fastapi import (
     Request,
     Response,
 )
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import StrictStr
 
 import anyvar
@@ -47,12 +49,35 @@ from anyvar.restapi.vcf import router as vcf_router
 from anyvar.translate.translate import (
     TranslationError,
 )
-from anyvar.utils.general import parse_and_rebuild_response
 from anyvar.utils.liftover_utils import LiftoverError
 from anyvar.utils.types import VrsObject, VrsVariation, variation_class_map
 
 load_dotenv()
 _logger = logging.getLogger(__name__)
+
+
+async def parse_and_rebuild_response(
+    response: StreamingResponse,
+) -> tuple[dict, Response]:
+    """Convert a `Response` object to a dict, then re-build a new Response object (since parsing exhausts the Response `body_iterator`).
+
+    :param response: the `Response` object to parse
+    :return: a tuple with a dictionary representation of the Response and a new `Response` object
+    """
+    response_chunks: list[bytes] = [
+        cast(bytes, chunk) async for chunk in response.body_iterator
+    ]
+    response_body_encoded = b"".join(response_chunks)
+    response_body = response_body_encoded.decode("utf-8")
+    response_json = json.loads(response_body)
+
+    new_response = JSONResponse(
+        content=response_json,
+        status_code=response.status_code,
+        media_type=response.media_type,
+    )
+
+    return (response_json, new_response)
 
 
 @asynccontextmanager
