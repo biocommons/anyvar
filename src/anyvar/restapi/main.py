@@ -338,9 +338,7 @@ async def add_creation_timestamp_annotation(
 
 
 @app.middleware("http")
-async def add_genomic_liftover_annotation(
-    request: Request, call_next: Callable
-) -> Response:
+async def add_liftover_annotation(request: Request, call_next: Callable) -> Response:
     """Perform genomic liftover between GRCh37 <-> GRCh38 and store the converted variant as an annotation of the original"""
     # Do nothing on request. Pass downstream.
     response = await call_next(request)
