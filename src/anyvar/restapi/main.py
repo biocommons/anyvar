@@ -326,56 +326,58 @@ async def add_genomic_liftover_annotation(
         "/vrs_variation",
     ]
     if request.url.path in registration_endpoints:
+        response_json, new_response = await parse_and_rebuild_response(
+            response
+        )  # We'll need to return the `new_response` object since we have now exhausted the original response body iterator
+
+        input_vrs_id, input_variant = (
+            response_json.get("object_id"),
+            response_json.get("object"),
+        )
+        if (
+            (not input_vrs_id) or (not input_variant)
+        ):  # If there's no vrs_id, registration was unsuccessful. Do not attempt liftover.
+            return new_response
+
+        # Check if we've already lifted over this variant before - no need to do it more than once
         annotator: AnyAnnotation | None = getattr(
             request.app.state, "anyannotation", None
         )
+        annotation_type = "liftover"
         if annotator:
-            response_json, new_response = await parse_and_rebuild_response(
-                response
-            )  # We'll need to return the `new_response` object since we have now exhausted the original response body iterator
-
-            input_vrs_id, input_variant = (
-                response_json.get("object_id"),
-                response_json.get("object"),
-            )
-            if (
-                (not input_vrs_id) or (not input_variant)
-            ):  # If there's no vrs_id, registration was unsuccessful. Do not attempt liftover.
-                return new_response
-
-            # Check if we've already lifted over this variant before - no need to do it more than once
-            annotation_type = "liftover"
             preexisting_liftover_annotation = annotator.get_annotation(
                 input_vrs_id, annotation_type
             )
             if preexisting_liftover_annotation:
                 return new_response
 
-            # Perform the liftover
-            anyvar: AnyVar = request.app.state.anyvar
-            lifted_over_variant: VrsObject | None = None
-            try:
-                lifted_over_variant = liftover_utils.get_liftover_variant(
-                    variant_object=input_variant, anyvar=anyvar
-                )
-                # If liftover was successful, we'll annotate with the ID of the lifted-over variant
-                annotation_value = lifted_over_variant.model_dump().get("id")
-            except LiftoverError as e:
-                # If liftover was unsuccessful, we'll annotate with an error message
-                annotation_value = e.get_error_message()
+        # Perform the liftover
+        anyvar: AnyVar = request.app.state.anyvar
+        lifted_over_variant: VrsObject | None = None
+        try:
+            lifted_over_variant = liftover_utils.get_liftover_variant(
+                variant_object=input_variant, anyvar=anyvar
+            )
+            # If liftover was successful, we'll annotate with the ID of the lifted-over variant
+            annotation_value = lifted_over_variant.model_dump().get("id")
+        except LiftoverError as e:
+            # If liftover was unsuccessful, we'll annotate with an error message
+            annotation_value = e.get_error_message()
 
-            # Add the annotation to the original variant
+        # Add the annotation to the original variant
+        if annotator:
             annotator.put_annotation(
                 object_id=input_vrs_id,
                 annotation_type=annotation_type,
                 annotation={annotation_type: annotation_value},
             )
 
-            # If liftover was successful, also register the lifted-over variant
-            # and add an annotation on the lifted-over variant linking it back to the original
-            if lifted_over_variant:
-                anyvar.put_object(lifted_over_variant)
+        # If liftover was successful, also register the lifted-over variant
+        # and add an annotation on the lifted-over variant linking it back to the original
+        if lifted_over_variant:
+            anyvar.put_object(lifted_over_variant)
 
+            if annotator:
                 # TODO: Verify that the liftover is reversible first. See Issue #195
                 annotator.put_annotation(
                     object_id=lifted_over_variant.model_dump().get("id", ""),
@@ -383,7 +385,7 @@ async def add_genomic_liftover_annotation(
                     annotation={annotation_type: input_vrs_id},
                 )
 
-            return new_response
+        return new_response
 
     return response
 
