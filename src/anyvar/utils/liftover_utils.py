@@ -2,6 +2,7 @@
 
 import copy
 from enum import Enum
+from typing import TypeVar
 
 from agct import Converter, Strand
 from bioutils.accessions import chr22XY
@@ -97,16 +98,19 @@ def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) 
     raise CoordinateConversionError
 
 
+_PositionType = TypeVar("_PositionType", int, list[int | None])
+
+
 def convert_position(
-    converter: Converter, chromosome: str, position: list | int
-) -> list | int:
-    """Convert a SequenceLocation position (i.e., `start` or `end`) to another reference Genome. `position` can either be a `list` or an `int` - return type will match.
+    converter: Converter, chromosome: str, position: _PositionType
+) -> _PositionType:
+    """Convert a SequenceLocation position (i.e., `start` or `end`) to another reference Genome. `position` can either be a `list[int | None]` or an `int` - return type will match.
 
     :param converter: An AGCT Converter instance.
     :param chromosome: The chromosome number where the position is found. Must be a string consisting of a) the prefix "chr", and b) a number OR "X" or "Y" -> e.g. "chr10", "chrX", etc.
-    :param position: A SequenceLocation start or end position. Can be a `list` or an `int`.
+    :param position: A SequenceLocation start or end position. Can be a `list[int | None]` or an `int`.
 
-    :return: A lifted-over position. Type (`list` or `int`) will match that of `position`
+    :return: A lifted-over position. Type (`list[int | None]` or `int`) will match that of `position`
     """
     # Handle int positions
     if isinstance(position, int):
