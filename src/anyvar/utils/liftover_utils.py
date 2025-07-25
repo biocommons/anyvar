@@ -2,10 +2,10 @@
 
 import re
 
-from agct import Converter, Genome, Strand
-from ga4gh.vrs.dataproxy import _DataProxy
+from agct import Converter, Strand
 from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 
+from anyvar.anyvar import AnyVar
 from anyvar.utils.types import VrsObject, VrsVariation, variation_class_map
 
 
@@ -169,9 +169,7 @@ def convert_position(
     return [lower_bound, upper_bound]
 
 
-def get_liftover_variant(
-    variant_object: dict, seqrepo_dataproxy: _DataProxy
-) -> VrsVariation:
+def get_liftover_variant(variant_object: dict, anyvar: AnyVar) -> VrsVariation:
     """Liftover a variant from GRCh37 or GRCH38 into the opposite assembly, and return the converted variant as a VrsObject.
     If liftover is unsuccessful, raise an Exception.
 
@@ -213,6 +211,8 @@ def get_liftover_variant(
     grch37 = "GRCh37"
     grch38 = "GRCh38"
 
+    seqrepo_dataproxy = anyvar.translator.dp
+
     # This is required for `get_from_and_to_assemblies` and `get_chromosome_from_aliases`
     # See function documentation for more details
     accession_aliases = {
@@ -224,8 +224,6 @@ def get_liftover_variant(
         ),
     }
 
-    from_assembly = None
-    to_assembly = None
     from_assembly, to_assembly = get_from_and_to_assemblies(
         accession_aliases
     )  # Will raise an `UnsupportedReferenceAssemblyError` or `AmbiguousReferenceAssemblyError` if unsuccessful
@@ -236,8 +234,10 @@ def get_liftover_variant(
         raise ChromosomeResolutionError
 
     # Begin liftover conversion
-    assembly_map = {grch37: Genome.HG19, grch38: Genome.HG38}
-    converter = Converter(assembly_map[from_assembly], assembly_map[to_assembly])
+    converter_key = f"{from_assembly.lower()}_to_{to_assembly.lower()}"
+    converter = anyvar.liftover_converters.get(converter_key)
+    if not converter:
+        raise LiftoverError  # This won't happen, but Python doesn't know that and gets mad cuz it thinks `converter` might be `None`
 
     # Get converted start/end positions. `convert_position` will raise a `CoordinateConversionError` if unsuccessful
     converted_start = convert_position(converter, chromosome, start_position)

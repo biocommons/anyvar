@@ -347,11 +347,11 @@ async def add_genomic_liftover_annotation(
                 return new_response
 
             # Perform the liftover
+            anyvar: AnyVar = request.app.state.anyvar
             lifted_over_variant: VrsObject | None = None
             try:
                 lifted_over_variant = liftover_utils.get_liftover_variant(
-                    variant_object=response_json.get("object", {}),
-                    seqrepo_dataproxy=request.app.state.anyvar.translator.dp,
+                    variant_object=response_json.get("object", {}), anyvar=anyvar
                 )
                 # If liftover was successful, we'll annotate with the ID of the lifted-over variant
                 annotation_value = lifted_over_variant.model_dump().get("id")
@@ -369,8 +369,7 @@ async def add_genomic_liftover_annotation(
             # If liftover was successful, also register the lifted-over variant
             # and add an annotation on the lifted-over variant linking it back to the original
             if lifted_over_variant:
-                av: AnyVar = request.app.state.anyvar
-                av.put_object(lifted_over_variant)
+                anyvar.put_object(lifted_over_variant)
 
                 # TODO: Verify that the liftover is reversible first. See Issue #195
                 annotator.put_annotation(

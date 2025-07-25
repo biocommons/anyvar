@@ -10,6 +10,7 @@ import warnings
 from collections.abc import MutableMapping
 from urllib.parse import urlparse
 
+from agct import Converter, Genome
 from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 
 from anyvar.storage import DEFAULT_STORAGE_URI, _Storage
@@ -133,6 +134,10 @@ class AnyVar:
 
         self.object_store = object_store
         self.translator = translator
+        self.liftover_converters = {
+            "grch37_to_grch38": Converter(Genome.HG19, Genome.HG38),
+            "grch38_to_grch37": Converter(Genome.HG38, Genome.HG19),
+        }
 
     def put_object(self, variation_object: VrsObject) -> str | None:
         """Attempt to register variation.
