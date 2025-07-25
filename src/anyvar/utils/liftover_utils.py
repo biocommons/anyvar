@@ -1,13 +1,22 @@
 """Defines functions used to lift over variants between GRCh37 & GRCh38"""
 
-import re
+import copy
+from enum import Enum
+from typing import TypeVar
 
-from agct import Converter, Genome, Strand
-from ga4gh.vrs.dataproxy import _DataProxy
+from agct import Converter, Strand
+from bioutils.accessions import chr22XY
 from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 
 from anyvar.anyvar import AnyAnnotation, AnyVar
 from anyvar.utils.types import VrsObject, VrsVariation, variation_class_map
+
+
+class ReferenceAssembly(Enum):
+    """Supported reference assemblies"""
+
+    GRCH37 = "GRCh37"
+    GRCH38 = "GRCh38"
 
 
 class LiftoverError(Exception):
@@ -68,61 +77,6 @@ class AccessionConversionError(LiftoverError):
     error_details = "Could not convert refget accession)"
 
 
-def get_chromosome_from_aliases(aliases: list[str]) -> str | None:
-    """Extract a string chromosome number from a list of aliases for a refget accession.
-
-    :param aliases: the list of aliases to search through for the chromosome number
-    :return: a string chromosome number, prefixed by "chr"
-    """
-    reference_alias = None
-    for alias in aliases:
-        if "GRCh" in alias:
-            reference_alias = alias
-            break
-
-    if reference_alias is None:
-        return None
-
-    # matches strings that start with a `:` character, then optionally the string "chr",
-    # then a group of digits OR the letters "X" or "Y" -> returns the group
-    # Example:  "GRCh38:chr10" -> returns "10"
-    #           "GRCh38:chrX" -> returns "X"
-    match_group = re.search(r":(?:chr)?(\d+|[XY])$", reference_alias)
-    chromosome_number: str | None = match_group.group(1) if match_group else None
-    if chromosome_number is None:
-        return None
-
-    return f"chr{chromosome_number}"
-
-
-def get_from_and_to_assemblies(aliases: dict) -> tuple[str, str]:
-    """Determine which assembly we're starting from, and which we're lifting over to.
-
-    Takes in a dictionary containing two lists of aliases, one for each supported reference assembly (GRCh37 and GRCh38):
-    - If an assembly contains aliases for the variant, the variant is part of that assembly.
-    - If *both* assemblies contain aliases for the variant, then it is identical across assemblies and requires no liftover.
-    - If *neither* assembly contains the variant, something has gone wrong: raises an exception
-
-    :param aliases: A dictionary containing a list of aliases for both supported reference assemblies (GRCh37 and GRCh38)
-    :return: A tuple containing the assembly we're converting from and the one we're converting to
-    :raise: A ReferenceAssemblyResolutionError if neither assembly contains the variant
-    """
-    grch37, grch38 = sorted(aliases.keys())
-
-    if aliases[grch37] and not aliases[grch38]:
-        from_assembly = grch37
-        to_assembly = grch38
-    elif aliases[grch38] and not aliases[grch37]:
-        from_assembly = grch38
-        to_assembly = grch37
-    elif not aliases[grch37] and not aliases[grch38]:
-        raise UnsupportedReferenceAssemblyError
-    else:
-        raise AmbiguousReferenceAssemblyError
-
-    return from_assembly, to_assembly
-
-
 def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) -> int:
     """Convert an individual coordinate to another reference genome. If the conversion is unsuccessful, raises a `CoordinateConversionError`
 
@@ -144,16 +98,19 @@ def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) 
     raise CoordinateConversionError
 
 
+_PositionType = TypeVar("_PositionType", int, list[int | None])
+
+
 def convert_position(
-    converter: Converter, chromosome: str, position: list | int
-) -> list | int:
-    """Convert a SequenceLocation position (i.e., `start` or `end`) to another reference Genome. `position` can either be a `list` or an `int` - return type will match.
+    converter: Converter, chromosome: str, position: _PositionType
+) -> _PositionType:
+    """Convert a SequenceLocation position (i.e., `start` or `end`) to another reference Genome. `position` can either be a `list[int | None]` or an `int` - return type will match.
 
     :param converter: An AGCT Converter instance.
     :param chromosome: The chromosome number where the position is found. Must be a string consisting of a) the prefix "chr", and b) a number OR "X" or "Y" -> e.g. "chr10", "chrX", etc.
-    :param position: A SequenceLocation start or end position. Can be a `list` or an `int`.
+    :param position: A SequenceLocation start or end position. Can be a `list[int | None]` or an `int`.
 
-    :return: A lifted-over position. Type (`list` or `int`) will match that of `position`
+    :return: A lifted-over position. Type (`list[int | None]` or `int`) will match that of `position`
     """
     # Handle int positions
     if isinstance(position, int):
@@ -170,9 +127,7 @@ def convert_position(
     return [lower_bound, upper_bound]
 
 
-def get_liftover_variant(
-    variant_object: dict, seqrepo_dataproxy: _DataProxy
-) -> VrsVariation:
+def get_liftover_variant(variant_object: dict, anyvar: AnyVar) -> VrsVariation:
     """Liftover a variant from GRCh37 or GRCH38 into the opposite assembly, and return the converted variant as a VrsObject.
     If liftover is unsuccessful, raise an Exception.
 
@@ -180,7 +135,7 @@ def get_liftover_variant(
     :param seqrepo_dataproxy: A `SeqrepoDataproxy` instance.
     :return: The converted variant as a `VrsObject`.
     :raises:
-        - `MalformedInputError`:  If the `variant_object` is empty or otherwise falesy
+        - `MalformedInputError`:  If the `variant_object` is empty or otherwise falsy
 
         - `UnsupportedVariantLocationTypeError`: If the variant lacks a refget accession, start position or end position
 
@@ -210,35 +165,33 @@ def get_liftover_variant(
 
     # Determine which assembly we're converting from/to
     prefixed_accession = f"ga4gh:{refget_accession}"
+    seqrepo_dataproxy = anyvar.translator.dp
+    if accession_aliases := seqrepo_dataproxy.translate_sequence_identifier(
+        prefixed_accession, ReferenceAssembly.GRCH38.value
+    ):
+        from_assembly, to_assembly = (
+            ReferenceAssembly.GRCH38.value,
+            ReferenceAssembly.GRCH37.value,
+        )
+    elif accession_aliases := seqrepo_dataproxy.translate_sequence_identifier(
+        prefixed_accession, ReferenceAssembly.GRCH37.value
+    ):
+        from_assembly, to_assembly = (
+            ReferenceAssembly.GRCH37.value,
+            ReferenceAssembly.GRCH38.value,
+        )
+    else:
+        msg = f"Unable to get reference sequence ID for {prefixed_accession}"
+        raise UnsupportedReferenceAssemblyError(msg)
 
-    grch37 = "GRCh37"
-    grch38 = "GRCh38"
+    # Get the Converter that will liftover the variant's coordinates
+    converter_key = f"{from_assembly}_to_{to_assembly}"
+    converter = anyvar.liftover_converters.get(converter_key)
+    if not converter:
+        raise LiftoverError  # This won't happen, but Python doesn't know that and gets mad cuz it thinks `converter` might be `None`
 
-    # This is required for `get_from_and_to_assemblies` and `get_chromosome_from_aliases`
-    # See function documentation for more details
-    accession_aliases = {
-        grch37: list(
-            seqrepo_dataproxy.translate_sequence_identifier(prefixed_accession, grch37)
-        ),
-        grch38: list(
-            seqrepo_dataproxy.translate_sequence_identifier(prefixed_accession, grch38)
-        ),
-    }
-
-    from_assembly = None
-    to_assembly = None
-    from_assembly, to_assembly = get_from_and_to_assemblies(
-        accession_aliases
-    )  # Will raise an `UnsupportedReferenceAssemblyError` or `AmbiguousReferenceAssemblyError` if unsuccessful
-
-    # Determine which chromosome the variant is on
-    chromosome = get_chromosome_from_aliases(accession_aliases.get(from_assembly, []))
-    if not chromosome:
-        raise ChromosomeResolutionError
-
-    # Begin liftover conversion
-    assembly_map = {grch37: Genome.HG19, grch38: Genome.HG38}
-    converter = Converter(assembly_map[from_assembly], assembly_map[to_assembly])
+    # Determine which chromosome we're on
+    chromosome = chr22XY(accession_aliases[0].split(":")[1])
 
     # Get converted start/end positions. `convert_position` will raise a `CoordinateConversionError` if unsuccessful
     converted_start = convert_position(converter, chromosome, start_position)
@@ -265,7 +218,7 @@ def get_liftover_variant(
 
     # Build the liftover variant object
     # Start by copying the original variant
-    converted_variant_dict = variant_object
+    converted_variant_dict = copy.deepcopy(variant_object)
 
     # Replace the location with the lifted-over version
     converted_variant_dict["location"] = converted_variant_location
@@ -297,7 +250,7 @@ def add_liftover_annotations(
     original_vrs_id: str,
     original_vrs_object: dict,
     anyvar: AnyVar,
-    annotator: AnyAnnotation,
+    annotator: AnyAnnotation | None,
 ) -> None:
     """Perform liftover between GRCh37 <-> GRCh38. Store the ID of converted variant as an annotation of the original,
     register the lifted-over variant, and store the ID of the original variant as an annotation of the lifted-over one.
@@ -307,13 +260,16 @@ def add_liftover_annotations(
     :param anyvar: An `AnyVar` instance
     :param annotator: An `AnyAnnotation` instance
     """
+    if annotator and annotator.get_annotation(original_vrs_id, "liftover"):
+        return
+
     annotation_type = "liftover"
 
     lifted_over_variant: VrsObject | None = None
     try:
         lifted_over_variant = get_liftover_variant(
             variant_object=original_vrs_object,
-            seqrepo_dataproxy=anyvar.translator.dp,
+            anyvar=anyvar,
         )
         # If liftover was successful, we'll annotate with the ID of the lifted-over variant
         annotation_value = lifted_over_variant.model_dump().get("id")
@@ -322,11 +278,12 @@ def add_liftover_annotations(
         annotation_value = e.get_error_message()
 
     # Add the annotation to the original variant
-    annotator.put_annotation(
-        object_id=original_vrs_id,
-        annotation_type=annotation_type,
-        annotation={annotation_type: annotation_value},
-    )
+    if annotator:
+        annotator.put_annotation(
+            object_id=original_vrs_id,
+            annotation_type=annotation_type,
+            annotation={annotation_type: annotation_value},
+        )
 
     # If liftover was successful, also register the lifted-over variant
     # and add an annotation on the lifted-over variant linking it back to the original
@@ -334,8 +291,9 @@ def add_liftover_annotations(
         anyvar.put_object(lifted_over_variant)
 
         # TODO: Verify that the liftover is reversible first. See Issue #195
-        annotator.put_annotation(
-            object_id=lifted_over_variant.model_dump().get("id", ""),
-            annotation_type=annotation_type,
-            annotation={annotation_type: original_vrs_id},
-        )
+        if annotator:
+            annotator.put_annotation(
+                object_id=lifted_over_variant.model_dump().get("id", ""),
+                annotation_type=annotation_type,
+                annotation={annotation_type: original_vrs_id},
+            )

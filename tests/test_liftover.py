@@ -2,12 +2,8 @@ import copy
 
 import pytest
 from data.liftover_variants import test_variants
-from ga4gh.vrs.dataproxy import _DataProxy
 
 import anyvar.utils.liftover_utils as liftover_utils
-from anyvar.anyvar import AnyVar, create_storage, create_translator
-from anyvar.storage import _Storage
-from anyvar.translate.translate import _Translator
 
 
 def extract_variant(variant_name):
@@ -76,31 +72,23 @@ FAILURE_CASES = [
 NO_LIFTOVER_CASES = ["empty_variation_object", "invalid_variant"]
 
 
-@pytest.fixture(scope="module")
-def seqrepo_dataproxy() -> _DataProxy:
-    storage: _Storage = create_storage()
-    translator: _Translator = create_translator()
-    anyvar_instance: AnyVar = AnyVar(object_store=storage, translator=translator)
-    return anyvar_instance.translator.dp
-
-
 ####################################################################################
 ## Tests for src/anyvar/utils/liftover_utils.py > 'get_liftover_variant' function ##
 ####################################################################################
 @pytest.mark.parametrize("variant_fixture_name", SUCCESS_CASES)
-def test_liftover_success(request, variant_fixture_name, seqrepo_dataproxy):
+def test_liftover_success(request, variant_fixture_name, client):
     variant_input, expected_output = request.getfixturevalue(variant_fixture_name)
     lifted_over_variant_output = liftover_utils.get_liftover_variant(
-        variant_input, seqrepo_dataproxy
+        variant_input, client.app.state.anyvar
     )
     assert lifted_over_variant_output == expected_output
 
 
 @pytest.mark.parametrize("variant_fixture_name", FAILURE_CASES)
-def test_liftover_failure(request, variant_fixture_name, seqrepo_dataproxy):
+def test_liftover_failure(request, variant_fixture_name, client):
     variant_input, expected_error = request.getfixturevalue(variant_fixture_name)
     with pytest.raises(expected_error):
-        liftover_utils.get_liftover_variant(variant_input, seqrepo_dataproxy)
+        liftover_utils.get_liftover_variant(variant_input, client.app.state.anyvar)
 
 
 ######################################################################################################

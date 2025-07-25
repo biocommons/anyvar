@@ -1,6 +1,7 @@
 """Provide core route definitions for REST service."""
 
 import datetime
+import json
 import logging
 import logging.config
 import os
@@ -8,7 +9,7 @@ import pathlib
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from http import HTTPStatus
-from typing import Annotated
+from typing import Annotated, cast
 
 import anyio
 import ga4gh.vrs
@@ -23,6 +24,7 @@ from fastapi import (
     Request,
     Response,
 )
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import StrictStr
 
 import anyvar
@@ -47,11 +49,34 @@ from anyvar.restapi.vcf import router as vcf_router
 from anyvar.translate.translate import (
     TranslationError,
 )
-from anyvar.utils.general import parse_and_rebuild_response
 from anyvar.utils.types import VrsVariation, variation_class_map
 
 load_dotenv()
 _logger = logging.getLogger(__name__)
+
+
+async def parse_and_rebuild_response(
+    response: StreamingResponse,
+) -> tuple[dict, Response]:
+    """Convert a `Response` object to a dict, then re-build a new Response object (since parsing exhausts the Response `body_iterator`).
+
+    :param response: the `Response` object to parse
+    :return: a tuple with a dictionary representation of the Response and a new `Response` object
+    """
+    response_chunks: list[bytes] = [
+        cast(bytes, chunk) async for chunk in response.body_iterator
+    ]
+    response_body_encoded = b"".join(response_chunks)
+    response_body = response_body_encoded.decode("utf-8")
+    response_json = json.loads(response_body)
+
+    new_response = JSONResponse(
+        content=response_json,
+        status_code=response.status_code,
+        media_type=response.media_type,
+    )
+
+    return (response_json, new_response)
 
 
 @asynccontextmanager
@@ -290,36 +315,44 @@ async def add_registration_annotations(
         "/vrs_variation",
     ]
 
-    # Can't do annotations if we don't have an Annotator
-    annotator: AnyAnnotation | None = getattr(request.app.state, "anyannotation", None)
-
-    if not annotator or request.url.path not in registration_endpoints:
+    if request.url.path not in registration_endpoints:
         return response
 
     response_json, new_response = await parse_and_rebuild_response(
         response
     )  # We'll need to return the `new_response` object since we have now exhausted the original response body iterator
 
-    vrs_id = response_json.get("object_id")
-    if not vrs_id:  # If there's no vrs_id, registration was unsuccessful. We can't .
+    input_vrs_id, input_variant = (
+        response_json.get("object_id"),
+        response_json.get("object"),
+    )
+    if (
+        (not input_vrs_id) or (not input_variant)
+    ):  # If there's no vrs_id/input variant, registration was unsuccessful. Do not attempt liftover.
         return new_response
 
     # Add annotations
-    timestamp_annotations = annotator.get_annotation(vrs_id, "creation_timestamp")
-    if not timestamp_annotations:
-        annotator.put_annotation(
-            object_id=vrs_id,
-            annotation_type="creation_timestamp",
-            annotation={
-                "timestamp": datetime.datetime.now(tz=datetime.UTC).isoformat()
-            },
-        )
+    annotator: AnyAnnotation | None = request.app.state.anyannotation
 
-    preexisting_liftover_annotations = annotator.get_annotation(vrs_id, "liftover")
-    if not preexisting_liftover_annotations:
-        anyvar: AnyVar = request.app.state.anyvar
-        vrs_object = response_json.get("object", {})
-        liftover_utils.add_liftover_annotations(vrs_id, vrs_object, anyvar, annotator)
+    if annotator:
+        timestamp_annotations = annotator.get_annotation(
+            input_vrs_id, "creation_timestamp"
+        )
+        if not timestamp_annotations:
+            annotator.put_annotation(
+                object_id=input_vrs_id,
+                annotation_type="creation_timestamp",
+                annotation={
+                    "timestamp": datetime.datetime.now(tz=datetime.UTC).isoformat()
+                },
+            )
+
+    liftover_utils.add_liftover_annotations(
+        original_vrs_id=input_vrs_id,
+        original_vrs_object=input_variant,
+        anyvar=request.app.state.anyvar,
+        annotator=annotator,
+    )
 
     return new_response
 
