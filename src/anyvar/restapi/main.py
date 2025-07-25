@@ -334,14 +334,19 @@ async def add_genomic_liftover_annotation(
                 response
             )  # We'll need to return the `new_response` object since we have now exhausted the original response body iterator
 
-            original_vrs_id = response_json.get("object_id")
-            if not original_vrs_id:  # If there's no vrs_id, registration was unsuccessful. Do not attempt liftover.
+            input_vrs_id, input_variant = (
+                response_json.get("object_id"),
+                response_json.get("object"),
+            )
+            if (
+                (not input_vrs_id) or (not input_variant)
+            ):  # If there's no vrs_id, registration was unsuccessful. Do not attempt liftover.
                 return new_response
 
             # Check if we've already lifted over this variant before - no need to do it more than once
             annotation_type = "liftover"
             preexisting_liftover_annotation = annotator.get_annotation(
-                original_vrs_id, annotation_type
+                input_vrs_id, annotation_type
             )
             if preexisting_liftover_annotation:
                 return new_response
@@ -351,7 +356,7 @@ async def add_genomic_liftover_annotation(
             lifted_over_variant: VrsObject | None = None
             try:
                 lifted_over_variant = liftover_utils.get_liftover_variant(
-                    variant_object=response_json.get("object", {}), anyvar=anyvar
+                    variant_object=input_variant, anyvar=anyvar
                 )
                 # If liftover was successful, we'll annotate with the ID of the lifted-over variant
                 annotation_value = lifted_over_variant.model_dump().get("id")
@@ -361,7 +366,7 @@ async def add_genomic_liftover_annotation(
 
             # Add the annotation to the original variant
             annotator.put_annotation(
-                object_id=original_vrs_id,
+                object_id=input_vrs_id,
                 annotation_type=annotation_type,
                 annotation={annotation_type: annotation_value},
             )
@@ -375,7 +380,7 @@ async def add_genomic_liftover_annotation(
                 annotator.put_annotation(
                     object_id=lifted_over_variant.model_dump().get("id", ""),
                     annotation_type=annotation_type,
-                    annotation={annotation_type: original_vrs_id},
+                    annotation={annotation_type: input_vrs_id},
                 )
 
             return new_response
