@@ -348,8 +348,8 @@ async def add_registration_annotations(
             )
 
     liftover_utils.add_liftover_annotations(
-        original_vrs_id=input_vrs_id,
-        original_vrs_object=input_variant,
+        input_vrs_id=input_vrs_id,
+        input_vrs_object=input_variant,
         anyvar=request.app.state.anyvar,
         annotator=annotator,
     )

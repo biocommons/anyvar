@@ -247,8 +247,8 @@ def get_liftover_variant(variant_object: dict, anyvar: AnyVar) -> VrsVariation:
 
 
 def add_liftover_annotations(
-    original_vrs_id: str,
-    original_vrs_object: dict,
+    input_vrs_id: str,
+    input_vrs_object: dict,
     anyvar: AnyVar,
     annotator: AnyAnnotation | None,
 ) -> None:
@@ -260,15 +260,15 @@ def add_liftover_annotations(
     :param anyvar: An `AnyVar` instance
     :param annotator: An `AnyAnnotation` instance
     """
-    if annotator and annotator.get_annotation(original_vrs_id, "liftover"):
-        return
-
+    # No need to do this more than once
     annotation_type = "liftover"
+    if annotator and annotator.get_annotation(input_vrs_id, annotation_type):
+        return
 
     lifted_over_variant: VrsObject | None = None
     try:
         lifted_over_variant = get_liftover_variant(
-            variant_object=original_vrs_object,
+            variant_object=input_vrs_object,
             anyvar=anyvar,
         )
         # If liftover was successful, we'll annotate with the ID of the lifted-over variant
@@ -280,7 +280,7 @@ def add_liftover_annotations(
     # Add the annotation to the original variant
     if annotator:
         annotator.put_annotation(
-            object_id=original_vrs_id,
+            object_id=input_vrs_id,
             annotation_type=annotation_type,
             annotation={annotation_type: annotation_value},
         )
@@ -290,10 +290,10 @@ def add_liftover_annotations(
     if lifted_over_variant:
         anyvar.put_object(lifted_over_variant)
 
-        # TODO: Verify that the liftover is reversible first. See Issue #195
         if annotator:
+            # TODO: Verify that the liftover is reversible first. See Issue #195
             annotator.put_annotation(
                 object_id=lifted_over_variant.model_dump().get("id", ""),
                 annotation_type=annotation_type,
-                annotation={annotation_type: original_vrs_id},
+                annotation={annotation_type: input_vrs_id},
             )
