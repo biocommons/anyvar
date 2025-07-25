@@ -1,5 +1,6 @@
 """Defines functions used to lift over variants between GRCh37 & GRCh38"""
 
+import copy
 from enum import Enum
 
 from agct import Converter, Strand
@@ -213,7 +214,7 @@ def get_liftover_variant(variant_object: dict, anyvar: AnyVar) -> VrsVariation:
 
     # Build the liftover variant object
     # Start by copying the original variant
-    converted_variant_dict = variant_object
+    converted_variant_dict = copy.deepcopy(variant_object)
 
     # Replace the location with the lifted-over version
     converted_variant_dict["location"] = converted_variant_location
