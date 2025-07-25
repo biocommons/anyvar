@@ -179,7 +179,7 @@ def get_liftover_variant(
     :param seqrepo_dataproxy: A `SeqrepoDataproxy` instance.
     :return: The converted variant as a `VrsObject`.
     :raises:
-        - `MalformedInputError`:  If the `variant_object` is empty or otherwise falesy
+        - `MalformedInputError`:  If the `variant_object` is empty or otherwise falsy
 
         - `UnsupportedVariantLocationTypeError`: If the variant lacks a refget accession, start position or end position
 
