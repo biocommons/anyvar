@@ -359,7 +359,7 @@ async def add_liftover_annotation(request: Request, call_next: Callable) -> Resp
         )
         if (
             (not input_vrs_id) or (not input_variant)
-        ):  # If there's no vrs_id, registration was unsuccessful. Do not attempt liftover.
+        ):  # If there's no vrs_id/input variant, registration was unsuccessful. Do not attempt liftover.
             return new_response
 
         # Check if we've already lifted over this variant before - no need to do it more than once
