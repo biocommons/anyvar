@@ -25,6 +25,7 @@ dependencies = [
     "pysam",
     "python-dotenv",
     "anyio",
+    "bioutils"
 ]
 dynamic = ["version"]
 
