@@ -892,5 +892,89 @@ def get_stats(
     description="TODO",
     tags=[],
 )
-def put_vrsix(request: Request) -> RunStatusResponse | ErrorResponse | None:
+async def put_vrsix(
+    request: Request,
+    response: Response,
+    bg_tasks: BackgroundTasks,
+    vrsix: Annotated[UploadFile, File(..., description="VRSIX file to ingest")],
+    allow_async_write: Annotated[
+        bool,
+        Query(
+            description="Whether to allow asynchronous write of VRS objects to database",
+        ),
+    ] = False,
+    run_async: Annotated[
+        bool,
+        Query(
+            description="If true, immediately return a '202 Accepted' response and run asynchronously",
+        ),
+    ] = False,
+    run_id: Annotated[
+        str | None,
+        Query(
+            description="When running asynchronously, use the specified value as the run id instead generating a random uuid",
+        ),
+    ] = None,
+) -> RunStatusResponse | ErrorResponse | None:
     """Add VRSIX records as AnyVar annotations."""
+    if not hasattr(request.app.state, "anyannotation"):
+        response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+        return ErrorResponse(error="Annotation service unavailable in this deployment.")
+    if run_async and not anyvar.anyvar.has_queueing_enabled():
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return ErrorResponse(
+            error="Required modules and/or configurations for asynchronous VRSIX ingestion are missing"
+        )
+    vrsix.file.rollover()  # flush file buffer
+
+    # Submit asynchronous run
+    if run_async:
+        return await _ingest_vrsix_async(
+            response=response,
+            vrsix=vrsix,
+            allow_async_write=allow_async_write,
+            run_id=run_id,
+        )
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".vrsix") as temp_in:
+        contents = await vrsix.read()
+        temp_in.write(contents)
+        temp_in_path = pathlib.Path(temp_in.name)
+    try:
+        await _ingest_vrsix_sync(
+            av=request.app.state.anyvar,
+            anno=request.app.state.anyannotation,
+            cleanup=lambda: bg_tasks.add_task(temp_in_path.unlink),
+            vrsix_path=temp_in_path,
+            allow_async_write=allow_async_write,
+        )
+    except Exception:
+        _logger.exception(
+            "Encountered exception while processing vrsix file at %s", temp_in_path
+        )
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ErrorResponse(error="VRSIX ingestion failed.")
+
+
+async def _ingest_vrsix_sync(
+    av: AnyVar,
+    anno: AnyAnnotation,
+    cleanup: Callable,
+    vrsix_path: pathlib.Path,
+    allow_async_write: bool,
+) -> None | ErrorResponse:
+    """Annotate with VRS IDs synchronously.  See `annotate_vcf()` for parameter definitions."""
+    # registrar.annotate(
+    #     input_vcf_path=temp_in_path,
+    #     output_vcf_path=temp_out_path,
+    #     compute_for_ref=for_ref,
+    #     assembly=assembly,
+    # )
+
+    if not allow_async_write:
+        _logger.info("Waiting for object store writes from API handler method")
+        av.object_store.wait_for_writes()
+
+    cleanup()
+
+    return None
