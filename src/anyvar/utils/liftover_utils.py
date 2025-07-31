@@ -74,7 +74,7 @@ class CoordinateConversionError(LiftoverError):
 class AccessionConversionError(LiftoverError):
     """Indicates a failure to convert a variant's refget accession"""
 
-    error_details = "Could not convert refget accession)"
+    error_details = "Could not convert refget accession"
 
 
 def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) -> int:
