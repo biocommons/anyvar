@@ -12,6 +12,7 @@ identifiers, and register biological sequence variation according to the
    Quick Start<quick-start>
    Dependencies<dependencies/index>
    Storage Options<storage/index>
+   Usage<usage>
    Async Operation<async>
    Logging Configuration<logging>
    Example Configuration<example-config>
