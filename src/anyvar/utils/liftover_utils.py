@@ -6,11 +6,12 @@ from typing import TypeVar
 
 from agct import Converter, Strand
 from bioutils.accessions import chr22XY
+from ga4gh.vrs import models
 from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 
 from anyvar.anyvar import AnyAnnotation, AnyVar
-from anyvar.utils.funcs import get_nested_key
-from anyvar.utils.types import VrsObject, VrsVariation, variation_class_map
+from anyvar.utils.funcs import get_nested_attribute
+from anyvar.utils.types import VrsVariation, variation_class_map
 
 
 class ReferenceAssembly(Enum):
@@ -99,44 +100,44 @@ def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) 
     raise CoordinateConversionError
 
 
-_PositionType = TypeVar("_PositionType", int, list[int | None])
+_PositionType = TypeVar("_PositionType", int, models.Range)
 
 
 def convert_position(
     converter: Converter, chromosome: str, position: _PositionType
 ) -> _PositionType:
-    """Convert a SequenceLocation position (i.e., `start` or `end`) to another reference Genome. `position` can either be a `list[int | None]` or an `int` - return type will match.
+    """Convert a SequenceLocation position (i.e., `start` or `end`) to another reference Genome. `position` can either be a `models.Range` or an `int` - return type will match.
 
     :param converter: An AGCT Converter instance.
     :param chromosome: The chromosome number where the position is found. Must be a string consisting of a) the prefix "chr", and b) a number OR "X" or "Y" -> e.g. "chr10", "chrX", etc.
-    :param position: A SequenceLocation start or end position. Can be a `list[int | None]` or an `int`.
+    :param position: A SequenceLocation start or end position. Can be a `models.Range` or an `int`.
 
-    :return: A lifted-over position. Type (`list[int | None]` or `int`) will match that of `position`
+    :return: A lifted-over position. Type (`models.Range` or `int`) will match that of `position`
     """
     # Handle int positions
     if isinstance(position, int):
         return _convert_coordinate(converter, chromosome, position)
 
     # Handle Range (list) positions
-    lower_bound, upper_bound = position
+    lower_bound, upper_bound = position.root
     lower_bound = (
         _convert_coordinate(converter, chromosome, lower_bound) if lower_bound else None
     )
     upper_bound = (
         _convert_coordinate(converter, chromosome, upper_bound) if upper_bound else None
     )
-    return [lower_bound, upper_bound]
+    return models.Range([lower_bound, upper_bound])
 
 
-def get_liftover_variant(variant_object: dict, anyvar: AnyVar) -> VrsVariation:
-    """Liftover a variant from GRCh37 or GRCH38 into the opposite assembly, and return the converted variant as a VrsObject.
+def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVariation:
+    """Liftover a variant from GRCh37 or GRCH38 into the opposite assembly, and return the converted variant as a VrsVariation.
     If liftover is unsuccessful, raise an Exception.
 
-    :param variant_object: A dictionary representation of a `VrsVariation`.
+    :param input_variant: A dictionary representation of a `VrsVariation`.
     :param seqrepo_dataproxy: A `SeqrepoDataproxy` instance.
-    :return: The converted variant as a `VrsObject`.
+    :return: The converted variant as a `VrsVariation`.
     :raises:
-        - `MalformedInputError`:  If the `variant_object` is empty or otherwise falsy
+        - `MalformedInputError`:  If the `input_variant` is empty or otherwise falsy
 
         - `UnsupportedVariantLocationTypeError`: If the variant lacks a refget accession, start position or end position
 
@@ -150,14 +151,14 @@ def get_liftover_variant(variant_object: dict, anyvar: AnyVar) -> VrsVariation:
 
         - `AccessionConversionError`: If unable to lift over the variant's refget accession
     """
-    if not variant_object:
+    if not input_variant:
         raise MalformedInputError
 
-    refget_accession = get_nested_key(
-        variant_object, "location", "sequenceReference", "refgetAccession"
+    refget_accession = get_nested_attribute(
+        input_variant, "location", "sequenceReference", "refgetAccession"
     )
-    start_position = get_nested_key(variant_object, "location", "start")
-    end_position = get_nested_key(variant_object, "location", "end")
+    start_position = get_nested_attribute(input_variant, "location", "start")
+    end_position = get_nested_attribute(input_variant, "location", "end")
     if not refget_accession or not start_position or not end_position:
         raise UnsupportedVariantLocationTypeError
 
@@ -203,50 +204,62 @@ def get_liftover_variant(variant_object: dict, anyvar: AnyVar) -> VrsVariation:
     if not converted_refget_accession:
         raise AccessionConversionError
 
-    # Build the converted location dict
-    converted_variant_location = {
-        "start": converted_start,
-        "end": converted_end,
-        "id": None,
-        "sequenceReference": {
-            "type": "SequenceReference",
-            "refgetAccession": converted_refget_accession,
-        },
-    }
+    # Build the converted location object
+    converted_variant_location = models.SequenceLocation(
+        start=converted_start,
+        end=converted_end,
+        id=None,
+        type="SequenceLocation",
+        description=None,
+        name=None,
+        aliases=None,
+        sequence=None,
+        extensions=None,
+        digest=None,
+        sequenceReference=models.SequenceReference(
+            type="SequenceReference",
+            refgetAccession=converted_refget_accession,
+            name=None,
+            id=None,
+            description=None,
+            aliases=None,
+            extensions=None,
+            residueAlphabet=None,
+            circular=None,
+            sequence=None,
+            moleculeType=None,
+        ),
+    )
 
     # Build the liftover variant object
     # Start by copying the original variant
-    converted_variant_dict = copy.deepcopy(variant_object)
+    converted_variant = copy.deepcopy(input_variant)
 
     # Replace the location with the lifted-over version
-    converted_variant_dict["location"] = converted_variant_location
+    converted_variant.location = converted_variant_location
 
-    # Get rid of the identifiers since these were from the original variant object and we need to re-compute them
-    converted_variant_dict["digest"] = None
-    converted_variant_dict["id"] = None
-
-    # Convert the dict into a VrsObject class instance so we can compute the identifiers
-    variant_type = variant_object.get("type", "")
-    converted_variant_object: VrsObject = variation_class_map[variant_type](
-        **converted_variant_dict
-    )
+    # Get rid of the identifiers since these were from the original input variant and we need to re-compute them
+    converted_variant.digest = None
+    converted_variant.id = None
 
     # Compute the identifiers
     object_store = {}
     enreffed_variant = vrs_enref(
-        o=converted_variant_object,
+        o=converted_variant,
         object_store=object_store,
         return_id_obj_tuple=False,
     )
 
-    # return the dereffed lifted-over variant as a VrsObject
+    # return the dereffed lifted-over variant
     dereffed_variant = vrs_deref(o=enreffed_variant, object_store=object_store)
-    return variation_class_map[variant_type](**dereffed_variant.model_dump())
+    return variation_class_map[dereffed_variant.type](
+        **dereffed_variant.model_dump()
+    )  # explicitly cast to a VrsVariant so Pylance doesn't get mad
 
 
 def add_liftover_annotations(
     input_vrs_id: str,
-    input_vrs_object: dict,
+    input_vrs_variant_dict: dict,
     anyvar: AnyVar,
     annotator: AnyAnnotation | None,
 ) -> None:
@@ -263,10 +276,16 @@ def add_liftover_annotations(
     if annotator and annotator.get_annotation(input_vrs_id, annotation_type):
         return
 
-    lifted_over_variant: VrsObject | None = None
+    # convert `input_vrs_object_dict` into an actual VrsVariation class instance
+    variant_type = input_vrs_variant_dict.get("type", "")
+    input_vrs_variant: VrsVariation = variation_class_map[variant_type](
+        **input_vrs_variant_dict
+    )
+
+    lifted_over_variant: VrsVariation | None = None
     try:
         lifted_over_variant = get_liftover_variant(
-            variant_object=input_vrs_object,
+            input_variant=input_vrs_variant,
             anyvar=anyvar,
         )
         # If liftover was successful, we'll annotate with the ID of the lifted-over variant

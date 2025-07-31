@@ -4,54 +4,72 @@ import pytest
 from data.liftover_variants import test_variants
 
 import anyvar.utils.liftover_utils as liftover_utils
+from anyvar.utils.types import VrsVariation, variation_class_map
 
 
-def extract_variant(variant_name):
+def convert_dict_to_class(variant_dict: dict) -> VrsVariation:
+    variant_type = variant_dict.get("type", "")
+    return variation_class_map[variant_type](**variant_dict)
+
+
+def extract_variants(variant_name):
     variant_test_case = copy.deepcopy(test_variants[variant_name])
     return (variant_test_case["variant_input"], variant_test_case["expected_output"])
+
+
+# def extract_variants(variant_name, convertInputToClassObject = False):
+#     variant_test_case = copy.deepcopy(test_variants[variant_name])
+
+#     variant_input = variant_test_case["variant_input"]
+#     expected_output = variant_test_case["expected_output"]
+
+#     if(convertInputToClassObject):
+#         variant_input = convert_dict_to_class(variant_input)
+
+#     return (variant_input, expected_output)
 
 
 # Success Cases
 @pytest.fixture
 def copynumber_ranged_positive_grch37_variant():
-    return extract_variant("copynumber_ranged_positive_grch37_variant")
+    return extract_variants("copynumber_ranged_positive_grch37_variant")
 
 
 @pytest.fixture
 def allele_int_negative_grch38_variant():
-    return extract_variant("allele_int_negative_grch38_variant")
+    return extract_variants("allele_int_negative_grch38_variant")
 
 
 @pytest.fixture
 def allele_int_unknown_grch38_variant():
-    return extract_variant("allele_int_unknown_grch38_variant")
+    return extract_variants("allele_int_unknown_grch38_variant")
 
 
 # Failure Cases
 @pytest.fixture
 def grch36_variant():
-    return extract_variant("grch36_variant")
+    return extract_variants("grch36_variant")
 
 
 @pytest.fixture
 def unconvertible_grch37_variant():
-    return extract_variant("unconvertible_grch37_variant")
+    return extract_variants("unconvertible_grch37_variant")
 
 
 @pytest.fixture
 def unconvertible_grch38_variant():
-    return extract_variant("unconvertible_grch38_variant")
+    return extract_variants("unconvertible_grch38_variant")
 
 
 # Cases where liftover should not be attempted
 @pytest.fixture
 def empty_variation_object():
-    return extract_variant("empty_variation_object")
+    return extract_variants("empty_variation_object")
 
 
 @pytest.fixture
 def invalid_variant():
-    return extract_variant("invalid_variant")
+    return extract_variants("invalid_variant")
 
 
 # Cases where liftover should be successful
@@ -79,7 +97,7 @@ NO_LIFTOVER_CASES = ["empty_variation_object", "invalid_variant"]
 def test_liftover_success(request, variant_fixture_name, client):
     variant_input, expected_output = request.getfixturevalue(variant_fixture_name)
     lifted_over_variant_output = liftover_utils.get_liftover_variant(
-        variant_input, client.app.state.anyvar
+        convert_dict_to_class(variant_input), client.app.state.anyvar
     )
     assert lifted_over_variant_output == expected_output
 
@@ -88,11 +106,13 @@ def test_liftover_success(request, variant_fixture_name, client):
 def test_liftover_failure(request, variant_fixture_name, client):
     variant_input, expected_error = request.getfixturevalue(variant_fixture_name)
     with pytest.raises(expected_error):
-        liftover_utils.get_liftover_variant(variant_input, client.app.state.anyvar)
+        liftover_utils.get_liftover_variant(
+            convert_dict_to_class(variant_input), client.app.state.anyvar
+        )
 
 
 ######################################################################################################
-## Tests for the middleware function src/anyvar/restapi/main.py > 'add_genomic_liftover_annotation' ##
+## Tests for the middleware function src/anyvar/restapi/main.py > 'add_liftover_annotation' ##
 ######################################################################################################
 @pytest.mark.parametrize(
     "variant_fixture_name",
