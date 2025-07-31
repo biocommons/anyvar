@@ -9,6 +9,7 @@ from bioutils.accessions import chr22XY
 from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 
 from anyvar.anyvar import AnyVar
+from anyvar.utils.funcs import get_nested_key
 from anyvar.utils.types import VrsObject, VrsVariation, variation_class_map
 
 
@@ -152,14 +153,11 @@ def get_liftover_variant(variant_object: dict, anyvar: AnyVar) -> VrsVariation:
     if not variant_object:
         raise MalformedInputError
 
-    # Get variant start position, end position, and refget accession - liftover is currently unsupported without these
-    refget_accession = (
-        variant_object.get("location", {})
-        .get("sequenceReference", {})
-        .get("refgetAccession")
+    refget_accession = get_nested_key(
+        variant_object, "location", "sequenceReference", "refgetAccession"
     )
-    start_position = variant_object.get("location", {}).get("start")
-    end_position = variant_object.get("location", {}).get("end")
+    start_position = get_nested_key(variant_object, "location", "start")
+    end_position = get_nested_key(variant_object, "location", "end")
     if not refget_accession or not start_position or not end_position:
         raise UnsupportedVariantLocationTypeError
 
