@@ -382,7 +382,7 @@ async def add_liftover_annotation(request: Request, call_next: Callable) -> Resp
                 variant_object=input_variant, anyvar=anyvar
             )
             # If liftover was successful, we'll annotate with the ID of the lifted-over variant
-            annotation_value = lifted_over_variant.model_dump().get("id")
+            annotation_value = lifted_over_variant.id
         except LiftoverError as e:
             # If liftover was unsuccessful, we'll annotate with an error message
             annotation_value = e.get_error_message()
@@ -403,7 +403,7 @@ async def add_liftover_annotation(request: Request, call_next: Callable) -> Resp
             if annotator:
                 # TODO: Verify that the liftover is reversible first. See Issue #195
                 annotator.put_annotation(
-                    object_id=lifted_over_variant.model_dump().get("id", ""),
+                    object_id=str(lifted_over_variant.id),
                     annotation_type=annotation_type,
                     annotation={annotation_type: input_vrs_id},
                 )
