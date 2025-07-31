@@ -9,6 +9,7 @@ from bioutils.accessions import chr22XY
 from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 
 from anyvar.anyvar import AnyAnnotation, AnyVar
+from anyvar.utils.funcs import get_nested_key
 from anyvar.utils.types import VrsObject, VrsVariation, variation_class_map
 
 
@@ -74,7 +75,7 @@ class CoordinateConversionError(LiftoverError):
 class AccessionConversionError(LiftoverError):
     """Indicates a failure to convert a variant's refget accession"""
 
-    error_details = "Could not convert refget accession)"
+    error_details = "Could not convert refget accession"
 
 
 def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) -> int:
@@ -152,14 +153,11 @@ def get_liftover_variant(variant_object: dict, anyvar: AnyVar) -> VrsVariation:
     if not variant_object:
         raise MalformedInputError
 
-    # Get variant start position, end position, and refget accession - liftover is currently unsupported without these
-    refget_accession = (
-        variant_object.get("location", {})
-        .get("sequenceReference", {})
-        .get("refgetAccession")
+    refget_accession = get_nested_key(
+        variant_object, "location", "sequenceReference", "refgetAccession"
     )
-    start_position = variant_object.get("location", {}).get("start")
-    end_position = variant_object.get("location", {}).get("end")
+    start_position = get_nested_key(variant_object, "location", "start")
+    end_position = get_nested_key(variant_object, "location", "end")
     if not refget_accession or not start_position or not end_position:
         raise UnsupportedVariantLocationTypeError
 
@@ -272,7 +270,7 @@ def add_liftover_annotations(
             anyvar=anyvar,
         )
         # If liftover was successful, we'll annotate with the ID of the lifted-over variant
-        annotation_value = lifted_over_variant.model_dump().get("id")
+        annotation_value = lifted_over_variant.id
     except LiftoverError as e:
         # If liftover was unsuccessful, we'll annotate with an error message
         annotation_value = e.get_error_message()
@@ -293,7 +291,7 @@ def add_liftover_annotations(
         if annotator:
             # TODO: Verify that the liftover is reversible first. See Issue #195
             annotator.put_annotation(
-                object_id=lifted_over_variant.model_dump().get("id", ""),
+                object_id=str(lifted_over_variant.id),
                 annotation_type=annotation_type,
                 annotation={annotation_type: input_vrs_id},
             )

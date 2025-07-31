@@ -307,6 +307,7 @@ async def add_registration_annotations(
     request: Request, call_next: Callable
 ) -> Response:
     """Add all required annotations for newly-registered variants"""
+    # Do nothing on request. Pass downstream.
     response = await call_next(request)
 
     # Make sure we're only targeting the registration endpoints
@@ -328,7 +329,7 @@ async def add_registration_annotations(
     )
     if (
         (not input_vrs_id) or (not input_variant)
-    ):  # If there's no vrs_id/input variant, registration was unsuccessful. Do not attempt liftover.
+    ):  # If there's no vrs_id/input variant, registration was unsuccessful. Do not attempt any further operations.
         return new_response
 
     # Add annotations
