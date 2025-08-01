@@ -50,5 +50,6 @@ Issue a ``GET`` request to ``/variation/<VRS id>`` to retrieve a registered vari
 
 .. code-block:: pycon
 
+    >>> response = requests.get(f"{anyvar_hostname}/variation/{vrs_id}")
     >>> response.json()
     {'messages': [], 'data': {'id': 'ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb', 'type': 'Allele', 'digest': 'd6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb', 'location': {'id': 'ga4gh:SL.JOFKL4nL5mRUlO_xLwQ8VOD1v7mxhs3I', 'type': 'SequenceLocation', 'digest': 'JOFKL4nL5mRUlO_xLwQ8VOD1v7mxhs3I', 'sequenceReference': {'type': 'SequenceReference', 'refgetAccession': 'SQ.IW78mgV5Cqf6M24hy52hPjyyo5tCCd86'}, 'start': 36561661, 'end': 36561663}, 'state': {'type': 'ReferenceLengthExpression', 'length': 0, 'sequence': '', 'repeatSubunitLength': 2}}}
