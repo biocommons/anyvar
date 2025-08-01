@@ -49,7 +49,7 @@ def test_iter(storage):
         18
         if isinstance(storage, SnowflakeObjectStore)
         and storage.batch_add_mode == SnowflakeBatchAddMode.insert
-        else 14
+        else 19
     )
 
 
