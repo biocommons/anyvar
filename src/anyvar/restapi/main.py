@@ -334,7 +334,6 @@ async def add_registration_annotations(
 
     # Add annotations
     annotator: AnyAnnotation | None = request.app.state.anyannotation
-
     if annotator:
         timestamp_annotations = annotator.get_annotation(
             input_vrs_id, "creation_timestamp"
