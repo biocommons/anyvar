@@ -37,6 +37,8 @@ class SqlStorage(_Storage):
     ) -> None:
         """Initialize DB handler.
 
+        See https://docs.sqlalchemy.org/en/20/core/connections.html for connection URL info
+
         :param db_url: db connection info URL
         :param batch_limit: max size of batch insert queue, defaults to 100000; can be set with
             ANYVAR_SQL_STORE_BATCH_LIMIT environment variable
@@ -46,8 +48,6 @@ class SqlStorage(_Storage):
             be set with ANYVAR_SQL_STORE_MAX_PENDING_BATCHES environment variable
         :param flush_on_batchctx_exit: whether to call `wait_for_writes()` when exiting the batch manager context;
             defaults to True; can be set with the ANYVAR_SQL_STORE_FLUSH_ON_BATCHCTX_EXIT environment variable
-
-        See https://docs.sqlalchemy.org/en/20/core/connections.html for connection URL info
         """
         # get table name override from environment
         self.table_name = table_name or os.environ.get(
@@ -520,7 +520,7 @@ class SqlStorageBatchManager(_BatchManager):
         """Initialize context manager.
 
         :param storage: SqlStorage instance to manage. Should be taken from the active
-        AnyVar instance -- otherwise it won't be able to delay insertions.
+            AnyVar instance -- otherwise it won't be able to delay insertions.
         :raise ValueError: if `storage` param is not a `SqlStorage` instance
         """
         if not isinstance(storage, SqlStorage):

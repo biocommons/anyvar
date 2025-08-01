@@ -91,6 +91,7 @@ Start the REST API with environment variables to set shared resource locations: 
 Start a Celery worker with environment variables to set shared resource locations:
 
 .. code-block:: shell
+
     CELERY_BROKER_URL="redis://localhost:6379/0" \
     CELERY_BACKEND_URL="redis://localhost:6379/0" \
     ANYVAR_VCF_ASYNC_WORK_DIR="/path/to/shared/file/system" \
