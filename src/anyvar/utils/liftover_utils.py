@@ -271,11 +271,6 @@ def add_liftover_annotations(
     :param anyvar: An `AnyVar` instance
     :param annotator: An `AnyAnnotation` instance
     """
-    # No need to do this more than once
-    annotation_type = "liftover"
-    if annotator and annotator.get_annotation(input_vrs_id, annotation_type):
-        return
-
     # convert `input_vrs_object_dict` into an actual VrsVariation class instance
     variant_type = input_vrs_variant_dict.get("type", "")
     input_vrs_variant: VrsVariation = variation_class_map[variant_type](
@@ -295,6 +290,7 @@ def add_liftover_annotations(
         annotation_value = e.get_error_message()
 
     # Add the annotation to the original variant
+    annotation_type = "liftover"
     if annotator:
         annotator.put_annotation(
             object_id=input_vrs_id,
