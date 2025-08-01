@@ -72,3 +72,5 @@ To build documentation, use the ``docs`` Makefile target:
 .. code-block::
 
    make docs
+
+HTML output is built in the subdirectory ``docs/build/html/index.html``.

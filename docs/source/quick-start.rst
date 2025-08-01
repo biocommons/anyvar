@@ -56,6 +56,6 @@ Start the AnyVar Server
 
 ::
 
-   uvicorn anyvar.restapi.main:app --reload
+   uvicorn anyvar.restapi.main:app
 
 Visit `http://localhost:8000 <http://localhost:8000>`_ to verify the REST API is running.
