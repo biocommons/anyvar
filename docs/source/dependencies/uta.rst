@@ -112,7 +112,7 @@ Troubleshooting and Validation
   docker logs $uta_version
 
 Cheat Sheat: Environment Variables
-----------------------------------
+==================================
 
 .. list-table::
    :widths: 20 40 40
