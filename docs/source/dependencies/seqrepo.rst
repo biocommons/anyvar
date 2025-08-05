@@ -55,7 +55,7 @@ Prerequisites
 
 ::
 
-    docker volume create seqrepo-vol
+    docker volume create seqrepo_vol
 
 2. Populate the Volume With a SeqRepo Snapshot
 ----------------------------------------------
