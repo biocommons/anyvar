@@ -53,7 +53,9 @@ Confirm your PostgreSQL container is running:
 
 .. code-block:: shell
 
-    docker ps | grep anyvar-pg
+    % docker ps | grep anyvar-pg
+    64c607968fa5   postgres          "docker-entrypoint.s…"   6 seconds ago   Up 6 seconds   0.0.0.0:5432->5432/tcp     anyvar-pg
+
 
 You should see the container listed and running.
 

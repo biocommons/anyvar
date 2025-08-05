@@ -67,7 +67,7 @@ For the ``tests/test_vcf::test_vcf_registration_async`` unit test to pass, a rea
 Documentation
 =============
 
-To build documentation, use the ``docs`` Makefile target:
+To build documentation, use the ``docs`` Makefile target from the project root directory:
 
 .. code-block::
 

@@ -84,7 +84,16 @@ Check database connectivity using PostgreSQL CLI:
 
     psql -h localhost -U anonymous -d uta -c "select * from uta_20241220.meta"
 
-A successful query returns metadata indicating the version and setup details.
+A successful query returns metadata indicating the version and setup details. ::
+
+          key       |                               value
+    ----------------+--------------------------------------------------------------------
+     created on     | 2015-08-21T10:53:50.666152
+     license        | CC-BY-SA (http://creativecommons.org/licenses/by-sa/4.0/deed.en_US
+     uta version    | 0.2.0a2.dev11+n52ed6e969cfc
+     schema_version | 1.2
+     updated on     | 2024-12-20T12:29:32.427896
+    (5 rows)
 
 Troubleshooting and Validation
 ------------------------------

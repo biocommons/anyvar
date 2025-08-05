@@ -3,7 +3,7 @@
 AnyVar SeqRepo Setup
 !!!!!!!!!!!!!!!!!!!!
 
-SeqRepo is a repository system designed to store and manage biological sequence data efficiently.
+`SeqRepo <https://github.com/biocommons/seqrepo>`_ is a repository system designed to store and manage biological sequence data efficiently.
 
 Recommended: Local Installation
 ===============================
