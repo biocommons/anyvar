@@ -40,7 +40,7 @@ The client can provide a ``run_id=...`` query parameter with the initial PUT req
 Setting Up Asynchronous VCF Processing
 ======================================
 
-Enabling asychronous VCF processing requires some additional setup.
+Enabling asynchronous VCF processing requires some additional setup.
 
 1. Install the Necessary Dependencies
 -------------------------------------
