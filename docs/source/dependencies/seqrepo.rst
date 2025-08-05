@@ -136,7 +136,7 @@ Troubleshooting
 ---------------
 
 * If your institution blocks rsync, consider using the download method.
-* Ensure you have the correct `rsync` executable: GNU rsync, NOT openrsync.
+* Ensure you have the correct `rsync` executable: GNU rsync, NOT openrsync. Recent MacOS releases include the latter and not the former, but it can be installed with `homebrew` and provided to SeqRepo a la ``seqrepo --rsync-exe $(brew --prefix)/bin/rsync``.
 * Check your rsync version: ::
 
     rsync --version
@@ -153,16 +153,17 @@ Try moving data manually with ``sudo``: ::
 Verifying SeqRepo Installation
 ==============================
 
-Verify local setup with Python:
+Verify local setup with Python. E.g. with a SeqRepo dataset located at ``/usr/local/share/seqrepo/2024-12-20/``:
 
 
 .. code-block:: python
 
     from ga4gh.vrs.dataproxy import create_dataproxy
-    uri = "seqrepo+file:///full_path_to_seqrepo/2024-12-20"
+    uri = "seqrepo+file:///usr/local/share/seqrepo/2024-12-20/"
     seqrepo_dataproxy = create_dataproxy(uri=uri)
     sequence = seqrepo_dataproxy.get_sequence("refseq:NM_000551.3")
     print(sequence[:100])
+    # prints 'CCTCGCCTCCGTTACAACGGCCTACGGTGCTGGAGGATCCTTCTGCGCACGCGCACAGCCTCCGGCCGGCTATTTCCGCGAGCGCGTTCCATCCTCTACC'
 
 
 For REST API verification:

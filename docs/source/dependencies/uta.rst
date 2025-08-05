@@ -3,12 +3,12 @@
 AnyVar UTA Setup
 !!!!!!!!!!!!!!!!
 
-UTA (Universal Transcript Archive) is used to interpret variations on non-genomic sequences, such as transcript-based accessions. It is required for AnyVar operations involving transcript coordinates.
+`UTA (Universal Transcript Archive) <https://github.com/biocommons/uta>`_ is used to interpret variations on non-genomic sequences, such as transcript-based accessions. It is required for AnyVar operations involving transcript coordinates.
 
 Recommended Public Instance Usage (for small use cases)
 =======================================================
 
-For minimal usage scenarios, utilize the public UTA instance hosted by `biocommons.org <https://biocommons.org>`_ by setting the following variable in your ``.env`` file:
+For **minimal** usage scenarios, utilize the public UTA instance hosted by `biocommons.org <https://biocommons.org>`_ by setting the following variable in your ``.env`` file:
 
 .. code-block:: shell
 
