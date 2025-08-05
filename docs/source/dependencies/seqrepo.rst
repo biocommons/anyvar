@@ -14,9 +14,10 @@ The simplest and most efficient method for most users is a direct local file ins
 1. Download the SeqRepo Archive
 -------------------------------
 
-::
+.. note::
 
-    curl -O https://storage.googleapis.com/clingen-public/seqrepo_2024-12-20.tar.gz
+   A downloadable tarball is available upon request to the maintainers
+
 
 2. Create a SeqRepo Directory
 -----------------------------
@@ -134,7 +135,7 @@ Set the environment variable in your ``.env`` file accordingly:
 Troubleshooting
 ---------------
 
-* If your institution blocks rsync, consider using the direct download method or Docker.
+* If your institution blocks rsync, consider using the download method.
 * Ensure you have the correct `rsync` executable: GNU rsync, NOT openrsync.
 * Check your rsync version: ::
 
