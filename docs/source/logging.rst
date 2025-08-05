@@ -99,7 +99,8 @@ Troubleshooting Logging
 * **Incorrect Log Levels:** Check handler and logger configurations.
 * **Environment Variable Issues:** Ensure ``ANYVAR_LOGGING_CONFIG`` correctly points to your YAML file.
 
-## Cheat Sheet: Environment Variables
+Cheat Sheet: Environment Variables
+==================================
 
 .. list-table::
    :widths: 20 40 40
