@@ -89,7 +89,7 @@ A successful query returns metadata indicating the version and setup details.
 Troubleshooting and Validation
 ------------------------------
 
-* **Connection Issues:** Ensure port 5432 is available, or change the port if conflicts arise. Be sure to update your ``UTA_DB_URL`` environment variable if you change the port number.
+* **Connection Issues:** Ensure port ``5432`` is available, or change the port if conflicts arise. Be sure to update your ``UTA_DB_URL`` environment variable if you change the port number.
 
 .. code-block:: shell
 
