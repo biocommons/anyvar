@@ -111,7 +111,7 @@ Troubleshooting and Validation
 
   docker logs $uta_version
 
-Cheat Sheat: Environment Variables
+Cheat Sheet: Environment Variables
 ==================================
 
 .. list-table::
