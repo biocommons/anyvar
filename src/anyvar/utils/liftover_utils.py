@@ -67,10 +67,16 @@ class ChromosomeResolutionError(LiftoverError):
     error_details = "Unable to resolve variant's chromosome"
 
 
-class CoordinateConversionError(LiftoverError):
+class CoordinateConversionFailureError(LiftoverError):
     """Indicates a failure to lift over a variant's coordinate"""
 
     error_details = "Could not convert start and/or end position(s)"
+
+
+class AmbiguousCoordinateConversionError(LiftoverError):
+    """Indicates a failure to lift over a variant's coordinate"""
+
+    error_details = "Start and/or end positions mapped to multiple possible locations"
 
 
 class AccessionConversionError(LiftoverError):
@@ -87,17 +93,20 @@ def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) 
     :param coordinate: A single start or end coordinate. MUST be an `int`.
 
     :return: A converted coordinate value as an `int`
-    :raises: A `CoordinateConversionError` if the conversion is unsuccessful.
+    :raises: A `CoordinateConversionFailureError` if the conversion returns no results.
+    :raises: A `AmbiguousCoordinateConversionError` if the conversion returns more than one result.
     """
-    converted_position = converter.convert_coordinate(
+    converted_positions = converter.convert_coordinate(
         chromosome, coordinate, Strand.POSITIVE
-    )
+    )  # returns a list of tuples with a) the coordinate's chromosome number, b) the converted coordinate position, and c) the strand (Strand.POSITIVE or Strand.NEGATIVE)
 
-    # TODO: Handle cases where coordinate conversion returns negative-stranded coordinates. See Issue #197.
-    if converted_position and converted_position[0][2] == Strand.POSITIVE:
-        # TODO: Don't just return coordinates from the first result set - handle cases where coordinate map to multiple positions. See Issue #198.
-        return converted_position[0][1]
-    raise CoordinateConversionError
+    if len(converted_positions) == 1 and converted_positions[0][2] == Strand.POSITIVE:
+        # TODO: Handle cases where coordinate conversion returns negative-stranded coordinates. See Issue #197.
+        return converted_positions[0][1]
+    elif len(converted_positions) > 1:  # noqa: RET505
+        raise AmbiguousCoordinateConversionError
+    else:
+        raise CoordinateConversionFailureError
 
 
 _PositionType = TypeVar("_PositionType", int, models.Range)
@@ -118,7 +127,7 @@ def convert_position(
     if isinstance(position, int):
         return _convert_coordinate(converter, chromosome, position)
 
-    # Handle Range (list) positions
+    # Handle Range positions
     lower_bound, upper_bound = position.root
     lower_bound = (
         _convert_coordinate(converter, chromosome, lower_bound) if lower_bound else None
@@ -192,7 +201,7 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
     # Determine which chromosome we're on
     chromosome = chr22XY(accession_aliases[0].split(":")[1])
 
-    # Get converted start/end positions. `convert_position` will raise a `CoordinateConversionError` if unsuccessful
+    # Get converted start/end positions. Will raise a `CoordinateConversionFailureError` or an `AmbiguousCoordinateConversionError` if unsuccessful
     converted_start = convert_position(converter, chromosome, start_position)
     converted_end = convert_position(converter, chromosome, end_position)
 
