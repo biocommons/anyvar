@@ -156,7 +156,9 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
 
         - `ChromosomeResolutionError`: If unable to resolve variant's chromosome
 
-        - `CoordinateConversionError`: If unable to lift over the variant's start and/or end position(s)
+        - `CoordinateConversionFailureError`: If unable to lift over the variant's start and/or end position(s)
+
+        - `AmbiguousCoordinateConversionError`: If variant's start and/or end position(s) map to multiple possible locations
 
         - `AccessionConversionError`: If unable to lift over the variant's refget accession
     """
