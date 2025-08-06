@@ -1,7 +1,7 @@
 from ga4gh.vrs import models
 
 from anyvar.utils.liftover_utils import (
-    CoordinateConversionError,
+    CoordinateConversionFailureError,
     UnsupportedReferenceAssemblyError,
 )
 
@@ -222,11 +222,11 @@ test_variants = {
             },
             "state": {"type": "LiteralSequenceExpression", "sequence": "T"},
         },
-        "expected_output": CoordinateConversionError,
+        "expected_output": CoordinateConversionFailureError,
     },
     "unconvertible_grch38_variant": {
         "variant_input": {},  # TODO: Add an actual test case for this. See Issue #196.
-        "expected_output": CoordinateConversionError,
+        "expected_output": CoordinateConversionFailureError,
     },
     "empty_variation_object": {
         "variant_input": {},

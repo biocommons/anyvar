@@ -67,10 +67,16 @@ class ChromosomeResolutionError(LiftoverError):
     error_details = "Unable to resolve variant's chromosome"
 
 
-class CoordinateConversionError(LiftoverError):
+class CoordinateConversionFailureError(LiftoverError):
     """Indicates a failure to lift over a variant's coordinate"""
 
     error_details = "Could not convert start and/or end position(s)"
+
+
+class AmbiguousCoordinateConversionError(LiftoverError):
+    """Indicates a failure to lift over a variant's coordinate"""
+
+    error_details = "Variant coordinates mapped to multiple possible locations"
 
 
 class AccessionConversionError(LiftoverError):
@@ -79,7 +85,25 @@ class AccessionConversionError(LiftoverError):
     error_details = "Could not convert refget accession"
 
 
-def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) -> int:
+_PositionType = TypeVar("_PositionType", int, models.Range)
+
+
+def _build_position_list(
+    start_positions: list[int] | list[None],
+    end_positions: list[int] | list[None],
+) -> list[list[int | None]]:
+    if len(start_positions) == 1 and len(end_positions) > 1:
+        return [[start_positions[0], end] for end in end_positions]
+    elif len(end_positions) == 1 and len(start_positions) > 1:  # noqa: RET505
+        return [[start, end_positions[0]] for start in start_positions]
+    elif len(start_positions) == 1 and len(end_positions) == 1:
+        return [[start_positions[0], end_positions[0]]]
+    raise AmbiguousCoordinateConversionError
+
+
+def _convert_coordinate(
+    converter: Converter, chromosome: str, coordinate: int
+) -> list[int]:
     """Convert an individual coordinate to another reference genome. If the conversion is unsuccessful, raises a `CoordinateConversionError`
 
     :param converter: An AGCT Converter instance.
@@ -89,28 +113,32 @@ def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) 
     :return: A converted coordinate value as an `int`
     :raises: A `CoordinateConversionError` if the conversion is unsuccessful.
     """
-    converted_position = converter.convert_coordinate(
+    converted_positions = converter.convert_coordinate(
         chromosome, coordinate, Strand.POSITIVE
     )
 
     # TODO: Handle cases where coordinate conversion returns negative-stranded coordinates. See Issue #197.
-    if converted_position and converted_position[0][2] == Strand.POSITIVE:
-        # TODO: Don't just return coordinates from the first result set - handle cases where coordinate map to multiple positions. See Issue #198.
-        return converted_position[0][1]
-    raise CoordinateConversionError
+    # `position` is a tuple with a) the coordinate's chromosome, b) the actual position, and c) the strand (Positive or Negative)
+    return [
+        position[1]
+        for position in converted_positions
+        if position[2] == Strand.POSITIVE
+    ]
 
-
-_PositionType = TypeVar("_PositionType", int, models.Range)
+    # if converted_position and converted_position[0][2] == Strand.POSITIVE:
+    #     # TODO: Don't just return coordinates from the first result set - handle cases where coordinate map to multiple positions. See Issue #198.
+    #     return converted_position[0][1]
+    raise CoordinateConversionFailureError
 
 
 def convert_position(
     converter: Converter, chromosome: str, position: _PositionType
-) -> _PositionType:
-    """Convert a SequenceLocation position (i.e., `start` or `end`) to another reference Genome. `position` can either be a `models.Range` or an `int` - return type will match.
+) -> list[int] | list[list[int | None]]:
+    """Convert a SequenceLocation position (i.e., `start` or `end`) to another reference Genome. `position` can either be `models.Range` or an `int` - return type will match.
 
     :param converter: An AGCT Converter instance.
     :param chromosome: The chromosome number where the position is found. Must be a string consisting of a) the prefix "chr", and b) a number OR "X" or "Y" -> e.g. "chr10", "chrX", etc.
-    :param position: A SequenceLocation start or end position. Can be a `models.Range` or an `int`.
+    :param position: A SequenceLocation start or end position. Can be `models.Range` or an `int`.
 
     :return: A lifted-over position. Type (`models.Range` or `int`) will match that of `position`
     """
@@ -119,14 +147,20 @@ def convert_position(
         return _convert_coordinate(converter, chromosome, position)
 
     # Handle Range (list) positions
-    lower_bound, upper_bound = position.root
-    lower_bound = (
-        _convert_coordinate(converter, chromosome, lower_bound) if lower_bound else None
+    lower_bound_coords, upper_bound_coords = position.root
+    lower_bound_coords = (
+        _convert_coordinate(converter, chromosome, lower_bound_coords)
+        if lower_bound_coords
+        else [None]
     )
-    upper_bound = (
-        _convert_coordinate(converter, chromosome, upper_bound) if upper_bound else None
+    upper_bound_coords = (
+        _convert_coordinate(converter, chromosome, upper_bound_coords)
+        if upper_bound_coords
+        else [None]
     )
-    return models.Range([lower_bound, upper_bound])
+
+    return _build_position_list(lower_bound_coords, upper_bound_coords)
+    # return [models.Range(position_entry) for position_entry in position_list]
 
 
 def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVariation:
@@ -183,14 +217,14 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
         msg = f"Unable to get reference sequence ID for {prefixed_accession}"
         raise UnsupportedReferenceAssemblyError(msg)
 
+    # Determine which chromosome we're on
+    chromosome = chr22XY(accession_aliases[0].split(":")[1])
+
     # Get the Converter that will liftover the variant's coordinates
     converter_key = f"{from_assembly}_to_{to_assembly}"
     converter = anyvar.liftover_converters.get(converter_key)
     if not converter:
         raise LiftoverError  # This won't happen, but Python doesn't know that and gets mad cuz it thinks `converter` might be `None`
-
-    # Determine which chromosome we're on
-    chromosome = chr22XY(accession_aliases[0].split(":")[1])
 
     # Get converted start/end positions. `convert_position` will raise a `CoordinateConversionError` if unsuccessful
     converted_start = convert_position(converter, chromosome, start_position)
