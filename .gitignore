@@ -95,6 +95,10 @@ ENV/
 env.bak/
 venv.bak/
 
+# Lockfiles
+Pipfile.lock
+uv.lock
+
 # Spyder project settings
 .spyderproject
 .spyproject
