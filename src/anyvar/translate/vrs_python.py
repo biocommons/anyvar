@@ -48,12 +48,10 @@ class VrsPythonTranslator(_Translator):
 
         :param var: user-provided string describing or referencing a variation.
         :param input_type: The type of variation for `var`.
-        :kwargs:
-            input_type (SupportedVariationType): The type of variation for `var`.
-                If not provided, will first try to translate to allele and then
-                copy number
-            copies (int) - The number of copies for VRS Copy Number Count
-            copy_change (models.CopyChange) - The EFO code for VRS COpy Number Change
+        :keyword SupportedVariationType input_type: The type of variation for `var`. If
+            not provided, will first try to translate to allele and then copy number
+        :keyword int copies: The number of copies for VRS Copy Number Count
+        :keyword models.CopyChange copy_change: The EFO code for VRS COpy Number Change
         :returns: VRS variation object if able to translate
         :raises TranslationError: if translation is unsuccessful, either because
             the submitted variation is malformed, or because VRS-Python doesn't support
