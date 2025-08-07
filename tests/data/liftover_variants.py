@@ -224,7 +224,7 @@ test_variants = {
         },
         "expected_output": CoordinateConversionError,
     },
-    "unconvertible_grch38_variant": {
+    "unconvertible_grch38_variant": {  # see: https://www.ncbi.nlm.nih.gov/clinvar/variation/3035826/?oq=NC_000017.11:50150040:GC:GCGC&m=NM_032595.5(PPP1R9B):c.472_473dup%20(p.Ala159fs)
         "variant_input": {
             "digest": "5-m9wM6WTY5osPxLFg1_bITsOwSoMFui",
             "id": "ga4gh:VA.5-m9wM6WTY5osPxLFg1_bITsOwSoMFui",
