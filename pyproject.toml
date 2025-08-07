@@ -21,9 +21,11 @@ dependencies = [
     "ga4gh.vrs[extras]~=2.1.2",
     "sqlalchemy~=1.4.54",
     "pyyaml",
+    "agct",
     "pysam",
     "python-dotenv",
     "anyio",
+    "bioutils"
 ]
 dynamic = ["version"]
 

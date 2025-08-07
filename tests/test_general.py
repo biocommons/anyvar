@@ -27,4 +27,4 @@ def test_service_info(client: TestClient, test_data_dir: Path):
 def test_summary_statistics(client: TestClient):
     response = client.get("/stats/all")
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"variation_type": "all", "count": 2}
+    assert response.json() == {"variation_type": "all", "count": 3}

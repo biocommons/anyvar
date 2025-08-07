@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -28,13 +29,14 @@ def pytest_collection_modifyitems(items):
         "test_postgres_annotation",
         "test_duckdb_annotation",
         "test_no_db",
+        "test_liftover",
     ]
     # remember to add new test modules to the order constant:
     assert len(module_order) == len(list(Path(__file__).parent.rglob("test_*.py")))
     items.sort(key=lambda i: module_order.index(i.module.__name__))
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", autouse=True)
 def storage():
     """Provide API client instance as test fixture"""
     if "ANYVAR_TEST_STORAGE_URI" in os.environ:
@@ -48,9 +50,17 @@ def storage():
 
 
 @pytest.fixture(scope="session")
-def client(storage):
+def annotator():
+    annotator = MagicMock()
+    annotator.get_annotation.return_value = []
+    return annotator
+
+
+@pytest.fixture(scope="session")
+def client(storage, annotator):
     translator = create_translator()
     anyvar_restapi.state.anyvar = AnyVar(object_store=storage, translator=translator)
+    anyvar_restapi.state.anyannotation = annotator
     return TestClient(app=anyvar_restapi)
 
 

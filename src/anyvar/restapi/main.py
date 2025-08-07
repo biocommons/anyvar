@@ -9,7 +9,7 @@ import pathlib
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from http import HTTPStatus
-from typing import Annotated
+from typing import Annotated, cast
 
 import anyio
 import ga4gh.vrs
@@ -24,10 +24,11 @@ from fastapi import (
     Request,
     Response,
 )
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import StrictStr
 
 import anyvar
+import anyvar.utils.liftover_utils as liftover_utils
 from anyvar.anyvar import AnyAnnotation, AnyVar
 from anyvar.restapi.schema import (
     AddAnnotationRequest,
@@ -48,10 +49,35 @@ from anyvar.restapi.vcf import router as vcf_router
 from anyvar.translate.translate import (
     TranslationError,
 )
-from anyvar.utils.types import VrsVariation, variation_class_map
+from anyvar.utils.liftover_utils import LiftoverError
+from anyvar.utils.types import VrsObject, VrsVariation, variation_class_map
 
 load_dotenv()
 _logger = logging.getLogger(__name__)
+
+
+async def parse_and_rebuild_response(
+    response: StreamingResponse,
+) -> tuple[dict, Response]:
+    """Convert a `Response` object to a dict, then re-build a new Response object (since parsing exhausts the Response `body_iterator`).
+
+    :param response: the `Response` object to parse
+    :return: a tuple with a dictionary representation of the Response and a new `Response` object
+    """
+    response_chunks: list[bytes] = [
+        cast(bytes, chunk) async for chunk in response.body_iterator
+    ]
+    response_body_encoded = b"".join(response_chunks)
+    response_body = response_body_encoded.decode("utf-8")
+    response_json = json.loads(response_body)
+
+    new_response = JSONResponse(
+        content=response_json,
+        status_code=response.status_code,
+        media_type=response.media_type,
+    )
+
+    return (response_json, new_response)
 
 
 @asynccontextmanager
@@ -290,11 +316,12 @@ async def add_creation_timestamp_annotation(
         # With response, check if timestamp exists
         annotator: AnyAnnotation = getattr(request.app.state, "anyannotation", None)
         if annotator:
-            response_chunks = [chunk async for chunk in response.body_iterator]
-            response_body = b"".join(response_chunks)
-            response_body = response_body.decode("utf-8")
-            response_json: dict = json.loads(response_body)
+            response_json, new_response = await parse_and_rebuild_response(response)
+
             vrs_id = response_json.get("object", {}).get("id")
+            if not vrs_id:  # If there's no vrs_id, registration was unsuccessful
+                return new_response
+
             annotations = annotator.get_annotation(vrs_id, "creation_timestamp")
             if not annotations:
                 annotator.put_annotation(
@@ -305,12 +332,83 @@ async def add_creation_timestamp_annotation(
                     },
                 )
             # Create a new response object since we have exhausted the response body iterator
-            return JSONResponse(
-                content=response_json,
-                status_code=response.status_code,
-                headers=response.headers,
-                media_type=response.media_type,
+            return new_response
+
+    return response
+
+
+@app.middleware("http")
+async def add_liftover_annotation(request: Request, call_next: Callable) -> Response:
+    """Perform genomic liftover between GRCh37 <-> GRCh38 and store the converted variant as an annotation of the original"""
+    # Do nothing on request. Pass downstream.
+    response = await call_next(request)
+
+    # Only add liftover annotation on registration
+    registration_endpoints = [
+        "/variation",
+        "/vrs_variation",
+    ]
+    if request.url.path in registration_endpoints:
+        response_json, new_response = await parse_and_rebuild_response(
+            response
+        )  # We'll need to return the `new_response` object since we have now exhausted the original response body iterator
+
+        input_vrs_id, input_variant = (
+            response_json.get("object_id"),
+            response_json.get("object"),
+        )
+        if (
+            (not input_vrs_id) or (not input_variant)
+        ):  # If there's no vrs_id/input variant, registration was unsuccessful. Do not attempt liftover.
+            return new_response
+
+        # Check if we've already lifted over this variant before - no need to do it more than once
+        annotator: AnyAnnotation | None = getattr(
+            request.app.state, "anyannotation", None
+        )
+        annotation_type = "liftover"
+        if annotator:
+            preexisting_liftover_annotation = annotator.get_annotation(
+                input_vrs_id, annotation_type
             )
+            if preexisting_liftover_annotation:
+                return new_response
+
+        # Perform the liftover
+        anyvar: AnyVar = request.app.state.anyvar
+        lifted_over_variant: VrsObject | None = None
+        try:
+            lifted_over_variant = liftover_utils.get_liftover_variant(
+                variant_object=input_variant, anyvar=anyvar
+            )
+            # If liftover was successful, we'll annotate with the ID of the lifted-over variant
+            annotation_value = lifted_over_variant.id
+        except LiftoverError as e:
+            # If liftover was unsuccessful, we'll annotate with an error message
+            annotation_value = e.get_error_message()
+
+        # Add the annotation to the original variant
+        if annotator:
+            annotator.put_annotation(
+                object_id=input_vrs_id,
+                annotation_type=annotation_type,
+                annotation={annotation_type: annotation_value},
+            )
+
+        # If liftover was successful, also register the lifted-over variant
+        # and add an annotation on the lifted-over variant linking it back to the original
+        if lifted_over_variant:
+            anyvar.put_object(lifted_over_variant)
+
+            if annotator:
+                # TODO: Verify that the liftover is reversible first. See Issue #195
+                annotator.put_annotation(
+                    object_id=str(lifted_over_variant.id),
+                    annotation_type=annotation_type,
+                    annotation={annotation_type: input_vrs_id},
+                )
+
+        return new_response
 
     return response
 
