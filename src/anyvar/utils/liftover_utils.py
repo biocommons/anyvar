@@ -253,7 +253,7 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
     # return the dereffed lifted-over variant
     dereffed_variant = vrs_deref(o=enreffed_variant, object_store=object_store)
     return build_vrs_variant_from_dict(
-        **dereffed_variant.model_dump()
+        dereffed_variant.model_dump()
     )  # explicitly cast to a VrsVariant so Pylance doesn't get mad
 
 
