@@ -329,7 +329,7 @@ async def add_registration_annotations(
     )
     if (
         (not input_vrs_id) or (not input_variant)
-    ):  # If there's no vrs_id/input variant, registration was unsuccessful. Do not attempt any further operations.
+    ):  # If there's no input_vrs_id/input variant, registration was unsuccessful. Do not attempt any further operations.
         return new_response
 
     # Add annotations

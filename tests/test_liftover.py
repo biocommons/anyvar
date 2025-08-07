@@ -17,18 +17,6 @@ def extract_variants(variant_name):
     return (variant_test_case["variant_input"], variant_test_case["expected_output"])
 
 
-# def extract_variants(variant_name, convertInputToClassObject = False):
-#     variant_test_case = copy.deepcopy(test_variants[variant_name])
-
-#     variant_input = variant_test_case["variant_input"]
-#     expected_output = variant_test_case["expected_output"]
-
-#     if(convertInputToClassObject):
-#         variant_input = convert_dict_to_class(variant_input)
-
-#     return (variant_input, expected_output)
-
-
 # Success Cases
 @pytest.fixture
 def copynumber_ranged_positive_grch37_variant():
