@@ -4,29 +4,12 @@ import pytest
 from data.liftover_variants import test_variants
 
 import anyvar.utils.liftover_utils as liftover_utils
-from anyvar.utils.types import VrsVariation, variation_class_map
-
-
-def convert_dict_to_class(variant_dict: dict) -> VrsVariation:
-    variant_type = variant_dict.get("type", "")
-    return variation_class_map[variant_type](**variant_dict)
+from anyvar.utils.funcs import build_vrs_variant_from_dict
 
 
 def extract_variants(variant_name):
     variant_test_case = copy.deepcopy(test_variants[variant_name])
     return (variant_test_case["variant_input"], variant_test_case["expected_output"])
-
-
-# def extract_variants(variant_name, convertInputToClassObject = False):
-#     variant_test_case = copy.deepcopy(test_variants[variant_name])
-
-#     variant_input = variant_test_case["variant_input"]
-#     expected_output = variant_test_case["expected_output"]
-
-#     if(convertInputToClassObject):
-#         variant_input = convert_dict_to_class(variant_input)
-
-#     return (variant_input, expected_output)
 
 
 # Success Cases
@@ -97,7 +80,7 @@ NO_LIFTOVER_CASES = ["empty_variation_object", "invalid_variant"]
 def test_liftover_success(request, variant_fixture_name, client):
     variant_input, expected_output = request.getfixturevalue(variant_fixture_name)
     lifted_over_variant_output = liftover_utils.get_liftover_variant(
-        convert_dict_to_class(variant_input), client.app.state.anyvar
+        build_vrs_variant_from_dict(variant_input), client.app.state.anyvar
     )
     assert lifted_over_variant_output == expected_output
 
@@ -107,7 +90,7 @@ def test_liftover_failure(request, variant_fixture_name, client):
     variant_input, expected_error = request.getfixturevalue(variant_fixture_name)
     with pytest.raises(expected_error):
         liftover_utils.get_liftover_variant(
-            convert_dict_to_class(variant_input), client.app.state.anyvar
+            build_vrs_variant_from_dict(variant_input), client.app.state.anyvar
         )
 
 

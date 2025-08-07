@@ -79,9 +79,11 @@ class SnowflakeObjectStore(VrsSqlStorage):
         flush_on_batchctx_exit: bool | None = None,
         batch_add_mode: SnowflakeBatchAddMode | None = None,
     ) -> None:
-        """:param batch_add_mode: what type of SQL statement to use when adding many items at one; one of `merge`
-        (no duplicates), `insert_notin` (try to avoid duplicates) or `insert` (don't worry about duplicates);
-        defaults to `merge`; can be set with the ANYVAR_SNOWFLAKE_BATCH_ADD_MODE
+        """Initialize Snowflake object store
+
+        :param batch_add_mode: what type of SQL statement to use when adding many items at one; one of `merge`
+            (no duplicates), `insert_notin` (try to avoid duplicates) or `insert` (don't worry about duplicates);
+            defaults to `merge`; can be set with the ANYVAR_SNOWFLAKE_BATCH_ADD_MODE
         """
         prepared_db_url = self._preprocess_db_url(db_url)
         super().__init__(
@@ -283,7 +285,6 @@ class SnowflakeObjectStore(VrsSqlStorage):
         :param refget_accession: refget accession (SQ. identifier)
         :param start: Start genomic region to query
         :param stop: Stop genomic region to query
-
         :return: a list of VRS objects
         """
         query_str = f"""
