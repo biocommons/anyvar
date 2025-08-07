@@ -52,6 +52,7 @@ async def _annotate_vcf_async(
     for_ref: bool,
     allow_async_write: bool,
     assembly: str,
+    add_vrs_attributes: bool,
     run_id: str | None,
 ) -> RunStatusResponse | ErrorResponse:
     """Annotate with VRS IDs asynchronously.  See `annotate_vcf()` for parameter definitions."""
@@ -90,6 +91,7 @@ async def _annotate_vcf_async(
             "input_file_path": str(input_file_path),
             "assembly": assembly,
             "for_ref": for_ref,
+            "add_vrs_attributes": add_vrs_attributes,
             "allow_async_write": allow_async_write,
         },
         task_id=run_id,
