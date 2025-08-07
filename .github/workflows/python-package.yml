@@ -43,3 +43,23 @@ jobs:
       - uses: pre-commit/action@v3.0.1
         with:
           extra_args: ${{ matrix.cmd }} --all-files
+  docs:
+    runs-on: ubuntu-latest
+    env:
+      SPHINX_GITHUB_CHANGELOG_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install '.[docs]'
+
+      - name: Attempt docs build
+        working-directory: ./docs
+        run: make html json

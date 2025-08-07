@@ -54,6 +54,15 @@ dev = [
     "pre-commit>=4.0.1",
     "ipykernel",
 ]
+docs = [
+    "sphinx==8.2.3",
+    "sphinx_rtd_theme==3.0.2",
+    "sphinx-autodoc-typehints==3.2.0",
+    "sphinx-autobuild==2024.10.3",
+    "sphinx-copybutton==0.5.2",
+    "sphinxext-opengraph==0.10.0",
+    "sphinx-github-changelog==1.7.1",
+]
 
 [project.urls]
 Homepage = "https://github.com/biocommons/anyvar"
@@ -105,6 +114,7 @@ exclude_lines = [
 [tool.ruff]
 src = ["src"]
 include = ["src/**/*.py", "tests/**/*.py", "demo/**/*.py"]
+exclude = ["docs/source/"]
 
 [tool.ruff.lint]
 select = [
