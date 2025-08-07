@@ -10,7 +10,7 @@ from ga4gh.vrs import models
 from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 
 from anyvar.anyvar import AnyAnnotation, AnyVar
-from anyvar.utils.funcs import get_nested_attribute
+from anyvar.utils.funcs import build_vrs_variant_from_dict, get_nested_attribute
 from anyvar.utils.types import VrsVariation, variation_class_map
 
 
@@ -252,7 +252,7 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
 
     # return the dereffed lifted-over variant
     dereffed_variant = vrs_deref(o=enreffed_variant, object_store=object_store)
-    return variation_class_map[dereffed_variant.type](
+    return build_vrs_variant_from_dict(
         **dereffed_variant.model_dump()
     )  # explicitly cast to a VrsVariant so Pylance doesn't get mad
 

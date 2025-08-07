@@ -2,6 +2,8 @@
 
 from typing import Any
 
+from anyvar.utils.types import VrsVariation, variation_class_map
+
 
 def get_nested_key(dict_object: dict, *keys: Any) -> Any:  # noqa: ANN401
     """Traverses the path of `keys` in `dict` and returns the final value.
@@ -35,3 +37,9 @@ def get_nested_attribute(class_object: object, *attributes: Any) -> Any:  # noqa
         except AttributeError:
             return None
     return class_object
+
+
+def build_vrs_variant_from_dict(variant_dict: dict) -> VrsVariation:
+    """Construct a `VrsVariation` class instance from a dictionary representation of one"""
+    variant_type = variant_dict.get("type", "")
+    return variation_class_map[variant_type](**variant_dict)
