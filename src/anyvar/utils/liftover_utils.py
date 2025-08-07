@@ -134,7 +134,7 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
     If liftover is unsuccessful, raise an Exception.
 
     :param input_variant: A dictionary representation of a `VrsVariation`.
-    :param seqrepo_dataproxy: A `SeqrepoDataproxy` instance.
+    :param anyvar: A `AnyVar` instance.
     :return: The converted variant as a `VrsVariation`.
     :raises:
         - `MalformedInputError`:  If the `input_variant` is empty or otherwise falsy
