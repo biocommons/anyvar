@@ -70,7 +70,6 @@ def submit_annotations(vcf: Path, anyvar_host: str) -> None:
         if len(vrs_ids) < 2:
             continue  # skip if there are no ALT alleles or missing VRS IDs
 
-        # Extract INFO fields per-allele (should align with ALT order)
         ac = record.info.get("AC", [])
         ac_hemi = record.info.get("AC_Hemi", [])
         ac_het = record.info.get("AC_Het", [])
@@ -78,12 +77,11 @@ def submit_annotations(vcf: Path, anyvar_host: str) -> None:
         af = record.info.get("AF", [])
         an = record.info.get("AN")
 
-        # Loop over ALT alleles and their corresponding VRS ID (skipping index 0 == REF)
         for i, alt in enumerate(record.alts or []):
             try:
                 vrs_id = vrs_ids[i + 1]  # skip REF
             except IndexError:
-                continue  # inconsistent VRS_IDs array
+                continue  # inconsistent VRS_IDs array, wtf
 
             annotation_value = {
                 "AC": ac[i] if i < len(ac) else None,
@@ -100,7 +98,7 @@ def submit_annotations(vcf: Path, anyvar_host: str) -> None:
             }
 
             if not annotation_value:
-                continue  # skip if no meaningful data
+                continue
 
             annotation = Annotation(
                 annotation_type="allele_frequency_summary",
