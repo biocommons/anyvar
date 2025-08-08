@@ -19,7 +19,7 @@ VrsObject = (
 )
 
 # variation type: VRS-Python model
-variation_class_map = {
+variation_class_map: dict[str, type[VrsVariation]] = {
     "Allele": models.Allele,
     "CopyNumberCount": models.CopyNumberCount,
     "CopyNumberChange": models.CopyNumberChange,
