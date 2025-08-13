@@ -272,10 +272,7 @@ def add_liftover_annotations(
     :param annotator: An `AnyAnnotation` instance
     """
     # convert `input_vrs_object_dict` into an actual VrsVariation class instance
-    variant_type = input_vrs_variant_dict.get("type", "")
-    input_vrs_variant: VrsVariation = variation_class_map[variant_type](
-        **input_vrs_variant_dict
-    )
+    input_vrs_variant = build_vrs_variant_from_dict(input_vrs_variant_dict)
 
     lifted_over_variant: VrsVariation | None = None
     try:
