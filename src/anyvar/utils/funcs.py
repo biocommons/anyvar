@@ -29,7 +29,7 @@ def get_nested_attribute(class_object: object, *attributes: Any) -> Any:  # noqa
 
     :param class_object: The class_object to traverse.
     :param attributes: The attributes that will be used to traverse the attributes of the class_object, in the order they should be used.
-    :returns: The final value in the property traversal, if all attributes exist; else None.
+    :return: The final value in the property traversal, if all attributes exist; else None.
     """
     for attr in attributes:
         try:
@@ -40,6 +40,10 @@ def get_nested_attribute(class_object: object, *attributes: Any) -> Any:  # noqa
 
 
 def build_vrs_variant_from_dict(variant_dict: dict) -> VrsVariation:
-    """Construct a `VrsVariation` class instance from a dictionary representation of one"""
+    """Construct a `VrsVariation` class instance from a dictionary representation of one
+
+    :param variant_dict: a dictionary representation of a `VrsVariation` object
+    :return: a `VrsVariation` object
+    """
     variant_type = variant_dict.get("type", "")
     return variation_class_map[variant_type](**variant_dict)

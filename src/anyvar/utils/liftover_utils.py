@@ -132,8 +132,8 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
     """Liftover a variant from GRCh37 or GRCH38 into the opposite assembly, and return the converted variant as a VrsVariation.
     If liftover is unsuccessful, raise an Exception.
 
-    :param input_variant: A dictionary representation of a `VrsVariation`.
-    :param anyvar: A `AnyVar` instance.
+    :param input_variant: A `VrsVariation`.
+    :param anyvar: An `AnyVar` instance.
     :return: The converted variant as a `VrsVariation`.
     :raises:
         - `MalformedInputError`:  If the `input_variant` is empty or otherwise falsy

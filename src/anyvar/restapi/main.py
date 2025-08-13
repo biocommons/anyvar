@@ -312,7 +312,12 @@ def get_variation_annotation(
 async def add_registration_annotations(
     request: Request, call_next: Callable
 ) -> Response:
-    """Add all required annotations for newly-registered variants"""
+    """Add all required annotations ("creation_timestamp" & "liftover") for newly-registered variants
+
+    :param request: FastAPI `Request` object
+    :param call_next: A FastAPI function that receives the `request` as a parameter, passes it to the corresponding path operation, and returns the generated `response`
+    :return: FastAPI`Response` object
+    """
     # Do nothing on request. Pass downstream.
     response = await call_next(request)
 
