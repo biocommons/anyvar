@@ -9,7 +9,7 @@ from ga4gh.vrs import models
 from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 
 from anyvar.anyvar import AnyAnnotation, AnyVar
-from anyvar.utils.funcs import build_vrs_variant_from_dict, get_nested_attribute
+from anyvar.utils.funcs import build_vrs_variant_from_dict
 from anyvar.utils.types import VrsVariation
 
 
@@ -153,13 +153,12 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
     if not input_variant:
         raise MalformedInputError
 
-    refget_accession = get_nested_attribute(
-        input_variant, "location", "sequenceReference", "refgetAccession"
-    )
-    start_position = get_nested_attribute(input_variant, "location", "start")
-    end_position = get_nested_attribute(input_variant, "location", "end")
-    if not refget_accession or not start_position or not end_position:
-        raise UnsupportedVariantLocationTypeError
+    try:
+        refget_accession = input_variant.location.sequenceReference.refgetAccession
+        start_position = input_variant.location.start
+        end_position = input_variant.location.end
+    except AttributeError as err:
+        raise UnsupportedVariantLocationTypeError from err
 
     # Determine which assembly we're converting from/to
     prefixed_accession = f"ga4gh:{refget_accession}"
