@@ -1,6 +1,5 @@
 """Defines functions used to lift over variants between GRCh37 & GRCh38"""
 
-import copy
 from enum import Enum
 from typing import TypeVar
 
@@ -11,7 +10,7 @@ from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 
 from anyvar.anyvar import AnyAnnotation, AnyVar
 from anyvar.utils.funcs import build_vrs_variant_from_dict, get_nested_attribute
-from anyvar.utils.types import VrsVariation, variation_class_map
+from anyvar.utils.types import VrsVariation
 
 
 class ReferenceAssembly(Enum):
@@ -254,7 +253,7 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
     dereffed_variant = vrs_deref(o=enreffed_variant, object_store=object_store)
     return build_vrs_variant_from_dict(
         dereffed_variant.model_dump()
-    )  # explicitly cast to a VrsVariant so Pylance doesn't get mad
+    )  # explicitly cast to a VrsVariation so Pylance doesn't get mad
 
 
 def add_liftover_annotations(
