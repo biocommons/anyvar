@@ -233,7 +233,7 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
 
     # Build the liftover variant object
     # Start by copying the original variant
-    converted_variant = copy.deepcopy(input_variant)
+    converted_variant = input_variant.model_copy(deep=True)
 
     # Replace the location with the lifted-over version
     converted_variant.location = converted_variant_location
