@@ -266,8 +266,8 @@ def add_liftover_annotations(
     """Perform liftover between GRCh37 <-> GRCh38. Store the ID of converted variant as an annotation of the original,
     register the lifted-over variant, and store the ID of the original variant as an annotation of the lifted-over one.
 
-    :param original_vrs_id: The ID of the VRS variant to lift over
-    :param original_vrs_object: A dictionary representation of the VRS variant to lift over
+    :param input_vrs_id: The ID of the VRS variant to lift over
+    :param input_vrs_variant_dict: A dictionary representation of the VRS variant to lift over
     :param anyvar: An `AnyVar` instance
     :param annotator: An `AnyAnnotation` instance
     """
