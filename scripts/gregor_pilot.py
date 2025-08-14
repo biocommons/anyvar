@@ -7,6 +7,7 @@
 # ///
 
 import json
+import logging
 import time
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
@@ -16,6 +17,21 @@ from timeit import default_timer as timer
 import click
 import pysam
 import requests
+
+# -------------------------------------------------------------------
+# Logging setup
+# -------------------------------------------------------------------
+LOG_FILE = "gregor_experiment.log"
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler(),  # still output to console
+    ],
+)
+logger = logging.getLogger(__name__)
+# -------------------------------------------------------------------
 
 
 def submit_variants(file: Path, anyvar_host: str) -> None:
@@ -31,16 +47,16 @@ def submit_variants(file: Path, anyvar_host: str) -> None:
             timeout=60,
             headers={"accept": "application/json"},
         )
-    click.echo("Submitting VCF to ingestion endpoint")
+    logger.info("Submitting VCF to ingestion endpoint")
     response.raise_for_status()
     run_id = response.json()["run_id"]
-    click.echo(f"Submission successful for {run_id}")
+    logger.info(f"Submission successful for {run_id}")
     while True:
-        click.echo("Polling ingestion status...")
+        logger.info("Polling ingestion status...")
         time.sleep(5)
         response = requests.get(f"{anyvar_host}/vcf/{run_id}")
         if response.json()["status"] != "PENDING":
-            click.echo("ingestion complete!")
+            logger.info("Ingestion complete!")
             break
 
 
@@ -66,7 +82,7 @@ def submit_annotation(
 
 
 def submit_annotations(vcf: Path, anyvar_host: str) -> None:
-    click.echo("submitting annotations...")
+    logger.info("Submitting annotations...")
     variantfile = pysam.VariantFile(vcf.absolute().as_posix())
     with requests.Session() as session:
         for record in variantfile:
@@ -85,7 +101,7 @@ def submit_annotations(vcf: Path, anyvar_host: str) -> None:
                 try:
                     vrs_id = vrs_ids[i + 1]  # skip REF
                 except IndexError:
-                    continue  # inconsistent VRS_IDs array, wtf
+                    continue  # inconsistent VRS_IDs array
 
                 annotation_value = {
                     "AC": ac[i] if i < len(ac) else None,
@@ -112,10 +128,8 @@ def submit_annotations(vcf: Path, anyvar_host: str) -> None:
                 try:
                     submit_annotation(vrs_id, annotation, anyvar_host, session)
                 except requests.HTTPError as e:
-                    click.echo(
-                        f"Failed to submit annotation for {vrs_id}: {e}", err=True
-                    )
-    click.echo("All annotations submitted")
+                    logger.error(f"Failed to submit annotation for {vrs_id}: {e}")
+    logger.info("All annotations submitted")
 
 
 def process_file(filepath: Path) -> None:
@@ -123,11 +137,11 @@ def process_file(filepath: Path) -> None:
     start = timer()
     submit_variants(filepath, anyvar_host)
     end = timer()
-    click.echo(f"Completed VCF submission of {filepath} in {end - start:.5f}")
+    logger.info(f"Completed VCF submission of {filepath} in {end - start:.5f}")
     start = timer()
     submit_annotations(filepath, anyvar_host)
     end = timer()
-    click.echo(f"Completed annotations submission of {filepath} in {end - start:.5f}")
+    logger.info(f"Completed annotations submission of {filepath} in {end - start:.5f}")
 
 
 @click.command()
@@ -140,18 +154,18 @@ def process_file(filepath: Path) -> None:
     help="Number of parallel workers",
 )
 def main(filepaths, workers):
-    click.echo(f"Received {len(filepaths)} file(s):")
+    logger.info(f"Received {len(filepaths)} file(s):")
     for fp in filepaths:
-        click.echo(f"- {fp}")
+        logger.info(f"- {fp}")
     start = timer()
     with ProcessPoolExecutor(max_workers=workers) as executor:
         results = list(executor.map(process_file, filepaths))
     for result in results:
-        click.echo(result)
+        logger.info(result)
 
     end = timer()
     duration = end - start
-    click.echo(f"Completed ingest of {filepaths} in {duration:.5f}")
+    logger.info(f"Completed ingest of {filepaths} in {duration:.5f}")
 
 
 if __name__ == "__main__":
