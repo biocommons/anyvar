@@ -184,15 +184,13 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
     # Get the Converter that will liftover the variant's coordinates
     converter_key = f"{from_assembly}_to_{to_assembly}"
     converter = anyvar.liftover_converters.get(converter_key)
-    if not converter:
-        raise LiftoverError  # This won't happen, but Python doesn't know that and gets mad cuz it thinks `converter` might be `None`
 
     # Determine which chromosome we're on
     chromosome = chr22XY(accession_aliases[0].split(":")[1])
 
     # Get converted start/end positions. `convert_position` will raise a `CoordinateConversionError` if unsuccessful
-    converted_start = convert_position(converter, chromosome, start_position)
-    converted_end = convert_position(converter, chromosome, end_position)
+    converted_start = convert_position(converter, chromosome, start_position)  # type: ignore (`converter` and `start_position` will always be valid)
+    converted_end = convert_position(converter, chromosome, end_position)  # type: ignore (`converter` and `end_position` will always be valid)
 
     # Get converted refget_accession (without 'ga4gh:' prefix)
     new_alias = f"{to_assembly}:{chromosome}"
@@ -206,28 +204,11 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
     converted_variant_location = models.SequenceLocation(
         start=converted_start,
         end=converted_end,
-        id=None,
         type="SequenceLocation",
-        description=None,
-        name=None,
-        aliases=None,
-        sequence=None,
-        extensions=None,
-        digest=None,
         sequenceReference=models.SequenceReference(
-            type="SequenceReference",
-            refgetAccession=converted_refget_accession,
-            name=None,
-            id=None,
-            description=None,
-            aliases=None,
-            extensions=None,
-            residueAlphabet=None,
-            circular=None,
-            sequence=None,
-            moleculeType=None,
-        ),
-    )
+            type="SequenceReference", refgetAccession=converted_refget_accession
+        ),  # type: ignore (missing parameters are fine, all absent params will default to `None`)
+    )  # type: ignore (missing parameters are fine, all absent params will default to `None`)
 
     # Build the liftover variant object
     # Start by copying the original variant
@@ -249,10 +230,7 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
     )
 
     # return the dereffed lifted-over variant
-    dereffed_variant = vrs_deref(o=enreffed_variant, object_store=object_store)
-    return build_vrs_variant_from_dict(
-        dereffed_variant.model_dump()
-    )  # explicitly cast to a VrsVariation so Pylance doesn't get mad
+    return vrs_deref(o=enreffed_variant, object_store=object_store)  # type: ignore (this will always return a `VrsVariation`)
 
 
 def add_liftover_annotations(
