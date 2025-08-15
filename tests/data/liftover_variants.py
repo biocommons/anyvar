@@ -224,8 +224,29 @@ test_variants = {
         },
         "expected_output": CoordinateConversionError,
     },
-    "unconvertible_grch38_variant": {
-        "variant_input": {},  # TODO: Add an actual test case for this. See Issue #196.
+    "unconvertible_grch38_variant": {  # see: https://www.ncbi.nlm.nih.gov/clinvar/variation/3035826/?oq=NC_000017.11:50150040:GC:GCGC&m=NM_032595.5(PPP1R9B):c.472_473dup%20(p.Ala159fs)
+        "variant_input": {
+            "digest": "5-m9wM6WTY5osPxLFg1_bITsOwSoMFui",
+            "id": "ga4gh:VA.5-m9wM6WTY5osPxLFg1_bITsOwSoMFui",
+            "location": {
+                "digest": "IvygUHxpbRf558JG7ZuPYZrZhL_eMp0O",
+                "end": 50150042,
+                "id": "ga4gh:SL.IvygUHxpbRf558JG7ZuPYZrZhL_eMp0O",
+                "sequenceReference": {
+                    "refgetAccession": "SQ.dLZ15tNO1Ur0IcGjwc3Sdi_0A6Yf4zm7",
+                    "type": "SequenceReference",
+                },
+                "start": 50150040,
+                "type": "SequenceLocation",
+            },
+            "state": {
+                "length": 4,
+                "repeatSubunitLength": 2,
+                "sequence": "GCGC",
+                "type": "ReferenceLengthExpression",
+            },
+            "type": "Allele",
+        },
         "expected_output": CoordinateConversionError,
     },
     "empty_variation_object": {
