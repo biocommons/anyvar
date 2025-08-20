@@ -39,7 +39,8 @@ try:
     from celery.exceptions import WorkerLostError
     from celery.result import AsyncResult
 except ImportError:
-    pass
+    HAS_CELERY_IMPORTS = False
+    AsyncResult = None
 
 _logger = logging.getLogger(__name__)
 
@@ -57,8 +58,13 @@ async def _annotate_vcf_async(
 ) -> RunStatusResponse | ErrorResponse:
     """Annotate with VRS IDs asynchronously.  See `annotate_vcf()` for parameter definitions."""
     # if run_id is provided, validate it does not already exist
+    if not anyvar.anyvar.has_queueing_enabled() and not HAS_CELERY_IMPORTS:
+        raise NotImplementedError(
+            "Required modules and/or configurations for asynchronous VCF ingest are missing"
+        )
+
     if run_id:
-        existing_result = AsyncResult(id=run_id)
+        existing_result = AsyncResult(id=run_id)  # type: ignore[name-defined]
         if existing_result.status != "PENDING":
             response.status_code = status.HTTP_400_BAD_REQUEST
             return ErrorResponse(
@@ -77,7 +83,7 @@ async def _annotate_vcf_async(
     _logger.debug("writing working file for async vcf to %s", input_file_path)
 
     vcf_site_count = 0
-    async with aiofiles.open(input_file_path, mode="wb") as fd:
+    async with aiofiles.open(input_file_path, mode="wb") as fd:  # type: ignore[name-defined]
         while buffer := await vcf.read(1024 * 1024):
             if ord("\n") in buffer:
                 vcf_site_count = vcf_site_count + 1
@@ -299,7 +305,12 @@ async def _ingest_annotated_vcf_async(
     require_validation: bool,
     run_id: str | None,
 ) -> RunStatusResponse:
-    """Ingest annotated VCF synchronously.  See `annotated_vcf()` for parameter definitions."""
+    """Ingest annotated VCF asynchronously.  See `annotated_vcf()` for parameter definitions."""
+    if not anyvar.anyvar.has_queueing_enabled() or not HAS_CELERY_IMPORTS:
+        raise NotImplementedError(
+            "Required modules and/or configurations for asynchronous VCF ingest are missing"
+        )
+
     async_work_dir = os.environ.get("ANYVAR_VCF_ASYNC_WORK_DIR", None)
     utc_now = datetime.datetime.now(tz=datetime.UTC)
     file_id = str(uuid.uuid4())
@@ -311,7 +322,7 @@ async def _ingest_annotated_vcf_async(
     _logger.debug("writing working file for async vcf to %s", input_file_path)
 
     vcf_site_count = 0
-    async with aiofiles.open(input_file_path, mode="wb") as fd:
+    async with aiofiles.open(input_file_path, mode="wb") as fd:  # type: ignore[name-defined]
         while buffer := await vcf.read(1024 * 1024):
             if ord("\n") in buffer:
                 vcf_site_count = vcf_site_count + 1
@@ -422,8 +433,12 @@ async def annotated_vcf(
     vcf.file.rollover()
 
     if run_async:
+        if not HAS_CELERY_IMPORTS:
+            raise NotImplementedError(
+                "Required modules and/or configurations for asynchronous VCF ingest are missing"
+            )
         if run_id:
-            existing_result = AsyncResult(id=run_id)
+            existing_result = AsyncResult(id=run_id)  # type: ignore[name-defined]
             if existing_result.status != "PENDING":
                 response.status_code = status.HTTP_400_BAD_REQUEST
                 return ErrorResponse(
@@ -482,14 +497,14 @@ async def get_vcf_run_status(
     :return: streamed annotated file or a run status response
     """
     # Asynchronous VCF annotation not enabled, return error
-    if not anyvar.anyvar.has_queueing_enabled():
+    if not anyvar.anyvar.has_queueing_enabled() or not HAS_CELERY_IMPORTS:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ErrorResponse(
             error="Required modules and/or configurations for asynchronous VCF annotation are missing"
         )
 
     # get the async result
-    async_result = AsyncResult(id=run_id)
+    async_result = AsyncResult(id=run_id)  # type: ignore[name-defined]
     _logger.debug("%s - status is %s", run_id, async_result.status)
 
     # completed successfully
@@ -519,10 +534,10 @@ async def get_vcf_run_status(
         error_msg = str(async_result.result)
         error_code = (
             "TIME_LIMIT_EXCEEDED"
-            if isinstance(async_result.result, TimeLimitExceeded)
+            if isinstance(async_result.result, TimeLimitExceeded)  # type: ignore[name-defined]
             else (
                 "WORKER_LOST_ERROR"
-                if isinstance(async_result.result, WorkerLostError)
+                if isinstance(async_result.result, WorkerLostError)  # type: ignore[name-defined]
                 else "RUN_FAILURE"
             )
         )
@@ -564,7 +579,7 @@ async def get_vcf_run_status(
         #  pause half a second and check again
         if async_result.status == "PENDING":
             await asyncio.sleep(0.5)
-            async_result = AsyncResult(id=run_id)
+            async_result = AsyncResult(id=run_id)  # type: ignore[name-defined]
             _logger.debug(
                 "%s - after 0.5 second wait, status is %s", run_id, async_result.status
             )
