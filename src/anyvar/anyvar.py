@@ -151,7 +151,7 @@ class AnyVar:
             return None
         return id
 
-    def get_object(self, object_id: str, deref: bool = False) -> VrsObject | None:
+    def get_object(self, object_id: str, deref: bool = False) -> VrsObject:
         """Retrieve registered variation.
 
         :param object_id: object identifier

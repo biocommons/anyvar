@@ -14,7 +14,11 @@ from ga4gh.vrs import (
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 
 from anyvar import __version__
-from anyvar.utils.types import Annotation, SupportedVariationType
+from anyvar.utils.types import (
+    Annotation,
+    SupportedVariationType,
+    VrsObject,
+)
 
 
 class EndpointTag(str, Enum):
@@ -137,7 +141,7 @@ class AddAnnotationResponse(BaseModel):
     """Response for the POST /variation/{vrs_id}/annotations endpoint"""
 
     messages: list[str]
-    object: models.Variation | None
+    object: VrsObject | None
     object_id: str | None
     annotation_type: str | None
     annotation: dict | None
@@ -232,7 +236,7 @@ class GetVariationResponse(BaseModel):
     )
 
     messages: list[StrictStr]
-    data: models.Variation
+    data: VrsObject
 
 
 class SearchResponse(BaseModel):

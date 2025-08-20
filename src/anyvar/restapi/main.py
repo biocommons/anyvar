@@ -320,7 +320,9 @@ async def add_creation_timestamp_annotation(
     # Check if the request was for the "/variation" endpoint
     if request.url.path == "/variation":
         # With response, check if timestamp exists
-        annotator: AnyAnnotation = getattr(request.app.state, "anyannotation", None)
+        annotator: AnyAnnotation | None = getattr(
+            request.app.state, "anyannotation", None
+        )
         if annotator:
             response_json, new_response = await parse_and_rebuild_response(response)
 
@@ -522,7 +524,7 @@ def register_vrs_object(
         result["messages"].append(
             f"Registration for {variation_type} not currently supported."
         )
-        return result
+        return RegisterVrsVariationResponse(**result)
 
     variation_object = variation_class_map[variation_type](**variation.dict())
     v_id = av.put_object(variation_object)
@@ -559,11 +561,6 @@ def get_variation_by_id(
             detail=f"Variation {variation_id} not found",
         ) from e
 
-    if not variation:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail=f"Variation {variation_id} not found",
-        )
     return GetVariationResponse(messages=[], data=variation)
 
 
@@ -612,8 +609,9 @@ def search_variations(
     inline_alleles = []
     if alleles:
         for allele in alleles:
-            var_object = av.get_object(allele["id"], deref=True)
-            if not var_object:
+            try:
+                var_object = av.get_object(allele["id"], deref=True)
+            except KeyError:
                 continue
             inline_alleles.append(var_object)
 
