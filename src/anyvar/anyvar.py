@@ -159,7 +159,7 @@ class AnyVar:
         :return: VRS object if found, None otherwise
         """
         v = self.object_store[object_id]
-        return vrs_deref(v, self.object_store) if deref else v
+        return vrs_deref(v, self.object_store) if deref else v  # type: ignore (this will always return a VrsObject)
 
 
 class AnyAnnotation:
