@@ -83,7 +83,7 @@ class MockStmtSequence(list):
         self.append(MockStmt(f"COPY FROM fd INTO {table_name}", data, [(1,)]))
         return self
 
-    def pop_if_matches(self, sql: str, params) -> list:
+    def pop_if_matches(self, sql: str, params) -> list | None:
         if len(self) > 0 and self[0].matches(sql, params):
             self.execd.append(self[0])
             wait_for_secs = self[0].wait_for_secs
