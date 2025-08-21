@@ -64,7 +64,7 @@ async def _annotate_vcf_async(
         )
 
     if run_id:
-        existing_result = AsyncResult(id=run_id)  # type: ignore[name-defined]
+        existing_result = AsyncResult(id=run_id)  # type: ignore (function has an earlier check to ensure this is defined)
         if existing_result.status != "PENDING":
             response.status_code = status.HTTP_400_BAD_REQUEST
             return ErrorResponse(
@@ -83,7 +83,7 @@ async def _annotate_vcf_async(
     _logger.debug("writing working file for async vcf to %s", input_file_path)
 
     vcf_site_count = 0
-    async with aiofiles.open(input_file_path, mode="wb") as fd:  # type: ignore[name-defined]
+    async with aiofiles.open(input_file_path, mode="wb") as fd:  # type: ignore (function has an earlier check to ensure this is defined)
         while buffer := await vcf.read(1024 * 1024):
             if ord("\n") in buffer:
                 vcf_site_count = vcf_site_count + 1
@@ -322,7 +322,7 @@ async def _ingest_annotated_vcf_async(
     _logger.debug("writing working file for async vcf to %s", input_file_path)
 
     vcf_site_count = 0
-    async with aiofiles.open(input_file_path, mode="wb") as fd:  # type: ignore[name-defined]
+    async with aiofiles.open(input_file_path, mode="wb") as fd:  # type: ignore (function has an earlier check to ensure this is defined)
         while buffer := await vcf.read(1024 * 1024):
             if ord("\n") in buffer:
                 vcf_site_count = vcf_site_count + 1
@@ -438,7 +438,7 @@ async def annotated_vcf(
                 "Required modules and/or configurations for asynchronous VCF ingest are missing"
             )
         if run_id:
-            existing_result = AsyncResult(id=run_id)  # type: ignore[name-defined]
+            existing_result = AsyncResult(id=run_id)  # type: ignore (function has an earlier check to ensure this is defined)
             if existing_result.status != "PENDING":
                 response.status_code = status.HTTP_400_BAD_REQUEST
                 return ErrorResponse(
@@ -504,7 +504,7 @@ async def get_vcf_run_status(
         )
 
     # get the async result
-    async_result = AsyncResult(id=run_id)  # type: ignore[name-defined]
+    async_result = AsyncResult(id=run_id)  # type: ignore (function has an earlier check to ensure this is defined)
     _logger.debug("%s - status is %s", run_id, async_result.status)
 
     # completed successfully
@@ -534,10 +534,10 @@ async def get_vcf_run_status(
         error_msg = str(async_result.result)
         error_code = (
             "TIME_LIMIT_EXCEEDED"
-            if isinstance(async_result.result, TimeLimitExceeded)  # type: ignore[name-defined]
+            if isinstance(async_result.result, TimeLimitExceeded)  # type: ignore (function has an earlier check to ensure this is defined)
             else (
                 "WORKER_LOST_ERROR"
-                if isinstance(async_result.result, WorkerLostError)  # type: ignore[name-defined]
+                if isinstance(async_result.result, WorkerLostError)  # type: ignore (function has an earlier check to ensure this is defined)
                 else "RUN_FAILURE"
             )
         )
@@ -579,7 +579,7 @@ async def get_vcf_run_status(
         #  pause half a second and check again
         if async_result.status == "PENDING":
             await asyncio.sleep(0.5)
-            async_result = AsyncResult(id=run_id)  # type: ignore[name-defined]
+            async_result = AsyncResult(id=run_id)  # type: ignore (function has an earlier check to ensure this is defined)
             _logger.debug(
                 "%s - after 0.5 second wait, status is %s", run_id, async_result.status
             )
