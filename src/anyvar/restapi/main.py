@@ -263,6 +263,11 @@ def add_variation_annotation(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                 detail=f"Failed to add annotation: {annotation}",
             ) from e
+    else:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_IMPLEMENTED,
+            detail="Annotations are not supported by this backend configuration.",
+        )
 
     return AddAnnotationResponse(
         messages=messages,
@@ -292,12 +297,13 @@ def get_variation_annotation(
     :param annotation_type: type of annotation to retrieve
     :return: response object containing list of annotations for the variation
     """
-    # Retrieve the annotation from the annotation store
-    if hasattr(request.app.state, "anyannotation"):
-        anyannotation: AnyAnnotation = request.app.state.anyannotation
-        annotations = anyannotation.get_annotation(vrs_id, annotation_type)
-    else:
-        annotations = []
+    if not hasattr(request.app.state, "anyannotation"):
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_IMPLEMENTED,
+            detail="Annotations are not supported by this backend configuration.",
+        )
+    anyannotation: AnyAnnotation = request.app.state.anyannotation
+    annotations = anyannotation.get_annotation(vrs_id, annotation_type)
 
     return GetAnnotationResponse(annotations=annotations)
 
@@ -306,7 +312,12 @@ def get_variation_annotation(
 async def add_registration_annotations(
     request: Request, call_next: Callable
 ) -> Response:
-    """Add all required annotations for newly-registered variants"""
+    """Add all required annotations ("creation_timestamp" & "liftover") for newly-registered variants
+
+    :param request: FastAPI `Request` object
+    :param call_next: A FastAPI function that receives the `request` as a parameter, passes it to the corresponding path operation, and returns the generated `response`
+    :return: FastAPI`Response` object
+    """
     # Do nothing on request. Pass downstream.
     response = await call_next(request)
 
