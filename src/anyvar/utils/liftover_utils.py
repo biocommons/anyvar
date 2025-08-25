@@ -288,13 +288,11 @@ def add_liftover_annotations(
                 # If reverse liftover is NOT reversible, annotate the lifted-over variant with an error message
                 reverse_liftover_annotation_value = e.get_error_message()
 
-            # If reverse liftover is successful AND maps back to the original variant,
-            # annotate the lifted-over variant with the ID of the original
-            if (
-                reverse_liftover_variant
-                and reverse_liftover_variant.id == input_vrs_variant.id
-            ):
-                reverse_liftover_annotation_value = input_vrs_variant.id
+            if reverse_liftover_variant:
+                if reverse_liftover_variant.id == input_vrs_variant.id:
+                    reverse_liftover_annotation_value = input_vrs_variant.id
+                else:
+                    reverse_liftover_annotation_value = f"{LiftoverError.base_error_message}: Lifted-over variant id of {reverse_liftover_variant.id} does not match expected value of {input_vrs_id}"
 
             annotator.put_annotation(
                 object_id=str(lifted_over_variant.id),
