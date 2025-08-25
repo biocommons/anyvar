@@ -1,6 +1,5 @@
 """Defines functions used to lift over variants between GRCh37 & GRCh38"""
 
-import copy
 from enum import Enum
 from typing import TypeVar
 
@@ -10,8 +9,8 @@ from ga4gh.vrs import models
 from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 
 from anyvar.anyvar import AnyAnnotation, AnyVar
-from anyvar.utils.funcs import build_vrs_variant_from_dict, get_nested_attribute
-from anyvar.utils.types import VrsVariation, variation_class_map
+from anyvar.utils.funcs import build_vrs_variant_from_dict
+from anyvar.utils.types import VrsVariation
 
 
 class ReferenceAssembly(Enum):
@@ -133,8 +132,8 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
     """Liftover a variant from GRCh37 or GRCH38 into the opposite assembly, and return the converted variant as a VrsVariation.
     If liftover is unsuccessful, raise an Exception.
 
-    :param input_variant: A dictionary representation of a `VrsVariation`.
-    :param anyvar: A `AnyVar` instance.
+    :param input_variant: A `VrsVariation`.
+    :param anyvar: An `AnyVar` instance.
     :return: The converted variant as a `VrsVariation`.
     :raises:
         - `MalformedInputError`:  If the `input_variant` is empty or otherwise falsy
@@ -154,13 +153,12 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
     if not input_variant:
         raise MalformedInputError
 
-    refget_accession = get_nested_attribute(
-        input_variant, "location", "sequenceReference", "refgetAccession"
-    )
-    start_position = get_nested_attribute(input_variant, "location", "start")
-    end_position = get_nested_attribute(input_variant, "location", "end")
-    if not refget_accession or not start_position or not end_position:
-        raise UnsupportedVariantLocationTypeError
+    try:
+        refget_accession = input_variant.location.sequenceReference.refgetAccession
+        start_position = input_variant.location.start
+        end_position = input_variant.location.end
+    except AttributeError as err:
+        raise UnsupportedVariantLocationTypeError from err
 
     # Determine which assembly we're converting from/to
     prefixed_accession = f"ga4gh:{refget_accession}"
@@ -186,15 +184,13 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
     # Get the Converter that will liftover the variant's coordinates
     converter_key = f"{from_assembly}_to_{to_assembly}"
     converter = anyvar.liftover_converters.get(converter_key)
-    if not converter:
-        raise LiftoverError  # This won't happen, but Python doesn't know that and gets mad cuz it thinks `converter` might be `None`
 
     # Determine which chromosome we're on
     chromosome = chr22XY(accession_aliases[0].split(":")[1])
 
     # Get converted start/end positions. `convert_position` will raise a `CoordinateConversionError` if unsuccessful
-    converted_start = convert_position(converter, chromosome, start_position)
-    converted_end = convert_position(converter, chromosome, end_position)
+    converted_start = convert_position(converter, chromosome, start_position)  # type: ignore (`converter` and `start_position` will always be valid)
+    converted_end = convert_position(converter, chromosome, end_position)  # type: ignore (`converter` and `end_position` will always be valid)
 
     # Get converted refget_accession (without 'ga4gh:' prefix)
     new_alias = f"{to_assembly}:{chromosome}"
@@ -208,32 +204,15 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
     converted_variant_location = models.SequenceLocation(
         start=converted_start,
         end=converted_end,
-        id=None,
         type="SequenceLocation",
-        description=None,
-        name=None,
-        aliases=None,
-        sequence=None,
-        extensions=None,
-        digest=None,
         sequenceReference=models.SequenceReference(
-            type="SequenceReference",
-            refgetAccession=converted_refget_accession,
-            name=None,
-            id=None,
-            description=None,
-            aliases=None,
-            extensions=None,
-            residueAlphabet=None,
-            circular=None,
-            sequence=None,
-            moleculeType=None,
-        ),
-    )
+            type="SequenceReference", refgetAccession=converted_refget_accession
+        ),  # type: ignore (missing parameters are fine, all absent params will default to `None`)
+    )  # type: ignore (missing parameters are fine, all absent params will default to `None`)
 
     # Build the liftover variant object
     # Start by copying the original variant
-    converted_variant = copy.deepcopy(input_variant)
+    converted_variant = input_variant.model_copy(deep=True)
 
     # Replace the location with the lifted-over version
     converted_variant.location = converted_variant_location
@@ -251,10 +230,7 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
     )
 
     # return the dereffed lifted-over variant
-    dereffed_variant = vrs_deref(o=enreffed_variant, object_store=object_store)
-    return build_vrs_variant_from_dict(
-        dereffed_variant.model_dump()
-    )  # explicitly cast to a VrsVariant so Pylance doesn't get mad
+    return vrs_deref(o=enreffed_variant, object_store=object_store)  # type: ignore (this will always return a `VrsVariation`)
 
 
 def add_liftover_annotations(
@@ -266,16 +242,13 @@ def add_liftover_annotations(
     """Perform liftover between GRCh37 <-> GRCh38. Store the ID of converted variant as an annotation of the original,
     register the lifted-over variant, and store the ID of the original variant as an annotation of the lifted-over one.
 
-    :param original_vrs_id: The ID of the VRS variant to lift over
-    :param original_vrs_object: A dictionary representation of the VRS variant to lift over
+    :param input_vrs_id: The ID of the VRS variant to lift over
+    :param input_vrs_variant_dict: A dictionary representation of the VRS variant to lift over
     :param anyvar: An `AnyVar` instance
     :param annotator: An `AnyAnnotation` instance
     """
     # convert `input_vrs_object_dict` into an actual VrsVariation class instance
-    variant_type = input_vrs_variant_dict.get("type", "")
-    input_vrs_variant: VrsVariation = variation_class_map[variant_type](
-        **input_vrs_variant_dict
-    )
+    input_vrs_variant = build_vrs_variant_from_dict(input_vrs_variant_dict)
 
     lifted_over_variant: VrsVariation | None = None
     try:
