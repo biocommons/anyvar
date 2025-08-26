@@ -73,7 +73,7 @@ class CoordinateConversionFailureError(LiftoverError):
 
 
 class AmbiguousCoordinateConversionError(LiftoverError):
-    """Indicates a failure to lift over a variant's coordinate"""
+    """Indicates AnyVar cannot lift over a variant because its start and/or end coordinates mapped to multiple possible locations"""
 
     error_details = "Start and/or end positions mapped to multiple possible locations"
 
