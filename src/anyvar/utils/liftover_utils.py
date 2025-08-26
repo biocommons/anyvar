@@ -99,8 +99,11 @@ def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) 
         chromosome, coordinate, Strand.POSITIVE
     )  # returns a list of tuples with a) the coordinate's chromosome number, b) the converted coordinate position, and c) the strand (Strand.POSITIVE or Strand.NEGATIVE)
 
-    if len(converted_positions) == 1 and converted_positions[0][2] == Strand.POSITIVE:
-        # TODO: Handle cases where coordinate conversion returns negative-stranded coordinates. See Issue #197.
+    if (
+        len(converted_positions) == 1
+        and converted_positions[0][2]
+        == Strand.POSITIVE  # TODO: Handle cases where coordinate convert to the negative strand. See Issue #197.
+    ):
         return converted_positions[0][1]
     elif len(converted_positions) > 1:  # noqa: RET505
         raise AmbiguousCoordinateConversionError
@@ -126,7 +129,7 @@ def convert_position(
     if isinstance(position, int):
         return _convert_coordinate(converter, chromosome, position)
 
-    # Handle Range (list) positions
+    # Handle Range positions
     lower_bound, upper_bound = position.root
     lower_bound = (
         _convert_coordinate(converter, chromosome, lower_bound) if lower_bound else None
