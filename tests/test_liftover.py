@@ -66,7 +66,7 @@ SUCCESS_CASES = [
 FAILURE_CASES = [
     "grch36_variant",
     "unconvertible_grch37_variant",
-    # "unconvertible_grch38_variant", # TODO: add a real test case for this. See Issue #196.
+    "unconvertible_grch38_variant",
 ]
 
 # Cases where liftover should not be attempted
