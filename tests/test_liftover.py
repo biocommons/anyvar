@@ -3,7 +3,7 @@ import copy
 import pytest
 from data.liftover_variants import test_variants
 
-import anyvar.utils.liftover_utils as liftover_utils
+from anyvar.utils import liftover_utils
 from anyvar.utils.funcs import build_vrs_variant_from_dict
 
 

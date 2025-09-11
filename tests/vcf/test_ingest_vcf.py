@@ -358,5 +358,5 @@ def test_handle_incomplete_annotation(
         "/annotated_vcf", files={"vcf": ("test.vcf", vcf_incomplete_annotations)}
     )
 
-    assert resp.status_code == 400
+    assert resp.status_code == HTTPStatus.BAD_REQUEST
     assert "Required VRS annotations are missing" in resp.json()["error"]

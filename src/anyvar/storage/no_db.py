@@ -70,7 +70,7 @@ class NoStorageBatchManager(_BatchManager):
         """
         if not isinstance(storage, NoObjectStore):
             msg = "NoStorageBatchManager requires a NoObjectStore instance"
-            raise ValueError(msg)
+            raise TypeError(msg)
         self._storage = storage
 
     def __enter__(self) -> None:

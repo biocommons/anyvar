@@ -42,19 +42,19 @@ def create_storage(uri: str | None = None, table_name: str | None = None) -> _St
     uri = uri or os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
     parsed_uri = urlparse(uri)
     if parsed_uri.scheme == "postgresql":
-        from anyvar.storage.postgres import PostgresObjectStore
+        from anyvar.storage.postgres import PostgresObjectStore  # noqa: PLC0415
 
         storage = PostgresObjectStore(uri, table_name=table_name)
     elif parsed_uri.scheme == "snowflake":
-        from anyvar.storage.snowflake import SnowflakeObjectStore
+        from anyvar.storage.snowflake import SnowflakeObjectStore  # noqa: PLC0415
 
         storage = SnowflakeObjectStore(uri)
     elif parsed_uri.scheme == "":
-        from anyvar.storage.no_db import NoObjectStore
+        from anyvar.storage.no_db import NoObjectStore  # noqa: PLC0415
 
         storage = NoObjectStore()
     elif parsed_uri.scheme == "duckdb":
-        from anyvar.storage.duckdb import DuckdbObjectStore
+        from anyvar.storage.duckdb import DuckdbObjectStore  # noqa: PLC0415
 
         storage = DuckdbObjectStore(uri)
     else:
@@ -79,7 +79,9 @@ def create_annotation_storage(
     parsed_uri = urlparse(uri)
 
     if parsed_uri.scheme == "postgresql":
-        from anyvar.storage.postgres import PostgresAnnotationObjectStore
+        from anyvar.storage.postgres import (  # noqa: PLC0415
+            PostgresAnnotationObjectStore,
+        )
 
         storage = PostgresAnnotationObjectStore(uri, table_name=table_name)
     else:

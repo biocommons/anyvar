@@ -65,12 +65,6 @@ bdist bdist_egg bdist_wheel build sdist install: %:
 #= TESTING
 # see test configuration in setup.cfg
 
-#=> cqa: execute code quality tests
-cqa:
-	ruff check src
-	black --check src
-	bandit -ll -r src
-
 .PHONY: testready
 testready:
 	pip install -e '.[postgres,snowflake,queueing,test]'
@@ -79,6 +73,17 @@ testready:
 .PHONY: test
 test:
 	python -m pytest tests
+
+#=> cqa: execute code quality tests
+cqa:
+	ruff format --check
+	ruff check
+
+#=> reformat: reformat code
+.PHONY: reformat
+reformat:
+	ruff check --fix
+	ruff format
 
 ############################################################################
 #= UTILITY TARGETS
@@ -111,6 +116,7 @@ cleaner: clean
 	rm -rf .cache *.egg-info .pytest_cache build dist doc/_build htmlcov
 	find . \( -name \*.pyc -o -name \*.orig -o -name \*.rej \) -print0 | ${XRM} -fr
 	find . -name __pycache__ -print0 | ${XRM} -fr
+	rm -fvr .ruff_cache
 
 #=> cleanest: remove files and directories that require more time/network fetches to rebuild
 .PHONY: cleanest

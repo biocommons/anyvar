@@ -28,7 +28,6 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import StrictStr
 
 import anyvar
-import anyvar.utils.liftover_utils as liftover_utils
 from anyvar.anyvar import AnyAnnotation, AnyVar
 from anyvar.restapi.schema import (
     AddAnnotationRequest,
@@ -49,6 +48,7 @@ from anyvar.restapi.vcf import router as vcf_router
 from anyvar.translate.translate import (
     TranslationError,
 )
+from anyvar.utils import liftover_utils
 from anyvar.utils.types import VrsVariation, variation_class_map
 
 load_dotenv()
