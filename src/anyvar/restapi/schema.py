@@ -2,7 +2,6 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from ga4gh.vrs import (
     VRS_VERSION,
@@ -268,13 +267,11 @@ class RunStatusResponse(BaseModel):
 
     run_id: str  # Run ID
     status: str  # Run status
-    status_message: Optional[str] = (  # noqa: UP007
-        None  # Detailed status message for failures
-    )
+    status_message: str | None = None  # Detailed status message for failures
 
 
 class ErrorResponse(BaseModel):
     """Represents an error message"""
 
     error: str  # Error message
-    error_code: Optional[str] = None  # error code # noqa: UP007
+    error_code: str | None = None  # error code

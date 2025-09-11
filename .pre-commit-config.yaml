@@ -12,9 +12,9 @@ repos:
       - id: mixed-line-ending
         args: [ --fix=lf ]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.2  # ruff version
+    rev: v0.12.8  # ruff version
     hooks:
       - id: ruff-format
       - id: ruff
         args: [ --fix, --exit-non-zero-on-fix ]
-minimum_pre_commit_version: 4.0.1
+minimum_pre_commit_version: 4.2.0

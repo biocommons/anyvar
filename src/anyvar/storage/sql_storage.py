@@ -525,7 +525,7 @@ class SqlStorageBatchManager(_BatchManager):
         """
         if not isinstance(storage, SqlStorage):
             msg = "SqlStorageBatchManager requires a SqlStorage instance"
-            raise ValueError(msg)
+            raise TypeError(msg)
         self._storage = storage
 
     def __enter__(self) -> None:

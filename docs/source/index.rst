@@ -9,7 +9,6 @@ identifiers, and register biological sequence variation according to the
    :maxdepth: 1
    :caption: Contents
 
-   Project Requirements<project-requirements>
    Quick Start<quick-start>
    Dependencies<dependencies/index>
    Storage Options<storage/index>
