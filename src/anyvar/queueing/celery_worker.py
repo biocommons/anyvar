@@ -44,7 +44,7 @@ celery_app.conf.update(
     in ["true", "yes", "1"],
     # worker settings
     worker_prefetch_multiplier=int(
-        os.environ.get("CELERY_WORKER_PREFETCH_MULTIPLIER", 1)
+        os.environ.get("CELERY_WORKER_PREFETCH_MULTIPLIER", "1")
     ),
     task_time_limit=int(os.environ.get("CELERY_TASK_TIME_LIMIT", "3900")),
     soft_time_limit=int(os.environ.get("CELERY_SOFT_TIME_LIMIT", "3600")),
@@ -233,7 +233,7 @@ def annotate_vcf(
         Path(input_file_path).unlink()
 
         # return output file path
-        return output_file_path
+        return output_file_path  # noqa: TRY300
     except Exception:
         _logger.exception("%s - vcf annotation failed with exception", self.request.id)
         raise

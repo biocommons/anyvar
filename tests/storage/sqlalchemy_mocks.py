@@ -11,11 +11,12 @@ class MockResult(list):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def fetchone(self):
-        if len(self) > 0:  # noqa: RET503
+    def fetchone(self) -> None:
+        if len(self) > 0:
             retval = self[0]
             del self[0]
             return retval
+        return None
 
     def fetchall(self):
         new_list = list(self)

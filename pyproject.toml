@@ -50,8 +50,8 @@ test = [
     "pyyaml",
 ]
 dev = [
-    "ruff==0.11.2",
-    "pre-commit>=4.0.1",
+    "ruff==0.12.8",
+    "pre-commit>=4.2.0",
     "ipykernel",
 ]
 docs = [
@@ -117,109 +117,70 @@ include = ["src/**/*.py", "tests/**/*.py", "demo/**/*.py"]
 exclude = ["docs/source/"]
 
 [tool.ruff.lint]
-select = [
-    "F",  # https://docs.astral.sh/ruff/rules/#pyflakes-f
-    "E", "W",  # https://docs.astral.sh/ruff/rules/#pycodestyle-e-w
-    "I",  # https://docs.astral.sh/ruff/rules/#isort-i
-    "N",  # https://docs.astral.sh/ruff/rules/#pep8-naming-n
-    "D",  # https://docs.astral.sh/ruff/rules/#pydocstyle-d
-    "UP",  # https://docs.astral.sh/ruff/rules/#pyupgrade-up
-    "ANN",  # https://docs.astral.sh/ruff/rules/#flake8-annotations-ann
-    "ASYNC",  # https://docs.astral.sh/ruff/rules/#flake8-async-async
-    "S",  # https://docs.astral.sh/ruff/rules/#flake8-bandit-s
-    "B",  # https://docs.astral.sh/ruff/rules/#flake8-bugbear-b
-    "A",  # https://docs.astral.sh/ruff/rules/#flake8-builtins-a
-    "C4",  # https://docs.astral.sh/ruff/rules/#flake8-comprehensions-c4
-    "DTZ",  # https://docs.astral.sh/ruff/rules/#flake8-datetimez-dtz
-    "T10",  # https://docs.astral.sh/ruff/rules/#flake8-datetimez-dtz
-    "EM",  # https://docs.astral.sh/ruff/rules/#flake8-errmsg-em
-    "LOG",  # https://docs.astral.sh/ruff/rules/#flake8-logging-log
-    "G",  # https://docs.astral.sh/ruff/rules/#flake8-logging-format-g
-    "INP",  # https://docs.astral.sh/ruff/rules/#flake8-no-pep420-inp
-    "PIE",  # https://docs.astral.sh/ruff/rules/#flake8-pie-pie
-    "T20",  # https://docs.astral.sh/ruff/rules/#flake8-print-t20
-    "PT",  # https://docs.astral.sh/ruff/rules/#flake8-pytest-style-pt
-    "Q",  # https://docs.astral.sh/ruff/rules/#flake8-quotes-q
-    "RSE",  # https://docs.astral.sh/ruff/rules/#flake8-raise-rse
-    "RET",  # https://docs.astral.sh/ruff/rules/#flake8-return-ret
-    "SLF",  # https://docs.astral.sh/ruff/rules/#flake8-self-slf
-    "SIM",  # https://docs.astral.sh/ruff/rules/#flake8-simplify-sim
-    "ARG",  # https://docs.astral.sh/ruff/rules/#flake8-unused-arguments-arg
-    "PTH",  # https://docs.astral.sh/ruff/rules/#flake8-use-pathlib-pth
-    "PGH",  # https://docs.astral.sh/ruff/rules/#pygrep-hooks-pgh
-    "PERF",  # https://docs.astral.sh/ruff/rules/#perflint-perf
-    "FURB",  # https://docs.astral.sh/ruff/rules/#refurb-furb
-    "RUF",  # https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
-    "FAST", # https://docs.astral.sh/ruff/rules/#fastapi-fast
-]
-fixable = [
-    "I",
-    "F401",
-    "D",
-    "UP",
-    "ANN",
-    "B",
-    "C4",
-    "LOG",
-    "G",
-    "PIE",
-    "PT",
-    "RSE",
-    "SIM",
-    "PERF",
-    "FURB",
-    "RUF",
-    "W",
-]
-# ANN003 - missing-type-kwargs
-# D203 - one-blank-line-before-class
-# D205 - blank-line-after-summary
-# D206 - indent-with-spaces*
-# D213 - multi-line-summary-second-line
-# D300 - triple-single-quotes*
-# D400 - ends-in-period
-# D415 - ends-in-punctuation
-# E111 - indentation-with-invalid-multiple*
-# E114 - indentation-with-invalid-multiple-comment*
-# E117 - over-indented*
-# E501 - line-too-long*
-# EM101, EM102, EM103 - assign exception string to variable
-# W191 - tab-indentation*
-# S321 - suspicious-ftp-lib-usage
-# *ignored for compatibility with formatter
+select = ["ALL"]
 ignore = [
-    "ANN003",
-    "D203", "D205", "D206", "D213", "D300", "D400", "D415",
-    "E111", "E114", "E117", "E501",
-    "EM101", "EM102", "EM103",
+    # not used
+    "AIR",
+    "ERA",
+    "FAST",
+    "YTT",
+    "FBT",
+    "CPY",
+    "DJ",
+    "EM",
+    "EXE",
+    "FIX",
+    "FA",
+    "INT",
+    "PYI",
+    "TID",
+    "TD",
+    "TC",
+    "C90",
+    "NPY",
+    "PD",
+    # ignore for compatibility with formatter
+    "D206",
+    "D300",
+    "W191",
+    "E111",
+    "E114",
+    "E117",
+    "E501",
     "W191",
     "S321",
+    "COM812",
+    # don't require types on *args, **kwargs
+    "ANN002",
+    "ANN003",
+    # subjective pylint thresholds
+    "PLR0904",
+    "PLR091",
+    "PLR1702",
+    # excessive docstring requirements
+    "D105",
+    "D205",
+    "D203",
+    "D213",  # conflicts with D212
+    "D400",
+    "D401",
+    "D403",
+    "D415",
+    # excessive exception message requirements
+    "TRY003",
+    # excessive type ignore requirements
+    "PGH003",
+    # misc unnecessary readability requirements
+    "RET504",
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# ANN001 - missing-type-function-argument
-# ANN002 - missing-type-args
-# ANN2 - missing-return-type
-# ANN102 - missing-type-cls
-# B008 - function-call-in-default-argument
-# D - Pydocstyle
-# E402 - module-import-not-at-top-of-file
-# F401 - unused-import
-# S101 - assert
-# S608 - hardcoded-sql-expression
-# B011 - assert-false
-# INP001 - implicit-namespace-package
-# C400 - unnecessary-generator-list
-# ARG002 - unused-method-argument
-# A002 - builtin-argument-shadowing
-# T201 - print
 "__init__.py" = ["F401", "E402"]
 "src/anyvar/restapi/main.py" = ["B008"]
-"tests/*" = ["ANN001", "ANN002", "ANN2", "ANN102", "S101", "B011", "INP001", "D", "C400"]
-"tests/storage/test_snowflake.py" = ["S608"]
-"tests/storage/test_postgres.py" = ["S608"]
-"tests/storage/test_duckdb.py" = ["S608"]
-"tests/storage/sqlalchemy_mocks.py" = ["ARG002", "A002"]
+"src/anyvar/queueing/celery_worker.py" = ["PLW0602", "PLW0603"]
+"tests/*" = ["ANN001", "ANN2", "ANN102", "S101", "B011", "INP001", "D", "C400", "PLR2004"]
+"tests/storage/*" = ["S608"]
+"tests/storage/sqlalchemy_mocks.py" = ["ARG002", "A002", "TRY002"]
 "demo/*" = ["T201"]
 
 [tool.ruff.format]
