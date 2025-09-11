@@ -2,7 +2,6 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Literal
 
 from ga4gh.vrs import (
     VRS_VERSION,
@@ -14,7 +13,11 @@ from ga4gh.vrs import (
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 
 from anyvar import __version__
-from anyvar.utils.types import Annotation, SupportedVariationType
+from anyvar.utils.types import (
+    Annotation,
+    SupportedVariationType,
+    VrsObject,
+)
 
 
 class EndpointTag(str, Enum):
@@ -40,11 +43,11 @@ class ServiceOrganization(BaseModel):
     """Define service_info response for organization field"""
 
     name: str = Field(
-        "bioccommons",
+        default="bioccommons",
         description="Name of the organization responsible for the service",
     )
     url: str = Field(
-        "https://biocommons.org",
+        default="https://biocommons.org",
         description="URL of the website of the organization (RFC 3986 format)",
     )
 
@@ -53,14 +56,14 @@ class ServiceType(BaseModel):
     """Define service_info response for type field"""
 
     group: str = Field(
-        "org.biocommons",
+        default="org.biocommons",
         description="Namespace in reverse domain name format. Use `org.ga4gh` for implementations compliant with official GA4GH specifications. For services with custom APIs not standardized by GA4GH, or implementations diverging from official GA4GH specifications, use a different namespace (e.g. your organization''s reverse domain name).",
     )
     artifact: str = Field(
-        "anyvar",
+        default="anyvar",
         description="Name of the API or GA4GH specification implemented. Official GA4GH types should be assigned as part of standards approval process. Custom artifacts are supported.",
     )
-    version: Literal[__version__] = __version__
+    version: str = __version__
 
 
 class SpecMetadata(BaseModel):
@@ -79,41 +82,41 @@ class ServiceInfo(BaseModel):
     """Define response structure for GA4GH /service_info endpoint."""
 
     id: str = Field(
-        "org.biocommons.anyvar",
+        default="org.biocommons.anyvar",
         description="Unique ID of this service. Reverse domain name notation is recommended, though not required. The identifier should attempt to be globally unique so it can be used in downstream aggregator services e.g. Service Registry.",
     )
     name: str = Field(
-        "AnyVar", description="Name of this service. Should be human readable."
+        default="AnyVar", description="Name of this service. Should be human readable."
     )
     type: ServiceType = Field(ServiceType(), description="Type of a GA4GH service")
     description: str = Field(
-        "Register and retrieve variations and associated annotations.",
+        default="Register and retrieve variations and associated annotations.",
         description="Description of the service. Should be human readable and provide information about the service.",
     )
     organization: ServiceOrganization = Field(
-        ServiceOrganization(), description="Organization providing the service"
+        default=ServiceOrganization(), description="Organization providing the service"
     )
     contactUrl: str = Field(  # noqa: N815
-        "mailto:alex.wagner@nationwidechildrens.org",
+        default="mailto:alex.wagner@nationwidechildrens.org",
         description="URL of the contact for the provider of this service, e.g. a link to a contact form (RFC 3986 format), or an email (RFC 2368 format).",
     )
     documentationUrl: str = Field(  # noqa: N815
-        "https://github.com/biocommons/anyvar",
+        default="https://github.com/biocommons/anyvar",
         description="URL of the documentation of this service (RFC 3986 format). This should help someone learn how to use your service, including any specifics required to access data, e.g. authentication.",
     )
     createdAt: datetime = Field(  # noqa: N815
-        "2025-06-01T00:00:00Z",
+        default=datetime.fromisoformat("2025-06-01T00:00:00Z"),
         description="Timestamp describing when the service was first deployed and available (RFC 3339 format)",
     )
     updatedAt: datetime = Field(  # noqa: N815
-        "2025-06-01T00:00:00Z",
+        default=datetime.fromisoformat("2025-06-01T00:00:00Z"),
         description="Timestamp describing when the service was last updated (RFC 3339 format)",
     )
     environment: ServiceEnvironment = Field(
-        ServiceEnvironment.DEV,
+        default=ServiceEnvironment.DEV,
         description="Environment the service is running in. Use this to distinguish between production, development and testing/staging deployments. Suggested values are prod, test, dev, staging. However this is advised and not enforced.",
     )
-    version: Literal[__version__] = __version__
+    version: str = __version__
     spec_metadata: SpecMetadata = SpecMetadata()
     impl_metadata: ImplMetadata = ImplMetadata()
 
@@ -137,7 +140,7 @@ class AddAnnotationResponse(BaseModel):
     """Response for the POST /variation/{vrs_id}/annotations endpoint"""
 
     messages: list[str]
-    object: models.Variation | None
+    object: VrsObject | None
     object_id: str | None
     annotation_type: str | None
     annotation: dict | None
@@ -232,7 +235,7 @@ class GetVariationResponse(BaseModel):
     )
 
     messages: list[StrictStr]
-    data: models.Variation
+    data: VrsObject
 
 
 class SearchResponse(BaseModel):

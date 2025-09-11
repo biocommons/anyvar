@@ -129,12 +129,12 @@ def register_existing_annotations(
                 if vrs_id == ".":
                     continue
                 true_state = "" if state == "." else state
-                seq_ref = SequenceReference(refgetAccession=refget_accession)
+                seq_ref = SequenceReference(refgetAccession=refget_accession)  # pyright: ignore[reportCallIssue] - values that aren't specified default to `None`
                 location = SequenceLocation(
                     sequenceReference=seq_ref, start=start, end=end
-                )
-                lse = LiteralSequenceExpression(sequence=true_state)
-                allele = Allele(location=location, state=lse)
+                )  # pyright: ignore[reportCallIssue]
+                lse = LiteralSequenceExpression(sequence=true_state)  # pyright: ignore[reportCallIssue]
+                allele = Allele(location=location, state=lse)  # pyright: ignore[reportCallIssue]
                 allele = normalize(allele, av.translator.dp)
                 new_vrs_id = ga4gh_identify(allele)
                 if conflict_logfile and new_vrs_id != vrs_id:

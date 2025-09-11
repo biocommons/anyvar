@@ -79,7 +79,7 @@ class VrsPythonTranslator(_Translator):
 
         return variation
 
-    def translate_allele(self, var: str) -> models.Allele | None:
+    def translate_allele(self, var: str) -> models.Allele:
         """Translate provided variation text into a VRS Allele object.
 
         :param var: user-provided string describing or referencing a variation.
@@ -89,14 +89,14 @@ class VrsPythonTranslator(_Translator):
             its translation.
         """
         try:
-            return self.allele_tlr.translate_from(var, fmt=None)
+            return self.allele_tlr.translate_from(var, fmt=None)  # type: ignore (this will always return a models.Allele instance, or raise a ValueError)
         except ValueError as e:
             msg = f"{var} isn't supported by the VRS-Python AlleleTranslator."
             raise TranslationError(msg) from e
 
     def translate_cnv(
         self, var: str, **kwargs
-    ) -> models.CopyNumberCount | models.CopyNumberChange | None:
+    ) -> models.CopyNumberCount | models.CopyNumberChange:
         """Translate provided variation text into a VRS object.
 
         :param var: user-provided string describing or referencing a variation.
@@ -109,7 +109,7 @@ class VrsPythonTranslator(_Translator):
             its translation.
         """
         try:
-            return self.cnv_tlr.translate_from(var, fmt=None, **kwargs)
+            return self.cnv_tlr.translate_from(var, fmt=None, **kwargs)  # type: ignore (this will always return a models.CopyNumberCount | models.CopyNumberChange instance, or raise a ValueError)
         except ValueError as e:
             msg = f"{var} isn't supported by the VRS-Python CnvTranslator."
             raise TranslationError(msg) from e

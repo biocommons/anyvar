@@ -153,15 +153,17 @@ class AnyVar:
             return None
         return id
 
-    def get_object(self, object_id: str, deref: bool = False) -> VrsObject | None:
+    def get_object(self, object_id: str, deref: bool = False) -> VrsObject:
         """Retrieve registered variation.
 
         :param object_id: object identifier
         :param deref: if True, dereference all IDs contained by the object
-        :return: VRS object if found, None otherwise
+        :return: VRS object if found.
+        :raises: KeyError if identifier is not found, or ValueError if deref = True and
+                    the object is either a) not a Pydantic instance, or b) not a ga4gh identifiable object
         """
         v = self.object_store[object_id]
-        return vrs_deref(v, self.object_store) if deref else v
+        return vrs_deref(v, self.object_store) if deref else v  # type: ignore (this will always return a VrsObject)
 
 
 class AnyAnnotation:
