@@ -78,6 +78,14 @@ class AmbiguousCoordinateConversionError(LiftoverError):
     error_details = "Start and/or end positions mapped to multiple possible locations"
 
 
+class NegativeStrandedCoordinateConversionError(LiftoverError):
+    """Indicates AnyVar cannot lift over a variant because its start and/or end coordinates lifted over to the negative strand
+    TODO: Handle cases where coordinate converts to the negative strand. See Issue #197.
+    """
+
+    error_details = "Liftover unsupported - start and/or end positions lifted over to the negative strand"
+
+
 class AccessionConversionError(LiftoverError):
     """Indicates a failure to convert a variant's refget accession"""
 
@@ -102,11 +110,10 @@ def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) 
     if len(converted_positions) > 1:
         raise AmbiguousCoordinateConversionError
 
-    if (
-        len(converted_positions) == 1
-        and converted_positions[0][2]
-        == Strand.POSITIVE  # TODO: Handle cases where coordinate converts to the negative strand. See Issue #197.
-    ):
+    if len(converted_positions) == 1 and converted_positions[0][2] == Strand.NEGATIVE:
+        raise NegativeStrandedCoordinateConversionError  # TODO: Handle cases where coordinate converts to the negative strand. See Issue #197.
+
+    if len(converted_positions) == 1:
         return converted_positions[0][1]
 
     raise CoordinateConversionFailureError
