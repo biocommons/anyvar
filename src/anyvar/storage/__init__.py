@@ -26,25 +26,6 @@ class _Storage(MutableMapping):
     def close(self) -> None:
         """Close the storage integration and cleans up any resources"""
 
-    @abstractmethod
-    def search_variations(self, refget_accession: str, start: int, stop: int) -> list:
-        """Find all alleles that were registered that are in 1 genomic region
-
-        :param refget_accession: refget accession (SQ. identifier)
-        :param start: Start genomic region to query
-        :param stop: Stop genomic region to query
-
-        :raise NotImplementedError:
-        """
-
-    @abstractmethod
-    def get_variation_count(self, variation_type: VariationStatisticType) -> int:
-        """Get total # of registered variations of requested type.
-
-        :param variation_type: variation type to check
-        :return: total count
-        """
-
 
 class _BatchManager(AbstractContextManager):
     """Base context management class for batch writing.
