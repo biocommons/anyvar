@@ -13,7 +13,7 @@ from anyvar.translate.vrs_python import VrsPythonTranslator
 # pause for 5 seconds because Snowflake storage is an async write and
 #   tests will sometimes fail on test_storage_mapping
 def test_waitforsync():
-    import time
+    import time  # noqa: PLC0415
 
     time.sleep(5)
 

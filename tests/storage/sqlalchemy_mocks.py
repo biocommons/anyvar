@@ -11,11 +11,12 @@ class MockResult(list):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def fetchone(self):
-        if len(self) > 0:  # noqa: RET503
+    def fetchone(self) -> None:
+        if len(self) > 0:
             retval = self[0]
             del self[0]
             return retval
+        return None
 
     def fetchall(self):
         new_list = list(self)
@@ -83,7 +84,7 @@ class MockStmtSequence(list):
         self.append(MockStmt(f"COPY FROM fd INTO {table_name}", data, [(1,)]))
         return self
 
-    def pop_if_matches(self, sql: str, params) -> list:
+    def pop_if_matches(self, sql: str, params) -> list | None:
         if len(self) > 0 and self[0].matches(sql, params):
             self.execd.append(self[0])
             wait_for_secs = self[0].wait_for_secs

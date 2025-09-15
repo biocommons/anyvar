@@ -101,7 +101,7 @@ class SnowflakeObjectStore(VrsSqlStorage):
         )
         if self.batch_add_mode not in SnowflakeBatchAddMode:
             msg = "batch_add_mode must be one of 'merge', 'insert_notin', or 'insert'"
-            raise Exception(msg)
+            raise Exception(msg)  # noqa: TRY002
 
     def _preprocess_db_url(self, db_url: str) -> str:
         db_url = db_url.replace(".snowflakecomputing.com", "")
