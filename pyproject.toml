@@ -19,7 +19,7 @@ dependencies = [
     "python-multipart",  # required for fastapi file uploads
     "uvicorn",
     "ga4gh.vrs[extras]~=2.1.2",
-    "sqlalchemy~=1.4.54",
+    "sqlalchemy~=2.0.0",
     "pyyaml",
     "agct",
     "pysam",
@@ -31,7 +31,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 postgres = ["psycopg[binary]"]
-snowflake = ["snowflake-sqlalchemy~=1.5.1"]
+# snowflake = ["snowflake-sqlalchemy~=1.5.1"]
 queueing = [
     "celery[redis]~=5.4.0",
     "aiofiles",
