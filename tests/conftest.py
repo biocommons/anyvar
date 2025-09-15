@@ -24,10 +24,7 @@ def pytest_collection_modifyitems(items):
         "test_ingest_vcf",
         "test_sql_storage_mapping",
         "test_postgres",
-        "test_duckdb",
-        "test_snowflake",
         "test_postgres_annotation",
-        "test_duckdb_annotation",
         "test_no_db",
         "test_liftover",
     ]

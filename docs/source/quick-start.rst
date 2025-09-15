@@ -33,7 +33,6 @@ Initialize Storage
 Most nontrivial uses of AnyVar will require the initialization of a storage backend. See the following for option-specific setup instructions:
 
 * :ref:`PostgreSQL <postgresql-setup>`
-* :ref:`Snowflake <snowflake-setup>`
 
 AnyVar can also be run without a database. This is primarily useful for bulk VCF annotations where there is no need to reuse previously-computed VRS IDs. To do so, set the ``ANYVAR_STORAGE_URI`` environment variable to an empty string (`""`) in your ``.env`` file, i.e. with ``echo "ANYVAR_STORAGE_URI=" >> .env``.
 

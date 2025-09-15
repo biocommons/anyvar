@@ -6,16 +6,16 @@ and different ANYVAR_SQL_STORE_BATCH_ADD_MODE settings
 
 from ga4gh.vrs.enderef import vrs_enref
 
-from anyvar.storage.snowflake import SnowflakeBatchAddMode, SnowflakeObjectStore
 from anyvar.translate.vrs_python import VrsPythonTranslator
 
 
-# pause for 5 seconds because Snowflake storage is an async write and
-#   tests will sometimes fail on test_storage_mapping
-def test_waitforsync():
-    import time  # noqa: PLC0415
-
-    time.sleep(5)
+# __setitem__
+def test_setitem(storage, alleles):
+    for allele in alleles.values():
+        variation = allele["params"]
+        definition = variation["definition"]
+        translated_variation = VrsPythonTranslator().translate_variation(definition)
+        vrs_enref(translated_variation, storage)
 
 
 # __getitem__
@@ -45,12 +45,7 @@ def test_iter(storage):
             count += 1
         except StopIteration:
             break
-    assert count == (
-        18
-        if isinstance(storage, SnowflakeObjectStore)
-        and storage.batch_add_mode == SnowflakeBatchAddMode.insert
-        else 19
-    )
+    assert count == (4)
 
 
 # keys
@@ -64,12 +59,3 @@ def test_keys(storage, alleles):
 def test_delitem(storage, alleles):
     for allele_id in alleles:
         del storage[allele_id]
-
-
-# __setitem__
-def test_setitem(storage, alleles):
-    for allele in alleles.values():
-        variation = allele["params"]
-        definition = variation["definition"]
-        translated_variation = VrsPythonTranslator().translate_variation(definition)
-        vrs_enref(translated_variation, storage)

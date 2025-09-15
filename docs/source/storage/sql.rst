@@ -1,9 +1,9 @@
 SQL Database Setup
 !!!!!!!!!!!!!!!!!!
 
-A Postgres, Snowflake, or DuckDB database may optionally be used with AnyVar. This database is used to cache variants that have been transformed by AnyVar. Use the ``ANYVAR_STORAGE_URI`` environment variable to define the database connection URL (see the documentation for your chosen database implementation for more details). AnyVar uses `SQLAlchemy 1.4 <https://docs.sqlalchemy.org/en/14/index.html>`_ to provide database connection management. The default database connection URL is ``postgresql://postgres@localhost:5432/anyvar``.
+A Postgres database may optionally be used with AnyVar. This database is used to cache variants that have been transformed by AnyVar. Use the ``ANYVAR_STORAGE_URI`` environment variable to define the database connection URL (see the documentation for your chosen database implementation for more details). AnyVar uses `SQLAlchemy 1.4 <https://docs.sqlalchemy.org/en/14/index.html>`_ to provide database connection management. The default database connection URL is ``postgresql://postgres@localhost:5432/anyvar``.
 
-The Postgres and Snowflake database connectors utilize a background thread to write VRS objects to the database when operating in batch mode (e.g. annotating a VCF file). Queries and statistics query only against the already committed database state. Therefore, queries issued immediately after a batch operation may not reflect all pending changes if the ``ANYVAR_SQL_STORE_FLUSH_ON_BATCHCTX_EXIT`` parameter is set to ``False``.
+The Postgres database connector utilizes a background thread to write VRS objects to the database when operating in batch mode (e.g. annotating a VCF file). Queries and statistics query only against the already committed database state. Therefore, queries issued immediately after a batch operation may not reflect all pending changes if the ``ANYVAR_SQL_STORE_FLUSH_ON_BATCHCTX_EXIT`` parameter is set to ``False``.
 
 Cheat Sheet: Environment Variables
 ----------------------------------

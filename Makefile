@@ -67,7 +67,7 @@ bdist bdist_egg bdist_wheel build sdist install: %:
 
 .PHONY: testready
 testready:
-	pip install -e '.[postgres,snowflake,queueing,test]'
+	pip install -e '.[postgres,queueing,test]'
 
 #=> test: execute tests
 .PHONY: test

@@ -33,8 +33,8 @@ def create_storage(uri: str | None = None, table_name: str | None = None) -> _St
 
     * PostgreSQL
     `postgresql://[username]:[password]@[domain]/[database]`
-    * Snowflake
-    `snowflake://[user]:@[account]/[database]/[schema]?[param=value]&[param=value]...`
+    * No database (for testing or non-persistent use cases)
+    `no_db://`
 
     :param uri: storage URI
     :param table_name: table name to use for storage (if the storage supports it)
@@ -42,21 +42,13 @@ def create_storage(uri: str | None = None, table_name: str | None = None) -> _St
     uri = uri or os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
     parsed_uri = urlparse(uri)
     if parsed_uri.scheme == "postgresql":
-        from anyvar.storage.postgres import PostgresObjectStore  # noqa: PLC0415
+        from anyvar.storage.postgres import PostgresObjectStore
 
         storage = PostgresObjectStore(uri, table_name=table_name)
-    elif parsed_uri.scheme == "snowflake":
-        from anyvar.storage.snowflake import SnowflakeObjectStore  # noqa: PLC0415
-
-        storage = SnowflakeObjectStore(uri)
     elif parsed_uri.scheme == "":
-        from anyvar.storage.no_db import NoObjectStore  # noqa: PLC0415
+        from anyvar.storage.no_db import NoObjectStore
 
         storage = NoObjectStore()
-    elif parsed_uri.scheme == "duckdb":
-        from anyvar.storage.duckdb import DuckdbObjectStore  # noqa: PLC0415
-
-        storage = DuckdbObjectStore(uri)
     else:
         msg = f"URI scheme {parsed_uri.scheme} is not implemented"
         raise ValueError(msg)
@@ -79,7 +71,7 @@ def create_annotation_storage(
     parsed_uri = urlparse(uri)
 
     if parsed_uri.scheme == "postgresql":
-        from anyvar.storage.postgres import (  # noqa: PLC0415
+        from anyvar.storage.postgres import (
             PostgresAnnotationObjectStore,
         )
 

@@ -54,7 +54,7 @@ For example:
 Notes
 =====
 
-Currently, there is some interdependency between test modules -- namely, tests that rely on reading data from storage assume that the data from ``test_variation`` has been uploaded. A pytest hook ensures correct test order, but some test modules may not be able to pass when run in isolation. By default, the tests will use a Postgres database installation. To run the tests against a Snowflake database, change the ``ANYVAR_TEST_STORAGE_URI`` to a Snowflake URI and run the tests.
+Currently, there is some interdependency between test modules -- namely, tests that rely on reading data from storage assume that the data from ``test_variation`` has been uploaded. A pytest hook ensures correct test order, but some test modules may not be able to pass when run in isolation. By default, the tests will use a Postgres database installation.
 
 For the ``tests/test_vcf::test_vcf_registration_async`` unit test to pass, a real broker and backend are required for Celery to interact with. Set the ``CELERY_BROKER_URL`` and ``CELERY_BACKEND_URL`` environment variables. The simplest solution is to run Redis locally and use that for both the broker and the backend, eg:
 
