@@ -14,40 +14,6 @@ from anyvar.utils.types import Annotation, AnnotationKey
 
 from .sql_storage import SqlStorage, VrsSqlStorage
 
-silos = [
-    "locations",
-    "alleles",
-    "haplotypes",
-    "genotypes",
-    "variationsets",
-    "relations",
-    "texts",
-]
-
-
-def create_schema(db_conn: Connection) -> None:
-    """Create all PostgreSQL schemas using init.sql.
-
-    :param db_conn: a SQLAlchemy database connection
-    :return: None
-    """
-    # Check if schemas already exist by checking for one of the main tables
-    check_statement = """
-        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')
-    """
-    result = db_conn.execute(sql_text(check_statement))
-    if not result or not result.scalar():
-        # Read and execute init.sql
-        init_sql_path = Path(__file__).parent / "init.sql"
-        with init_sql_path.open() as f:
-            init_sql = f.read()
-
-        # Execute the SQL statements from init.sql
-        # Split by semicolon and execute each statement
-        statements = [stmt.strip() for stmt in init_sql.split(";") if stmt.strip()]
-        for statement in statements:
-            db_conn.execute(sql_text(statement))
-
 
 class PostgresAnnotationObjectStore(SqlStorage):
     """Annotation object store for PostgreSQL backend."""
@@ -61,9 +27,10 @@ class PostgresAnnotationObjectStore(SqlStorage):
         flush_on_batchctx_exit: bool | None = None,
     ) -> None:
         """Initialize DB handler."""
+        table_name = table_name or "annotations"
         if table_name != "annotations":
             raise ValueError(
-                "PostgresAnnotationObjectStore requires table_name='annotations'"
+                f"PostgresAnnotationObjectStore requires table_name='annotations', got {table_name}"
             )
         super().__init__(
             db_url,
@@ -73,13 +40,9 @@ class PostgresAnnotationObjectStore(SqlStorage):
             flush_on_batchctx_exit,
         )
 
-    # def create_schema(self, db_conn: Connection) -> None:
-    #     """Create the table if it does not exist using module-level create_schema.
-
-    #     :param db_conn: a SQLAlchemy database connection
-    #     :return: None
-    #     """
-    #     create_schema(db_conn)
+    def create_schema(self, db_conn: Connection) -> None:
+        """Does nothing because schema creation is handled externally."""
+        pass
 
     def __getitem__(self, key: AnnotationKey) -> Iterator[Annotation]:
         """Get annotations by key."""
@@ -229,8 +192,11 @@ class PostgresObjectStore(VrsSqlStorage):
         flush_on_batchctx_exit: bool | None = None,
     ) -> None:
         """Initialize DB handler."""
+        table_name = table_name or "vrs_objects"
         if table_name != "vrs_objects":
-            raise ValueError("PostgresObjectStore requires table_name='vrs_objects'")
+            raise ValueError(
+                f"PostgresObjectStore requires table_name='vrs_objects', got {table_name}"
+            )
         super().__init__(
             db_url,
             batch_limit,
@@ -239,12 +205,9 @@ class PostgresObjectStore(VrsSqlStorage):
             flush_on_batchctx_exit,
         )
 
-    # def create_schema(self, db_conn: Connection) -> None:
-    #     """Add the VRS object table if it does not exist using module-level create_schema.
-
-    #     :param db_conn: a database connection
-    #     """
-    #     create_schema(db_conn)
+    def create_schema(self, db_conn: Connection) -> None:
+        """Does nothing because schema creation is handled externally."""
+        pass
 
     def add_one_item(self, db_conn: Connection, name: str, value: Any) -> None:  # noqa: ANN401
         """Add/merge a single item to the database
