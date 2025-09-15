@@ -4,6 +4,7 @@ import json
 import os
 from collections.abc import Iterable, Iterator
 from io import StringIO
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import text as sql_text
@@ -24,6 +25,30 @@ silos = [
 ]
 
 
+def create_schema(db_conn: Connection) -> None:
+    """Create all PostgreSQL schemas using init.sql.
+
+    :param db_conn: a SQLAlchemy database connection
+    :return: None
+    """
+    # Check if schemas already exist by checking for one of the main tables
+    check_statement = """
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = 'vrs_objects')
+    """
+    result = db_conn.execute(sql_text(check_statement))
+    if not result or not result.scalar():
+        # Read and execute init.sql
+        init_sql_path = Path(__file__).parent / "init.sql"
+        with init_sql_path.open() as f:
+            init_sql = f.read()
+
+        # Execute the SQL statements from init.sql
+        # Split by semicolon and execute each statement
+        statements = [stmt.strip() for stmt in init_sql.split(";") if stmt.strip()]
+        for statement in statements:
+            db_conn.execute(sql_text(statement))
+
+
 class PostgresAnnotationObjectStore(SqlStorage):
     """Annotation object store for PostgreSQL backend."""
 
@@ -31,11 +56,15 @@ class PostgresAnnotationObjectStore(SqlStorage):
         self,
         db_url: str,
         batch_limit: int | None = None,
-        table_name: str | None = None,
+        table_name: str | None = "annotations",
         max_pending_batches: int | None = None,
         flush_on_batchctx_exit: bool | None = None,
     ) -> None:
         """Initialize DB handler."""
+        if table_name != "annotations":
+            raise ValueError(
+                "PostgresAnnotationObjectStore requires table_name='annotations'"
+            )
         super().__init__(
             db_url,
             batch_limit,
@@ -44,25 +73,13 @@ class PostgresAnnotationObjectStore(SqlStorage):
             flush_on_batchctx_exit,
         )
 
-    def create_schema(self, db_conn: Connection) -> None:
-        """Create the table if it does not exist.
+    # def create_schema(self, db_conn: Connection) -> None:
+    #     """Create the table if it does not exist using module-level create_schema.
 
-        :param db_conn: a SQLAlchemy database connection
-        :return: None
-        """
-        check_statement = f"""
-            SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = '{self.table_name}')
-        """  # noqa: S608
-        create_statement = f"""
-            CREATE TABLE {self.table_name} (
-                object_id TEXT,
-                annotation_type TEXT,
-                annotation JSONB
-            )
-        """
-        result = db_conn.execute(sql_text(check_statement))
-        if not result or not result.scalar():
-            db_conn.execute(sql_text(create_statement))
+    #     :param db_conn: a SQLAlchemy database connection
+    #     :return: None
+    #     """
+    #     create_schema(db_conn)
 
     def __getitem__(self, key: AnnotationKey) -> Iterator[Annotation]:
         """Get annotations by key."""
@@ -207,11 +224,13 @@ class PostgresObjectStore(VrsSqlStorage):
         self,
         db_url: str,
         batch_limit: int | None = None,
-        table_name: str | None = None,
+        table_name: str | None = "vrs_objects",
         max_pending_batches: int | None = None,
         flush_on_batchctx_exit: bool | None = None,
     ) -> None:
         """Initialize DB handler."""
+        if table_name != "vrs_objects":
+            raise ValueError("PostgresObjectStore requires table_name='vrs_objects'")
         super().__init__(
             db_url,
             batch_limit,
@@ -220,23 +239,12 @@ class PostgresObjectStore(VrsSqlStorage):
             flush_on_batchctx_exit,
         )
 
-    def create_schema(self, db_conn: Connection) -> None:
-        """Add the VRS object table if it does not exist
+    # def create_schema(self, db_conn: Connection) -> None:
+    #     """Add the VRS object table if it does not exist using module-level create_schema.
 
-        :param db_conn: a database connection
-        """
-        check_statement = f"""
-            SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = '{self.table_name}')
-        """  # noqa: S608
-        create_statement = f"""
-            CREATE TABLE {self.table_name} (
-                vrs_id TEXT PRIMARY KEY,
-                vrs_object JSONB
-            )
-        """
-        result = db_conn.execute(sql_text(check_statement))
-        if not result or not result.scalar():
-            db_conn.execute(sql_text(create_statement))
+    #     :param db_conn: a database connection
+    #     """
+    #     create_schema(db_conn)
 
     def add_one_item(self, db_conn: Connection, name: str, value: Any) -> None:  # noqa: ANN401
         """Add/merge a single item to the database
