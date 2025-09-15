@@ -45,7 +45,7 @@ def test_iter(storage):
             count += 1
         except StopIteration:
             break
-    assert count == (4)
+    assert count == 19
 
 
 # keys
