@@ -28,6 +28,4 @@ Storage
 
    anyvar.storage.no_db
    anyvar.storage.sql_storage
-   anyvar.storage.duckdb
    anyvar.storage.postgres
-   anyvar.storage.snowflake

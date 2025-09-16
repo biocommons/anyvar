@@ -70,10 +70,6 @@ It is also possible to run AnyVar with no database. This is primarily useful for
 
 AnyVar supports PostgreSQL databases. [Configure PostgreSQL for AnyVar.](docs/postgres.md)
 
-#### Snowflake (Optional)
-
-AnyVar can also utilize Snowflake. [Detailed instructions available.](docs/snowflake.md)
-
 ## Asynchronous Operations
 
 AnyVar supports asynchronous VCF annotation for improved scalability. [See asynchronous operations README.](docs/async.md)
@@ -138,8 +134,7 @@ Currently, there is some interdependency between test modules -- namely, tests t
 on reading data from storage assume that the data from `test_variation` has been
 uploaded. A pytest hook ensures correct test order, but some test modules may not be
 able to pass when run in isolation. By default, the tests will use a Postgres database
-installation. To run the tests against a Snowflake database, change the
-`ANYVAR_TEST_STORAGE_URI` to a Snowflake URI and run the tests.
+installation.
 
 For the `tests/test_vcf::test_vcf_registration_async` unit test to pass, a real broker and backend
 are required for Celery to interact with. Set the `CELERY_BROKER_URL` and `CELERY_BACKEND_URL`

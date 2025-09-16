@@ -33,8 +33,8 @@ def create_storage(uri: str | None = None, table_name: str | None = None) -> _St
 
     * PostgreSQL
     `postgresql://[username]:[password]@[domain]/[database]`
-    * Snowflake
-    `snowflake://[user]:@[account]/[database]/[schema]?[param=value]&[param=value]...`
+
+    For no database (for testing or non-persistent use cases), use an empty string.
 
     :param uri: storage URI
     :param table_name: table name to use for storage (if the storage supports it)
@@ -45,18 +45,10 @@ def create_storage(uri: str | None = None, table_name: str | None = None) -> _St
         from anyvar.storage.postgres import PostgresObjectStore  # noqa: PLC0415
 
         storage = PostgresObjectStore(uri, table_name=table_name)
-    elif parsed_uri.scheme == "snowflake":
-        from anyvar.storage.snowflake import SnowflakeObjectStore  # noqa: PLC0415
-
-        storage = SnowflakeObjectStore(uri)
     elif parsed_uri.scheme == "":
         from anyvar.storage.no_db import NoObjectStore  # noqa: PLC0415
 
         storage = NoObjectStore()
-    elif parsed_uri.scheme == "duckdb":
-        from anyvar.storage.duckdb import DuckdbObjectStore  # noqa: PLC0415
-
-        storage = DuckdbObjectStore(uri)
     else:
         msg = f"URI scheme {parsed_uri.scheme} is not implemented"
         raise ValueError(msg)

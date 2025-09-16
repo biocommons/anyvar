@@ -6,4 +6,3 @@ Storage Options
 
     General SQL<sql>
     PostgreSQL<postgresql>
-    Snowflake<snowflake>

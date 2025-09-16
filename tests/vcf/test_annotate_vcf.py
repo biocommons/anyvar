@@ -241,7 +241,7 @@ def test_vcf_submit_duplicate_run_id(
     assert "error" in resp.json()
     assert (
         resp.json()["error"]
-        == "An existing run with id 12345 is SENT.  Fetch the completed run result before submitting with the same run_id."
+        == "An existing run with id 12345 is SENT. Fetch the completed run result before submitting with the same run_id."
     )
 
 
