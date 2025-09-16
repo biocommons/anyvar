@@ -6,11 +6,11 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
-    """Base class for all ORM models."""
+    """Base class for all AnyVar ORM models."""
 
 
 class VrsObject(Base):
-    """ORM model for vrs_objects table."""
+    """AnyVar ORM model for vrs_objects table."""
 
     __tablename__ = "vrs_objects"
 
@@ -19,7 +19,7 @@ class VrsObject(Base):
 
 
 class Annotation(Base):
-    """ORM model for annotations table."""
+    """AnyVar ORM model for annotations table."""
 
     __tablename__ = "annotations"
 

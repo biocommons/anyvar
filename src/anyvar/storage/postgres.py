@@ -4,7 +4,6 @@ import json
 import os
 from collections.abc import Iterable, Iterator
 from io import StringIO
-from pathlib import Path
 from typing import Any
 
 from sqlalchemy import text as sql_text
@@ -42,7 +41,6 @@ class PostgresAnnotationObjectStore(SqlStorage):
 
     def create_schema(self, db_conn: Connection) -> None:
         """Does nothing because schema creation is handled externally."""
-        pass
 
     def __getitem__(self, key: AnnotationKey) -> Iterator[Annotation]:
         """Get annotations by key."""
@@ -207,7 +205,6 @@ class PostgresObjectStore(VrsSqlStorage):
 
     def create_schema(self, db_conn: Connection) -> None:
         """Does nothing because schema creation is handled externally."""
-        pass
 
     def add_one_item(self, db_conn: Connection, name: str, value: Any) -> None:  # noqa: ANN401
         """Add/merge a single item to the database
