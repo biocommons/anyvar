@@ -51,12 +51,12 @@ class Location(Base):
         String, ForeignKey("sequence_references.id")
     )
     sequence_reference: Mapped["SequenceReference"] = relationship()
-    start: Mapped[int]
-    end: Mapped[int]
-    start_outer: Mapped[int]
-    start_inner: Mapped[int]
-    end_outer: Mapped[int]
-    end_inner: Mapped[int]
+    start: Mapped[int | None]
+    end: Mapped[int | None]
+    start_outer: Mapped[int | None]
+    start_inner: Mapped[int | None]
+    end_outer: Mapped[int | None]
+    end_inner: Mapped[int | None]
 
 
 class SequenceReference(Base):
@@ -65,8 +65,8 @@ class SequenceReference(Base):
     __tablename__ = "sequence_references"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    refseq_id: Mapped[str]
-    molecule_type: Mapped[str]
+    refseq_id: Mapped[str | None]
+    molecule_type: Mapped[str | None]
 
 
 class Annotation(Base):
@@ -107,8 +107,8 @@ def session_factory(db_url: str) -> sessionmaker:
     is managed externally using context managers.
 
     Example usage:
-        Session = create_session(db_url)
-        with Session() as session:
+        sf = session_factory(db_url)
+        with sf() as session:
             with session.begin():
                 # Perform database operations
                 session.add(some_object)
