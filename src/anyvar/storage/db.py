@@ -2,7 +2,7 @@
 
 from sqlalchemy import ForeignKey, Index, String, create_engine
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -16,6 +16,45 @@ class VrsObject(Base):
 
     vrs_id: Mapped[str] = mapped_column(String, primary_key=True)
     vrs_object: Mapped[dict] = mapped_column(JSONB)
+
+
+class Allele(Base):
+    """AnyVar ORM model for Alleles"""
+
+    __tablename__ = "alleles"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    location_id: Mapped[str] = mapped_column(String, ForeignKey("locations.id"))
+    location: Mapped["Location"] = relationship()
+    state: Mapped[dict] = mapped_column(JSONB)
+
+
+class Location(Base):
+    """AnyVar ORM model for Locations"""
+
+    __tablename__ = "locations"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    sequence_reference_id: Mapped[str] = mapped_column(
+        String, ForeignKey("sequence_references.id")
+    )
+    sequence_reference: Mapped["SequenceReference"] = relationship()
+    start: Mapped[int]
+    end: Mapped[int]
+    start_outer: Mapped[int]
+    start_inner: Mapped[int]
+    end_outer: Mapped[int]
+    end_inner: Mapped[int]
+
+
+class SequenceReference(Base):
+    """AnyVar ORM model for SequenceReferences"""
+
+    __tablename__ = "sequence_references"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    refseq_id: Mapped[str]
+    molecule_type: Mapped[str]
 
 
 class Annotation(Base):
