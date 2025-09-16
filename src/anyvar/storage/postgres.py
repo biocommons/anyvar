@@ -13,16 +13,6 @@ from anyvar.utils.types import Annotation, AnnotationKey
 
 from .sql_storage import SqlStorage, VrsSqlStorage
 
-silos = [
-    "locations",
-    "alleles",
-    "haplotypes",
-    "genotypes",
-    "variationsets",
-    "relations",
-    "texts",
-]
-
 
 class PostgresAnnotationObjectStore(SqlStorage):
     """Annotation object store for PostgreSQL backend."""
@@ -31,11 +21,16 @@ class PostgresAnnotationObjectStore(SqlStorage):
         self,
         db_url: str,
         batch_limit: int | None = None,
-        table_name: str | None = None,
+        table_name: str | None = "annotations",
         max_pending_batches: int | None = None,
         flush_on_batchctx_exit: bool | None = None,
     ) -> None:
         """Initialize DB handler."""
+        table_name = table_name or "annotations"
+        if table_name != "annotations":
+            raise ValueError(
+                f"PostgresAnnotationObjectStore requires table_name='annotations', got {table_name}"
+            )
         super().__init__(
             db_url,
             batch_limit,
@@ -45,24 +40,7 @@ class PostgresAnnotationObjectStore(SqlStorage):
         )
 
     def create_schema(self, db_conn: Connection) -> None:
-        """Create the table if it does not exist.
-
-        :param db_conn: a SQLAlchemy database connection
-        :return: None
-        """
-        check_statement = f"""
-            SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = '{self.table_name}')
-        """  # noqa: S608
-        create_statement = f"""
-            CREATE TABLE {self.table_name} (
-                object_id TEXT,
-                annotation_type TEXT,
-                annotation JSONB
-            )
-        """
-        result = db_conn.execute(sql_text(check_statement))
-        if not result or not result.scalar():
-            db_conn.execute(sql_text(create_statement))
+        """Does nothing because schema creation is handled externally."""
 
     def __getitem__(self, key: AnnotationKey) -> Iterator[Annotation]:
         """Get annotations by key."""
@@ -207,11 +185,16 @@ class PostgresObjectStore(VrsSqlStorage):
         self,
         db_url: str,
         batch_limit: int | None = None,
-        table_name: str | None = None,
+        table_name: str | None = "vrs_objects",
         max_pending_batches: int | None = None,
         flush_on_batchctx_exit: bool | None = None,
     ) -> None:
         """Initialize DB handler."""
+        table_name = table_name or "vrs_objects"
+        if table_name != "vrs_objects":
+            raise ValueError(
+                f"PostgresObjectStore requires table_name='vrs_objects', got {table_name}"
+            )
         super().__init__(
             db_url,
             batch_limit,
@@ -221,22 +204,7 @@ class PostgresObjectStore(VrsSqlStorage):
         )
 
     def create_schema(self, db_conn: Connection) -> None:
-        """Add the VRS object table if it does not exist
-
-        :param db_conn: a database connection
-        """
-        check_statement = f"""
-            SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE tablename = '{self.table_name}')
-        """  # noqa: S608
-        create_statement = f"""
-            CREATE TABLE {self.table_name} (
-                vrs_id TEXT PRIMARY KEY,
-                vrs_object JSONB
-            )
-        """
-        result = db_conn.execute(sql_text(check_statement))
-        if not result or not result.scalar():
-            db_conn.execute(sql_text(create_statement))
+        """Does nothing because schema creation is handled externally."""
 
     def add_one_item(self, db_conn: Connection, name: str, value: Any) -> None:  # noqa: ANN401
         """Add/merge a single item to the database

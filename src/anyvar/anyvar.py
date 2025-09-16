@@ -14,6 +14,7 @@ from agct import Converter, Genome
 from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 
 from anyvar.storage import DEFAULT_STORAGE_URI, _Storage
+from anyvar.storage.db import create_tables
 from anyvar.translate.translate import _Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
 from anyvar.utils.types import Annotation, AnnotationKey, VrsObject
@@ -44,6 +45,7 @@ def create_storage(uri: str | None = None, table_name: str | None = None) -> _St
     if parsed_uri.scheme == "postgresql":
         from anyvar.storage.postgres import PostgresObjectStore  # noqa: PLC0415
 
+        create_tables(uri)
         storage = PostgresObjectStore(uri, table_name=table_name)
     elif parsed_uri.scheme == "":
         from anyvar.storage.no_db import NoObjectStore  # noqa: PLC0415
