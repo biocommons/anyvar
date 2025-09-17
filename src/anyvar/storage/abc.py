@@ -104,8 +104,8 @@ class _Storage(ABC):
         self,
         source_object_id: str,
         mapping_type: VariationMappingType,
-    ) -> None:
-        """Get mappings of a specific type for a source object.
+    ) -> list[str]:
+        """Return a list of ids of destination objects mapped from the source object.
 
         :param source_object_id: ID of the source object
         :param mapping_type: Type of VariationMappingType
