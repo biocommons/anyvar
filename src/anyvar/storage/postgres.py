@@ -166,6 +166,7 @@ class PostgresObjectStore(Storage):
         """
         with self.session_factory() as session:
             # Query alleles with overlapping locations
+            # TODO this is any overlap, not containment.
             db_alleles = (
                 session.query(Allele)
                 .options(
@@ -175,8 +176,8 @@ class PostgresObjectStore(Storage):
                 .join(SequenceReference)
                 .filter(
                     SequenceReference.refseq_id == refget_accession,
-                    Location.start < stop,
-                    Location.end > start,
+                    Location.start <= stop,
+                    Location.end >= start,
                 )
                 .all()
             )
