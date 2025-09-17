@@ -99,32 +99,55 @@ class PostgresObjectStore(Storage):
                 stmt = stmt.on_conflict_do_nothing()
                 session.execute(stmt, allele_dicts)
 
-    def get_objects(self, object_ids: Iterable[str]) -> Iterable[vrs_models.VrsType]:
+    def get_objects(
+        self, object_type: StoredObjectType, object_ids: Iterable[str]
+    ) -> Iterable[vrs_models.VrsType]:
         """Retrieve multiple VRS objects from storage by their IDs."""
         object_ids_list = list(object_ids)
         results = []
 
         with self.session_factory() as session:
-            # Get alleles with eager loading
-            db_alleles = (
-                session.query(Allele)
-                .options(
-                    joinedload(Allele.location).joinedload(Location.sequence_reference)
+            if object_type == StoredObjectType.ALLELE:
+                # Get alleles with eager loading
+                db_objects = (
+                    session.query(Allele)
+                    .options(
+                        joinedload(Allele.location).joinedload(
+                            Location.sequence_reference
+                        )
+                    )
+                    .filter(Allele.id.in_(object_ids_list))
+                    .all()
                 )
-                .filter(Allele.id.in_(object_ids_list))
-                .all()
-            )
+            elif object_type == StoredObjectType.SEQUENCE_LOCATION:
+                # Get locations with eager loading
+                db_objects = (
+                    session.query(Location)
+                    .options(joinedload(Location.sequence_reference))
+                    .filter(Location.id.in_(object_ids_list))
+                    .all()
+                )
+            elif object_type == StoredObjectType.SEQUENCE_REFERENCE:
+                # Get sequence references
+                db_objects = (
+                    session.query(SequenceReference)
+                    .filter(SequenceReference.id.in_(object_ids_list))
+                    .all()
+                )
+            else:
+                raise ValueError(f"Unsupported object type: {object_type}")
 
-            for db_allele in db_alleles:
-                vrs_allele = mapper_registry.to_vrs_model(db_allele)
-                results.append(vrs_allele)
+            for db_object in db_objects:
+                vrs_object = mapper_registry.to_vrs_model(db_object)
+                results.append(vrs_object)
 
         return results
 
     def get_all_object_ids(self) -> Iterable[str]:
         """Retrieve all object IDs from storage."""
         with self.session_factory() as session:
-            # Get all allele IDs for now
+            # TODO This only handles Alleles for now
+            # TODO This seems like it could be a lot of data
             allele_ids = session.query(Allele.id).all()
             return [allele_id[0] for allele_id in allele_ids]
 
@@ -212,9 +235,8 @@ class PostgresObjectStore(Storage):
         :param stop: Stop genomic region to query
 
         :return: a list of Alleles
-
-        # TODO may load a lot of data
         """
+        # TODO may load a lot of data
         with self.session_factory() as session:
             # Query alleles with overlapping locations
             # TODO this is any overlap, not containment.

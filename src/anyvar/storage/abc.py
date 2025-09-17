@@ -42,7 +42,9 @@ class _Storage(ABC):
         """Add multiple VRS objects to storage."""
 
     @abstractmethod
-    def get_objects(self, object_ids: Iterable[str]) -> Iterable[vrs_models.VrsType]:
+    def get_objects(
+        self, object_type: StoredObjectType, object_ids: Iterable[str]
+    ) -> Iterable[vrs_models.VrsType]:
         """Retrieve multiple VRS objects from storage by their IDs."""
 
     @abstractmethod
