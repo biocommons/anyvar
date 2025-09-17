@@ -3,9 +3,9 @@
 from http import HTTPStatus
 
 
-def test_search(client, alleles):
+def test_search(client, preloaded_alleles):
     """Test basic search functions."""
-    for allele in alleles.values():
+    for allele in preloaded_alleles.values():
         start = allele["allele_response"]["object"]["location"]["start"]
         end = allele["allele_response"]["object"]["location"]["end"]
         refget_ac = allele["allele_response"]["object"]["location"][

@@ -560,7 +560,8 @@ def search_variations(
     if alleles:
         for allele in alleles:
             try:
-                var_object = av.get_object(allele["id"])
+                # TODO is this necessary now? search_alleles may return full objects already
+                var_object = av.get_object(allele.id)
             except KeyError:
                 continue
             inline_alleles.append(var_object)
