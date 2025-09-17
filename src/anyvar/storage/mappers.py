@@ -68,6 +68,7 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, db.Location
 
         return vrs_models.SequenceLocation(
             id=db_entity.id,
+            digest=db_entity.digest,
             type="SequenceLocation",
             sequenceReference=self.seq_ref_mapper.to_vrs_model(
                 db_entity.sequence_reference
@@ -87,6 +88,7 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, db.Location
         # Construct Location and delegate to SequenceReference mapper
         return db.Location(
             id=vrs_model.id,
+            digest=vrs_model.digest,
             sequence_reference_id=vrs_model.sequenceReference.refgetAccession,
             sequence_reference=self.seq_ref_mapper.to_db_entity(
                 vrs_model.sequenceReference
@@ -137,6 +139,7 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, db.Allele]):
         # Construct Allele and delegate to Location mapper
         return vrs_models.Allele(
             id=db_entity.id,
+            digest=db_entity.digest,
             type="Allele",
             location=self.location_mapper.to_vrs_model(db_entity.location),
             state=state,
@@ -158,6 +161,7 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, db.Allele]):
 
         return db.Allele(
             id=vrs_model.id,
+            digest=vrs_model.digest,
             location_id=vrs_model.location.id,
             location=self.location_mapper.to_db_entity(vrs_model.location),
             state=state_dict,

@@ -36,6 +36,7 @@ class Allele(Base):
     __tablename__ = "alleles"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
+    digest: Mapped[str] = mapped_column(String)
     location_id: Mapped[str] = mapped_column(String, ForeignKey("locations.id"))
     location: Mapped["Location"] = relationship()
     state: Mapped[dict] = mapped_column(JSONB)
@@ -47,6 +48,7 @@ class Location(Base):
     __tablename__ = "locations"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
+    digest: Mapped[str] = mapped_column(String)
     sequence_reference_id: Mapped[str] = mapped_column(
         String, ForeignKey("sequence_references.id")
     )
