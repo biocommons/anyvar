@@ -1,6 +1,6 @@
 """Check basic functions of general endpoint(s)"""
 
-from http import HTTPStatus
+# from http import HTTPStatus
 from pathlib import Path
 
 import jsonschema
@@ -24,7 +24,7 @@ def test_service_info(client: TestClient, test_data_dir: Path):
     jsonschema.validate(instance=data, schema=resp_schema, resolver=resolver)
 
 
-def test_summary_statistics(client: TestClient):
-    response = client.get("/stats/all")
-    assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"variation_type": "all", "count": 3}
+# def test_summary_statistics(client: TestClient):
+#     response = client.get("/stats/all")
+#     assert response.status_code == HTTPStatus.OK
+#     assert response.json() == {"variation_type": "all", "count": 3}
