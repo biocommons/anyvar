@@ -4,6 +4,7 @@ from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
 from sqlalchemy import create_engine, func
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload, sessionmaker
 
 from anyvar.storage.db import Allele, Location, SequenceReference, create_tables
@@ -40,13 +41,63 @@ class PostgresObjectStore(Storage):
         # self.engine.dispose()
 
     def add_objects(self, objects: Iterable[vrs_models.VrsType]) -> None:
-        """Add multiple VRS objects to storage using mappers."""
+        """Add multiple VRS objects to storage using bulk inserts."""
+        objects_list = list(objects)
+        if not objects_list:
+            return
+
+        # Collect unique entities by ID to avoid duplicates
+        sequence_references = {}
+        locations = {}
+        alleles = {}
+
+        # Process all objects and extract their components
+        for vrs_object in objects_list:
+            db_entity = mapper_registry.to_db_entity(vrs_object)
+
+            if isinstance(db_entity, Allele):
+                alleles[db_entity.id] = db_entity
+                # Also collect the nested location and sequence reference
+                if db_entity.location:
+                    locations[db_entity.location.id] = db_entity.location
+                    if db_entity.location.sequence_reference:
+                        sequence_references[
+                            db_entity.location.sequence_reference.id
+                        ] = db_entity.location.sequence_reference
+            elif isinstance(db_entity, Location):
+                locations[db_entity.id] = db_entity
+                if db_entity.sequence_reference:
+                    sequence_references[db_entity.sequence_reference.id] = (
+                        db_entity.sequence_reference
+                    )
+            elif isinstance(db_entity, SequenceReference):
+                sequence_references[db_entity.id] = db_entity
+
         with self.session_factory() as session, session.begin():
-            for vrs_object in objects:
-                # Convert to DB entity and merge.
-                # Mappers handle dependencies and linking top down fk relationships.
-                db_entity = mapper_registry.to_db_entity(vrs_object)
-                session.merge(db_entity)
+            # Insert in dependency order: sequence_references -> locations -> alleles
+            # Use ON CONFLICT DO NOTHING to handle duplicates gracefully
+            # We should have already de-duplicated by ID above, but duplicates
+            # may already exist in the database.
+
+            if sequence_references:
+                sequence_reference_dicts = [
+                    sr.to_dict() for sr in sequence_references.values()
+                ]
+                stmt = insert(SequenceReference)
+                stmt = stmt.on_conflict_do_nothing()
+                session.execute(stmt, sequence_reference_dicts)
+
+            if locations:
+                location_dicts = [loc.to_dict() for loc in locations.values()]
+                stmt = insert(Location)
+                stmt = stmt.on_conflict_do_nothing()
+                session.execute(stmt, location_dicts)
+
+            if alleles:
+                allele_dicts = [allele.to_dict() for allele in alleles.values()]
+                stmt = insert(Allele)
+                stmt = stmt.on_conflict_do_nothing()
+                session.execute(stmt, allele_dicts)
 
     def get_objects(self, object_ids: Iterable[str]) -> Iterable[vrs_models.VrsType]:
         """Retrieve multiple VRS objects from storage by their IDs."""
