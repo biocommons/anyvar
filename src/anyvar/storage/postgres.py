@@ -7,7 +7,14 @@ from sqlalchemy import create_engine, func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload, sessionmaker
 
-from anyvar.storage.db import Allele, Location, SequenceReference, create_tables
+from anyvar.storage.db import (
+    Allele,
+    Annotation,
+    Location,
+    SequenceReference,
+    VrsObject,
+    create_tables,
+)
 
 from .abc import Storage, StoredObjectType, VariationMappingType
 from .mapper_registry import mapper_registry
@@ -39,6 +46,18 @@ class PostgresObjectStore(Storage):
         # It does not wait for active connections.
         # https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.Engine.dispose
         # self.engine.dispose()
+
+    def wipe_db(self) -> None:
+        """Wipe all data from the storage backend."""
+        with self.session_factory() as session, session.begin():
+            # Delete all data from tables in dependency order
+            session.query(Allele).delete()
+            session.query(Location).delete()
+            session.query(SequenceReference).delete()
+
+            # Delete other tables
+            session.query(VrsObject).delete()
+            session.query(Annotation).delete()
 
     def add_objects(self, objects: Iterable[vrs_models.VrsType]) -> None:
         """Add multiple VRS objects to storage using bulk inserts."""

@@ -38,6 +38,10 @@ class _Storage(ABC):
         """Close the storage backend."""
 
     @abstractmethod
+    def wipe_db(self) -> None:
+        """Wipe all data from the storage backend."""
+
+    @abstractmethod
     def add_objects(self, objects: Iterable[vrs_models.VrsType]) -> None:
         """Add multiple VRS objects to storage."""
 
