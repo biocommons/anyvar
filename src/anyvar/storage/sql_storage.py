@@ -13,6 +13,7 @@ from ga4gh.vrs import models
 from sqlalchemy import create_engine
 from sqlalchemy import text as sql_text
 from sqlalchemy.engine import Connection
+from sqlalchemy.orm import sessionmaker
 
 from anyvar.restapi.schema import VariationStatisticType
 
@@ -62,6 +63,7 @@ class SqlStorage(_Storage):
             pool_recycle=3600,
             connect_args=self._get_connect_args(db_url),
         )
+        self.session_factory = sessionmaker(self.conn_pool)
 
         # create the schema objects if necessary
         with self._get_connection() as conn:

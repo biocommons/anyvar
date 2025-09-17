@@ -344,7 +344,7 @@ async def add_registration_annotations(
         return new_response
 
     # Add annotations
-    annotator: AnyAnnotation | None = request.app.state.anyannotation
+    annotator: AnyAnnotation | None = getattr(request.app.state, "anyannotation", None)
     if annotator:
         timestamp_annotations = annotator.get_annotation(
             input_vrs_id, "creation_timestamp"
