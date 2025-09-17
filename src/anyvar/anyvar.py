@@ -13,7 +13,7 @@ from urllib.parse import urlparse
 from agct import Converter, Genome
 
 from anyvar.storage import DEFAULT_STORAGE_URI
-from anyvar.storage.abc import _Storage
+from anyvar.storage.abc import StoredObjectType, _Storage
 from anyvar.storage.db import create_tables
 from anyvar.translate.translate import _Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
@@ -139,24 +139,61 @@ class AnyVar:
         """
         try:
             self.object_store.add_objects([variation_object])
-        except ValueError:
-            return None
+        except Exception as e:
+            _logger.exception("Failed to add object: %s", variation_object)
+            raise e  # noqa: TRY201
         return variation_object.id
 
-    def get_object(self, object_id: str) -> VrsObject:
+    def get_object(
+        self, object_id: str, object_type: StoredObjectType | None = None
+    ) -> VrsObject:
         """Retrieve registered variation.
 
         :param object_id: object identifier
+        :param object_type: specific object type to search (optional - if not provided, searches all types)
         :return: VRS object if found.
-        :raises: KeyError if identifier is not found, or ValueError if deref = True and
-                    the object is either a) not a Pydantic instance, or b) not a ga4gh identifiable object
+        :raises: KeyError if identifier is not found
         """
-        found = self.object_store.get_objects([object_id])
-        if not found:
-            raise KeyError(f"Object {object_id} not found")
-        if len(found) > 1:
-            raise ValueError(f"Multiple objects found for ID {object_id}")
-        return found[0]
+        if object_type is not None:
+            # Search specific object type
+            found = self.object_store.get_objects(
+                object_type=object_type, object_ids=[object_id]
+            )
+            if not found:
+                raise KeyError(f"Object {object_id} not found")
+            if len(found) > 1:
+                raise ValueError(f"Multiple objects found for ID {object_id}")
+            return found[0]
+
+        # Search all object types
+        return self._get_object_polymorphic(object_id)
+
+    def _get_object_polymorphic(self, object_id: str) -> VrsObject:
+        """Search all object types for the given object ID.
+
+        :param object_id: VRS object identifier
+        :return: VRS object if found
+        :raises: KeyError if object is not found in any table
+        """
+        # Try each object type. Primary key lookups should be fast.
+        object_types_to_try = [
+            StoredObjectType.ALLELE,
+            StoredObjectType.SEQUENCE_LOCATION,
+            StoredObjectType.SEQUENCE_REFERENCE,
+        ]
+        for object_type in object_types_to_try:
+            try:
+                found = list(
+                    self.object_store.get_objects(
+                        object_type=object_type, object_ids=[object_id]
+                    )
+                )
+                if found:
+                    return found[0]
+            except (KeyError, ValueError):
+                # Continue to next object type
+                continue
+        raise KeyError(f"Object {object_id} not found in any table")
 
 
 class AnyAnnotation:
