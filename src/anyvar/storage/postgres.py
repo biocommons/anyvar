@@ -91,6 +91,8 @@ class PostgresObjectStore(Storage):
                     )
             elif isinstance(db_entity, SequenceReference):
                 sequence_references[db_entity.id] = db_entity
+            else:
+                raise ValueError(f"Unsupported object type: {type(db_entity)}")  # noqa: TRY004
 
         with self.session_factory() as session, session.begin():
             # Insert in dependency order: sequence_references -> locations -> alleles
