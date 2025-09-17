@@ -78,12 +78,13 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, db.Location
 
     def to_db_entity(self, vrs_model: vrs_models.SequenceLocation) -> db.Location:
         """Convert VRS SequenceLocation to DB Location."""
-        # Handle VRS coordinates to DB fields mapping
+        # Convert VRS int/Range coordinates to DB fields
         start_simple, start_outer, start_inner = self._resolve_coordinate_to_db(
             vrs_model.start
         )
         end_simple, end_outer, end_inner = self._resolve_coordinate_to_db(vrs_model.end)
 
+        # Construct Location and delegate to SequenceReference mapper
         return db.Location(
             id=vrs_model.id,
             sequence_reference_id=vrs_model.sequenceReference.refgetAccession,
@@ -133,6 +134,7 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, db.Allele]):
         # Reconstruct state from JSONB
         state = self._reconstruct_state(db_entity.state)
 
+        # Construct Allele and delegate to Location mapper
         return vrs_models.Allele(
             id=db_entity.id,
             type="Allele",
