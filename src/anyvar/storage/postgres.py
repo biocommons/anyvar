@@ -8,7 +8,7 @@ from sqlalchemy.orm import joinedload, sessionmaker
 
 from anyvar.storage.db import Allele, Location, SequenceReference, create_tables
 
-from .abc import Storage, StoredObjectType
+from .abc import Storage, StoredObjectType, VariationMappingType
 from .mapper_registry import mapper_registry
 
 
@@ -43,7 +43,8 @@ class PostgresObjectStore(Storage):
         """Add multiple VRS objects to storage using mappers."""
         with self.session_factory() as session, session.begin():
             for vrs_object in objects:
-                # Convert to DB entity and merge - mappers handle dependencies
+                # Convert to DB entity and merge.
+                # Mappers handle dependencies and linking top down fk relationships.
                 db_entity = mapper_registry.to_db_entity(vrs_object)
                 session.merge(db_entity)
 
@@ -105,6 +106,46 @@ class PostgresObjectStore(Storage):
                     SequenceReference.id.in_(object_ids_list)
                 ).delete()
 
+    def add_mapping(
+        self,
+        source_object_id: str,
+        destination_object_id: str,
+        mapping_type: VariationMappingType,
+    ) -> None:
+        """Add a mapping between two objects.
+
+        :param source_object_id: ID of the source object
+        :param destination_object_id: ID of the destination object
+        :param mapping_type: Type of VariationMappingType
+        """
+        raise NotImplementedError
+
+    def delete_mapping(
+        self,
+        source_object_id: str,
+        destination_object_id: str,
+        mapping_type: VariationMappingType,
+    ) -> None:
+        """Delete a mapping between two objects.
+
+        :param source_object_id: ID of the source object
+        :param destination_object_id: ID of the destination object
+        :param mapping_type: Type of VariationMappingType
+        """
+        raise NotImplementedError
+
+    def get_mappings(
+        self,
+        source_object_id: str,
+        mapping_type: VariationMappingType,
+    ) -> None:
+        """Get mappings of a specific type for a source object.
+
+        :param source_object_id: ID of the source object
+        :param mapping_type: Type of VariationMappingType
+        """
+        raise NotImplementedError
+
     def search_alleles(
         self,
         refget_accession: str,
@@ -137,49 +178,3 @@ class PostgresObjectStore(Storage):
             )
 
             return [mapper_registry.to_vrs_model(db_allele) for db_allele in db_alleles]
-
-    def get_allele(self, allele_id: str) -> vrs_models.Allele | None:
-        """Retrieve and reconstitute Allele from database."""
-        with self.session_factory() as session:
-            db_allele = (
-                session.query(Allele)
-                .options(
-                    joinedload(Allele.location).joinedload(Location.sequence_reference)
-                )
-                .filter(Allele.id == allele_id)
-                .first()
-            )
-
-            if db_allele is None:
-                return None
-
-            return mapper_registry.to_vrs_model(db_allele)
-
-    def get_alleles(self, allele_ids: list[str]) -> list[vrs_models.Allele]:
-        """Retrieve and reconstitute multiple Alleles from database."""
-        with self.session_factory() as session:
-            db_alleles = (
-                session.query(Allele)
-                .options(
-                    joinedload(Allele.location).joinedload(Location.sequence_reference)
-                )
-                .filter(Allele.id.in_(allele_ids))
-                .all()
-            )
-
-            return [mapper_registry.to_vrs_model(db_allele) for db_allele in db_alleles]
-
-    def add_allele(self, vrs_allele: vrs_models.Allele) -> None:
-        """Store VRS Allele in database."""
-        with self.session_factory() as session, session.begin():
-            # Convert VRS models to DB entities using mappers
-            db_seq_ref = mapper_registry.to_db_entity(
-                vrs_allele.location.sequenceReference
-            )
-            db_location = mapper_registry.to_db_entity(vrs_allele.location)
-            db_allele = mapper_registry.to_db_entity(vrs_allele)
-
-            # Use merge for upsert behavior (handles existing records)
-            session.merge(db_seq_ref)
-            session.merge(db_location)
-            session.merge(db_allele)

@@ -142,9 +142,10 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, db.Allele]):
 
     def to_db_entity(self, vrs_model: vrs_models.Allele) -> db.Allele:
         """Convert VRS Allele to DB Allele."""
-        # Ensure ID is computed if not present
+        # Ensure IDs are computed if not present
         if not vrs_model.id:
-            vrs_model.id = vrs_model.compute_identifier()
+            # TODO implement here and for other objects, maybe further up the stack
+            raise NotImplementedError("Auto ID generation not implemented yet")
 
         # Validate required nested objects
         if not vrs_model.location or not vrs_model.location.sequenceReference:
