@@ -86,7 +86,7 @@ class PostgresObjectStore(Storage):
                 return session.query(func.count(Location.id)).scalar()
             if object_type == StoredObjectType.SEQUENCE_REFERENCE:
                 return session.query(func.count(SequenceReference.id)).scalar()
-            return 0
+            raise ValueError(f"Unsupported object type: {object_type}")
 
     def delete_objects(
         self, object_type: StoredObjectType, object_ids: Iterable[str]
@@ -105,6 +105,8 @@ class PostgresObjectStore(Storage):
                 session.query(SequenceReference).filter(
                     SequenceReference.id.in_(object_ids_list)
                 ).delete()
+            else:
+                raise ValueError(f"Unsupported object type: {object_type}")
 
     def add_mapping(
         self,

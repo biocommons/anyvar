@@ -7,20 +7,22 @@ from collections.abc import Iterable
 from ga4gh.vrs import models as vrs_models
 
 
-class StoredObjectType(enum.Enum):
+class StoredObjectType(enum.StrEnum):
     """Supported VRS object types for AnyVar storage."""
 
     ALLELE = "Allele"
+    LOCATION = "Location"
     COPY_NUMBER_COUNT = "CopyNumberCount"
     COPY_NUMBER_CHANGE = "CopyNumberChange"
     SEQUENCE_LOCATION = "SequenceLocation"
     SEQUENCE_REFERENCE = "SequenceReference"
 
 
-class VariationMappingType(enum.Enum):
+class VariationMappingType(enum.StrEnum):
     """Supported mapping types between VRS Variations."""
 
     LIFTOVER = "liftover"
+    TRANSCRIPTION = "transcription"
     TRANSLATION = "translation"
 
 

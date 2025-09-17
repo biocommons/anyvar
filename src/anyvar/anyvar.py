@@ -26,7 +26,7 @@ if os.environ.get("ANYVAR_SHOW_PYDANTIC_WARNINGS", None) is None:
 _logger = logging.getLogger(__name__)
 
 
-def create_storage(uri: str | None = None, table_name: str | None = None) -> _Storage:
+def create_storage(uri: str | None = None) -> _Storage:
     """Provide factory to create storage based on `uri` or the ANYVAR_STORAGE_URI
     environment value.
 
@@ -38,7 +38,6 @@ def create_storage(uri: str | None = None, table_name: str | None = None) -> _St
     For no database (for testing or non-persistent use cases), use an empty string.
 
     :param uri: storage URI
-    :param table_name: table name to use for storage (if the storage supports it)
     """
     uri = uri or os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
     parsed_uri = urlparse(uri)
@@ -46,7 +45,7 @@ def create_storage(uri: str | None = None, table_name: str | None = None) -> _St
         from anyvar.storage.postgres import PostgresObjectStore  # noqa: PLC0415
 
         create_tables(uri)
-        storage = PostgresObjectStore(uri, table_name=table_name)
+        storage = PostgresObjectStore(uri)
     elif parsed_uri.scheme == "":
         from anyvar.storage.no_db import NoObjectStore  # noqa: PLC0415
 
