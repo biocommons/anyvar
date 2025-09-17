@@ -120,6 +120,7 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
 
     # create anyvar instance
     storage = anyvar.anyvar.create_storage()
+    storage.setup()
     translator = anyvar.anyvar.create_translator()
     anyvar_instance = AnyVar(object_store=storage, translator=translator)
 
@@ -475,7 +476,7 @@ def register_vrs_object(
         )
         return RegisterVrsVariationResponse(**result)
 
-    variation_object = variation_class_map[variation_type](**variation.dict())
+    variation_object = variation_class_map[variation_type](**variation.model_dump())
     v_id = av.put_object(variation_object)
     result["object"] = variation_object
     result["object_id"] = v_id
@@ -503,7 +504,7 @@ def get_variation_by_id(
     """
     av: AnyVar = request.app.state.anyvar
     try:
-        variation = av.get_object(variation_id, deref=True)
+        variation = av.get_object(variation_id)
     except KeyError as e:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
@@ -548,7 +549,7 @@ def search_variations(
     if ga4gh_id:
         try:
             refget_accession = ga4gh_id.split("ga4gh:")[-1]
-            alleles = av.object_store.search_variations(refget_accession, start, end)
+            alleles = av.object_store.search_alleles(refget_accession, start, end)
         except NotImplementedError as e:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_IMPLEMENTED,
@@ -559,7 +560,7 @@ def search_variations(
     if alleles:
         for allele in alleles:
             try:
-                var_object = av.get_object(allele["id"], deref=True)
+                var_object = av.get_object(allele["id"])
             except KeyError:
                 continue
             inline_alleles.append(var_object)
@@ -575,8 +576,8 @@ def search_variations(
     tags=[EndpointTag.GENERAL],
 )
 def get_stats(
-    request: Request,
-    variation_type: Annotated[
+    request: Request,  # noqa: ARG001
+    variation_type: Annotated[  # noqa: ARG001
         VariationStatisticType, Path(..., description="category of variation")
     ],
 ) -> AnyVarStatsResponse:
@@ -588,12 +589,7 @@ def get_stats(
     :raise HTTPException: if invalid variation type is requested, although FastAPI
         should block the request from going through in that case
     """
-    av: AnyVar = request.app.state.anyvar
-    try:
-        count = av.object_store.get_variation_count(variation_type)
-    except NotImplementedError as e:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_IMPLEMENTED,
-            detail="Stats not available for current storage backend",
-        ) from e
-    return AnyVarStatsResponse(variation_type=variation_type, count=count)
+    raise HTTPException(
+        status_code=HTTPStatus.NOT_IMPLEMENTED,
+        detail="Stats not implemented for current storage backend",
+    )
