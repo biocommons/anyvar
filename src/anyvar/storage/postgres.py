@@ -161,6 +161,8 @@ class PostgresObjectStore(Storage):
         :param stop: Stop genomic region to query
 
         :return: a list of Alleles
+
+        # TODO may load a lot of data
         """
         with self.session_factory() as session:
             # Query alleles with overlapping locations
