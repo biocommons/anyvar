@@ -17,7 +17,7 @@ class StoredObjectType(enum.Enum):
     SEQUENCE_REFERENCE = "SequenceReference"
 
 
-class Storage(ABC):
+class _Storage(ABC):
     """Abstract base class for interacting with storage backends."""
 
     @abstractmethod

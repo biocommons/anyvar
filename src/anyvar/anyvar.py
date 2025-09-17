@@ -11,9 +11,9 @@ from collections.abc import MutableMapping
 from urllib.parse import urlparse
 
 from agct import Converter, Genome
-from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 
-from anyvar.storage import DEFAULT_STORAGE_URI, _Storage
+from anyvar.storage import DEFAULT_STORAGE_URI
+from anyvar.storage.abc import _Storage
 from anyvar.storage.db import create_tables
 from anyvar.translate.translate import _Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
@@ -139,23 +139,25 @@ class AnyVar:
         :return: Object digest if successful, None otherwise
         """
         try:
-            id, _ = vrs_enref(variation_object, self.object_store, True)  # noqa: A001
-
+            self.object_store.add_objects([variation_object])
         except ValueError:
             return None
-        return id
+        return variation_object.id
 
-    def get_object(self, object_id: str, deref: bool = False) -> VrsObject:
+    def get_object(self, object_id: str) -> VrsObject:
         """Retrieve registered variation.
 
         :param object_id: object identifier
-        :param deref: if True, dereference all IDs contained by the object
         :return: VRS object if found.
         :raises: KeyError if identifier is not found, or ValueError if deref = True and
                     the object is either a) not a Pydantic instance, or b) not a ga4gh identifiable object
         """
-        v = self.object_store[object_id]
-        return vrs_deref(v, self.object_store) if deref else v  # type: ignore (this will always return a VrsObject)
+        found = self.object_store.get_objects([object_id])
+        if not found:
+            raise KeyError(f"Object {object_id} not found")
+        if len(found) > 1:
+            raise ValueError(f"Multiple objects found for ID {object_id}")
+        return found[0]
 
 
 class AnyAnnotation:
