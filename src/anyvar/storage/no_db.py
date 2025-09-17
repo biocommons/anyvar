@@ -7,8 +7,8 @@ from ga4gh.vrs import models as vrs_models
 from .abc import StoredObjectType, VariationMappingType, _Storage
 
 
-class NoObjectStore(dict, _Storage):
-    """Storage backend that does not persistently store any data. Should be used for VCF annotation only"""
+class NoObjectStore(_Storage):
+    """Storage backend that does not persistently store any data."""
 
     def __init__(self) -> None:
         """Initialize DB handler."""

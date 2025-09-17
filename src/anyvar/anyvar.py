@@ -39,7 +39,8 @@ def create_storage(uri: str | None = None) -> _Storage:
 
     :param uri: storage URI
     """
-    uri = uri or os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
+    if uri is None:
+        uri = os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
     parsed_uri = urlparse(uri)
     if parsed_uri.scheme == "postgresql":
         from anyvar.storage.postgres import PostgresObjectStore  # noqa: PLC0415

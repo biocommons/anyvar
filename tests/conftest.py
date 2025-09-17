@@ -41,6 +41,7 @@ def storage():
         storage_uri = "postgresql://postgres:postgres@localhost:5432/anyvar_test"
 
     storage = create_storage(uri=storage_uri)
+    storage.setup()
     storage.wipe_db()
     return storage
 
