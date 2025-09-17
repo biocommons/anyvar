@@ -23,9 +23,7 @@ def pytest_collection_modifyitems(items):
         "test_search",
         "test_annotate_vcf",
         "test_ingest_vcf",
-        "test_sql_storage_mapping",
-        "test_postgres",
-        "test_postgres_annotation",
+        "test_storage_implementation",
         "test_no_db",
         "test_liftover",
     ]
