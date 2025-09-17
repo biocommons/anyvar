@@ -4,7 +4,7 @@ import enum
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
-from ga4gh.vrs import models
+from ga4gh.vrs import models as vrs_models
 
 
 class StoredObjectType(enum.Enum):
@@ -29,11 +29,11 @@ class Storage(ABC):
         """Close the storage backend."""
 
     @abstractmethod
-    def add_objects(self, objects: Iterable[models.VrsType]) -> None:
+    def add_objects(self, objects: Iterable[vrs_models.VrsType]) -> None:
         """Add multiple VRS objects to storage."""
 
     @abstractmethod
-    def get_objects(self, object_ids: Iterable[str]) -> Iterable[models.VrsType]:
+    def get_objects(self, object_ids: Iterable[str]) -> Iterable[vrs_models.VrsType]:
         """Retrieve multiple VRS objects from storage by their IDs."""
 
     @abstractmethod
@@ -56,7 +56,7 @@ class Storage(ABC):
         refget_accession: str,
         start: int,
         stop: int,
-    ) -> list[models.Allele]:
+    ) -> list[vrs_models.Allele]:
         """Find all Alleles in the particular region
 
         :param refget_accession: refget accession (SQ. identifier)

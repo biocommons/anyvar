@@ -11,11 +11,10 @@ from collections.abc import MutableMapping
 from urllib.parse import urlparse
 
 from agct import Converter, Genome
-from ga4gh.vrs import models as vrs_models
 from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 
 from anyvar.storage import DEFAULT_STORAGE_URI, _Storage
-from anyvar.storage.db import Allele, Location, SequenceReference, create_tables
+from anyvar.storage.db import create_tables
 from anyvar.translate.translate import _Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
 from anyvar.utils.types import Annotation, AnnotationKey, VrsObject
@@ -61,7 +60,8 @@ def create_storage(uri: str | None = None, table_name: str | None = None) -> _St
 
 
 def create_annotation_storage(
-    uri: str | None = None, table_name: str | None = None
+    uri: str | None = None,
+    table_name: str | None = None,  # noqa: ARG001
 ) -> _Storage:
     """Provide factory to create annotation storage based on `uri` or the
     ANYVAR_ANNOTATION_STORAGE_URI environment value.
@@ -74,17 +74,13 @@ def create_annotation_storage(
     parsed_uri = urlparse(uri)
 
     if parsed_uri.scheme == "postgresql":
-        from anyvar.storage.postgres import (  # noqa: PLC0415
-            PostgresAnnotationObjectStore,
-        )
+        raise NotImplementedError("PostgresAnnotationObjectStore has been removed")
+    msg = f"URI scheme {parsed_uri.scheme} is not implemented"
+    raise ValueError(msg)
 
-        storage = PostgresAnnotationObjectStore(uri, table_name=table_name)
-    else:
-        msg = f"URI scheme {parsed_uri.scheme} is not implemented"
-        raise ValueError(msg)
-
-    _logger.debug("create_annotation_storage: %s → %s}", uri, storage)
-    return storage
+    _logger.debug("create_annotation_storage: %s → NotImplementedError", uri)
+    # This should never be reached since all paths above raise exceptions
+    raise NotImplementedError("No annotation storage implementation available")
 
 
 def create_translator() -> _Translator:
@@ -144,37 +140,6 @@ class AnyVar:
         """
         try:
             id, _ = vrs_enref(variation_object, self.object_store, True)  # noqa: A001
-
-            # NEW Using new tables
-            with self.object_store.session_factory() as session:
-                al = Allele(
-                    id=id,
-                    location_id=variation_object.location.id,
-                    state=variation_object.state.model_dump_json(exclude_none=True),
-                )
-                loc = Location(
-                    id=variation_object.location.id,
-                    start=variation_object.location.start,
-                    end=variation_object.location.end,
-                    sequence_reference_id=variation_object.location.sequenceReference.refgetAccession,
-                )
-                if isinstance(variation_object.location.start, vrs_models.Range):
-                    loc.start_outer = variation_object.location.start[0]
-                    loc.start_inner = variation_object.location.start[1]
-                    loc.start = None
-                if isinstance(variation_object.location.end, vrs_models.Range):
-                    loc.end_inner = variation_object.location.end[0]
-                    loc.end_outer = variation_object.location.end[1]
-                    loc.end = None
-                seq_ref = SequenceReference(
-                    id=variation_object.location.sequenceReference.refgetAccession,
-                    refseq_id=None,
-                    molecule_type=variation_object.location.sequenceReference.moleculeType,
-                )
-                session.merge(seq_ref)
-                session.merge(loc)
-                session.merge(al)
-                session.commit()
 
         except ValueError:
             return None

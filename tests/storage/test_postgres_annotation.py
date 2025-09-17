@@ -1,10 +1,7 @@
-import os
-from datetime import datetime, timedelta
-
+# ruff: noqa: F821
 import pytest
 
-from anyvar.storage.postgres import PostgresAnnotationObjectStore
-from anyvar.utils.types import Annotation, AnnotationKey
+pytestmark = pytest.mark.skip(reason="PostgresAnnotationObjectStore has been removed")
 
 
 @pytest.fixture
