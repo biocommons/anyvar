@@ -133,6 +133,8 @@ def register_existing_annotations(
                 location = SequenceLocation(
                     sequenceReference=seq_ref, start=start, end=end
                 )  # pyright: ignore[reportCallIssue]
+                location_id = ga4gh_identify(location)
+                location.id = location_id
                 lse = LiteralSequenceExpression(sequence=true_state)  # pyright: ignore[reportCallIssue]
                 allele = Allele(location=location, state=lse)  # pyright: ignore[reportCallIssue]
                 allele = normalize(allele, av.translator.dp)
