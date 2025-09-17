@@ -3,8 +3,6 @@
 from copy import deepcopy
 from http import HTTPStatus
 
-from anyvar.utils.funcs import build_vrs_variant_from_dict
-
 
 def test_put_allele(client, alleles):
     for allele_id, allele in alleles.items():
@@ -35,14 +33,8 @@ def test_put_vrs_variation_allele(client, alleles):
         assert resp.json()["object_id"] == allele_id
 
 
-def test_get_allele(client, storage, alleles):
-    storage.add_objects(
-        [
-            build_vrs_variant_from_dict(a["allele_response"]["object"])
-            for a in alleles.values()
-        ]
-    )
-    for allele_id, allele in alleles.items():
+def test_get_allele(client, preloaded_alleles):
+    for allele_id, allele in preloaded_alleles.items():
         resp = client.get(f"/variation/{allele_id}")
         assert resp.status_code == HTTPStatus.OK
         assert resp.json()["data"] == allele["allele_response"]["object"]
