@@ -47,6 +47,11 @@ class PostgresObjectStore(Storage):
         # https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.Engine.dispose
         # self.engine.dispose()
 
+    def wait_for_writes(self) -> None:
+        """Wait for all background writes to complete.
+        NOTE: This is a no-op for synchronous storage backends.
+        """
+
     def wipe_db(self) -> None:
         """Wipe all data from the storage backend."""
         with self.session_factory() as session, session.begin():

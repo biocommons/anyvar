@@ -182,7 +182,7 @@ def test_vcf_registration_async(
             params={"assembly": "GRCh38", "run_id": "12345", "run_async": True},
             files={"vcf": ("test.vcf", sample_vcf_grch38)},
         )
-        assert resp.status_code == HTTPStatus.ACCEPTED
+        assert resp.status_code == HTTPStatus.ACCEPTED, resp.text
         assert "status_message" in resp.json()
         assert (
             resp.json()["status_message"] == "Run submitted. Check status at /vcf/12345"

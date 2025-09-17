@@ -38,6 +38,12 @@ class _Storage(ABC):
         """Close the storage backend."""
 
     @abstractmethod
+    def wait_for_writes(self) -> None:
+        """Wait for all background writes to complete.
+        NOTE: This is a no-op for synchronous storage backends.
+        """
+
+    @abstractmethod
     def wipe_db(self) -> None:
         """Wipe all data from the storage backend."""
 
