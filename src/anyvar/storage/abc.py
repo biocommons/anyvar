@@ -65,3 +65,7 @@ class _Storage(ABC):
 
         :return: a list of Alleles
         """
+
+
+# Alias for backward compatibility and cleaner naming
+Storage = _Storage
