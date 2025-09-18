@@ -92,6 +92,18 @@ class AccessionConversionError(LiftoverError):
     error_details = "Could not convert refget accession"
 
 
+class ReverseLiftoverError(LiftoverError):
+    """Indicates the lifted-over version of a variant was unable to be lifted over back to the original input variant"""
+
+    error_details = "Reverse-liftover variant id does not match expected value of original variant id"
+
+    def __init__(
+        self, reverse_liftover_variant_id: str, original_variant_id: str
+    ) -> None:
+        """Customizes the error_details var with the expected/actual variant ids"""
+        self.error_details = f"Lifted-over variant id of {reverse_liftover_variant_id} does not match expected value of {original_variant_id}"
+
+
 def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) -> int:
     """Convert an individual coordinate to another reference genome. If the conversion is unsuccessful, raises a `CoordinateConversionError`
 
@@ -311,10 +323,15 @@ def add_liftover_annotations(
                 reverse_liftover_annotation_value = e.get_error_message()
 
             if reverse_liftover_variant:
-                if reverse_liftover_variant.id == input_vrs_variant.id:
-                    reverse_liftover_annotation_value = input_vrs_variant.id
+                if reverse_liftover_variant.id == input_vrs_id:
+                    reverse_liftover_annotation_value = input_vrs_id
                 else:
-                    reverse_liftover_annotation_value = f"{LiftoverError.base_error_message}: Lifted-over variant id of {reverse_liftover_variant.id} does not match expected value of {input_vrs_id}"
+                    reverse_liftover_annotation_value = ReverseLiftoverError(
+                        reverse_liftover_variant.id, input_vrs_id
+                    ).error_details
+
+            # print("\ninput_variant_id:\t\t\t", input_vrs_id)
+            # print("reverse_liftover_annotation_value:\t", reverse_liftover_annotation_value)
 
             annotator.put_annotation(
                 object_id=str(lifted_over_variant.id),
