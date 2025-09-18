@@ -83,7 +83,7 @@ test_variants = {
         "expected_reverse_liftover_annotation": ReverseLiftoverError(
             "ga4gh:VA.Au4CvWQcjNe4wXU3SDo2Xtb94cv5Bgoh",
             "ga4gh:VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe",
-        ).error_details,
+        ).get_error_message(),
     },
     "allele_int_unknown_grch38_variant": {
         "input_variant": {
@@ -126,7 +126,7 @@ test_variants = {
         "expected_reverse_liftover_annotation": ReverseLiftoverError(
             "ga4gh:VA.RNgtXtdPKTKdHhUQsBCdHsPrtbPRBmAO",
             "ga4gh:VA.9gW_iJbQAIO3SIxJ9ACyAZA1X2lEgO39",
-        ).error_details,
+        ).get_error_message(),
     },  # FAILURES
     "grch36_variant": {  # Variant that's on an unsupported assembly (GRCh36)
         "input_variant": {
@@ -220,8 +220,3 @@ test_variants = {
         "expected_reverse_liftover_annotation": None,
     },
 }
-
-
-# STILL NEED:
-# - A variant that exists on GRCh38 but not GRCH37
-# - A CopyNumberCount variant?

@@ -23,16 +23,16 @@ class ReferenceAssembly(Enum):
 class LiftoverError(Exception):
     """Indicates a failure to liftover a variant between GRCh37 & GRCh38"""
 
-    base_error_message = "Unable to complete liftover"
-    error_details = ""
+    _base_error_message = "Unable to complete liftover"
+    _error_details = ""
 
     @classmethod
     def get_error_message(cls) -> str:
         """Return the error message associated with the Exception"""
         return (
-            f"{cls.base_error_message}: {cls.error_details}"
-            if cls.error_details
-            else cls.base_error_message
+            f"{cls._base_error_message}: {cls._error_details}"
+            if cls._error_details
+            else cls._base_error_message
         )
 
 
@@ -331,7 +331,7 @@ def add_liftover_annotations(
                     reverse_liftover_annotation_value = ReverseLiftoverError(
                         reverse_liftover_variant.id,  # pyright: ignore[reportArgumentType]
                         input_vrs_id,
-                    ).error_details
+                    ).get_error_message()
 
             annotator.put_annotation(
                 object_id=str(lifted_over_variant.id),
