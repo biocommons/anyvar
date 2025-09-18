@@ -322,16 +322,16 @@ def add_liftover_annotations(
                 # If reverse liftover is NOT reversible, annotate the lifted-over variant with an error message
                 reverse_liftover_annotation_value = e.get_error_message()
 
+            # If liftover is reversible, check that the reverse liftover variant is the original input variant
+            # e.g., If Variant_A on GRCh38 lifts over to Variant_B on GRCh37, ensure that Variant_B lifts *back* over to Variant_A again on GRCh38
             if reverse_liftover_variant:
                 if reverse_liftover_variant.id == input_vrs_id:
                     reverse_liftover_annotation_value = input_vrs_id
                 else:
                     reverse_liftover_annotation_value = ReverseLiftoverError(
-                        reverse_liftover_variant.id, input_vrs_id
+                        reverse_liftover_variant.id,  # pyright: ignore[reportArgumentType]
+                        input_vrs_id,
                     ).error_details
-
-            # print("\ninput_variant_id:\t\t\t", input_vrs_id)
-            # print("reverse_liftover_annotation_value:\t", reverse_liftover_annotation_value)
 
             annotator.put_annotation(
                 object_id=str(lifted_over_variant.id),
