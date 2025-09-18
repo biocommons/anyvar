@@ -100,7 +100,7 @@ class ReverseLiftoverError(LiftoverError):
     def __init__(
         self, reverse_liftover_variant_id: str, original_variant_id: str
     ) -> None:
-        """Customizes the error_details var with the expected/actual variant ids"""
+        """Customizes error_details with the expected/actual variant ids"""
         self.error_details = f"Lifted-over variant id of {reverse_liftover_variant_id} does not match expected value of {original_variant_id}"
 
 
