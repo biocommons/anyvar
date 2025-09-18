@@ -151,6 +151,7 @@ def test_forward_liftover_annotation_success(request, variant_fixture_name, clie
     )
     client.put("/vrs_variation", json=variant_input)
 
+    # Variants that can be lifted over are annotated with the id of their lifted-over equivalent
     annotator.put_annotation.assert_any_call(
         object_id=variant_input.get("id"),
         annotation_type="liftover",
@@ -162,7 +163,7 @@ def test_forward_liftover_annotation_success(request, variant_fixture_name, clie
     "variant_fixture_name",
     FORWARD_FAILURE_CASES,
 )
-def test_liftover_annotation_failure(request, variant_fixture_name, client):
+def test_forward_liftover_annotation_failure(request, variant_fixture_name, client):
     # Ensure we have a clean slate for each test case
     annotator = client.app.state.anyannotation
     annotator.reset_mock()
@@ -172,7 +173,7 @@ def test_liftover_annotation_failure(request, variant_fixture_name, client):
     )
     client.put("/vrs_variation", json=variant_input)
 
-    # Variants that can be registered successfully but are unable to be lifted over are annotated with an error message.
+    # Variants that can't be lifted over are annotated with an error message.
     annotator.put_annotation.assert_called_with(
         object_id=variant_input.get("id"),
         annotation_type="liftover",
@@ -194,11 +195,8 @@ def test_reverse_liftover_annotation(request, variant_fixture_name, client):
     )
     client.put("/vrs_variation", json=variant_input)
 
-    # print(f"{variant_fixture_name}")
-    # print("expected input id:\t\t\t", variant_input.get("id"))
-    # print("expected output:\t\t\t", expected_reverse_liftover_annotation)
-
-    # When reverse liftover is successful, we should annotated the lifted-over variant with the id of the original variant
+    # Annotate the lifted-over variant with the id of the original variant
+    # OR the appropriate error message
     annotator.put_annotation.assert_any_call(
         object_id=expected_liftover_variant.id,
         annotation_type="liftover",
