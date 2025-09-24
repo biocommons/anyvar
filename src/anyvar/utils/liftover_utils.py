@@ -23,16 +23,16 @@ class ReferenceAssembly(Enum):
 class LiftoverError(Exception):
     """Indicates a failure to liftover a variant between GRCh37 & GRCh38"""
 
-    base_error_message = "Unable to complete liftover"
-    error_details = ""
+    _base_error_message = "Unable to complete liftover"
+    _error_details = ""
 
     @classmethod
     def get_error_message(cls) -> str:
         """Return the error message associated with the Exception"""
         return (
-            f"{cls.base_error_message}: {cls.error_details}"
-            if cls.error_details
-            else cls.base_error_message
+            f"{cls._base_error_message}: {cls._error_details}"
+            if cls._error_details
+            else cls._base_error_message
         )
 
 
@@ -78,10 +78,30 @@ class AmbiguousCoordinateConversionError(LiftoverError):
     error_details = "Start and/or end positions mapped to multiple possible locations"
 
 
+class NegativeStrandedCoordinateConversionError(LiftoverError):
+    """Indicates AnyVar cannot lift over a variant because its start and/or end coordinates lifted over to the negative strand
+    TODO: Handle cases where coordinate converts to the negative strand. See Issue #197.
+    """
+
+    error_details = "Liftover unsupported - start and/or end positions lifted over to the negative strand"
+
+
 class AccessionConversionError(LiftoverError):
     """Indicates a failure to convert a variant's refget accession"""
 
     error_details = "Could not convert refget accession"
+
+
+class ReverseLiftoverError(LiftoverError):
+    """Indicates the lifted-over version of a variant was unable to be lifted over back to the original input variant"""
+
+    error_details = "Reverse-liftover variant id does not match expected value of original variant id"
+
+    def __init__(
+        self, reverse_liftover_variant_id: str, original_variant_id: str
+    ) -> None:
+        """Customizes error_details with the expected/actual variant ids"""
+        self.error_details = f"Lifted-over variant id of {reverse_liftover_variant_id} does not match expected value of {original_variant_id}"
 
 
 def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) -> int:
@@ -102,11 +122,10 @@ def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) 
     if len(converted_positions) > 1:
         raise AmbiguousCoordinateConversionError
 
-    if (
-        len(converted_positions) == 1
-        and converted_positions[0][2]
-        == Strand.POSITIVE  # TODO: Handle cases where coordinate converts to the negative strand. See Issue #197.
-    ):
+    if len(converted_positions) == 1 and converted_positions[0][2] == Strand.NEGATIVE:
+        raise NegativeStrandedCoordinateConversionError  # TODO: Handle cases where coordinate converts to the negative strand. See Issue #197.
+
+    if len(converted_positions) == 1:
         return converted_positions[0][1]
 
     raise CoordinateConversionFailureError
@@ -303,11 +322,16 @@ def add_liftover_annotations(
                 # If reverse liftover is NOT reversible, annotate the lifted-over variant with an error message
                 reverse_liftover_annotation_value = e.get_error_message()
 
+            # If liftover is reversible, check that the reverse liftover variant is the original input variant
+            # e.g., If Variant_A on GRCh38 lifts over to Variant_B on GRCh37, ensure that Variant_B lifts *back* over to Variant_A again on GRCh38
             if reverse_liftover_variant:
-                if reverse_liftover_variant.id == input_vrs_variant.id:
-                    reverse_liftover_annotation_value = input_vrs_variant.id
+                if reverse_liftover_variant.id == input_vrs_id:
+                    reverse_liftover_annotation_value = input_vrs_id
                 else:
-                    reverse_liftover_annotation_value = f"{LiftoverError.base_error_message}: Lifted-over variant id of {reverse_liftover_variant.id} does not match expected value of {input_vrs_id}"
+                    reverse_liftover_annotation_value = ReverseLiftoverError(
+                        reverse_liftover_variant.id,  # pyright: ignore[reportArgumentType]
+                        input_vrs_id,
+                    ).get_error_message()
 
             annotator.put_annotation(
                 object_id=str(lifted_over_variant.id),
