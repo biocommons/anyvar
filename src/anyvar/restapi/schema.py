@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 from ga4gh.vrs import (
     VRS_VERSION,
@@ -143,7 +144,8 @@ class AddAnnotationResponse(BaseModel):
     object: VrsObject | None
     object_id: str | None
     annotation_type: str | None
-    annotation: dict | None
+    annotation_value: dict | None
+    annotation_id: int | None
 
 
 class AddAnnotationRequest(BaseModel):
@@ -153,7 +155,7 @@ class AddAnnotationRequest(BaseModel):
     """
 
     annotation_type: str
-    annotation: dict
+    annotation_value: Any
 
 
 class GetAnnotationResponse(BaseModel):

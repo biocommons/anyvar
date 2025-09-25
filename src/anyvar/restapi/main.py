@@ -28,7 +28,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import StrictStr
 
 import anyvar
-from anyvar.anyvar import AnyAnnotation, AnyVar
+from anyvar.anyvar import AnyVar
 from anyvar.restapi.schema import (
     AddAnnotationRequest,
     AddAnnotationResponse,
@@ -45,11 +45,12 @@ from anyvar.restapi.schema import (
     VariationStatisticType,
 )
 from anyvar.restapi.vcf import router as vcf_router
+from anyvar.storage.db import VrsObject
 from anyvar.translate.translate import (
     TranslationError,
 )
 from anyvar.utils import liftover_utils
-from anyvar.utils.types import VrsVariation, variation_class_map
+from anyvar.utils.types import Annotation, VrsVariation, variation_class_map
 
 load_dotenv()
 _logger = logging.getLogger(__name__)
@@ -126,27 +127,10 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
 
     # associate anyvar with the app state
     param_app.state.anyvar = anyvar_instance
-
-    # create annotation instance if configured
-    annotation_storage = None
-    if "ANYVAR_ANNOTATION_STORAGE_URI" in os.environ:
-        if "ANYVAR_ANNOTATION_TABLE_NAME" not in os.environ:
-            raise ValueError(
-                "ANYVAR_ANNOTATION_TABLE_NAME is required if ANYVAR_ANNOTATION_STORAGE_URI is set"
-            )
-        annotation_storage = anyvar.anyvar.create_annotation_storage(
-            os.environ["ANYVAR_ANNOTATION_STORAGE_URI"],
-            table_name=os.environ["ANYVAR_ANNOTATION_TABLE_NAME"],
-        )
-        anyannotation_instance = AnyAnnotation(annotation_storage)
-        param_app.state.anyannotation = anyannotation_instance
-
     yield
 
     # close storage connector on shutdown
     storage.close()
-    if annotation_storage:
-        annotation_storage.close()
 
 
 app = FastAPI(
@@ -222,7 +206,7 @@ def get_location_by_id(
 def add_variation_annotation(
     request: Request,
     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
-    annotation: Annotated[
+    annotation_request: Annotated[
         AddAnnotationRequest,
         Body(
             description="Annotation to associate with the variation",
@@ -240,6 +224,7 @@ def add_variation_annotation(
     messages: list[str] = []
     # Look up the variation from the AnyVar store
     av: AnyVar = request.app.state.anyvar
+    variation: VrsObject | None = None
     try:
         variation = av.get_object(vrs_id)
     except KeyError as e:
@@ -247,35 +232,34 @@ def add_variation_annotation(
             status_code=HTTPStatus.NOT_FOUND, detail=f"Variation {vrs_id} not found"
         ) from e
 
-    # Add the annotation to the annotation store
-    if hasattr(request.app.state, "anyannotation"):
-        anyannotation: AnyAnnotation = request.app.state.anyannotation
-        try:
-            anyannotation.put_annotation(
-                object_id=vrs_id,
-                annotation_type=annotation.annotation_type,
-                annotation=annotation.annotation,
-            )
-        except ValueError as e:
-            _logger.exception(
-                "Failed to add annotation `%s` on variation `%s`", annotation, vrs_id
-            )
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail=f"Failed to add annotation: {annotation}",
-            ) from e
-    else:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_IMPLEMENTED,
-            detail="Annotations are not supported by this backend configuration.",
+    # Add the annotation to the database
+    annotation_id: int | None = None
+    try:
+        annotation = Annotation(
+            object_id=variation.id,
+            object_type=variation.type,
+            annotation_type=annotation_request.annotation_type,
+            annotation_value=annotation_request.annotation_value,
         )
+        annotation_id = av.put_annotation(annotation)
+    except ValueError as e:
+        _logger.exception(
+            "Failed to add annotation `%s` on variation `%s`",
+            annotation_request,
+            vrs_id,
+        )
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=f"Failed to add annotation: {annotation_request}",
+        ) from e
 
     return AddAnnotationResponse(
         messages=messages,
         object=variation,
         object_id=vrs_id,
-        annotation_type=annotation.annotation_type,
-        annotation=annotation.annotation,
+        annotation_type=annotation_request.annotation_type,
+        annotation_value=annotation_request.annotation_value,
+        annotation_id=annotation_id,
     )
 
 
@@ -298,14 +282,8 @@ def get_variation_annotation(
     :param annotation_type: type of annotation to retrieve
     :return: response object containing list of annotations for the variation
     """
-    if not hasattr(request.app.state, "anyannotation"):
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_IMPLEMENTED,
-            detail="Annotations are not supported by this backend configuration.",
-        )
-    anyannotation: AnyAnnotation = request.app.state.anyannotation
-    annotations = anyannotation.get_annotation(vrs_id, annotation_type)
-
+    av: AnyVar = request.app.state.anyvar
+    annotations = av.get_object_annotations(vrs_id, annotation_type)
     return GetAnnotationResponse(annotations=annotations)
 
 
@@ -345,28 +323,28 @@ async def add_registration_annotations(
         return new_response
 
     # Add annotations
-    annotator: AnyAnnotation | None = getattr(request.app.state, "anyannotation", None)
-    if annotator:
-        timestamp_annotations = annotator.get_annotation(
-            input_vrs_id, "creation_timestamp"
-        )
-        if not timestamp_annotations:
-            annotator.put_annotation(
+    av: AnyVar = request.app.state.anyvar
+    timestamp_annotations = av.get_object_annotations(
+        input_vrs_id, "creation_timestamp"
+    )
+    if not timestamp_annotations:
+        av.put_annotation(
+            Annotation(
                 object_id=input_vrs_id,
+                object_type=input_variant.type,
                 annotation_type="creation_timestamp",
-                annotation={
-                    "timestamp": datetime.datetime.now(tz=datetime.UTC).isoformat()
-                },
+                annotation_value=datetime.datetime.now(tz=datetime.UTC).isoformat(),
             )
+        )
 
-        liftover_annotations = annotator.get_annotation(input_vrs_id, "liftover")
-        if not liftover_annotations:
-            liftover_utils.add_liftover_annotations(
-                input_vrs_id=input_vrs_id,
-                input_vrs_variant_dict=input_variant,
-                anyvar=request.app.state.anyvar,
-                annotator=annotator,
-            )
+    liftover_annotations = av.get_object_annotations(input_vrs_id, "liftover")
+    if not liftover_annotations:
+        # TODO: Don't use annotations for liftover
+        liftover_utils.add_liftover_annotations(
+            input_vrs_id=input_vrs_id,
+            input_vrs_variant_dict=input_variant,
+            anyvar=request.app.state.anyvar,
+        )
 
     return new_response
 

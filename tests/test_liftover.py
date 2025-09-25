@@ -97,6 +97,9 @@ def test_liftover_failure(request, variant_fixture_name, client):
 ######################################################################################################
 ## Tests for the middleware function src/anyvar/restapi/main.py > 'add_liftover_annotation' ##
 ######################################################################################################
+# TODO: Remove annotation references from tests
+
+
 @pytest.mark.parametrize(
     "variant_fixture_name",
     SUCCESS_CASES,

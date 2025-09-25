@@ -57,7 +57,6 @@ def annotator():
 def client(storage, annotator):
     translator = create_translator()
     anyvar_restapi.state.anyvar = AnyVar(object_store=storage, translator=translator)
-    anyvar_restapi.state.anyannotation = annotator
     return TestClient(app=anyvar_restapi)
 
 

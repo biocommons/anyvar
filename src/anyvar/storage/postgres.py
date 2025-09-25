@@ -16,7 +16,7 @@ from anyvar.storage.db import (
     create_tables,
 )
 
-from .abc import Storage, StoredObjectType, VariationMappingType
+from .abc import Storage, StoredVrsObjectType, VariationMappingType
 from .mapper_registry import mapper_registry
 
 
@@ -126,14 +126,14 @@ class PostgresObjectStore(Storage):
                 session.execute(stmt, allele_dicts)
 
     def get_objects(
-        self, object_type: StoredObjectType, object_ids: Iterable[str]
+        self, object_type: StoredVrsObjectType, object_ids: Iterable[str]
     ) -> Iterable[vrs_models.VrsType]:
         """Retrieve multiple VRS objects from storage by their IDs."""
         object_ids_list = list(object_ids)
         results = []
 
         with self.session_factory() as session:
-            if object_type == StoredObjectType.ALLELE:
+            if object_type == StoredVrsObjectType.ALLELE:
                 # Get alleles with eager loading
                 db_objects = (
                     session.query(Allele)
@@ -145,7 +145,7 @@ class PostgresObjectStore(Storage):
                     .filter(Allele.id.in_(object_ids_list))
                     .all()
                 )
-            elif object_type == StoredObjectType.SEQUENCE_LOCATION:
+            elif object_type == StoredVrsObjectType.SEQUENCE_LOCATION:
                 # Get locations with eager loading
                 db_objects = (
                     session.query(Location)
@@ -153,7 +153,7 @@ class PostgresObjectStore(Storage):
                     .filter(Location.id.in_(object_ids_list))
                     .all()
                 )
-            elif object_type == StoredObjectType.SEQUENCE_REFERENCE:
+            elif object_type == StoredVrsObjectType.SEQUENCE_REFERENCE:
                 # Get sequence references
                 db_objects = (
                     session.query(SequenceReference)
@@ -177,31 +177,31 @@ class PostgresObjectStore(Storage):
             allele_ids = session.query(Allele.id).all()
             return [allele_id[0] for allele_id in allele_ids]
 
-    def get_object_count(self, object_type: StoredObjectType) -> int:
+    def get_object_count(self, object_type: StoredVrsObjectType) -> int:
         """Get count of objects of a specific type in storage."""
         with self.session_factory() as session:
-            if object_type == StoredObjectType.ALLELE:
+            if object_type == StoredVrsObjectType.ALLELE:
                 return session.query(func.count(Allele.id)).scalar()
-            if object_type == StoredObjectType.SEQUENCE_LOCATION:
+            if object_type == StoredVrsObjectType.SEQUENCE_LOCATION:
                 return session.query(func.count(Location.id)).scalar()
-            if object_type == StoredObjectType.SEQUENCE_REFERENCE:
+            if object_type == StoredVrsObjectType.SEQUENCE_REFERENCE:
                 return session.query(func.count(SequenceReference.id)).scalar()
             raise ValueError(f"Unsupported object type: {object_type}")
 
     def delete_objects(
-        self, object_type: StoredObjectType, object_ids: Iterable[str]
+        self, object_type: StoredVrsObjectType, object_ids: Iterable[str]
     ) -> None:
         """Delete all objects of a specific type from storage."""
         object_ids_list = list(object_ids)
 
         with self.session_factory() as session, session.begin():
-            if object_type == StoredObjectType.ALLELE:
+            if object_type == StoredVrsObjectType.ALLELE:
                 session.query(Allele).filter(Allele.id.in_(object_ids_list)).delete()
-            elif object_type == StoredObjectType.SEQUENCE_LOCATION:
+            elif object_type == StoredVrsObjectType.SEQUENCE_LOCATION:
                 session.query(Location).filter(
                     Location.id.in_(object_ids_list)
                 ).delete()
-            elif object_type == StoredObjectType.SEQUENCE_REFERENCE:
+            elif object_type == StoredVrsObjectType.SEQUENCE_REFERENCE:
                 session.query(SequenceReference).filter(
                     SequenceReference.id.in_(object_ids_list)
                 ).delete()

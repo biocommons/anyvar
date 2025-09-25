@@ -76,11 +76,10 @@ class Annotation(Base):
 
     __tablename__ = "annotations"
 
-    object_id: Mapped[str] = mapped_column(
-        String, ForeignKey("vrs_objects.vrs_id"), primary_key=True
-    )
+    object_id: Mapped[str] = mapped_column(String, primary_key=True)
+    object_type: Mapped[str] = mapped_column(String)
     annotation_type: Mapped[str] = mapped_column(String, primary_key=True)
-    annotation: Mapped[dict] = mapped_column(JSONB)
+    annotation_value: Mapped[dict] = mapped_column(JSONB)
 
     # https://docs.sqlalchemy.org/en/20/core/constraints.html#indexes
     __table_args__ = (
