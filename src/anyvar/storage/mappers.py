@@ -183,4 +183,4 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, db.Allele]):
             return vrs_models.ReferenceLengthExpression(**state_data)
         if state_type == "LengthExpression":
             return vrs_models.LengthExpression(**state_data)
-        raise ValueError(f"Unknown state type: {state_type}")
+        raise ValueError(f"Unknown state type '{state_type}' from: {state_data}")
