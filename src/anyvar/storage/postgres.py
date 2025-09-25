@@ -64,6 +64,8 @@ class PostgresObjectStore(Storage):
             session.query(VrsObject).delete()
             session.query(Annotation).delete()
 
+    # TODO also store vrs_objects table in addition to
+    # the tables per type.
     def add_objects(self, objects: Iterable[vrs_models.VrsType]) -> None:
         """Add multiple VRS objects to storage using bulk inserts."""
         objects_list = list(objects)

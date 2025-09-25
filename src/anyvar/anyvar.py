@@ -14,7 +14,6 @@ from agct import Converter, Genome
 
 from anyvar.storage import DEFAULT_STORAGE_URI
 from anyvar.storage.abc import StoredObjectType, _Storage
-from anyvar.storage.db import create_tables
 from anyvar.translate.translate import _Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
 from anyvar.utils.types import Annotation, AnnotationKey, VrsObject
@@ -45,7 +44,6 @@ def create_storage(uri: str | None = None) -> _Storage:
     if parsed_uri.scheme == "postgresql":
         from anyvar.storage.postgres import PostgresObjectStore  # noqa: PLC0415
 
-        create_tables(uri)
         storage = PostgresObjectStore(uri)
     elif parsed_uri.scheme == "":
         from anyvar.storage.no_db import NoObjectStore  # noqa: PLC0415
@@ -54,6 +52,8 @@ def create_storage(uri: str | None = None) -> _Storage:
     else:
         msg = f"URI scheme {parsed_uri.scheme} is not implemented"
         raise ValueError(msg)
+
+    storage.setup()
 
     _logger.debug("create_storage: %s → %s}", uri, storage)
     return storage

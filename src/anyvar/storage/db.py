@@ -83,6 +83,7 @@ class Annotation(Base):
     annotation: Mapped[dict] = mapped_column(JSONB)
 
     # https://docs.sqlalchemy.org/en/20/core/constraints.html#indexes
+    # TODO is this needed because of the primary key?
     __table_args__ = (
         Index(
             "idx_annotations_object_id_annotation_type",
