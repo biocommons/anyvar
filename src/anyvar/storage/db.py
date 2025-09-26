@@ -71,7 +71,7 @@ class SequenceReference(Base):
     molecule_type: Mapped[str | None]
 
 
-class Annotation(Base):
+class AnnotationOrm(Base):
     """AnyVar ORM model for annotations table."""
 
     __tablename__ = "annotations"

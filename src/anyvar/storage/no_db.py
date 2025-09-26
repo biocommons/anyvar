@@ -10,6 +10,7 @@ from .abc import StoredVrsObjectType, VariationMappingType, _Storage
 
 # ruff: noqa: ARG002 (allows unused method arguments)
 
+
 class NoObjectStore(_Storage):
     """Storage backend that does not persistently store any data."""
 
@@ -35,8 +36,8 @@ class NoObjectStore(_Storage):
 
     def get_objects(
         self,
-        object_type: StoredVrsObjectType,  # noqa: ARG002
-        object_ids: Iterable[str],  # noqa: ARG002
+        object_type: StoredVrsObjectType,
+        object_ids: Iterable[str],
     ) -> Iterable[vrs_models.VrsType]:
         """Retrieve multiple VRS objects from storage by their IDs."""
         return []
@@ -45,7 +46,7 @@ class NoObjectStore(_Storage):
         """Retrieve all object IDs from storage."""
         return []
 
-    def get_object_count(self, object_type: StoredVrsObjectType) -> int:  # noqa: ARG002
+    def get_object_count(self, object_type: StoredVrsObjectType) -> int:
         """Get count of objects of a specific type in storage."""
         return 0
 
@@ -82,8 +83,8 @@ class NoObjectStore(_Storage):
 
     def get_mappings(
         self,
-        source_object_id: str,  # noqa: ARG002
-        mapping_type: VariationMappingType,  # noqa: ARG002
+        source_object_id: str,
+        mapping_type: VariationMappingType,
     ) -> list[str]:
         """Return a list of ids of destination objects mapped from the source object.
 
@@ -94,9 +95,9 @@ class NoObjectStore(_Storage):
 
     def search_alleles(
         self,
-        refget_accession: str,  # noqa: ARG002
-        start: int,  # noqa: ARG002
-        stop: int,  # noqa: ARG002
+        refget_accession: str,
+        start: int,
+        stop: int,
     ) -> list[vrs_models.Allele]:
         """Find all Alleles in the particular region
 
@@ -113,14 +114,6 @@ class NoObjectStore(_Storage):
 
         :param annotation: The annotation to add
         :return: The ID of the newly-inserted annotation
-        """
-        raise TypeError("Unsupported operations for this storage type")
-
-    def get_annotation_by_id(self, annotation_id: int) -> Annotation:
-        """Retrieves an annotation from the database
-
-        :param annotation_id: The ID of the annotation to retrieve
-        :return: The specified annotation
         """
         raise TypeError("Unsupported operations for this storage type")
 

@@ -114,19 +114,10 @@ class _Storage(ABC):
         """
 
     @abstractmethod
-    def add_annotation(self, annotation: Annotation) -> int:
-        """Adds an annotation to the database. Returns the ID of the newly-inserted annotation.
+    def add_annotation(self, annotation: Annotation) -> None:
+        """Adds an annotation to the database.
 
         :param annotation: The annotation to add
-        :return: The ID of the newly-inserted annotation
-        """
-
-    @abstractmethod
-    def get_annotation_by_id(self, annotation_id: int) -> Annotation:
-        """Retrieves an annotation from the database
-
-        :param annotation_id: The ID of the annotation to retrieve
-        :return: The specified annotation
         """
 
     @abstractmethod

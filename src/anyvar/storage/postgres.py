@@ -3,18 +3,19 @@
 from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
-from sqlalchemy import create_engine, func
+from sqlalchemy import create_engine, delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload, sessionmaker
 
 from anyvar.storage.db import (
     Allele,
-    Annotation,
+    AnnotationOrm,
     Location,
     SequenceReference,
     VrsObject,
     create_tables,
 )
+from anyvar.utils.types import Annotation
 
 from .abc import Storage, StoredVrsObjectType, VariationMappingType
 from .mapper_registry import mapper_registry
@@ -283,19 +284,17 @@ class PostgresObjectStore(Storage):
 
             return [mapper_registry.to_vrs_model(db_allele) for db_allele in db_alleles]
 
-    def add_annotation(self, annotation: Annotation) -> int:
-        """Adds an annotation to the database. Returns the ID of the newly-inserted annotation.
+    def add_annotation(self, annotation: Annotation) -> None:
+        """Adds an annotation to the database.
 
         :param annotation: The annotation to add
-        :return: The ID of the newly-inserted annotation
         """
-
-    def get_annotation_by_id(self, annotation_id: int) -> Annotation:
-        """Retrieves an annotation from the database
-
-        :param annotation_id: The ID of the annotation to retrieve
-        :return: The specified annotation
-        """
+        db_entity = mapper_registry.to_db_entity(annotation)
+        with self.session_factory() as session, session.begin():
+            stmt = insert(AnnotationOrm)
+            stmt = stmt.on_conflict_do_update()  # TODO: Is this the behavior we want?
+            session.execute(stmt, db_entity)
+            session.commit()
 
     def get_annotation_by_object_and_type(
         self, object_id: str, annotation_type: str | None = None
@@ -306,9 +305,26 @@ class PostgresObjectStore(Storage):
         :param annotation_type: The type of annotation to retrieve
         :return: A list of annotations
         """
+        with self.session_factory() as session, session.begin():
+            stmt = (
+                select(AnnotationOrm)
+                .where(AnnotationOrm.object_id == object_id)
+                .where(AnnotationOrm.annotation_type == annotation_type)
+            )
+            result = session.execute(stmt)
+            db_annotations = result.scalars().all()
+
+        return [
+            mapper_registry.to_vrs_model(db_annotations)
+            for db_annotations in db_annotations
+        ]
 
     def delete_annotation(self, annotation_id: int) -> None:
         """Deletes an annotation from the database
 
         :param annotation_id: The ID of the annotation to delete
         """
+        with self.session_factory() as session, session.begin():
+            stmt = delete(AnnotationOrm).where(AnnotationOrm.id == annotation_id)
+            session.execute(stmt)
+            session.commit()

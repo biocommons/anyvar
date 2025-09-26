@@ -188,10 +188,10 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, db.Allele]):
         raise ValueError(f"Unknown state type: {state_type}")
 
 
-class AnnotationMapper(BaseMapper[Annotation, db.Annotation]):
+class AnnotationMapper(BaseMapper[Annotation, db.AnnotationOrm]):
     """Maps between Annotations entities."""
 
-    def to_vrs_model(self, db_entity: db.Annotation) -> Annotation:
+    def to_vrs_model(self, db_entity: db.AnnotationOrm) -> Annotation:
         """Convert DB SequenceReference to VRS SequenceReference."""
         return Annotation(
             object_id=db_entity.object_id,
@@ -201,6 +201,6 @@ class AnnotationMapper(BaseMapper[Annotation, db.Annotation]):
             annotation_id=db_entity.id,
         )
 
-    def to_db_entity(self, vrs_model: Annotation) -> db.Annotation:
+    def to_db_entity(self, vrs_model: Annotation) -> db.AnnotationOrm:
         """Convert VRS SequenceReference to DB SequenceReference."""
-        return db.Annotation(**vrs_model.model_dump())
+        return db.AnnotationOrm(**vrs_model.model_dump())
