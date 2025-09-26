@@ -178,12 +178,13 @@ class AnyVar:
         :param annotation: an Annotation object
         :return: annotation ID if successful, None otherwise
         """
+        annotation_id = None
         try:
-            self.object_store.add_annotation(annotation)
+            annotation_id = self.object_store.add_annotation(annotation)
         except Exception as e:
             _logger.exception("Failed to add object: %s", annotation)
             raise e  # noqa: TRY201
-        return annotation.annotation_id
+        return annotation_id
 
     def get_object_annotations(
         self, object_id: str, annotation_type: str | None = None

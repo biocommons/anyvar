@@ -110,10 +110,10 @@ class NoObjectStore(_Storage):
         return []
 
     def add_annotation(self, annotation: Annotation) -> int:
-        """Adds an annotation to the database. Returns the ID of the newly-inserted annotation.
+        """Adds an annotation to the database.
 
         :param annotation: The annotation to add
-        :return: The ID of the newly-inserted annotation
+        :return: The ID of the newly-added annotation
         """
         raise TypeError("Unsupported operations for this storage type")
 

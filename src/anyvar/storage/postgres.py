@@ -284,17 +284,20 @@ class PostgresObjectStore(Storage):
 
             return [mapper_registry.to_vrs_model(db_allele) for db_allele in db_alleles]
 
-    def add_annotation(self, annotation: Annotation) -> None:
+    def add_annotation(self, annotation: Annotation) -> int:
         """Adds an annotation to the database.
 
         :param annotation: The annotation to add
+        :return: The ID of the newly-added annotation
         """
         db_entity = mapper_registry.to_db_entity(annotation)
         with self.session_factory() as session, session.begin():
-            stmt = insert(AnnotationOrm)
-            stmt = stmt.on_conflict_do_update()  # TODO: Is this the behavior we want?
-            session.execute(stmt, db_entity)
-            session.commit()
+            stmt = (
+                insert(AnnotationOrm)
+                .on_conflict_do_update()  # TODO: Is this the behavior we want?
+                .returning(AnnotationOrm.id)
+            )
+            return session.execute(stmt, db_entity).scalar_one()
 
     def get_annotation_by_object_and_type(
         self, object_id: str, annotation_type: str | None = None
@@ -311,8 +314,7 @@ class PostgresObjectStore(Storage):
                 .where(AnnotationOrm.object_id == object_id)
                 .where(AnnotationOrm.annotation_type == annotation_type)
             )
-            result = session.execute(stmt)
-            db_annotations = result.scalars().all()
+            db_annotations = session.execute(stmt).scalars().all()
 
         return [
             mapper_registry.to_vrs_model(db_annotations)
@@ -327,4 +329,3 @@ class PostgresObjectStore(Storage):
         with self.session_factory() as session, session.begin():
             stmt = delete(AnnotationOrm).where(AnnotationOrm.id == annotation_id)
             session.execute(stmt)
-            session.commit()

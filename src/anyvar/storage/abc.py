@@ -114,10 +114,11 @@ class _Storage(ABC):
         """
 
     @abstractmethod
-    def add_annotation(self, annotation: Annotation) -> None:
+    def add_annotation(self, annotation: Annotation) -> int:
         """Adds an annotation to the database.
 
         :param annotation: The annotation to add
+        :return: The ID of the newly-added annotation
         """
 
     @abstractmethod
