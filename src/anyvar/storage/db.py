@@ -1,6 +1,9 @@
 """SQLAlchemy ORM models for AnyVar database schema."""
 
-from sqlalchemy import ForeignKey, Index, String, create_engine
+from uuid import UUID
+
+from sqlalchemy import ForeignKey, Index, String, create_engine, func
+from sqlalchemy.dialects.postgresql import ENUM as PgEnum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -9,6 +12,8 @@ from sqlalchemy.orm import (
     relationship,
     sessionmaker,
 )
+
+from anyvar.storage.abc import VariationMappingType
 
 
 class Base(DeclarativeBase):
@@ -89,6 +94,33 @@ class Annotation(Base):
             "object_id",
             "annotation_type",
         ),
+    )
+
+
+relationship_type_enum = PgEnum(
+    VariationMappingType,
+    name="relationship_type",
+    metadata=Base.metadata,
+    create_type=True,
+    validate_strings=True,
+)
+
+
+class VariationMapping(Base):
+    """AnyVar ORM model for feature mappings table"""
+
+    __tablename__ = "feature_mappings"
+
+    id: Mapped[UUID] = mapped_column(
+        primary_key=True, server_default=func.gen_random_uuid()
+    )
+    source_id: Mapped[str] = mapped_column(String, ForeignKey("alleles.id"))
+    dest_id: Mapped[str] = mapped_column(String, ForeignKey("alleles.id"))
+    relationship_type: Mapped[str] = mapped_column(relationship_type_enum)
+
+    __table_args__ = (
+        Index("idx_mappings_source_id", "source_id"),
+        Index("ids_mappings_dest_id", "dest_id"),
     )
 
 

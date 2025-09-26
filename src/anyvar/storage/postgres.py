@@ -3,7 +3,7 @@
 from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
-from sqlalchemy import create_engine, func
+from sqlalchemy import create_engine, delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload, sessionmaker
 
@@ -12,11 +12,16 @@ from anyvar.storage.db import (
     Annotation,
     Location,
     SequenceReference,
+    VariationMapping,
     VrsObject,
     create_tables,
 )
 
-from .abc import Storage, StoredObjectType, VariationMappingType
+from .abc import (
+    Storage,
+    StoredObjectType,
+    VariationMappingType,
+)
 from .mapper_registry import mapper_registry
 
 
@@ -220,7 +225,15 @@ class PostgresObjectStore(Storage):
         :param destination_object_id: ID of the destination object
         :param mapping_type: Type of VariationMappingType
         """
-        raise NotImplementedError
+        mapping = {
+            "source_id": source_object_id,
+            "dest_id": destination_object_id,
+            "relationship_type": mapping_type,
+        }
+        mapper_registry.to_db_entity(mapping)
+
+        with self.session_factory() as session, session.begin():
+            session.execute(insert(VariationMapping).on_conflict_do_nothing(), mapping)
 
     def delete_mapping(
         self,
@@ -234,19 +247,34 @@ class PostgresObjectStore(Storage):
         :param destination_object_id: ID of the destination object
         :param mapping_type: Type of VariationMappingType
         """
-        raise NotImplementedError
+        with self.session_factory() as session, session.begin():
+            session.execute(
+                delete(VariationMapping).where(
+                    VariationMapping.source_id == source_object_id,
+                    VariationMapping.dest_id == destination_object_id,
+                    VariationMapping.relationship_type == mapping_type,
+                )
+            )
 
     def get_mappings(
         self,
         source_object_id: str,
         mapping_type: VariationMappingType,
-    ) -> list[str]:
+    ) -> Iterable[str]:
         """Return a list of ids of destination objects mapped from the source object.
 
         :param source_object_id: ID of the source object
         :param mapping_type: Type of VariationMappingType
+        :return: iterable of mappings
         """
-        raise NotImplementedError
+        with self.session_factory() as session, session.begin():
+            stmt = select(VariationMapping.dest_id).where(
+                VariationMapping.source_id == source_object_id,
+                VariationMapping.relationship_type == mapping_type,
+            )
+            results = session.execute(stmt)
+            breakpoint()
+            return results.all()
 
     def search_alleles(
         self,

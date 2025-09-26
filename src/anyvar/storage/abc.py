@@ -3,6 +3,7 @@
 import enum
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
+from typing import NamedTuple
 
 from ga4gh.vrs import models as vrs_models
 
@@ -19,11 +20,19 @@ class StoredObjectType(enum.StrEnum):
 
 
 class VariationMappingType(enum.StrEnum):
-    """Supported mapping types between VRS Variations."""
+    """Supported mapping types between variations."""
 
     LIFTOVER = "liftover"
     TRANSCRIPTION = "transcription"
     TRANSLATION = "translation"
+
+
+class VariationMapping(NamedTuple):
+    """Kinds of mapping between variations."""
+
+    source_id: str
+    dest_id: str
+    relationship_type: VariationMappingType
 
 
 class _Storage(ABC):
@@ -104,11 +113,12 @@ class _Storage(ABC):
         self,
         source_object_id: str,
         mapping_type: VariationMappingType,
-    ) -> list[str]:
+    ) -> Iterable[str]:
         """Return a list of ids of destination objects mapped from the source object.
 
         :param source_object_id: ID of the source object
         :param mapping_type: Type of VariationMappingType
+        :return: iterable of mappings
         """
 
     @abstractmethod

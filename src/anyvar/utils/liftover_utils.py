@@ -8,7 +8,7 @@ from bioutils.accessions import chr22XY
 from ga4gh.vrs import models
 from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 
-from anyvar.anyvar import AnyAnnotation, AnyVar
+from anyvar.anyvar import AnyVar
 from anyvar.utils.funcs import build_vrs_variant_from_dict
 from anyvar.utils.types import VrsVariation
 
@@ -248,19 +248,16 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
     return vrs_deref(o=enreffed_variant, object_store=object_store)  # type: ignore (this will always return a `VrsVariation`)
 
 
-def add_liftover_annotations(
+def add_liftover_mapping(
     input_vrs_id: str,
     input_vrs_variant_dict: dict,
     anyvar: AnyVar,
-    annotator: AnyAnnotation | None,
 ) -> None:
-    """Perform liftover between GRCh37 <-> GRCh38. Store the ID of converted variant as an annotation of the original,
-    register the lifted-over variant, and store the ID of the original variant as an annotation of the lifted-over one.
+    """Perform liftover between GRCh37 <-> GRCh38, register the new variant, and store mappings between both
 
     :param input_vrs_id: The ID of the VRS variant to lift over
     :param input_vrs_variant_dict: A dictionary representation of the VRS variant to lift over
     :param anyvar: An `AnyVar` instance
-    :param annotator: An `AnyAnnotation` instance
     """
     # convert `input_vrs_object_dict` into an actual VrsVariation class instance
     input_vrs_variant = build_vrs_variant_from_dict(input_vrs_variant_dict)
@@ -277,7 +274,7 @@ def add_liftover_annotations(
         # If liftover was unsuccessful, we'll annotate with an error message
         annotation_value = e.get_error_message()
 
-    # Add the annotation to the original variant
+    # Add mapping to the original variant
     annotation_type = "liftover"
     if annotator:
         annotator.put_annotation(

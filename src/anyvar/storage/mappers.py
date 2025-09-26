@@ -6,6 +6,7 @@ from typing import Generic, TypeVar
 from ga4gh.vrs import models as vrs_models
 
 from anyvar.storage import db
+from anyvar.storage.abc import VariationMapping
 
 V = TypeVar("V")  # VRS model type
 A = TypeVar("A")  # AnyVar DB entity type
@@ -184,3 +185,19 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, db.Allele]):
         if state_type == "LengthExpression":
             return vrs_models.LengthExpression(**state_data)
         raise ValueError(f"Unknown state type: {state_type}")
+
+
+class VariationMappingMapper(BaseMapper[VariationMapping, db.VariationMapping]):
+    def to_vrs_model(self, db_entity: db.VariationMapping) -> VariationMapping:
+        return FeatureMapping(
+            source_id=db_entity.source_id,
+            dest_id=db_entity.dest_id,
+            relationship_type=db_entity.relationship_type,
+        )
+
+    def to_db_entity(self, vrs_model: VariationMapping) -> db.VariationMapping:
+        return db.VariationMapping(
+            source_id=vrs_model.source_id,
+            dest_id=vrs_model.dest_id,
+            relationship_type=vrs_model.relationship_type,
+        )

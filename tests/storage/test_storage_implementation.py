@@ -4,7 +4,7 @@ test must be run with different ANYVAR_TEST_STORAGE_URI settings
 and different ANYVAR_SQL_STORE_BATCH_ADD_MODE settings
 """
 
-from anyvar.storage.abc import StoredObjectType
+from anyvar.storage.abc import Storage, StoredObjectType
 from anyvar.translate.vrs_python import VrsPythonTranslator
 
 
@@ -66,3 +66,12 @@ def test_objects_deleted(storage, alleles):
             storage.get_objects(StoredObjectType.ALLELE, [allele_id])
         )
         assert len(retrieved_objects) == 0
+
+
+def test_add_mappings(storage: Storage):
+    # add some mappings
+    for () in []:
+        pass
+    # I guess assert that it happens?
+
+    # then test some get_mappings
