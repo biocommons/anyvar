@@ -261,6 +261,7 @@ def add_liftover_annotations(
     :param anyvar: An `AnyVar` instance
     :param annotator: An `AnyAnnotation` instance
     """
+    # TODO: Remove 'annotator' references from this function - use Mappings instead
     # convert `input_vrs_object_dict` into an actual VrsVariation class instance
     input_vrs_variant = build_vrs_variant_from_dict(input_vrs_variant_dict)
 

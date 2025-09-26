@@ -282,3 +282,33 @@ class PostgresObjectStore(Storage):
             )
 
             return [mapper_registry.to_vrs_model(db_allele) for db_allele in db_alleles]
+
+    def add_annotation(self, annotation: Annotation) -> int:
+        """Adds an annotation to the database. Returns the ID of the newly-inserted annotation.
+
+        :param annotation: The annotation to add
+        :return: The ID of the newly-inserted annotation
+        """
+
+    def get_annotation_by_id(self, annotation_id: int) -> Annotation:
+        """Retrieves an annotation from the database
+
+        :param annotation_id: The ID of the annotation to retrieve
+        :return: The specified annotation
+        """
+
+    def get_annotation_by_object_and_type(
+        self, object_id: str, annotation_type: str | None = None
+    ) -> list[Annotation]:
+        """Retrieves all annotations for the given object, optionally filtered to only annotations of the specified type from the database
+
+        :param object_id: The ID of the object to retrieve annotations for
+        :param annotation_type: The type of annotation to retrieve
+        :return: A list of annotations
+        """
+
+    def delete_annotation(self, annotation_id: int) -> None:
+        """Deletes an annotation from the database
+
+        :param annotation_id: The ID of the annotation to delete
+        """

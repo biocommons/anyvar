@@ -5,6 +5,7 @@ from enum import StrEnum
 from typing import Any, TypeAlias
 
 from ga4gh.vrs import models
+from pydantic import BaseModel
 
 from anyvar.storage.abc import StoredVrsObjectType
 
@@ -38,7 +39,7 @@ class SupportedVariationType(StrEnum):
 
 
 @dataclass
-class Annotation:
+class Annotation(BaseModel):
     """Generic annotation class which attaches any object to an identifier"""
 
     annotation_id: int | None

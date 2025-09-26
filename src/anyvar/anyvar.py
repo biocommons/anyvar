@@ -189,7 +189,7 @@ class AnyVar:
         self, object_id: str, annotation_type: str | None = None
     ) -> list[Annotation]:
         """Get all annotations for the specified object, optionally filtered annotations of the specified type
-        
+
         :param object_id: The ID of the object to retrieve annotations for
         :param annotation_type: The type of annotation to retrieve
         :return: A list of Annotations
