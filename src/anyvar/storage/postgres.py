@@ -7,6 +7,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload, sessionmaker
 
+from anyvar.storage.abc import Storage, StoredObjectType, VariationMappingType
+from anyvar.storage.mapper_registry import mapper_registry
 from anyvar.storage.orm import (
     Allele,
     Annotation,
@@ -15,9 +17,6 @@ from anyvar.storage.orm import (
     VrsObject,
     create_tables,
 )
-
-from .abc import Storage, StoredObjectType, VariationMappingType
-from .mapper_registry import mapper_registry
 
 
 class PostgresObjectStore(Storage):
