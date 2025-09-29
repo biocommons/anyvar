@@ -3,7 +3,7 @@
 from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
-from sqlalchemy import create_engine, func
+from sqlalchemy import create_engine
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload, sessionmaker
 
@@ -178,17 +178,6 @@ class PostgresObjectStore(Storage):
             # TODO This seems like it could be a lot of data
             allele_ids = session.query(Allele.id).all()
             return [allele_id[0] for allele_id in allele_ids]
-
-    def get_object_count(self, object_type: StoredObjectType) -> int:
-        """Get count of objects of a specific type in storage."""
-        with self.session_factory() as session:
-            if object_type == StoredObjectType.ALLELE:
-                return session.query(func.count(Allele.id)).scalar()
-            if object_type == StoredObjectType.SEQUENCE_LOCATION:
-                return session.query(func.count(Location.id)).scalar()
-            if object_type == StoredObjectType.SEQUENCE_REFERENCE:
-                return session.query(func.count(SequenceReference.id)).scalar()
-            raise ValueError(f"Unsupported object type: {object_type}")
 
     def delete_objects(
         self, object_type: StoredObjectType, object_ids: Iterable[str]

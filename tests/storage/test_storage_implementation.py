@@ -38,12 +38,6 @@ def test_object_exists(storage, alleles):
         assert retrieved_objects[0].id == allele_id
 
 
-# Test get_object_count method (replaces __len__)
-def test_get_object_count(storage):
-    count = storage.get_object_count(StoredObjectType.ALLELE)
-    assert count > 0
-
-
 # Test get_all_object_ids method (replaces keys)
 def test_get_all_object_ids_contains_alleles(storage, alleles):
     all_ids = list(storage.get_all_object_ids())

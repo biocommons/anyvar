@@ -62,10 +62,6 @@ class _Storage(ABC):
         """Retrieve all object IDs from storage."""
 
     @abstractmethod
-    def get_object_count(self, object_type: StoredObjectType) -> int:
-        """Get count of objects of a specific type in storage."""
-
-    @abstractmethod
     def delete_objects(
         self, object_type: StoredObjectType, object_ids: Iterable[str]
     ) -> None:

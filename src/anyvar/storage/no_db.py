@@ -42,10 +42,6 @@ class NoObjectStore(_Storage):
         """Retrieve all object IDs from storage."""
         return []
 
-    def get_object_count(self, object_type: StoredObjectType) -> int:  # noqa: ARG002
-        """Get count of objects of a specific type in storage."""
-        return 0
-
     def delete_objects(
         self, object_type: StoredObjectType, object_ids: Iterable[str]
     ) -> None:
