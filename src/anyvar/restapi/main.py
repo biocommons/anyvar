@@ -32,7 +32,6 @@ from anyvar.anyvar import AnyAnnotation, AnyVar
 from anyvar.restapi.schema import (
     AddAnnotationRequest,
     AddAnnotationResponse,
-    AnyVarStatsResponse,
     EndpointTag,
     GetAnnotationResponse,
     GetSequenceLocationResponse,
@@ -42,7 +41,6 @@ from anyvar.restapi.schema import (
     RegisterVrsVariationResponse,
     SearchResponse,
     ServiceInfo,
-    VariationStatisticType,
 )
 from anyvar.restapi.vcf import router as vcf_router
 from anyvar.translate.translate import (
@@ -566,30 +564,3 @@ def search_variations(
             inline_alleles.append(var_object)
 
     return SearchResponse(variations=inline_alleles)
-
-
-@app.get(
-    "/stats/{variation_type}",
-    operation_id="getStats",
-    summary="Summary statistics for registered variations",
-    description="Retrieve summary statistics for registered variation objects.",
-    tags=[EndpointTag.GENERAL],
-)
-def get_stats(
-    request: Request,  # noqa: ARG001
-    variation_type: Annotated[  # noqa: ARG001
-        VariationStatisticType, Path(..., description="category of variation")
-    ],
-) -> AnyVarStatsResponse:
-    """Get summary statistics for registered variants. Currently just returns totals.
-
-    :param request: FastAPI request object
-    :param variation_type: type of variation to summarize
-    :return: total number of matching variants
-    :raise HTTPException: if invalid variation type is requested, although FastAPI
-        should block the request from going through in that case
-    """
-    raise HTTPException(
-        status_code=HTTPStatus.NOT_IMPLEMENTED,
-        detail="Stats not implemented for current storage backend",
-    )
