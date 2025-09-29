@@ -120,7 +120,6 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
 
     # create anyvar instance
     storage = anyvar.anyvar.create_storage()
-    storage.setup()
     translator = anyvar.anyvar.create_translator()
     anyvar_instance = AnyVar(object_store=storage, translator=translator)
 
