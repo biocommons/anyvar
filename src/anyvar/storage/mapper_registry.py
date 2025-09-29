@@ -34,10 +34,10 @@ class MapperRegistry:
             raise ValueError(f"No mapper registered for type: {entity_type}")
         return mapper
 
-    def to_vrs_model(self, db_entity):  # noqa: ANN201, ANN001
+    def from_db_entity(self, db_entity):  # noqa: ANN201, ANN001
         """Convert any DB entity to its corresponding VRS model."""
         mapper = self.get_mapper(type(db_entity))
-        return mapper.to_vrs_model(db_entity)
+        return mapper.from_db_entity(db_entity)
 
     def to_db_entity(self, vrs_model):  # noqa: ANN201, ANN001
         """Convert any VRS model to its corresponding DB entity."""

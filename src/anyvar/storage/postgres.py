@@ -166,7 +166,7 @@ class PostgresObjectStore(Storage):
                 raise ValueError(f"Unsupported object type: {object_type}")
 
             for db_object in db_objects:
-                vrs_object = mapper_registry.to_vrs_model(db_object)
+                vrs_object = mapper_registry.from_db_entity(db_object)
                 results.append(vrs_object)
 
         return results
@@ -283,4 +283,6 @@ class PostgresObjectStore(Storage):
                 .all()
             )
 
-            return [mapper_registry.to_vrs_model(db_allele) for db_allele in db_alleles]
+            return [
+                mapper_registry.from_db_entity(db_allele) for db_allele in db_alleles
+            ]

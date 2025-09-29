@@ -15,7 +15,7 @@ class BaseMapper(Generic[V, A], ABC):
     """Base class for all object mappers."""
 
     @abstractmethod
-    def to_vrs_model(self, db_entity: A) -> V:
+    def from_db_entity(self, db_entity: A) -> V:
         """Convert DB entity to VRS model."""
 
     @abstractmethod
@@ -28,7 +28,7 @@ class SequenceReferenceMapper(
 ):
     """Maps between SequenceReference entities."""
 
-    def to_vrs_model(
+    def from_db_entity(
         self, db_entity: db.SequenceReference
     ) -> vrs_models.SequenceReference:
         """Convert DB SequenceReference to VRS SequenceReference."""
@@ -56,7 +56,7 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, db.Location
         """Initialize SequenceLocationMapper."""
         self.seq_ref_mapper = SequenceReferenceMapper()
 
-    def to_vrs_model(self, db_entity: db.Location) -> vrs_models.SequenceLocation:
+    def from_db_entity(self, db_entity: db.Location) -> vrs_models.SequenceLocation:
         """Convert DB Location to VRS SequenceLocation."""
         # Handle range vs simple coordinates
         start = self._resolve_coordinate_from_db(
@@ -70,7 +70,7 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, db.Location
             id=db_entity.id,
             digest=db_entity.digest,
             type="SequenceLocation",
-            sequenceReference=self.seq_ref_mapper.to_vrs_model(
+            sequenceReference=self.seq_ref_mapper.from_db_entity(
                 db_entity.sequence_reference
             ),
             start=start,
@@ -131,7 +131,7 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, db.Allele]):
         """Initialize AlleleMapper."""
         self.location_mapper = SequenceLocationMapper()
 
-    def to_vrs_model(self, db_entity: db.Allele) -> vrs_models.Allele:
+    def from_db_entity(self, db_entity: db.Allele) -> vrs_models.Allele:
         """Convert DB Allele to VRS Allele."""
         # Reconstruct state from JSONB
         state = self._reconstruct_state(db_entity.state)
@@ -141,7 +141,7 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, db.Allele]):
             id=db_entity.id,
             digest=db_entity.digest,
             type="Allele",
-            location=self.location_mapper.to_vrs_model(db_entity.location),
+            location=self.location_mapper.from_db_entity(db_entity.location),
             state=state,
         )
 
