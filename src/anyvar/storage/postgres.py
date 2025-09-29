@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload, sessionmaker
 
-from anyvar.storage.db import (
+from anyvar.storage.orm import (
     Allele,
     Annotation,
     Location,
