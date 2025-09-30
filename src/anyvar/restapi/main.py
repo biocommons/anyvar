@@ -383,7 +383,7 @@ async def _annotate_vcf_async(
     # low side estimate for time is 333 variants per second
     retry_after = max(1, round((vcf_site_count * (2 if for_ref else 1)) / 333, 0))
     _logger.debug("%s - retry after is %s", task_result.id, str(retry_after))
-    response.headers["Retry-After"] = str(retry_after)
+    response.headers["Retry-After"] = str(int(retry_after))
     return RunStatusResponse(
         run_id=task_result.id,
         status="PENDING",
