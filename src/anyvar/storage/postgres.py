@@ -273,8 +273,7 @@ class PostgresObjectStore(Storage):
                 VariationMapping.relationship_type == mapping_type,
             )
             results = session.execute(stmt)
-            breakpoint()
-            return results.all()
+            return [r[0] for r in results.all()]
 
     def search_alleles(
         self,
