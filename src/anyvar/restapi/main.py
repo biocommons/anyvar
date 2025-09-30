@@ -296,27 +296,31 @@ async def annotate_vcf(
     # ensure the temporary file is flushed to disk
     vcf.file.rollover()
 
-    # Submit asynchronous run
-    if run_async:
-        return await _annotate_vcf_async(
-            response=response,
-            vcf=vcf,
-            for_ref=for_ref,
-            allow_async_write=allow_async_write,
-            assembly=assembly,
-            run_id=run_id,
-        )
-    # Run synchronously
-    else:  # noqa: RET505
-        return await _annotate_vcf_sync(
-            request=request,
-            response=response,
-            bg_tasks=bg_tasks,
-            vcf=vcf,
-            for_ref=for_ref,
-            allow_async_write=allow_async_write,
-            assembly=assembly,
-        )
+    try:
+        # Submit asynchronous run
+        if run_async:
+            return await _annotate_vcf_async(
+                response=response,
+                vcf=vcf,
+                for_ref=for_ref,
+                allow_async_write=allow_async_write,
+                assembly=assembly,
+                run_id=run_id,
+            )
+        # Run synchronously
+        else:  # noqa: RET505
+            return await _annotate_vcf_sync(
+                request=request,
+                response=response,
+                bg_tasks=bg_tasks,
+                vcf=vcf,
+                for_ref=for_ref,
+                allow_async_write=allow_async_write,
+                assembly=assembly,
+            )
+    except Exception:
+        _logger.exception("Unhandled error encountered error during VCF registration")
+        raise
 
 
 async def _annotate_vcf_async(
