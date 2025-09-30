@@ -513,13 +513,18 @@ async def get_result(
         # the after_task_publish handler sets the state to "SENT"
         #  so a status of PENDING is actually unknown task
         # but there can be a race condition, so if status is pending
-        #  pause half a second and check again
+        #  pause half a second at a time up to 5 seconds
         if async_result.status == "PENDING":
-            await asyncio.sleep(0.5)
-            async_result = AsyncResult(id=run_id)
-            _logger.debug(
-                "%s - after 0.5 second wait, status is %s", run_id, async_result.status
-            )
+            for _ in range(10):
+                await asyncio.sleep(0.5)
+                async_result = AsyncResult(id=run_id)
+                _logger.debug(
+                    "%s - after 0.5 second wait, status is %s",
+                    run_id,
+                    async_result.status,
+                )
+                if async_result.status != "PENDING":
+                    break
 
         # status is "PENDING" - unknown run id
         if async_result.status == "PENDING":
