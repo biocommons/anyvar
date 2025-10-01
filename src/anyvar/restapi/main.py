@@ -335,10 +335,15 @@ async def _annotate_vcf_async(
     # if run_id is provided, validate it does not already exist
     if run_id:
         existing_result = AsyncResult(id=run_id)
-        if existing_result.status != "PENDING":
+        existing_result_status = existing_result.status
+
+        # explicitly delete to limit chances of deadlocks in the Redis client
+        del existing_result
+
+        if existing_result_status != "PENDING":
             response.status_code = status.HTTP_400_BAD_REQUEST
             return ErrorResponse(
-                error=f"An existing run with id {run_id} is {existing_result.status}.  Fetch the completed run result before submitting with the same run_id."
+                error=f"An existing run with id {run_id} is {existing_result_status}.  Fetch the completed run result before submitting with the same run_id."
             )
 
     # write file to shared storage area with a directory for each day and a random file name
