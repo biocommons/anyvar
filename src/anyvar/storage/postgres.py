@@ -264,7 +264,7 @@ class PostgresObjectStore(Storage):
                 .join(Location)
                 .join(SequenceReference)
                 .filter(
-                    SequenceReference.refseq_id == refget_accession,
+                    SequenceReference.id == refget_accession,
                     Location.start <= stop,
                     Location.end >= start,
                 )

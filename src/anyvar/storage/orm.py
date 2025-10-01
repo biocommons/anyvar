@@ -67,7 +67,6 @@ class SequenceReference(Base):
     __tablename__ = "sequence_references"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    refseq_id: Mapped[str | None]
     molecule_type: Mapped[str | None]
 
 

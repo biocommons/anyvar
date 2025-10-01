@@ -34,7 +34,7 @@ class SequenceReferenceMapper(
         """Convert DB SequenceReference to VRS SequenceReference."""
         return vrs_models.SequenceReference(
             type="SequenceReference",
-            refgetAccession=db_entity.refseq_id,
+            refgetAccession=db_entity.id,
             moleculeType=db_entity.molecule_type,
         )
 
@@ -44,7 +44,6 @@ class SequenceReferenceMapper(
         """Convert VRS SequenceReference to DB SequenceReference."""
         return orm.SequenceReference(
             id=vrs_model.refgetAccession,  # Use refgetAccession as primary key
-            refseq_id=vrs_model.refgetAccession,
             molecule_type=vrs_model.moleculeType,
         )
 
