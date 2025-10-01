@@ -537,7 +537,6 @@ async def get_result(
         if async_result.status == "PENDING":
             for _ in range(10):
                 await asyncio.sleep(0.5)
-                async_result = AsyncResult(id=run_id)
                 _logger.debug(
                     "%s - after 0.5 second wait, status is %s",
                     run_id,
