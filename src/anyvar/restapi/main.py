@@ -535,7 +535,10 @@ def search_variations(
     """
     av: AnyVar = request.app.state.anyvar
     try:
-        ga4gh_id = av.translator.get_sequence_id(accession)
+        if accession.startswith("ga4gh:"):
+            ga4gh_id = accession
+        else:
+            ga4gh_id = av.translator.get_sequence_id(accession)
     except KeyError as e:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
@@ -553,14 +556,4 @@ def search_variations(
                 detail="Search not implemented for current storage backend",
             ) from e
 
-    inline_alleles = []
-    if alleles:
-        for allele in alleles:
-            try:
-                # TODO is this necessary now? search_alleles may return full objects already
-                var_object = av.get_object(allele.id)
-            except KeyError:
-                continue
-            inline_alleles.append(var_object)
-
-    return SearchResponse(variations=inline_alleles)
+    return SearchResponse(variations=alleles)
