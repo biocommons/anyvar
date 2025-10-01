@@ -60,10 +60,12 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, orm.Locatio
         """Convert DB Location to VRS SequenceLocation."""
         # Handle range vs simple coordinates
         start = self._resolve_coordinate_from_db(
-            db_entity.start, db_entity.start_outer, db_entity.start_inner
+            simple=db_entity.start,
+            start=db_entity.start_outer,
+            end=db_entity.start_inner,
         )
         end = self._resolve_coordinate_from_db(
-            db_entity.end, db_entity.end_outer, db_entity.end_inner
+            simple=db_entity.end, start=db_entity.end_outer, end=db_entity.end_inner
         )
 
         return vrs_models.SequenceLocation(
@@ -102,13 +104,13 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, orm.Locatio
         )
 
     def _resolve_coordinate_from_db(
-        self, simple: int | None, outer: int | None, inner: int | None
+        self, simple: int | None, start: int | None, end: int | None
     ) -> int | vrs_models.Range | None:
         """Resolve coordinate from DB fields to VRS format."""
         if simple is not None:
             return simple
-        if outer is not None and inner is not None:
-            return vrs_models.Range([outer, inner])
+        if start is not None and end is not None:
+            return vrs_models.Range([start, end])
         return None
 
     def _resolve_coordinate_to_db(
