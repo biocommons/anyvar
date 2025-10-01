@@ -13,7 +13,7 @@ from urllib.parse import urlparse
 from agct import Converter, Genome
 
 from anyvar.storage import DEFAULT_STORAGE_URI
-from anyvar.storage.abc import StoredObjectType, _Storage
+from anyvar.storage.base_storage import Storage, StoredObjectType
 from anyvar.translate.translate import _Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
 from anyvar.utils.types import Annotation, AnnotationKey, VrsObject
@@ -25,7 +25,7 @@ if os.environ.get("ANYVAR_SHOW_PYDANTIC_WARNINGS", None) is None:
 _logger = logging.getLogger(__name__)
 
 
-def create_storage(uri: str | None = None) -> _Storage:
+def create_storage(uri: str | None = None) -> Storage:
     """Provide factory to create storage based on `uri` or the ANYVAR_STORAGE_URI
     environment value.
 
@@ -62,7 +62,7 @@ def create_storage(uri: str | None = None) -> _Storage:
 def create_annotation_storage(
     uri: str | None = None,
     table_name: str | None = None,  # noqa: ARG001
-) -> _Storage:
+) -> Storage:
     """Provide factory to create annotation storage based on `uri` or the
     ANYVAR_ANNOTATION_STORAGE_URI environment value.
 
@@ -111,7 +111,7 @@ class AnyVar:
         self,
         /,
         translator: _Translator,
-        object_store: _Storage,
+        object_store: Storage,
     ) -> None:
         """Initialize anyvar instance. It's easiest to use factory methods to create
         translator and object_store instances but manual construction works too.
@@ -200,7 +200,7 @@ class AnyVar:
 class AnyAnnotation:
     """Class for interacting with annotations"""
 
-    def __init__(self, annotation_store: _Storage) -> None:
+    def __init__(self, annotation_store: Storage) -> None:
         """Initialize AnyAnnotation instance.
 
         :param annotation_store: Annotation storage instance

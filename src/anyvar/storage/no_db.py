@@ -4,10 +4,10 @@ from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
 
-from .abc import StoredObjectType, VariationMappingType, _Storage
+from .base_storage import Storage, StoredObjectType, VariationMappingType
 
 
-class NoObjectStore(_Storage):
+class NoObjectStore(Storage):
     """Storage backend that does not persistently store any data."""
 
     def __init__(self) -> None:

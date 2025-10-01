@@ -26,7 +26,7 @@ class VariationMappingType(enum.StrEnum):
     TRANSLATION = "translation"
 
 
-class _Storage(ABC):
+class Storage(ABC):
     """Abstract base class for interacting with storage backends."""
 
     @abstractmethod
@@ -122,7 +122,3 @@ class _Storage(ABC):
 
         :return: a list of Alleles
         """
-
-
-# Alias for backward compatibility and cleaner naming
-Storage = _Storage

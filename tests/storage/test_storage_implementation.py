@@ -4,7 +4,7 @@ test must be run with different ANYVAR_TEST_STORAGE_URI settings
 and different ANYVAR_SQL_STORE_BATCH_ADD_MODE settings
 """
 
-from anyvar.storage.abc import StoredObjectType
+from anyvar.storage.base_storage import StoredObjectType
 from anyvar.translate.vrs_python import VrsPythonTranslator
 
 
