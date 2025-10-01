@@ -350,7 +350,9 @@ async def _annotate_vcf_async(
     )
     if not input_file_path.parent.exists():
         input_file_path.parent.mkdir(parents=True)
-    _logger.debug("writing working file for async vcf to %s", input_file_path)
+    _logger.debug(
+        "writing working file for async run %s vcf to %s", run_id, input_file_path
+    )
 
     vcf_site_count = 0
     newline_bytes = b"\n"
@@ -358,8 +360,10 @@ async def _annotate_vcf_async(
         while buffer := await vcf.read(1024 * 1024):
             vcf_site_count += buffer.count(newline_bytes)
             await fd.write(buffer)
-    _logger.debug("wrote working file for async vcf to %s", input_file_path)
-    _logger.debug("vcf site count of async vcf is %s", vcf_site_count)
+    _logger.debug(
+        "wrote working file for async run %s vcf to %s", run_id, input_file_path
+    )
+    _logger.debug("vcf site count of async run %s vcf is %s", run_id, vcf_site_count)
 
     # submit async job
     task_result = anyvar.queueing.celery_worker.annotate_vcf.apply_async(
@@ -427,6 +431,18 @@ async def _annotate_vcf_sync(
         return FileResponse(temp_out_file.name)
 
 
+def _post_success_cleanup(input_file_path: str) -> None:
+    """Cleanup working files after successful completion of async task.
+
+    :param input_file_path: path to input VCF file
+    """
+    try:
+        _logger.debug("removing input file %s", input_file_path)
+        os.unlink(input_file_path)  # noqa: PTH108
+    except Exception:
+        _logger.warning("Unable to remove input file %s", input_file_path)
+
+
 @app.get(
     "/vcf/{run_id}",
     summary="Poll for status and/or result for asynchronous VCF annotation",
@@ -462,7 +478,7 @@ async def get_result(
         output_file_path = async_result.result
         async_result.forget()
         _logger.debug("%s - output file path is %s", run_id, output_file_path)
-        bg_tasks.add_task(os.unlink, output_file_path)
+        bg_tasks.add_task(_post_success_cleanup, output_file_path)
         return FileResponse(path=output_file_path)
 
     # failed - return an error response
