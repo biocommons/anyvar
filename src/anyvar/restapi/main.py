@@ -438,7 +438,7 @@ def _working_file_cleanup(file_path: str, missing_ok: bool = False) -> None:
     """
     try:
         _logger.debug("removing working file %s", file_path)
-        os.unlink(file_path, missing_ok=missing_ok)  # noqa: PTH108
+        pathlib.Path(file_path).unlink(missing_ok=missing_ok)
     except Exception as e:
         _logger.warning("unable to remove working file %s: %s", file_path, str(e))
 
