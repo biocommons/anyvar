@@ -427,20 +427,20 @@ async def _annotate_vcf_sync(
         if not allow_async_write:
             _logger.info("Waiting for object store writes from API handler method")
             av.object_store.wait_for_writes()
-        bg_tasks.add_task(os.unlink, temp_out_file.name)
+        bg_tasks.add_task(_working_file_cleanup, temp_out_file.name)
         return FileResponse(temp_out_file.name)
 
 
-def _post_success_cleanup(input_file_path: str) -> None:
+def _working_file_cleanup(file_path: str, missing_ok: bool = False) -> None:
     """Cleanup working files after successful completion of async task.
 
-    :param input_file_path: path to input VCF file
+    :param input_file_path: path to VCF file
     """
     try:
-        _logger.debug("removing input file %s", input_file_path)
-        os.unlink(input_file_path)  # noqa: PTH108
-    except Exception:
-        _logger.warning("Unable to remove input file %s", input_file_path)
+        _logger.debug("removing working file %s", file_path)
+        os.unlink(file_path, missing_ok=missing_ok)  # noqa: PTH108
+    except Exception as e:
+        _logger.warning("unable to remove working file %s: %s", file_path, str(e))
 
 
 @app.get(
@@ -478,7 +478,7 @@ async def get_result(
         output_file_path = async_result.result
         async_result.forget()
         _logger.debug("%s - output file path is %s", run_id, output_file_path)
-        bg_tasks.add_task(_post_success_cleanup, output_file_path)
+        bg_tasks.add_task(_working_file_cleanup, output_file_path)
         return FileResponse(path=output_file_path)
 
     # failed - return an error response
@@ -511,7 +511,9 @@ async def get_result(
                         run_id,
                         str(input_file_path),
                     )
-                    bg_tasks.add_task(input_file_path.unlink, missing_ok=True)
+                    bg_tasks.add_task(
+                        _working_file_cleanup, str(input_file_path), missing_ok=True
+                    )
                 output_file_path = pathlib.Path(f"{input_file_path_str}_outputvcf")
                 if output_file_path.is_file():
                     _logger.debug(
@@ -519,7 +521,9 @@ async def get_result(
                         run_id,
                         str(output_file_path),
                     )
-                    bg_tasks.add_task(output_file_path.unlink, missing_ok=True)
+                    bg_tasks.add_task(
+                        _working_file_cleanup, str(output_file_path), missing_ok=True
+                    )
 
         # forget the run and return the response
         async_result.forget()
