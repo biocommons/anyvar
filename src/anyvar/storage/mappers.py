@@ -118,7 +118,7 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, db.Location
         if coordinate is None:
             return None, None, None
         if isinstance(coordinate, vrs_models.Range):
-            return None, coordinate.start, coordinate.end
+            return None, coordinate.root[0], coordinate.root[1]
         if isinstance(coordinate, int):
             return coordinate, None, None
         return None, None, None
