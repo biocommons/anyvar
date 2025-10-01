@@ -108,7 +108,7 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, db.Location
         if simple is not None:
             return simple
         if outer is not None and inner is not None:
-            return vrs_models.Range(start=outer, end=inner)
+            return vrs_models.Range([outer, inner])
         return None
 
     def _resolve_coordinate_to_db(
