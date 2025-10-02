@@ -7,7 +7,6 @@ import importlib.util
 import logging
 import os
 import warnings
-from collections.abc import MutableMapping
 from urllib.parse import urlparse
 
 from agct import Converter, Genome
@@ -118,11 +117,6 @@ class AnyVar:
         :param object_store: Object storage instance
         :param annotation_store: (Optional) Annotation storage instance
         """
-        if not isinstance(object_store, MutableMapping):
-            _logger.warning(
-                "AnyVar(object_store=) should be a mutable mapping; you're on your own"
-            )
-
         self.object_store = object_store
         self.translator = translator
         self.liftover_converters = {
