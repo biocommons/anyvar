@@ -62,6 +62,9 @@ except ImportError:
 
 _logger = logging.getLogger(__name__)
 
+# high side estimate for time is 500 variants per second
+_expected_vrs_ids_per_second = int(os.getenv("ANYVAR_EXPECTED_VRS_IDS_PER_SECOND", 500))
+
 
 @asynccontextmanager
 async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
@@ -389,8 +392,12 @@ async def _annotate_vcf_async(
     # set response headers
     response.status_code = status.HTTP_202_ACCEPTED
     response.headers["Location"] = f"/vcf/{task_result.id}"
-    # low side estimate for time is 333 variants per second
-    retry_after = max(1, round((vcf_site_count * (2 if for_ref else 1)) / 333, 0))
+    retry_after = max(
+        1,
+        round(
+            (vcf_site_count * (2 if for_ref else 1)) / _expected_vrs_ids_per_second, 0
+        ),
+    )
     _logger.debug("%s - retry after is %s", task_result.id, str(retry_after))
     response.headers["Retry-After"] = str(int(retry_after))
     return RunStatusResponse(
@@ -566,7 +573,7 @@ async def get_result(
         #  with retry after 5 seconds
         else:  # noqa: RET505
             response.status_code = status.HTTP_202_ACCEPTED
-            response.headers["Retry-After"] = "5"
+            response.headers["Retry-After"] = "2"
             return RunStatusResponse(
                 run_id=run_id,
                 status="PENDING",
