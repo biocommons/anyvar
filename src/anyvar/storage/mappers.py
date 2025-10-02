@@ -4,8 +4,10 @@ from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
 from ga4gh.vrs import models as vrs_models
+from sqlalchemy.orm import relationship
 
 from anyvar.storage import orm
+from anyvar.storage.base_storage import VariationMapping, VariationMappingType
 
 V = TypeVar("V")  # VRS model type
 A = TypeVar("A")  # AnyVar DB entity type
@@ -185,3 +187,24 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, orm.Allele]):
         if state_type == "LengthExpression":
             return vrs_models.LengthExpression(**state_data)
         raise ValueError(f"Unknown state type '{state_type}' from: {state_data}")
+
+
+class VariationMappingMapper(BaseMapper[VariationMapping, orm.VariationMapping]):
+    """Maps between VariationMapping entities."""
+
+    def from_db_entity(self, db_entity: orm.VariationMapping) -> VariationMapping:
+        """Convert DB instance into business logic object"""
+        mapping_type = VariationMappingType(db_entity.relationship_type)
+        return VariationMapping(
+            source_id=db_entity.source_id,
+            dest_id=db_entity.dest_id,
+            mapping_type=mapping_type,
+        )
+
+    def to_db_entity(self, vrs_model: VariationMapping) -> orm.VariationMapping:
+        """Convert VariationMapping object to DB mapping instance."""
+        return orm.VariationMapping(
+            source_id=vrs_model.source_id,
+            dest_id=vrs_model.dest_id,
+            relationship_type=vrs_model.mapping_type,
+        )

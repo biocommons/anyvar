@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
+from pydantic import BaseModel
 
 
 class StoredObjectType(enum.StrEnum):
@@ -24,6 +25,14 @@ class VariationMappingType(enum.StrEnum):
     LIFTOVER = "liftover"
     TRANSCRIPTION = "transcription"
     TRANSLATION = "translation"
+
+
+class VariationMapping(BaseModel):
+    """Mapping between variation instances"""
+
+    source_id: str
+    dest_id: str
+    mapping_type: VariationMappingType
 
 
 class Storage(ABC):

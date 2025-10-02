@@ -356,14 +356,11 @@ async def add_registration_annotations(
                 },
             )
 
-        liftover_annotations = annotator.get_annotation(input_vrs_id, "liftover")
-        if not liftover_annotations:
-            liftover_utils.add_liftover_annotations(
-                input_vrs_id=input_vrs_id,
-                input_vrs_variant_dict=input_variant,
-                anyvar=request.app.state.anyvar,
-                annotator=annotator,
-            )
+    liftover_utils.add_liftover_mapping(
+        input_vrs_id=input_vrs_id,
+        input_vrs_variant_dict=input_variant,
+        anyvar=request.app.state.anyvar,
+    )
 
     return new_response
 
