@@ -570,7 +570,7 @@ async def get_result(
                 status_message="Run not found",
             )
         # status is "SENT" - return 202
-        #  with retry after 5 seconds
+        #  with retry after 2 seconds
         else:  # noqa: RET505
             response.status_code = status.HTTP_202_ACCEPTED
             response.headers["Retry-After"] = "2"
