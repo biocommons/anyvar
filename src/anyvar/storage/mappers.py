@@ -9,19 +9,19 @@ from anyvar.storage import orm
 from anyvar.storage.base_storage import StoredObjectType
 from anyvar.utils.types import Annotation
 
-V = TypeVar("V")  # VRS model type
-A = TypeVar("A")  # AnyVar DB entity type
+A = TypeVar("A")  # Anyvar entity type
+D = TypeVar("D")  # DB entity type
 
 
-class BaseMapper(Generic[V, A], ABC):
+class BaseMapper(Generic[A, D], ABC):
     """Base class for all object mappers."""
 
     @abstractmethod
-    def from_db_entity(self, db_entity: A) -> V:
+    def from_db_entity(self, db_entity: D) -> A:
         """Convert DB entity to VRS model."""
 
     @abstractmethod
-    def to_db_entity(self, vrs_model: V) -> A:
+    def to_db_entity(self, anyvar_entity: A) -> D:
         """Convert VRS model to DB entity."""
 
 
@@ -41,12 +41,12 @@ class SequenceReferenceMapper(
         )
 
     def to_db_entity(
-        self, vrs_model: vrs_models.SequenceReference
+        self, anyvar_entity: vrs_models.SequenceReference
     ) -> orm.SequenceReference:
         """Convert VRS SequenceReference to DB SequenceReference."""
         return orm.SequenceReference(
-            id=vrs_model.refgetAccession,  # Use refgetAccession as primary key
-            molecule_type=vrs_model.moleculeType,
+            id=anyvar_entity.refgetAccession,  # Use refgetAccession as primary key
+            molecule_type=anyvar_entity.moleculeType,
         )
 
 
@@ -80,21 +80,23 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, orm.Locatio
             end=end,
         )
 
-    def to_db_entity(self, vrs_model: vrs_models.SequenceLocation) -> orm.Location:
+    def to_db_entity(self, anyvar_entity: vrs_models.SequenceLocation) -> orm.Location:
         """Convert VRS SequenceLocation to DB Location."""
         # Convert VRS int/Range coordinates to DB fields
         start_simple, start_outer, start_inner = self._resolve_coordinate_to_db(
-            vrs_model.start
+            anyvar_entity.start
         )
-        end_simple, end_outer, end_inner = self._resolve_coordinate_to_db(vrs_model.end)
+        end_simple, end_outer, end_inner = self._resolve_coordinate_to_db(
+            anyvar_entity.end
+        )
 
         # Construct Location and delegate to SequenceReference mapper
         return orm.Location(
-            id=vrs_model.id,
-            digest=vrs_model.digest,
-            sequence_reference_id=vrs_model.sequenceReference.refgetAccession,
+            id=anyvar_entity.id,
+            digest=anyvar_entity.digest,
+            sequence_reference_id=anyvar_entity.sequenceReference.refgetAccession,
             sequence_reference=self.seq_ref_mapper.to_db_entity(
-                vrs_model.sequenceReference
+                anyvar_entity.sequenceReference
             ),
             start=start_simple,
             end=end_simple,
@@ -148,25 +150,25 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, orm.Allele]):
             state=state,
         )
 
-    def to_db_entity(self, vrs_model: vrs_models.Allele) -> orm.Allele:
+    def to_db_entity(self, anyvar_entity: vrs_models.Allele) -> orm.Allele:
         """Convert VRS Allele to DB Allele."""
         # Ensure IDs are computed if not present
-        if not vrs_model.id:
+        if not anyvar_entity.id:
             # TODO implement here and for other objects, maybe further up the stack
             raise NotImplementedError("Auto ID generation not implemented yet")
 
         # Validate required nested objects
-        if not vrs_model.location or not vrs_model.location.sequenceReference:
+        if not anyvar_entity.location or not anyvar_entity.location.sequenceReference:
             raise ValueError("Allele requires valid location and sequenceReference")
 
         # Serialize state
-        state_dict = vrs_model.state.model_dump(exclude_none=True)
+        state_dict = anyvar_entity.state.model_dump(exclude_none=True)
 
         return orm.Allele(
-            id=vrs_model.id,
-            digest=vrs_model.digest,
-            location_id=vrs_model.location.id,
-            location=self.location_mapper.to_db_entity(vrs_model.location),
+            id=anyvar_entity.id,
+            digest=anyvar_entity.digest,
+            location_id=anyvar_entity.location.id,
+            location=self.location_mapper.to_db_entity(anyvar_entity.location),
             state=state_dict,
         )
 
@@ -189,11 +191,15 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, orm.Allele]):
         raise ValueError(f"Unknown state type '{state_type}' from: {state_data}")
 
 
-class AnnotationMapper(BaseMapper[Annotation, orm.AnnotationOrm]):
+class AnnotationMapper(BaseMapper[Annotation, orm.Annotation]):
     """Maps between Annotations entities."""
 
-    def to_vrs_model(self, db_entity: orm.AnnotationOrm) -> Annotation:
-        """Convert DB SequenceReference to VRS SequenceReference."""
+    def from_db_entity(self, db_entity: orm.Annotation) -> Annotation:
+        """Convert DB SequenceReference to VRS SequenceReference.
+
+        :param db_entity: An ORM model Annotation instance
+        :return: An Anyvar Annotation instance
+        """
         return Annotation(
             object_id=db_entity.object_id,
             object_type=StoredObjectType(db_entity.object_type),
@@ -202,6 +208,10 @@ class AnnotationMapper(BaseMapper[Annotation, orm.AnnotationOrm]):
             annotation_id=db_entity.id,
         )
 
-    def to_db_entity(self, vrs_model: Annotation) -> orm.AnnotationOrm:
-        """Convert VRS SequenceReference to DB SequenceReference."""
-        return orm.AnnotationOrm(**vrs_model.model_dump())
+    def to_db_entity(self, anyvar_entity: Annotation) -> orm.Annotation:
+        """Convert VRS SequenceReference to DB SequenceReference.
+
+        :param anyvar_entity: An Anyvar Annotation instance
+        :return: An ORM model Annotation instance
+        """
+        return orm.Annotation(**anyvar_entity.model_dump())
