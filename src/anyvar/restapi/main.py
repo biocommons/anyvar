@@ -119,7 +119,6 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
 
     # create anyvar instance
     storage = anyvar.anyvar.create_storage()
-    storage.setup()
     translator = anyvar.anyvar.create_translator()
     anyvar_instance = AnyVar(object_store=storage, translator=translator)
 
@@ -252,7 +251,7 @@ def add_variation_annotation(
         ) from e
 
     return AddAnnotationResponse(
-        messages=messages,
+        messages=messages,  # TODO: I think this will always just be empty??
         object=variation,
         object_id=vrs_id,
         annotation_type=annotation_request.annotation_type,
@@ -281,7 +280,7 @@ def get_variation_annotation(
     :return: response object containing list of annotations for the variation
     """
     av: AnyVar = request.app.state.anyvar
-    annotations = av.get_object_annotations(vrs_id, annotation_type)
+    annotations: list[Annotation] = av.get_object_annotations(vrs_id, annotation_type)
     return GetAnnotationResponse(annotations=annotations)
 
 
