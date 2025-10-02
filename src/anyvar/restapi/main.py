@@ -32,7 +32,6 @@ from anyvar.anyvar import AnyAnnotation, AnyVar
 from anyvar.restapi.schema import (
     AddAnnotationRequest,
     AddAnnotationResponse,
-    AnyVarStatsResponse,
     EndpointTag,
     GetAnnotationResponse,
     GetSequenceLocationResponse,
@@ -42,7 +41,6 @@ from anyvar.restapi.schema import (
     RegisterVrsVariationResponse,
     SearchResponse,
     ServiceInfo,
-    VariationStatisticType,
 )
 from anyvar.restapi.vcf import router as vcf_router
 from anyvar.translate.translate import (
@@ -475,7 +473,7 @@ def register_vrs_object(
         )
         return RegisterVrsVariationResponse(**result)
 
-    variation_object = variation_class_map[variation_type](**variation.dict())
+    variation_object = variation_class_map[variation_type](**variation.model_dump())
     v_id = av.put_object(variation_object)
     result["object"] = variation_object
     result["object_id"] = v_id
@@ -503,7 +501,7 @@ def get_variation_by_id(
     """
     av: AnyVar = request.app.state.anyvar
     try:
-        variation = av.get_object(variation_id, deref=True)
+        variation = av.get_object(variation_id)
     except KeyError as e:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
@@ -537,7 +535,10 @@ def search_variations(
     """
     av: AnyVar = request.app.state.anyvar
     try:
-        ga4gh_id = av.translator.get_sequence_id(accession)
+        if accession.startswith("ga4gh:"):
+            ga4gh_id = accession
+        else:
+            ga4gh_id = av.translator.get_sequence_id(accession)
     except KeyError as e:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
@@ -548,52 +549,11 @@ def search_variations(
     if ga4gh_id:
         try:
             refget_accession = ga4gh_id.split("ga4gh:")[-1]
-            alleles = av.object_store.search_variations(refget_accession, start, end)
+            alleles = av.object_store.search_alleles(refget_accession, start, end)
         except NotImplementedError as e:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_IMPLEMENTED,
                 detail="Search not implemented for current storage backend",
             ) from e
 
-    inline_alleles = []
-    if alleles:
-        for allele in alleles:
-            try:
-                var_object = av.get_object(allele["id"], deref=True)
-            except KeyError:
-                continue
-            inline_alleles.append(var_object)
-
-    return SearchResponse(variations=inline_alleles)
-
-
-@app.get(
-    "/stats/{variation_type}",
-    operation_id="getStats",
-    summary="Summary statistics for registered variations",
-    description="Retrieve summary statistics for registered variation objects.",
-    tags=[EndpointTag.GENERAL],
-)
-def get_stats(
-    request: Request,
-    variation_type: Annotated[
-        VariationStatisticType, Path(..., description="category of variation")
-    ],
-) -> AnyVarStatsResponse:
-    """Get summary statistics for registered variants. Currently just returns totals.
-
-    :param request: FastAPI request object
-    :param variation_type: type of variation to summarize
-    :return: total number of matching variants
-    :raise HTTPException: if invalid variation type is requested, although FastAPI
-        should block the request from going through in that case
-    """
-    av: AnyVar = request.app.state.anyvar
-    try:
-        count = av.object_store.get_variation_count(variation_type)
-    except NotImplementedError as e:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_IMPLEMENTED,
-            detail="Stats not available for current storage backend",
-        ) from e
-    return AnyVarStatsResponse(variation_type=variation_type, count=count)
+    return SearchResponse(variations=alleles)

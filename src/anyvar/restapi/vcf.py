@@ -237,6 +237,7 @@ async def annotate_vcf(
     """
     # If async requested but not enabled, return an error
     if run_async and not anyvar.anyvar.has_queueing_enabled():
+        _logger.warning("Async VCF annotation requested but not enabled")
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ErrorResponse(
             error="Required modules and/or configurations for asynchronous VCF annotation are missing"

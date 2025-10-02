@@ -36,6 +36,7 @@ class Allele(Base):
     __tablename__ = "alleles"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
+    digest: Mapped[str] = mapped_column(String)
     location_id: Mapped[str] = mapped_column(String, ForeignKey("locations.id"))
     location: Mapped["Location"] = relationship()
     state: Mapped[dict] = mapped_column(JSONB)
@@ -47,6 +48,7 @@ class Location(Base):
     __tablename__ = "locations"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
+    digest: Mapped[str] = mapped_column(String)
     sequence_reference_id: Mapped[str] = mapped_column(
         String, ForeignKey("sequence_references.id")
     )
@@ -65,7 +67,6 @@ class SequenceReference(Base):
     __tablename__ = "sequence_references"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    refseq_id: Mapped[str | None]
     molecule_type: Mapped[str | None]
 
 
@@ -81,6 +82,7 @@ class Annotation(Base):
     annotation: Mapped[dict] = mapped_column(JSONB)
 
     # https://docs.sqlalchemy.org/en/20/core/constraints.html#indexes
+    # TODO is this needed because of the primary key?
     __table_args__ = (
         Index(
             "idx_annotations_object_id_annotation_type",

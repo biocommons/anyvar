@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 from anyvar.anyvar import AnyVar, create_storage, create_translator
 from anyvar.restapi.main import app as anyvar_restapi
+from anyvar.utils.funcs import build_vrs_variant_from_dict
 
 pytest_plugins = ("celery.contrib.pytest",)
 
@@ -22,9 +23,7 @@ def pytest_collection_modifyitems(items):
         "test_search",
         "test_annotate_vcf",
         "test_ingest_vcf",
-        "test_sql_storage_mapping",
-        "test_postgres",
-        "test_postgres_annotation",
+        "test_storage_implementation",
         "test_no_db",
         "test_liftover",
     ]
@@ -72,6 +71,18 @@ def alleles(test_data_dir) -> dict:
     """Provide allele fixture object."""
     with (test_data_dir / "variations.json").open() as f:
         return json.load(f)["alleles"]
+
+
+@pytest.fixture(scope="session")
+def preloaded_alleles(storage, alleles):
+    """Preload alleles into the database for tests that need them."""
+    storage.add_objects(
+        [
+            build_vrs_variant_from_dict(a["allele_response"]["object"])
+            for a in alleles.values()
+        ]
+    )
+    return alleles
 
 
 @pytest.fixture(scope="session")

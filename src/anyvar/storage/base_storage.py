@@ -1,49 +1,76 @@
-"""Provide minimal class for backend with no persistent storage"""
+"""Provide PostgreSQL-based storage implementation."""
 
+import enum
+from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
 
-from .base_storage import Storage, StoredObjectType, VariationMappingType
+
+class StoredObjectType(enum.StrEnum):
+    """Supported VRS object types for AnyVar storage."""
+
+    ALLELE = "Allele"
+    LOCATION = "Location"
+    COPY_NUMBER_COUNT = "CopyNumberCount"
+    COPY_NUMBER_CHANGE = "CopyNumberChange"
+    SEQUENCE_LOCATION = "SequenceLocation"
+    SEQUENCE_REFERENCE = "SequenceReference"
 
 
-class NoObjectStore(Storage):
-    """Storage backend that does not persistently store any data."""
+class VariationMappingType(enum.StrEnum):
+    """Supported mapping types between VRS Variations."""
 
+    LIFTOVER = "liftover"
+    TRANSCRIPTION = "transcription"
+    TRANSLATION = "translation"
+
+
+class Storage(ABC):
+    """Abstract base class for interacting with storage backends."""
+
+    @abstractmethod
     def __init__(self, db_url: str | None = None) -> None:
-        """Initialize DB handler."""
+        """Initialize the storage backend.
 
+        :param db_url: Database connection URL
+        """
+
+    @abstractmethod
     def close(self) -> None:
         """Close the storage backend."""
 
+    @abstractmethod
     def wait_for_writes(self) -> None:
         """Wait for all background writes to complete.
         NOTE: This is a no-op for synchronous storage backends.
         """
 
+    @abstractmethod
     def wipe_db(self) -> None:
         """Wipe all data from the storage backend."""
 
+    @abstractmethod
     def add_objects(self, objects: Iterable[vrs_models.VrsType]) -> None:
         """Add multiple VRS objects to storage."""
 
+    @abstractmethod
     def get_objects(
-        self,
-        object_type: StoredObjectType,  # noqa: ARG002
-        object_ids: Iterable[str],  # noqa: ARG002
+        self, object_type: StoredObjectType, object_ids: Iterable[str]
     ) -> Iterable[vrs_models.VrsType]:
         """Retrieve multiple VRS objects from storage by their IDs."""
-        return []
 
+    @abstractmethod
     def get_all_object_ids(self) -> Iterable[str]:
         """Retrieve all object IDs from storage."""
-        return []
 
+    @abstractmethod
     def delete_objects(
         self, object_type: StoredObjectType, object_ids: Iterable[str]
     ) -> None:
         """Delete all objects of a specific type from storage."""
 
+    @abstractmethod
     def add_mapping(
         self,
         source_object_id: str,
@@ -57,6 +84,7 @@ class NoObjectStore(Storage):
         :param mapping_type: Type of VariationMappingType
         """
 
+    @abstractmethod
     def delete_mapping(
         self,
         source_object_id: str,
@@ -70,23 +98,24 @@ class NoObjectStore(Storage):
         :param mapping_type: Type of VariationMappingType
         """
 
+    @abstractmethod
     def get_mappings(
         self,
-        source_object_id: str,  # noqa: ARG002
-        mapping_type: VariationMappingType,  # noqa: ARG002
+        source_object_id: str,
+        mapping_type: VariationMappingType,
     ) -> list[str]:
         """Return a list of ids of destination objects mapped from the source object.
 
         :param source_object_id: ID of the source object
         :param mapping_type: Type of VariationMappingType
         """
-        return []
 
+    @abstractmethod
     def search_alleles(
         self,
-        refget_accession: str,  # noqa: ARG002
-        start: int,  # noqa: ARG002
-        stop: int,  # noqa: ARG002
+        refget_accession: str,
+        start: int,
+        stop: int,
     ) -> list[vrs_models.Allele]:
         """Find all Alleles in the particular region
 
@@ -96,4 +125,3 @@ class NoObjectStore(Storage):
 
         :return: a list of Alleles
         """
-        return []

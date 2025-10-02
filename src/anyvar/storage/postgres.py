@@ -1,333 +1,274 @@
 """Provide PostgreSQL-based storage implementation."""
 
-import json
-import os
-from collections.abc import Iterable, Iterator
-from io import StringIO
-from typing import Any
+from collections.abc import Iterable
 
-from sqlalchemy import text as sql_text
-from sqlalchemy.engine import Connection
+from ga4gh.vrs import models as vrs_models
+from sqlalchemy import create_engine, delete, select
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import joinedload, sessionmaker
 
-from anyvar.utils.types import Annotation, AnnotationKey
-
-from .sql_storage import SqlStorage, VrsSqlStorage
-
-
-class PostgresAnnotationObjectStore(SqlStorage):
-    """Annotation object store for PostgreSQL backend."""
-
-    def __init__(
-        self,
-        db_url: str,
-        batch_limit: int | None = None,
-        table_name: str | None = "annotations",
-        max_pending_batches: int | None = None,
-        flush_on_batchctx_exit: bool | None = None,
-    ) -> None:
-        """Initialize DB handler."""
-        table_name = table_name or "annotations"
-        if table_name != "annotations":
-            raise ValueError(
-                f"PostgresAnnotationObjectStore requires table_name='annotations', got {table_name}"
-            )
-        super().__init__(
-            db_url,
-            batch_limit,
-            table_name,
-            max_pending_batches,
-            flush_on_batchctx_exit,
-        )
-
-    def create_schema(self, db_conn: Connection) -> None:
-        """Does nothing because schema creation is handled externally."""
-
-    def __getitem__(self, key: AnnotationKey) -> Iterator[Annotation]:
-        """Get annotations by key."""
-        if key.object_id is None:
-            raise ValueError("Object ID is required")
-        if key.annotation_type is None:
-            raise ValueError("Annotation type is required")
-
-        query_str = f"""
-            SELECT * from {self.table_name}
-            WHERE object_id = :object_id
-        """  # noqa: S608
-        params = {"object_id": key.object_id}
-        if key.annotation_type:
-            query_str += "AND annotation_type = :annotation_type"
-            params["annotation_type"] = key.annotation_type
-
-        with self._get_connection() as conn:
-            result = conn.execute(sql_text(query_str), params)
-            try:
-                first = next(result)
-            except StopIteration:
-                raise KeyError(f"Key {key} not found")  # noqa: B904
-            return [
-                Annotation(
-                    object_id=first.object_id,
-                    annotation_type=first.annotation_type,
-                    annotation=first.annotation,
-                )
-            ] + [
-                Annotation(
-                    object_id=row.object_id,
-                    annotation_type=row.annotation_type,
-                    annotation=row.annotation,
-                )
-                for row in result
-            ]
-
-    def push(self, value: Annotation) -> None:
-        """Add a single annotation to the store.
-
-        :param value: Annotation object
-        :return: None
-        """
-        self[value.key()] = value.annotation
-
-    def add_one_item(
-        self,
-        db_conn: Connection,
-        name: AnnotationKey,
-        value: dict | str,
-    ) -> None:
-        """Add a single item.
-
-        :param db_conn: a SQLAlchemy database connection
-        :param name: AnnotationKey object
-        :param value: value to be inserted for that key
-        :return: None
-        """
-        insert_query = f"INSERT INTO {self.table_name} (object_id, annotation_type, annotation) VALUES (:object_id, :annotation_type, :annotation) ON CONFLICT DO NOTHING"  # noqa: S608
-        db_conn.execute(
-            sql_text(insert_query),
-            {
-                "object_id": name.object_id,
-                "annotation_type": name.annotation_type,
-                "annotation": json.dumps(value) if isinstance(value, dict) else value,
-            },
-        )
-
-    def add_many_items(
-        self, db_conn: Connection, items: list[tuple[AnnotationKey, dict]]
-    ) -> None:
-        # TODO implement merge based bulk insert to indexed table
-        """Perform copy-based insert, enabling much faster writes for large, repeated
-        insert statements, using insert parameters stored in `self.batch_insert_values`.
-
-        Because we may be writing repeated records, we need to handle conflicts, which
-        isn't available for COPY. The workaround (https://stackoverflow.com/a/49836011)
-        is to make a temporary table for each COPY statement, and then handle
-        conflicts when moving data over from that table to vrs_objects.
-
-        :param db_conn: a SQLAlchemy database connection
-        :param items: list of tuples (AnnotationKey, dict) to be inserted
-        """
-        # Generate a temporary table name
-        tmp_table_name = f"tmp_{self.table_name}_{os.urandom(8).hex()}"
-        tmp_statement = f"CREATE TEMP TABLE {tmp_table_name} (LIKE {self.table_name} INCLUDING DEFAULTS)"
-        insert_statement = f"INSERT INTO {self.table_name} SELECT * FROM {tmp_table_name} ON CONFLICT DO NOTHING"  # noqa: S608
-        drop_statement = f"DROP TABLE {tmp_table_name}"
-        db_conn.execute(sql_text(tmp_statement))
-
-        def fmt_row(name: AnnotationKey, value: dict) -> str:
-            return "\t".join(
-                [f"{name.object_id}", f"{name.annotation_type}", f"{json.dumps(value)}"]
-            )
-
-        # Get a psycopg2 cursor from the sqlalchemy connection
-        with db_conn.connection.cursor() as cur:
-            row_data = [fmt_row(name, value) for name, value in items]
-            fl = StringIO("\n".join(row_data))
-            cur.copy_from(
-                fl,
-                tmp_table_name,
-                columns=["object_id", "annotation_type", "annotation"],
-            )
-            fl.close()
-        db_conn.execute(sql_text(insert_statement))
-        db_conn.execute(sql_text(drop_statement))
-
-    def __delitem__(self, key: AnnotationKey) -> None:
-        """Delete annotations matching the key.
-
-        :param key: AnnotationKey object. All values for this key will be deleted.
-        :return: None
-        """
-        delete_statement = f"DELETE FROM {self.table_name} WHERE object_id = :object_id AND annotation_type = :annotation_type"  # noqa: S608
-        with self._get_connection() as conn:
-            conn.execute(
-                sql_text(delete_statement),
-                {"object_id": key.object_id, "annotation_type": key.annotation_type},
-            )
-
-    def keys(self) -> Iterable:
-        """Return all annotation keys in the store including duplicates."""
-        query_statement = f"SELECT object_id, annotation_type FROM {self.table_name}"  # noqa: S608
-        with self._get_connection() as conn:
-            result = conn.execute(sql_text(query_statement))
-            yield from (
-                AnnotationKey(
-                    object_id=row["object_id"], annotation_type=row["annotation_type"]
-                )
-                for row in result
-            )
+from anyvar.storage.base_storage import Storage, StoredObjectType, VariationMappingType
+from anyvar.storage.mapper_registry import mapper_registry
+from anyvar.storage.orm import (
+    Allele,
+    Annotation,
+    Location,
+    SequenceReference,
+    VrsObject,
+    create_tables,
+)
 
 
-class PostgresObjectStore(VrsSqlStorage):
-    """PostgreSQL storage backend. Currently, this is our recommended storage
-    approach.
+class PostgresObjectStore(Storage):
+    """PostgreSQL storage backend using dedicated ORM tables.
+
+    This implementation uses the new Allele, Location, and SequenceReference tables
+    with object mapping to convert between VRS models and database entities.
     """
 
-    def __init__(
-        self,
-        db_url: str,
-        batch_limit: int | None = None,
-        table_name: str | None = "vrs_objects",
-        max_pending_batches: int | None = None,
-        flush_on_batchctx_exit: bool | None = None,
+    def __init__(self, db_url: str | None = None) -> None:
+        """Initialize PostgreSQL storage.
+
+        :param db_url: Database connection URL (e.g., postgresql://user:pass@host:port/db)
+        """
+        self.db_url = db_url
+        self.engine = create_engine(db_url)
+        self.session_factory = sessionmaker(bind=self.engine)
+        create_tables(self.db_url)
+
+    def close(self) -> None:
+        """Close the storage backend."""
+        # TODO unclear if engine.dispose is desirable.
+        # It does not wait for active connections.
+        # https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.Engine.dispose
+        # self.engine.dispose()
+
+    def wait_for_writes(self) -> None:
+        """Wait for all background writes to complete.
+        NOTE: This is a no-op for synchronous storage backends.
+        """
+
+    def wipe_db(self) -> None:
+        """Wipe all data from the storage backend."""
+        with self.session_factory() as session, session.begin():
+            # Delete all data from tables in dependency order
+            session.execute(delete(Allele))
+            session.execute(delete(Location))
+            session.execute(delete(SequenceReference))
+
+            # Delete other tables
+            session.execute(delete(VrsObject))
+            session.execute(delete(Annotation))
+
+    # TODO also store vrs_objects table in addition to
+    # the tables per type.
+    def add_objects(self, objects: Iterable[vrs_models.VrsType]) -> None:
+        """Add multiple VRS objects to storage using bulk inserts."""
+        objects_list = list(objects)
+        if not objects_list:
+            return
+
+        # Collect unique entities by ID to avoid duplicates
+        sequence_references = {}
+        locations = {}
+        alleles = {}
+
+        # Process all objects and extract their components
+        for vrs_object in objects_list:
+            db_entity = mapper_registry.to_db_entity(vrs_object)
+
+            if isinstance(db_entity, Allele):
+                alleles[db_entity.id] = db_entity
+                # Also collect the nested location and sequence reference
+                if db_entity.location:
+                    locations[db_entity.location.id] = db_entity.location
+                    if db_entity.location.sequence_reference:
+                        sequence_references[
+                            db_entity.location.sequence_reference.id
+                        ] = db_entity.location.sequence_reference
+            elif isinstance(db_entity, Location):
+                locations[db_entity.id] = db_entity
+                if db_entity.sequence_reference:
+                    sequence_references[db_entity.sequence_reference.id] = (
+                        db_entity.sequence_reference
+                    )
+            elif isinstance(db_entity, SequenceReference):
+                sequence_references[db_entity.id] = db_entity
+            else:
+                raise ValueError(f"Unsupported object type: {type(db_entity)}")  # noqa: TRY004
+
+        with self.session_factory() as session, session.begin():
+            # Insert in dependency order: sequence_references -> locations -> alleles
+            # Use ON CONFLICT DO NOTHING to handle duplicates gracefully
+            # We should have already de-duplicated by ID above, but duplicates
+            # may already exist in the database.
+
+            if sequence_references:
+                sequence_reference_dicts = [
+                    sr.to_dict() for sr in sequence_references.values()
+                ]
+                stmt = insert(SequenceReference)
+                stmt = stmt.on_conflict_do_nothing()
+                session.execute(stmt, sequence_reference_dicts)
+
+            if locations:
+                location_dicts = [loc.to_dict() for loc in locations.values()]
+                stmt = insert(Location)
+                stmt = stmt.on_conflict_do_nothing()
+                session.execute(stmt, location_dicts)
+
+            if alleles:
+                allele_dicts = [allele.to_dict() for allele in alleles.values()]
+                stmt = insert(Allele)
+                stmt = stmt.on_conflict_do_nothing()
+                session.execute(stmt, allele_dicts)
+
+    def get_objects(
+        self, object_type: StoredObjectType, object_ids: Iterable[str]
+    ) -> Iterable[vrs_models.VrsType]:
+        """Retrieve multiple VRS objects from storage by their IDs."""
+        object_ids_list = list(object_ids)
+        results = []
+
+        with self.session_factory() as session:
+            if object_type == StoredObjectType.ALLELE:
+                # Get alleles with eager loading
+                stmt = (
+                    select(Allele)
+                    .options(
+                        joinedload(Allele.location).joinedload(
+                            Location.sequence_reference
+                        )
+                    )
+                    .where(Allele.id.in_(object_ids_list))
+                )
+                db_objects = session.scalars(stmt).all()
+            elif object_type == StoredObjectType.SEQUENCE_LOCATION:
+                # Get locations with eager loading
+                stmt = (
+                    select(Location)
+                    .options(joinedload(Location.sequence_reference))
+                    .where(Location.id.in_(object_ids_list))
+                )
+                db_objects = session.scalars(stmt).all()
+            elif object_type == StoredObjectType.SEQUENCE_REFERENCE:
+                # Get sequence references
+                stmt = select(SequenceReference).where(
+                    SequenceReference.id.in_(object_ids_list)
+                )
+                db_objects = session.scalars(stmt).all()
+            else:
+                raise ValueError(f"Unsupported object type: {object_type}")
+
+            for db_object in db_objects:
+                vrs_object = mapper_registry.from_db_entity(db_object)
+                results.append(vrs_object)
+
+        return results
+
+    def get_all_object_ids(self) -> Iterable[str]:
+        """Retrieve all object IDs from storage."""
+        with self.session_factory() as session:
+            # TODO This only handles Alleles for now
+            # TODO This seems like it could be a lot of data
+            stmt = select(Allele.id)
+            allele_ids = session.execute(stmt).scalars().all()
+            return allele_ids
+
+    def delete_objects(
+        self, object_type: StoredObjectType, object_ids: Iterable[str]
     ) -> None:
-        """Initialize DB handler."""
-        table_name = table_name or "vrs_objects"
-        if table_name != "vrs_objects":
-            raise ValueError(
-                f"PostgresObjectStore requires table_name='vrs_objects', got {table_name}"
-            )
-        super().__init__(
-            db_url,
-            batch_limit,
-            table_name,
-            max_pending_batches,
-            flush_on_batchctx_exit,
-        )
+        """Delete all objects of a specific type from storage."""
+        object_ids_list = list(object_ids)
 
-    def create_schema(self, db_conn: Connection) -> None:
-        """Does nothing because schema creation is handled externally."""
+        with self.session_factory() as session, session.begin():
+            if object_type == StoredObjectType.ALLELE:
+                stmt = delete(Allele).where(Allele.id.in_(object_ids_list))
+                session.execute(stmt)
+            elif object_type == StoredObjectType.SEQUENCE_LOCATION:
+                stmt = delete(Location).where(Location.id.in_(object_ids_list))
+                session.execute(stmt)
+            elif object_type == StoredObjectType.SEQUENCE_REFERENCE:
+                stmt = delete(SequenceReference).where(
+                    SequenceReference.id.in_(object_ids_list)
+                )
+                session.execute(stmt)
+            else:
+                raise ValueError(f"Unsupported object type: {object_type}")
 
-    def add_one_item(self, db_conn: Connection, name: str, value: Any) -> None:  # noqa: ANN401
-        """Add/merge a single item to the database
-
-        :param db_conn: a database connection
-        :param name: value for `vrs_id` field
-        :param value: value for `vrs_object` field
-        """
-        insert_query = f"INSERT INTO {self.table_name} (vrs_id, vrs_object) VALUES (:vrs_id, :vrs_object) ON CONFLICT DO NOTHING"  # noqa: S608
-        value_json = json.dumps(value.model_dump(exclude_none=True))
-        db_conn.execute(
-            sql_text(insert_query), {"vrs_id": name, "vrs_object": value_json}
-        )
-
-    def add_many_items(self, db_conn: Connection, items: list) -> None:
-        """Perform copy-based insert, enabling much faster writes for large, repeated
-        insert statements, using insert parameters stored in `self.batch_insert_values`.
-
-        Because we may be writing repeated records, we need to handle conflicts, which
-        isn't available for COPY. The workaround (https://stackoverflow.com/a/49836011)
-        is to make a temporary table for each COPY statement, and then handle
-        conflicts when moving data over from that table to vrs_objects.
-
-        :param db_conn: a database connection
-        :param items: a list of tuples containing the vrs_id and vrs_object
-        """
-        tmp_statement = (
-            f"CREATE TEMP TABLE tmp_table (LIKE {self.table_name} INCLUDING DEFAULTS)"
-        )
-        insert_statement = f"INSERT INTO {self.table_name} SELECT * FROM tmp_table ON CONFLICT DO NOTHING"  # noqa: S608
-        drop_statement = "DROP TABLE tmp_table"
-        db_conn.execute(sql_text(tmp_statement))
-        with db_conn.connection.cursor() as cur:
-            row_data = [
-                f"{name}\t{json.dumps(value.model_dump(exclude_none=True))}"
-                for name, value in items
-            ]
-            fl = StringIO("\n".join(row_data))
-            cur.copy_from(fl, "tmp_table", columns=["vrs_id", "vrs_object"])
-            fl.close()
-        db_conn.execute(sql_text(insert_statement))
-        db_conn.execute(sql_text(drop_statement))
-
-    def deletion_count(self, db_conn: Connection) -> int:
-        """Delete a single VRS object
-
-        :param db_conn: a database connection
-        :return: the number of deletions
-        """
-        result = db_conn.execute(
-            sql_text(
-                f"""
-            SELECT COUNT(*) AS c
-              FROM {self.table_name}
-             WHERE LENGTH(vrs_object -> 'state' ->> 'sequence') = 0
-            """  # noqa: S608
-            )
-        )
-        return result.scalar()
-
-    def substitution_count(self, db_conn: Connection) -> int:
-        """Return the total number of substitutions
-
-        :param db_conn: a database connection
-        :return: the number of substitutions
-        """
-        result = db_conn.execute(
-            sql_text(
-                f"""
-            SELECT COUNT(*) AS c
-              FROM {self.table_name}
-             WHERE LENGTH(vrs_object -> 'state' ->> 'sequence') = 1
-            """  # noqa: S608
-            )
-        )
-        return result.scalar()
-
-    def insertion_count(self, db_conn: Connection) -> int:
-        """Return the total number of insertions
-
-        :param db_conn: a database connection
-        :return: the number of insertions
-        """
-        result = db_conn.execute(
-            sql_text(
-                f"""
-            SELECT COUNT(*) AS c
-              FROM {self.table_name}
-             WHERE LENGTH(vrs_object -> 'state' ->> 'sequence') > 1
-            """  # noqa: S608
-            )
-        )
-        return result.scalar()
-
-    def search_vrs_objects(
+    def add_mapping(
         self,
-        db_conn: Connection,
-        type: str,  # noqa: A002
+        source_object_id: str,
+        destination_object_id: str,
+        mapping_type: VariationMappingType,
+    ) -> None:
+        """Add a mapping between two objects.
+
+        :param source_object_id: ID of the source object
+        :param destination_object_id: ID of the destination object
+        :param mapping_type: Type of VariationMappingType
+        """
+        raise NotImplementedError
+
+    def delete_mapping(
+        self,
+        source_object_id: str,
+        destination_object_id: str,
+        mapping_type: VariationMappingType,
+    ) -> None:
+        """Delete a mapping between two objects.
+
+        :param source_object_id: ID of the source object
+        :param destination_object_id: ID of the destination object
+        :param mapping_type: Type of VariationMappingType
+        """
+        raise NotImplementedError
+
+    def get_mappings(
+        self,
+        source_object_id: str,
+        mapping_type: VariationMappingType,
+    ) -> list[str]:
+        """Return a list of ids of destination objects mapped from the source object.
+
+        :param source_object_id: ID of the source object
+        :param mapping_type: Type of VariationMappingType
+        """
+        raise NotImplementedError
+
+    def search_alleles(
+        self,
         refget_accession: str,
         start: int,
         stop: int,
-    ) -> list:
-        """Find all VRS objects of the particular type and region
+    ) -> list[vrs_models.Allele]:
+        """Find all Alleles in the particular region.
 
-        :param type: the type of VRS object to search for
         :param refget_accession: refget accession (SQ. identifier)
         :param start: Start genomic region to query
         :param stop: Stop genomic region to query
 
-        :return: a list of VRS objects
+        :return: a list of Alleles
         """
-        query_str = f"""
-        SELECT vrs_object
-        FROM {self.table_name}
-        WHERE (vrs_object->>'type' = %s)
-            AND (vrs_object->>'location' IN (
-                SELECT vrs_id FROM {self.table_name}
-                WHERE (CAST (vrs_object->>'start' AS INTEGER) >= %s)
-                    AND (CAST (vrs_object->>'end' AS INTEGER) <= %s)
-                    AND (vrs_object->'sequenceReference'->>'refgetAccession' = %s)
-            ))
-        """  # noqa: S608
-        with db_conn.connection.cursor() as cur:
-            cur.execute(query_str, [type, start, stop, refget_accession])
-            results = cur.fetchall()
-        return [vrs_object[0] for vrs_object in results if vrs_object]
+        # TODO may load a lot of data
+        with self.session_factory() as session:
+            # Query alleles with overlapping locations
+            # TODO this is any overlap, not containment.
+            stmt = (
+                select(Allele)
+                .options(
+                    joinedload(Allele.location).joinedload(Location.sequence_reference)
+                )
+                .join(Location)
+                .join(SequenceReference)
+                .where(
+                    SequenceReference.id == refget_accession,
+                    Location.start <= stop,
+                    Location.end >= start,
+                )
+            )
+            db_alleles = session.scalars(stmt).all()
+
+            return [
+                mapper_registry.from_db_entity(db_allele) for db_allele in db_alleles
+            ]
