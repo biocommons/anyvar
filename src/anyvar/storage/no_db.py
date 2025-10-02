@@ -6,19 +6,14 @@ from ga4gh.vrs import models as vrs_models
 
 from anyvar.utils.types import Annotation
 
-from .abc import StoredVrsObjectType, VariationMappingType, _Storage
-
-# ruff: noqa: ARG002 (allows unused method arguments)
+from .base_storage import Storage, StoredObjectType, VariationMappingType
 
 
-class NoObjectStore(_Storage):
+class NoObjectStore(Storage):
     """Storage backend that does not persistently store any data."""
 
-    def __init__(self) -> None:
+    def __init__(self, db_url: str | None = None) -> None:
         """Initialize DB handler."""
-
-    def setup(self) -> None:
-        """Set up the storage backend."""
 
     def close(self) -> None:
         """Close the storage backend."""
@@ -36,8 +31,8 @@ class NoObjectStore(_Storage):
 
     def get_objects(
         self,
-        object_type: StoredVrsObjectType,
-        object_ids: Iterable[str],
+        object_type: StoredObjectType,  # noqa: ARG002
+        object_ids: Iterable[str],  # noqa: ARG002
     ) -> Iterable[vrs_models.VrsType]:
         """Retrieve multiple VRS objects from storage by their IDs."""
         return []
@@ -46,12 +41,8 @@ class NoObjectStore(_Storage):
         """Retrieve all object IDs from storage."""
         return []
 
-    def get_object_count(self, object_type: StoredVrsObjectType) -> int:
-        """Get count of objects of a specific type in storage."""
-        return 0
-
     def delete_objects(
-        self, object_type: StoredVrsObjectType, object_ids: Iterable[str]
+        self, object_type: StoredObjectType, object_ids: Iterable[str]
     ) -> None:
         """Delete all objects of a specific type from storage."""
 
@@ -83,8 +74,8 @@ class NoObjectStore(_Storage):
 
     def get_mappings(
         self,
-        source_object_id: str,
-        mapping_type: VariationMappingType,
+        source_object_id: str,  # noqa: ARG002
+        mapping_type: VariationMappingType,  # noqa: ARG002
     ) -> list[str]:
         """Return a list of ids of destination objects mapped from the source object.
 
@@ -95,9 +86,9 @@ class NoObjectStore(_Storage):
 
     def search_alleles(
         self,
-        refget_accession: str,
-        start: int,
-        stop: int,
+        refget_accession: str,  # noqa: ARG002
+        start: int,  # noqa: ARG002
+        stop: int,  # noqa: ARG002
     ) -> list[vrs_models.Allele]:
         """Find all Alleles in the particular region
 
@@ -109,7 +100,7 @@ class NoObjectStore(_Storage):
         """
         return []
 
-    def add_annotation(self, annotation: Annotation) -> int:
+    def add_annotation(self, annotation: Annotation) -> int:  # noqa: ARG002
         """Adds an annotation to the database.
 
         :param annotation: The annotation to add
@@ -118,7 +109,9 @@ class NoObjectStore(_Storage):
         raise TypeError("Unsupported operations for this storage type")
 
     def get_annotation_by_object_and_type(
-        self, object_id: str, annotation_type: str | None = None
+        self,
+        object_id: str,  # noqa: ARG002
+        annotation_type: str | None = None,  # noqa: ARG002
     ) -> list[Annotation]:
         """Retrieves all annotations for the given object, optionally filtered to only annotations of the specified type from the database
 
@@ -128,7 +121,7 @@ class NoObjectStore(_Storage):
         """
         raise TypeError("Unsupported operations for this storage type")
 
-    def delete_annotation(self, annotation_id: int) -> None:
+    def delete_annotation(self, annotation_id: int) -> None:  # noqa: ARG002
         """Deletes an annotation from the database
 
         :param annotation_id: The ID of the annotation to delete

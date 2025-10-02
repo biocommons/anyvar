@@ -67,7 +67,6 @@ class SequenceReference(Base):
     __tablename__ = "sequence_references"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    refseq_id: Mapped[str | None]
     molecule_type: Mapped[str | None]
 
 
@@ -83,6 +82,7 @@ class AnnotationOrm(Base):
     annotation_value: Mapped[str] = mapped_column(String)
 
     # https://docs.sqlalchemy.org/en/20/core/constraints.html#indexes
+    # TODO is this needed because of the primary key?
     __table_args__ = (
         Index(
             "idx_annotations_object_id_annotation_type",

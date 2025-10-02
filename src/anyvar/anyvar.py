@@ -7,14 +7,12 @@ import importlib.util
 import logging
 import os
 import warnings
-from collections.abc import MutableMapping
 from urllib.parse import urlparse
 
 from agct import Converter, Genome
 
 from anyvar.storage import DEFAULT_STORAGE_URI
-from anyvar.storage.abc import StoredVrsObjectType, _Storage
-from anyvar.storage.db import create_tables
+from anyvar.storage.base_storage import Storage, StoredObjectType
 from anyvar.translate.translate import _Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
 from anyvar.utils.types import Annotation, VrsObject
@@ -26,7 +24,7 @@ if os.environ.get("ANYVAR_SHOW_PYDANTIC_WARNINGS", None) is None:
 _logger = logging.getLogger(__name__)
 
 
-def create_storage(uri: str | None = None) -> _Storage:
+def create_storage(uri: str | None = None) -> Storage:
     """Provide factory to create storage based on `uri` or the ANYVAR_STORAGE_URI
     environment value.
 
@@ -45,7 +43,6 @@ def create_storage(uri: str | None = None) -> _Storage:
     if parsed_uri.scheme == "postgresql":
         from anyvar.storage.postgres import PostgresObjectStore  # noqa: PLC0415
 
-        create_tables(uri)
         storage = PostgresObjectStore(uri)
     elif parsed_uri.scheme == "":
         from anyvar.storage.no_db import NoObjectStore  # noqa: PLC0415
@@ -87,7 +84,7 @@ class AnyVar:
         self,
         /,
         translator: _Translator,
-        object_store: _Storage,
+        object_store: Storage,
     ) -> None:
         """Initialize anyvar instance. It's easiest to use factory methods to create
         translator and object_store instances but manual construction works too.
@@ -96,11 +93,6 @@ class AnyVar:
         :param object_store: Object storage instance
         :param annotation_store: (Optional) Annotation storage instance
         """
-        if not isinstance(object_store, MutableMapping):
-            _logger.warning(
-                "AnyVar(object_store=) should be a mutable mapping; you're on your own"
-            )
-
         self.object_store = object_store
         self.translator = translator
         self.liftover_converters = {
@@ -122,7 +114,7 @@ class AnyVar:
         return variation_object.id
 
     def get_object(
-        self, object_id: str, object_type: StoredVrsObjectType | None = None
+        self, object_id: str, object_type: StoredObjectType | None = None
     ) -> VrsObject:
         """Retrieve registered variation.
 
@@ -154,9 +146,9 @@ class AnyVar:
         """
         # Try each object type. Primary key lookups should be fast.
         object_types_to_try = [
-            StoredVrsObjectType.ALLELE,
-            StoredVrsObjectType.SEQUENCE_LOCATION,
-            StoredVrsObjectType.SEQUENCE_REFERENCE,
+            StoredObjectType.ALLELE,
+            StoredObjectType.SEQUENCE_LOCATION,
+            StoredObjectType.SEQUENCE_REFERENCE,
         ]
         for object_type in object_types_to_try:
             try:

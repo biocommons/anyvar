@@ -11,7 +11,7 @@ from ga4gh.vrs import (
 from ga4gh.vrs import (
     __version__ as vrs_python_version,
 )
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
 from anyvar import __version__
 from anyvar.utils.types import (
@@ -244,22 +244,6 @@ class SearchResponse(BaseModel):
     """Describe response for the GET /search endpoint"""
 
     variations: list[models.Variation]
-
-
-class VariationStatisticType(str, Enum):
-    """Define parameter values for variation statistics endpoint"""
-
-    SUBSTITUTION = "substitution"
-    DELETION = "deletion"
-    INSERTION = "insertion"
-    ALL = "all"
-
-
-class AnyVarStatsResponse(BaseModel):
-    """Describe response for the GET /stats endpoint"""
-
-    variation_type: VariationStatisticType
-    count: StrictInt
 
 
 class RunStatusResponse(BaseModel):

@@ -32,7 +32,6 @@ from anyvar.anyvar import AnyVar
 from anyvar.restapi.schema import (
     AddAnnotationRequest,
     AddAnnotationResponse,
-    AnyVarStatsResponse,
     EndpointTag,
     GetAnnotationResponse,
     GetSequenceLocationResponse,
@@ -42,7 +41,6 @@ from anyvar.restapi.schema import (
     RegisterVrsVariationResponse,
     SearchResponse,
     ServiceInfo,
-    VariationStatisticType,
 )
 from anyvar.restapi.vcf import router as vcf_router
 from anyvar.storage.db import VrsObject
@@ -516,7 +514,10 @@ def search_variations(
     """
     av: AnyVar = request.app.state.anyvar
     try:
-        ga4gh_id = av.translator.get_sequence_id(accession)
+        if accession.startswith("ga4gh:"):
+            ga4gh_id = accession
+        else:
+            ga4gh_id = av.translator.get_sequence_id(accession)
     except KeyError as e:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
@@ -534,41 +535,4 @@ def search_variations(
                 detail="Search not implemented for current storage backend",
             ) from e
 
-    inline_alleles = []
-    if alleles:
-        for allele in alleles:
-            try:
-                # TODO is this necessary now? search_alleles may return full objects already
-                var_object = av.get_object(allele.id)
-            except KeyError:
-                continue
-            inline_alleles.append(var_object)
-
-    return SearchResponse(variations=inline_alleles)
-
-
-@app.get(
-    "/stats/{variation_type}",
-    operation_id="getStats",
-    summary="Summary statistics for registered variations",
-    description="Retrieve summary statistics for registered variation objects.",
-    tags=[EndpointTag.GENERAL],
-)
-def get_stats(
-    request: Request,  # noqa: ARG001
-    variation_type: Annotated[  # noqa: ARG001
-        VariationStatisticType, Path(..., description="category of variation")
-    ],
-) -> AnyVarStatsResponse:
-    """Get summary statistics for registered variants. Currently just returns totals.
-
-    :param request: FastAPI request object
-    :param variation_type: type of variation to summarize
-    :return: total number of matching variants
-    :raise HTTPException: if invalid variation type is requested, although FastAPI
-        should block the request from going through in that case
-    """
-    raise HTTPException(
-        status_code=HTTPStatus.NOT_IMPLEMENTED,
-        detail="Stats not implemented for current storage backend",
-    )
+    return SearchResponse(variations=alleles)

@@ -22,9 +22,3 @@ def test_service_info(client: TestClient, test_data_dir: Path):
     resolver = jsonschema.RefResolver.from_schema(spec)
     data = response.json()
     jsonschema.validate(instance=data, schema=resp_schema, resolver=resolver)
-
-
-# def test_summary_statistics(client: TestClient):
-#     response = client.get("/stats/all")
-#     assert response.status_code == HTTPStatus.OK
-#     assert response.json() == {"variation_type": "all", "count": 3}
