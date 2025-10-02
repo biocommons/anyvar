@@ -26,7 +26,7 @@ class PostgresObjectStore(Storage):
     with object mapping to convert between VRS models and database entities.
     """
 
-    def __init__(self, db_url: str) -> None:
+    def __init__(self, db_url: str | None = None) -> None:
         """Initialize PostgreSQL storage.
 
         :param db_url: Database connection URL (e.g., postgresql://user:pass@host:port/db)
@@ -34,9 +34,6 @@ class PostgresObjectStore(Storage):
         self.db_url = db_url
         self.engine = create_engine(db_url)
         self.session_factory = sessionmaker(bind=self.engine)
-
-    def setup(self) -> None:
-        """Set up the storage backend by creating tables."""
         create_tables(self.db_url)
 
     def close(self) -> None:

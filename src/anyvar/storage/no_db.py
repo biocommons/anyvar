@@ -10,11 +10,8 @@ from .base_storage import Storage, StoredObjectType, VariationMappingType
 class NoObjectStore(Storage):
     """Storage backend that does not persistently store any data."""
 
-    def __init__(self) -> None:
+    def __init__(self, db_url: str | None = None) -> None:
         """Initialize DB handler."""
-
-    def setup(self) -> None:
-        """Set up the storage backend."""
 
     def close(self) -> None:
         """Close the storage backend."""

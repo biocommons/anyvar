@@ -53,8 +53,6 @@ def create_storage(uri: str | None = None) -> Storage:
         msg = f"URI scheme {parsed_uri.scheme} is not implemented"
         raise ValueError(msg)
 
-    storage.setup()
-
     _logger.debug("create_storage: %s → %s}", uri, storage)
     return storage
 

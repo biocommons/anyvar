@@ -30,8 +30,11 @@ class Storage(ABC):
     """Abstract base class for interacting with storage backends."""
 
     @abstractmethod
-    def setup(self) -> None:
-        """Set up the storage backend."""
+    def __init__(self, db_url: str | None = None) -> None:
+        """Initialize the storage backend.
+
+        :param db_url: Database connection URL
+        """
 
     @abstractmethod
     def close(self) -> None:

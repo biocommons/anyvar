@@ -14,7 +14,6 @@ def test_create_storage():
 
 def test_adding_stuff():
     sf = NoObjectStore()
-    sf.setup()
     sf.add_objects([MockVRSObject("01"), MockVRSObject("02")])
     sf.wait_for_writes()
     assert len(list(sf.get_all_object_ids())) == 0
