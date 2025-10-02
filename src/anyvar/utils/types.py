@@ -2,19 +2,19 @@
 
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, TypeAlias
+from typing import Any
 
 from ga4gh.vrs import models
 from pydantic import BaseModel
 
-from anyvar.storage.abc import StoredVrsObjectType
+from anyvar.storage.base_storage import StoredVrsObjectType
 
 # should include all supported VRS Python variation types
 VrsVariation = models.Allele | models.CopyNumberChange | models.CopyNumberCount
 
 
 # should include all supported VRS Python variation types + location types
-VrsObject: TypeAlias = (
+VrsObject = (
     models.Allele
     | models.CopyNumberChange
     | models.CopyNumberCount
