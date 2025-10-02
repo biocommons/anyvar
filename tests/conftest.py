@@ -41,11 +41,11 @@ def storage():
         storage_uri = "postgresql://postgres:postgres@localhost:5432/anyvar_test"
 
     storage = create_storage(uri=storage_uri)
-    storage.setup()
     storage.wipe_db()
     return storage
 
 
+# TODO: remove this when refactoring mappings
 @pytest.fixture(scope="session")
 def annotator():
     annotator = MagicMock()
@@ -57,6 +57,9 @@ def annotator():
 def client(storage, annotator):
     translator = create_translator()
     anyvar_restapi.state.anyvar = AnyVar(object_store=storage, translator=translator)
+    anyvar_restapi.state.anyannotation = (
+        annotator  # TODO: remove this when refactoring mappings
+    )
     return TestClient(app=anyvar_restapi)
 
 
