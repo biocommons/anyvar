@@ -3,7 +3,7 @@
 from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload, sessionmaker
 
@@ -52,13 +52,13 @@ class PostgresObjectStore(Storage):
         """Wipe all data from the storage backend."""
         with self.session_factory() as session, session.begin():
             # Delete all data from tables in dependency order
-            session.query(Allele).delete()
-            session.query(Location).delete()
-            session.query(SequenceReference).delete()
+            session.execute(delete(Allele))
+            session.execute(delete(Location))
+            session.execute(delete(SequenceReference))
 
             # Delete other tables
-            session.query(VrsObject).delete()
-            session.query(Annotation).delete()
+            session.execute(delete(VrsObject))
+            session.execute(delete(Annotation))
 
     # TODO also store vrs_objects table in addition to
     # the tables per type.
@@ -133,31 +133,30 @@ class PostgresObjectStore(Storage):
         with self.session_factory() as session:
             if object_type == StoredObjectType.ALLELE:
                 # Get alleles with eager loading
-                db_objects = (
-                    session.query(Allele)
+                stmt = (
+                    select(Allele)
                     .options(
                         joinedload(Allele.location).joinedload(
                             Location.sequence_reference
                         )
                     )
-                    .filter(Allele.id.in_(object_ids_list))
-                    .all()
+                    .where(Allele.id.in_(object_ids_list))
                 )
+                db_objects = session.scalars(stmt).all()
             elif object_type == StoredObjectType.SEQUENCE_LOCATION:
                 # Get locations with eager loading
-                db_objects = (
-                    session.query(Location)
+                stmt = (
+                    select(Location)
                     .options(joinedload(Location.sequence_reference))
-                    .filter(Location.id.in_(object_ids_list))
-                    .all()
+                    .where(Location.id.in_(object_ids_list))
                 )
+                db_objects = session.scalars(stmt).all()
             elif object_type == StoredObjectType.SEQUENCE_REFERENCE:
                 # Get sequence references
-                db_objects = (
-                    session.query(SequenceReference)
-                    .filter(SequenceReference.id.in_(object_ids_list))
-                    .all()
+                stmt = select(SequenceReference).where(
+                    SequenceReference.id.in_(object_ids_list)
                 )
+                db_objects = session.scalars(stmt).all()
             else:
                 raise ValueError(f"Unsupported object type: {object_type}")
 
@@ -172,8 +171,9 @@ class PostgresObjectStore(Storage):
         with self.session_factory() as session:
             # TODO This only handles Alleles for now
             # TODO This seems like it could be a lot of data
-            allele_ids = session.query(Allele.id).all()
-            return [allele_id[0] for allele_id in allele_ids]
+            stmt = select(Allele.id)
+            allele_ids = session.execute(stmt).scalars().all()
+            return allele_ids
 
     def delete_objects(
         self, object_type: StoredObjectType, object_ids: Iterable[str]
@@ -183,15 +183,16 @@ class PostgresObjectStore(Storage):
 
         with self.session_factory() as session, session.begin():
             if object_type == StoredObjectType.ALLELE:
-                session.query(Allele).filter(Allele.id.in_(object_ids_list)).delete()
+                stmt = delete(Allele).where(Allele.id.in_(object_ids_list))
+                session.execute(stmt)
             elif object_type == StoredObjectType.SEQUENCE_LOCATION:
-                session.query(Location).filter(
-                    Location.id.in_(object_ids_list)
-                ).delete()
+                stmt = delete(Location).where(Location.id.in_(object_ids_list))
+                session.execute(stmt)
             elif object_type == StoredObjectType.SEQUENCE_REFERENCE:
-                session.query(SequenceReference).filter(
+                stmt = delete(SequenceReference).where(
                     SequenceReference.id.in_(object_ids_list)
-                ).delete()
+                )
+                session.execute(stmt)
             else:
                 raise ValueError(f"Unsupported object type: {object_type}")
 
@@ -253,20 +254,20 @@ class PostgresObjectStore(Storage):
         with self.session_factory() as session:
             # Query alleles with overlapping locations
             # TODO this is any overlap, not containment.
-            db_alleles = (
-                session.query(Allele)
+            stmt = (
+                select(Allele)
                 .options(
                     joinedload(Allele.location).joinedload(Location.sequence_reference)
                 )
                 .join(Location)
                 .join(SequenceReference)
-                .filter(
+                .where(
                     SequenceReference.id == refget_accession,
                     Location.start <= stop,
                     Location.end >= start,
                 )
-                .all()
             )
+            db_alleles = session.scalars(stmt).all()
 
             return [
                 mapper_registry.from_db_entity(db_allele) for db_allele in db_alleles
