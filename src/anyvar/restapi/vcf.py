@@ -345,6 +345,20 @@ async def _ingest_annotated_vcf_async(
             error="Required modules and/or configurations for asynchronous VCF annotation are missing"
         )
 
+    # if run_id is provided, validate it does not already exist
+    if run_id:
+        existing_result = AsyncResult(id=run_id)
+        existing_result_status = existing_result.status
+
+        # explicitly delete to limit chances of deadlocks in the Redis client
+        del existing_result
+
+        if existing_result_status != "PENDING":
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return ErrorResponse(
+                error=f"An existing run with id {run_id} is {existing_result_status}.  Fetch the completed run result before submitting with the same run_id."
+            )
+
     async_work_dir = os.environ.get("ANYVAR_VCF_ASYNC_WORK_DIR", None)
     utc_now = datetime.datetime.now(tz=datetime.UTC)
     file_id = str(uuid.uuid4())
