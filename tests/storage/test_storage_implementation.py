@@ -1,7 +1,6 @@
-"""Tests the SqlStorage methods that are NOT tested through the
-REST API tests.  To test against different SQL backends, this
-test must be run with different ANYVAR_TEST_STORAGE_URI settings
-and different ANYVAR_SQL_STORE_BATCH_ADD_MODE settings
+"""Tests Storage implementation methods directly.
+To test against different SQL backends, this test can
+be run with different ANYVAR_TEST_STORAGE_URI env var.
 """
 
 from anyvar.storage.base_storage import StoredObjectType
