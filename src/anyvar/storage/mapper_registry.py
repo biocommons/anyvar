@@ -20,6 +20,12 @@ class MapperRegistry:
 
     def __init__(self) -> None:
         """Initialize the MapperRegistry with known mappers."""
+        self.vrs_to_db_mapping = {
+            vrs_models.Allele: orm.Allele,
+            vrs_models.SequenceLocation: orm.Location,
+            vrs_models.SequenceReference: orm.SequenceReference,
+        }
+
         self._mappers: dict[type, BaseMapper] = {
             orm.Allele: AlleleMapper(),
             orm.Location: SequenceLocationMapper(),
@@ -41,13 +47,8 @@ class MapperRegistry:
     def to_db_entity(self, vrs_model):  # noqa: ANN201, ANN001
         """Convert any VRS model to its corresponding DB entity."""
         # Map VRS model types to DB entity types
-        vrs_to_db_mapping = {
-            vrs_models.Allele: orm.Allele,
-            vrs_models.SequenceLocation: orm.Location,
-            vrs_models.SequenceReference: orm.SequenceReference,
-        }
 
-        db_type = vrs_to_db_mapping.get(type(vrs_model))
+        db_type = self.vrs_to_db_mapping.get(type(vrs_model))
         if db_type is None:
             raise ValueError(
                 f"No DB entity type mapped for VRS model: {type(vrs_model)}"
