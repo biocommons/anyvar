@@ -89,7 +89,9 @@ async def _annotate_vcf_async(
     )
     if not input_file_path.parent.exists():
         input_file_path.parent.mkdir(parents=True)
-    _logger.debug("writing working file for async vcf to %s", input_file_path)
+    _logger.debug(
+        "writing working file for async run %s vcf to %s", run_id, input_file_path
+    )
 
     vcf_site_count = 0
     async with aiofiles.open(input_file_path, mode="wb") as fd:
@@ -97,8 +99,10 @@ async def _annotate_vcf_async(
             if ord("\n") in buffer:
                 vcf_site_count = vcf_site_count + 1
             await fd.write(buffer)
-    _logger.debug("wrote working file for async vcf to %s", input_file_path)
-    _logger.debug("vcf site count of async vcf is %s", vcf_site_count)
+    _logger.debug(
+        "wrote working file for async run %s vcf to %s", run_id, input_file_path
+    )
+    _logger.debug("vcf site count of async run %s vcf is %s", run_id, vcf_site_count)
 
     # submit async job
     task_result = anyvar.queueing.celery_worker.annotate_vcf.apply_async(
@@ -176,8 +180,8 @@ async def _annotate_vcf_sync(
         _logger.info("Waiting for object store writes from API handler method")
         av.object_store.wait_for_writes()
 
-    bg_tasks.add_task(os.unlink, temp_in_path)
-    bg_tasks.add_task(os.unlink, temp_out_path)
+    bg_tasks.add_task(_working_file_cleanup, temp_in_path)
+    bg_tasks.add_task(_working_file_cleanup, temp_out_path)
 
     return FileResponse(temp_out_path)
 
@@ -254,29 +258,45 @@ async def annotate_vcf(
     # ensure the temporary file is flushed to disk
     vcf.file.rollover()
 
-    # Submit asynchronous run
-    if run_async:
-        return await _annotate_vcf_async(
-            response=response,
-            vcf=vcf,
-            for_ref=for_ref,
-            allow_async_write=allow_async_write,
-            assembly=assembly,
-            add_vrs_attributes=add_vrs_attributes,
-            run_id=run_id,
-        )
-    # Run synchronously
-    else:  # noqa: RET505
-        return await _annotate_vcf_sync(
-            request=request,
-            response=response,
-            bg_tasks=bg_tasks,
-            vcf=vcf,
-            for_ref=for_ref,
-            allow_async_write=allow_async_write,
-            assembly=assembly,
-            add_vrs_attributes=add_vrs_attributes,
-        )
+    try:
+        # Submit asynchronous run
+        if run_async:
+            return await _annotate_vcf_async(
+                response=response,
+                vcf=vcf,
+                for_ref=for_ref,
+                allow_async_write=allow_async_write,
+                assembly=assembly,
+                add_vrs_attributes=add_vrs_attributes,
+                run_id=run_id,
+            )
+        # Run synchronously
+        else:  # noqa: RET505
+            return await _annotate_vcf_sync(
+                request=request,
+                response=response,
+                bg_tasks=bg_tasks,
+                vcf=vcf,
+                for_ref=for_ref,
+                allow_async_write=allow_async_write,
+                assembly=assembly,
+                add_vrs_attributes=add_vrs_attributes,
+            )
+    except Exception:
+        _logger.exception("Unhandled error encountered error during VCF registration")
+        raise
+
+
+def _working_file_cleanup(file_path: str, missing_ok: bool = False) -> None:
+    """Cleanup working files after successful completion of async task.
+
+    :param input_file_path: path to VCF file
+    """
+    try:
+        _logger.debug("removing working file %s", file_path)
+        pathlib.Path(file_path).unlink(missing_ok=missing_ok)
+    except Exception as e:  # noqa: BLE001
+        _logger.warning("unable to remove working file %s: %s", file_path, str(e))
 
 
 async def _ingest_annotated_vcf_sync(
@@ -303,9 +323,9 @@ async def _ingest_annotated_vcf_sync(
         _logger.info("Waiting for object store writes from API handler method")
         av.object_store.wait_for_writes()
 
-    bg_tasks.add_task(os.unlink, temp_in_path)
+    bg_tasks.add_task(_working_file_cleanup, temp_in_path)
     if conflicts_file:
-        bg_tasks.add_task(os.unlink, conflicts_file)
+        bg_tasks.add_task(_working_file_cleanup, conflicts_file)
         return FileResponse(conflicts_file)
     return None
 
@@ -530,7 +550,7 @@ async def get_vcf_run_status(
         async_result.forget()
         if output_file_path:
             _logger.debug("%s - output file path is %s", run_id, output_file_path)
-            bg_tasks.add_task(os.unlink, output_file_path)
+            bg_tasks.add_task(_working_file_cleanup, output_file_path)
             return FileResponse(path=output_file_path)
         # for tasks that don't need to return a file, just send a success notification
         return RunStatusResponse(
@@ -569,7 +589,9 @@ async def get_vcf_run_status(
                         run_id,
                         str(input_file_path),
                     )
-                    bg_tasks.add_task(input_file_path.unlink, missing_ok=True)
+                    bg_tasks.add_task(
+                        _working_file_cleanup, str(input_file_path), missing_ok=True
+                    )
                 output_file_path = pathlib.Path(f"{input_file_path_str}_outputvcf")
                 if output_file_path.is_file():
                     _logger.debug(
@@ -577,7 +599,9 @@ async def get_vcf_run_status(
                         run_id,
                         str(output_file_path),
                     )
-                    bg_tasks.add_task(output_file_path.unlink, missing_ok=True)
+                    bg_tasks.add_task(
+                        _working_file_cleanup, str(output_file_path), missing_ok=True
+                    )
 
         # forget the run and return the response
         async_result.forget()
