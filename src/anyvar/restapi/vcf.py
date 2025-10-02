@@ -94,10 +94,10 @@ async def _annotate_vcf_async(
     )
 
     vcf_site_count = 0
+    newline_bytes = b"\n"
     async with aiofiles.open(input_file_path, mode="wb") as fd:
         while buffer := await vcf.read(1024 * 1024):
-            if ord("\n") in buffer:
-                vcf_site_count = vcf_site_count + 1
+            vcf_site_count += buffer.count(newline_bytes)
             await fd.write(buffer)
     _logger.debug(
         "wrote working file for async run %s vcf to %s", run_id, input_file_path
