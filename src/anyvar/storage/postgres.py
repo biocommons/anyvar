@@ -222,9 +222,22 @@ class PostgresObjectStore(Storage):
             mapping_type=mapping_type,
         )
         db_mapping_instance = mapper_registry.to_db_entity(mapping_instance)
-        stmt = insert(DbVariationMapping).on_conflict_do_nothing()
+        # TODO use ORM thing
+        stmt = (
+            insert(DbVariationMapping)
+            .values(
+                [
+                    {
+                        "source_id": source_object_id,
+                        "dest_id": destination_object_id,
+                        "relationship_type": "liftover",  # TODO use enum properly
+                    }
+                ]
+            )
+            .on_conflict_do_nothing()
+        )
         with self.session_factory() as session, session.begin():
-            session.execute(stmt, db_mapping_instance)
+            session.execute(stmt)
 
     def delete_mapping(
         self,

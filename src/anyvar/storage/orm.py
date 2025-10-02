@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, Index, String, create_engine, func
+from sqlalchemy import ForeignKey, Index, String, UniqueConstraint, create_engine, func
 from sqlalchemy.dialects.postgresql import ENUM as PgEnum  # noqa: N811
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import (
@@ -121,6 +121,7 @@ class VariationMapping(Base):
     __table_args__ = (
         Index("idx_mappings_source_id", "source_id"),
         Index("ids_mappings_dest_id", "dest_id"),
+        UniqueConstraint("source_id", "dest_id", "relationship_type"),
     )
 
 

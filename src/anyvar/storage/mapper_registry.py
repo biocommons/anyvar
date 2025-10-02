@@ -33,7 +33,7 @@ class MapperRegistry:
             orm.Allele: AlleleMapper(),
             orm.Location: SequenceLocationMapper(),
             orm.SequenceReference: SequenceReferenceMapper(),
-            orm.VariationMapping: VariationMappingMapper,
+            orm.VariationMapping: VariationMappingMapper(),
         }
 
     def get_mapper(self, entity_type: type[T]) -> BaseMapper:
