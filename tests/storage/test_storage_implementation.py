@@ -3,7 +3,7 @@ To test against different SQL backends, this test can
 be run with different ANYVAR_TEST_STORAGE_URI env var.
 """
 
-from anyvar.storage.base_storage import StoredVrsObjectType
+from anyvar.storage.base_storage import StoredObjectType
 from anyvar.translate.vrs_python import VrsPythonTranslator
 
 
@@ -21,9 +21,7 @@ def test_add_objects(storage, alleles):
 # Test get_objects method (replaces __getitem__)
 def test_get_objects(storage, alleles):
     allele_ids = list(alleles.keys())
-    retrieved_objects = list(
-        storage.get_objects(StoredVrsObjectType.ALLELE, allele_ids)
-    )
+    retrieved_objects = list(storage.get_objects(StoredObjectType.ALLELE, allele_ids))
     assert len(retrieved_objects) > 0
     assert sorted([obj.id for obj in retrieved_objects]) == sorted(allele_ids)
 
@@ -32,7 +30,7 @@ def test_get_objects(storage, alleles):
 def test_object_exists(storage, alleles):
     for allele_id in alleles:
         retrieved_objects = list(
-            storage.get_objects(StoredVrsObjectType.ALLELE, [allele_id])
+            storage.get_objects(StoredObjectType.ALLELE, [allele_id])
         )
         assert len(retrieved_objects) == 1
         assert retrieved_objects[0] is not None
@@ -48,7 +46,7 @@ def test_get_all_object_ids_contains_alleles(storage, alleles):
 
 def test_delete_objects(storage, alleles):
     allele_ids = list(alleles.keys())
-    storage.delete_objects(StoredVrsObjectType.ALLELE, allele_ids)
+    storage.delete_objects(StoredObjectType.ALLELE, allele_ids)
 
 
 # Test that objects were deleted
@@ -58,6 +56,6 @@ def test_objects_deleted(storage, alleles):
     """
     for allele_id in alleles:
         retrieved_objects = list(
-            storage.get_objects(StoredVrsObjectType.ALLELE, [allele_id])
+            storage.get_objects(StoredObjectType.ALLELE, [allele_id])
         )
         assert len(retrieved_objects) == 0

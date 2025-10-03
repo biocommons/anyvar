@@ -9,7 +9,7 @@ from sqlalchemy.orm import joinedload, sessionmaker
 
 from anyvar.storage.base_storage import (
     Storage,
-    StoredVrsObjectType,
+    StoredObjectType,
     VariationMappingType,
 )
 from anyvar.storage.mapper_registry import mapper_registry
@@ -129,14 +129,14 @@ class PostgresObjectStore(Storage):
                 session.execute(stmt, allele_dicts)
 
     def get_objects(
-        self, object_type: StoredVrsObjectType, object_ids: Iterable[str]
+        self, object_type: StoredObjectType, object_ids: Iterable[str]
     ) -> Iterable[vrs_models.VrsType]:
         """Retrieve multiple VRS objects from storage by their IDs."""
         object_ids_list = list(object_ids)
         results = []
 
         with self.session_factory() as session:
-            if object_type == StoredVrsObjectType.ALLELE:
+            if object_type == StoredObjectType.ALLELE:
                 # Get alleles with eager loading
                 stmt = (
                     select(AlleleOrm)
@@ -148,7 +148,7 @@ class PostgresObjectStore(Storage):
                     .where(AlleleOrm.id.in_(object_ids_list))
                 )
                 db_objects = session.scalars(stmt).all()
-            elif object_type == StoredVrsObjectType.SEQUENCE_LOCATION:
+            elif object_type == StoredObjectType.SEQUENCE_LOCATION:
                 # Get locations with eager loading
                 stmt = (
                     select(LocationOrm)
@@ -156,7 +156,7 @@ class PostgresObjectStore(Storage):
                     .where(LocationOrm.id.in_(object_ids_list))
                 )
                 db_objects = session.scalars(stmt).all()
-            elif object_type == StoredVrsObjectType.SEQUENCE_REFERENCE:
+            elif object_type == StoredObjectType.SEQUENCE_REFERENCE:
                 # Get sequence references
                 stmt = select(SequenceReferenceOrm).where(
                     SequenceReferenceOrm.id.in_(object_ids_list)
@@ -181,19 +181,19 @@ class PostgresObjectStore(Storage):
             return allele_ids
 
     def delete_objects(
-        self, object_type: StoredVrsObjectType, object_ids: Iterable[str]
+        self, object_type: StoredObjectType, object_ids: Iterable[str]
     ) -> None:
         """Delete all objects of a specific type from storage."""
         object_ids_list = list(object_ids)
 
         with self.session_factory() as session, session.begin():
-            if object_type == StoredVrsObjectType.ALLELE:
+            if object_type == StoredObjectType.ALLELE:
                 stmt = delete(AlleleOrm).where(AlleleOrm.id.in_(object_ids_list))
                 session.execute(stmt)
-            elif object_type == StoredVrsObjectType.SEQUENCE_LOCATION:
+            elif object_type == StoredObjectType.SEQUENCE_LOCATION:
                 stmt = delete(LocationOrm).where(LocationOrm.id.in_(object_ids_list))
                 session.execute(stmt)
-            elif object_type == StoredVrsObjectType.SEQUENCE_REFERENCE:
+            elif object_type == StoredObjectType.SEQUENCE_REFERENCE:
                 stmt = delete(SequenceReferenceOrm).where(
                     SequenceReferenceOrm.id.in_(object_ids_list)
                 )

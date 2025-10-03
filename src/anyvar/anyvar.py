@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 from agct import Converter, Genome
 
 from anyvar.storage import DEFAULT_STORAGE_URI
-from anyvar.storage.base_storage import Storage, StoredVrsObjectType
+from anyvar.storage.base_storage import Storage, StoredObjectType
 from anyvar.translate.translate import _Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
 from anyvar.utils.types import Annotation, VrsObject
@@ -114,7 +114,7 @@ class AnyVar:
         return variation_object.id
 
     def get_object(
-        self, object_id: str, object_type: StoredVrsObjectType | None = None
+        self, object_id: str, object_type: StoredObjectType | None = None
     ) -> VrsObject:
         """Retrieve registered variation.
 
@@ -146,9 +146,9 @@ class AnyVar:
         """
         # Try each object type. Primary key lookups should be fast.
         object_types_to_try = [
-            StoredVrsObjectType.ALLELE,
-            StoredVrsObjectType.SEQUENCE_LOCATION,
-            StoredVrsObjectType.SEQUENCE_REFERENCE,
+            StoredObjectType.ALLELE,
+            StoredObjectType.SEQUENCE_LOCATION,
+            StoredObjectType.SEQUENCE_REFERENCE,
         ]
         for object_type in object_types_to_try:
             try:

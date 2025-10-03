@@ -9,8 +9,8 @@ from ga4gh.vrs import models as vrs_models
 from anyvar.utils.types import Annotation
 
 
-class StoredVrsObjectType(enum.StrEnum):
-    """Supported VRS object types for AnyVar storage."""
+class StoredObjectType(enum.StrEnum):
+    """Supported object types for AnyVar storage."""
 
     ALLELE = "Allele"
     LOCATION = "Location"
@@ -58,7 +58,7 @@ class Storage(ABC):
 
     @abstractmethod
     def get_objects(
-        self, object_type: StoredVrsObjectType, object_ids: Iterable[str]
+        self, object_type: StoredObjectType, object_ids: Iterable[str]
     ) -> Iterable[vrs_models.VrsType]:
         """Retrieve multiple VRS objects from storage by their IDs."""
 
@@ -68,7 +68,7 @@ class Storage(ABC):
 
     @abstractmethod
     def delete_objects(
-        self, object_type: StoredVrsObjectType, object_ids: Iterable[str]
+        self, object_type: StoredObjectType, object_ids: Iterable[str]
     ) -> None:
         """Delete all objects of a specific type from storage."""
 
