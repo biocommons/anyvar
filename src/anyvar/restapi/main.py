@@ -217,7 +217,6 @@ def add_variation_annotation(
     :return: the variation and annotations if stored
     :raise HTTPException: if requested location isn't found
     """
-    messages: list[str] = []
     # Look up the variation from the AnyVar store
     av: AnyVar = request.app.state.anyvar
     variation: VrsObject | None = None
@@ -249,7 +248,6 @@ def add_variation_annotation(
         ) from e
 
     return AddAnnotationResponse(
-        messages=messages,  # TODO: I think this will always just be empty??
         object=variation,
         object_id=vrs_id,
         annotation_type=annotation_request.annotation_type,

@@ -140,7 +140,6 @@ class RegisterVariationRequest(BaseModel):
 class AddAnnotationResponse(BaseModel):
     """Response for the POST /variation/{vrs_id}/annotations endpoint"""
 
-    messages: list[str]
     object: VrsObject | None
     object_id: str | None
     annotation_type: str | None
