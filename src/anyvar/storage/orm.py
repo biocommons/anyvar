@@ -78,7 +78,7 @@ class AnnotationOrm(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     object_id: Mapped[str] = mapped_column(String)
     annotation_type: Mapped[str] = mapped_column(String)
-    annotation_value: Mapped[str] = mapped_column(String)
+    annotation_value: Mapped[JSONB] = mapped_column(JSONB)
 
     # https://docs.sqlalchemy.org/en/20/core/constraints.html#indexes
     # TODO is this needed because of the primary key?
