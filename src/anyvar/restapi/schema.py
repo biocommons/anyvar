@@ -144,7 +144,7 @@ class AddAnnotationResponse(BaseModel):
     object: VrsObject | None
     object_id: str | None
     annotation_type: str | None
-    annotation_value: dict | None
+    annotation_value: Any | None
     annotation_id: int | None
 
 
