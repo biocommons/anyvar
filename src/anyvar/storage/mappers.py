@@ -6,7 +6,6 @@ from typing import Generic, TypeVar
 from ga4gh.vrs import models as vrs_models
 
 from anyvar.storage import orm
-from anyvar.storage.base_storage import StoredVrsObjectType
 from anyvar.utils.types import Annotation
 
 A = TypeVar("A")  # Anyvar entity type
@@ -202,7 +201,6 @@ class AnnotationMapper(BaseMapper[Annotation, orm.Annotation]):
         """
         return Annotation(
             object_id=db_entity.object_id,
-            object_type=StoredVrsObjectType(db_entity.object_type),
             annotation_type=db_entity.annotation_type,
             annotation_value=db_entity.annotation_value,
             annotation_id=db_entity.id,

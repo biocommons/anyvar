@@ -43,7 +43,7 @@ from anyvar.restapi.schema import (
     ServiceInfo,
 )
 from anyvar.restapi.vcf import router as vcf_router
-from anyvar.storage.db import VrsObject
+from anyvar.storage.orm import VrsObject
 from anyvar.translate.translate import (
     TranslationError,
 )
@@ -234,7 +234,6 @@ def add_variation_annotation(
     try:
         annotation = Annotation(
             object_id=variation.id,
-            object_type=variation.type,
             annotation_type=annotation_request.annotation_type,
             annotation_value=annotation_request.annotation_value,
         )
@@ -328,7 +327,6 @@ async def add_registration_annotations(
         av.put_annotation(
             Annotation(
                 object_id=input_vrs_id,
-                object_type=input_variant.type,
                 annotation_type="creation_timestamp",
                 annotation_value=datetime.datetime.now(tz=datetime.UTC).isoformat(),
             )

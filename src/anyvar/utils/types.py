@@ -7,8 +7,6 @@ from typing import Any
 from ga4gh.vrs import models
 from pydantic import BaseModel
 
-from anyvar.storage.base_storage import StoredVrsObjectType
-
 # should include all supported VRS Python variation types
 VrsVariation = models.Allele | models.CopyNumberChange | models.CopyNumberCount
 
@@ -42,16 +40,14 @@ class SupportedVariationType(StrEnum):
 class Annotation(BaseModel):
     """Generic annotation class which attaches any object to an identifier"""
 
-    annotation_id: int | None
     object_id: str
-    object_type: StoredVrsObjectType
     annotation_type: str
     annotation_value: Any
+    annotation_id: int | None
 
     def __init__(
         self,
         object_id: str,
-        object_type: StoredVrsObjectType,
         annotation_type: str,
         annotation_value: Any,  # noqa: ANN401
         annotation_id: int | None = None,
@@ -60,12 +56,10 @@ class Annotation(BaseModel):
 
         :param annotation_id: The annotation's ID
         :param object_id: The ID of the object this annotation describes
-        :param object_type: The type of object this annotation describes
         :param annotation_type: The type of annotation being added
         :param annotation_value: The annotation itself
         """
         self.object_id = object_id
-        self.object_type = object_type
         self.annotation_type = annotation_type
         self.annotation_value = annotation_value
         self.annotation_id = annotation_id
