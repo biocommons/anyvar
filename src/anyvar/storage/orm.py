@@ -1,6 +1,6 @@
 """SQLAlchemy ORM models for AnyVar database schema."""
 
-from sqlalchemy import ForeignKey, Index, String, create_engine
+from sqlalchemy import ForeignKey, Index, Integer, String, create_engine
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -75,10 +75,9 @@ class Annotation(Base):
 
     __tablename__ = "annotations"
 
-    id: Mapped[int]
-    object_id: Mapped[str] = mapped_column(String, primary_key=True)
-    object_type: Mapped[str] = mapped_column(String)
-    annotation_type: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    object_id: Mapped[str] = mapped_column(String)
+    annotation_type: Mapped[str] = mapped_column(String)
     annotation_value: Mapped[str] = mapped_column(String)
 
     # https://docs.sqlalchemy.org/en/20/core/constraints.html#indexes

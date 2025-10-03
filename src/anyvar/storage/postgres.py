@@ -65,7 +65,7 @@ class PostgresObjectStore(Storage):
 
             # Delete other tables
             session.execute(delete(orm.VrsObject))
-            session.execute(delete(Annotation))
+            session.execute(delete(orm.Annotation))
 
     # TODO also store vrs_objects table in addition to
     # the tables per type.
@@ -291,13 +291,20 @@ class PostgresObjectStore(Storage):
         db_entity = mapper_registry.to_db_entity(annotation)
         with self.session_factory() as session, session.begin():
             stmt = (
-                insert(db_entity)
-                .on_conflict_do_update()  # TODO: Is this the behavior we want?
-                .returning(db_entity.id)
+                insert(orm.Annotation)
+                .on_conflict_do_update(
+                    index_elements=[orm.Annotation.id],  # conflict target: primary key
+                    set_={
+                        "object_id": db_entity.object_id,
+                        "annotation_type": db_entity.annotation_type,
+                        "annotation_value": db_entity.annotation_value,
+                    },
+                )
+                .returning(orm.Annotation.id)
             )
-            return session.execute(stmt, db_entity).scalar_one()
+            return session.execute(stmt, db_entity.to_dict()).scalar_one()
 
-    def get_annotation_by_object_and_type(
+    def get_annotations_by_object_and_type(
         self, object_id: str, annotation_type: str | None = None
     ) -> list[Annotation]:
         """Retrieves all annotations for the given object, optionally filtered to only annotations of the specified type from the database
@@ -314,10 +321,10 @@ class PostgresObjectStore(Storage):
             )
             db_annotations = session.execute(stmt).scalars().all()
 
-        return [
-            mapper_registry.from_db_entity(db_annotations)
-            for db_annotations in db_annotations
-        ]
+            return [
+                mapper_registry.from_db_entity(db_annotation)
+                for db_annotation in db_annotations
+            ]
 
     def delete_annotation(self, annotation_id: int) -> None:
         """Deletes an annotation from the database

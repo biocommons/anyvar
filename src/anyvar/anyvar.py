@@ -170,7 +170,7 @@ class AnyVar:
         :param annotation: an Annotation object
         :return: annotation ID if successful, None otherwise
         """
-        annotation_id = None
+        annotation_id: int | None = None
         try:
             annotation_id = self.object_store.add_annotation(annotation)
         except Exception as e:
@@ -181,14 +181,14 @@ class AnyVar:
     def get_object_annotations(
         self, object_id: str, annotation_type: str | None = None
     ) -> list[Annotation]:
-        """Get all annotations for the specified object, optionally filtered annotations of the specified type
+        """Get all annotations for the specified object, optionally filtered by type
 
         :param object_id: The ID of the object to retrieve annotations for
         :param annotation_type: The type of annotation to retrieve
         :return: A list of Annotations
         """
         try:
-            return self.object_store.get_annotation_by_object_and_type(
+            return self.object_store.get_annotations_by_object_and_type(
                 object_id, annotation_type
             )
         except Exception as e:

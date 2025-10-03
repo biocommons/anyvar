@@ -1,6 +1,5 @@
 """Provide helpful type definitions and references."""
 
-from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
@@ -36,30 +35,10 @@ class SupportedVariationType(StrEnum):
     COPY_NUMBER_CHANGE = "CopyNumberChange"
 
 
-@dataclass
 class Annotation(BaseModel):
     """Generic annotation class which attaches any object to an identifier"""
 
     object_id: str
     annotation_type: str
     annotation_value: Any
-    annotation_id: int | None
-
-    def __init__(
-        self,
-        object_id: str,
-        annotation_type: str,
-        annotation_value: Any,  # noqa: ANN401
-        annotation_id: int | None = None,
-    ) -> None:
-        """Initialize an Annotation object
-
-        :param annotation_id: The annotation's ID
-        :param object_id: The ID of the object this annotation describes
-        :param annotation_type: The type of annotation being added
-        :param annotation_value: The annotation itself
-        """
-        self.object_id = object_id
-        self.annotation_type = annotation_type
-        self.annotation_value = annotation_value
-        self.annotation_id = annotation_id
+    id: int | None = None  # ID of the annotation itself

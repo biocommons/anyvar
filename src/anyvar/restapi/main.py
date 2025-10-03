@@ -320,7 +320,7 @@ async def add_registration_annotations(
 
     # Add annotations
     av: AnyVar = request.app.state.anyvar
-    timestamp_annotations = av.get_object_annotations(
+    timestamp_annotations: list[Annotation] = av.get_object_annotations(
         input_vrs_id, "creation_timestamp"
     )
     if not timestamp_annotations:
@@ -332,7 +332,9 @@ async def add_registration_annotations(
             )
         )
 
-    liftover_annotations = av.get_object_annotations(input_vrs_id, "liftover")
+    liftover_annotations: list[Annotation] = av.get_object_annotations(
+        input_vrs_id, "liftover"
+    )
     if not liftover_annotations:
         # TODO: Don't use annotations for liftover
         liftover_utils.add_liftover_annotations(

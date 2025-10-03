@@ -203,7 +203,7 @@ class AnnotationMapper(BaseMapper[Annotation, orm.Annotation]):
             object_id=db_entity.object_id,
             annotation_type=db_entity.annotation_type,
             annotation_value=db_entity.annotation_value,
-            annotation_id=db_entity.id,
+            id=db_entity.id,
         )
 
     def to_db_entity(self, anyvar_entity: Annotation) -> orm.Annotation:

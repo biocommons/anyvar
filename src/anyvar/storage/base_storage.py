@@ -137,7 +137,7 @@ class Storage(ABC):
         """
 
     @abstractmethod
-    def get_annotation_by_object_and_type(
+    def get_annotations_by_object_and_type(
         self, object_id: str, annotation_type: str | None = None
     ) -> list[Annotation]:
         """Retrieves all annotations for the given object, optionally filtered to only annotations of the specified type from the database

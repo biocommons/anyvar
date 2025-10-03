@@ -108,7 +108,7 @@ class NoObjectStore(Storage):
         """
         raise TypeError("Unsupported operations for this storage type")
 
-    def get_annotation_by_object_and_type(
+    def get_annotations_by_object_and_type(
         self,
         object_id: str,  # noqa: ARG002
         annotation_type: str | None = None,  # noqa: ARG002
