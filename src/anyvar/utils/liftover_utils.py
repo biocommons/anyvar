@@ -259,7 +259,6 @@ def add_liftover_annotations(
     :param input_vrs_id: The ID of the VRS variant to lift over
     :param input_vrs_variant_dict: A dictionary representation of the VRS variant to lift over
     :param anyvar: An `AnyVar` instance
-    :param annotator: An `AnyAnnotation` instance
     """
     # TODO: Remove 'annotator' references from this function - use Mappings instead
     # convert `input_vrs_object_dict` into an actual VrsVariation class instance
