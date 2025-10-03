@@ -43,7 +43,7 @@ from anyvar.restapi.schema import (
     ServiceInfo,
 )
 from anyvar.restapi.vcf import router as vcf_router
-from anyvar.storage.orm import VrsObject
+from anyvar.storage.orm import VrsObjectOrm
 from anyvar.translate.translate import (
     TranslationError,
 )
@@ -221,7 +221,7 @@ def add_variation_annotation(
     messages: list[str] = []
     # Look up the variation from the AnyVar store
     av: AnyVar = request.app.state.anyvar
-    variation: VrsObject | None = None
+    variation: VrsObjectOrm | None = None
     try:
         variation = av.get_object(vrs_id)
     except KeyError as e:

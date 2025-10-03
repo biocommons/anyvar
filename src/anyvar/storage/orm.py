@@ -21,7 +21,7 @@ class Base(DeclarativeBase):
         }
 
 
-class VrsObject(Base):
+class VrsObjectOrm(Base):
     """AnyVar ORM model for vrs_objects table."""
 
     __tablename__ = "vrs_objects"
@@ -30,7 +30,7 @@ class VrsObject(Base):
     vrs_object: Mapped[dict] = mapped_column(JSONB)
 
 
-class Allele(Base):
+class AlleleOrm(Base):
     """AnyVar ORM model for Alleles"""
 
     __tablename__ = "alleles"
@@ -38,11 +38,11 @@ class Allele(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True)
     digest: Mapped[str] = mapped_column(String)
     location_id: Mapped[str] = mapped_column(String, ForeignKey("locations.id"))
-    location: Mapped["Location"] = relationship()
+    location: Mapped["LocationOrm"] = relationship()
     state: Mapped[dict] = mapped_column(JSONB)
 
 
-class Location(Base):
+class LocationOrm(Base):
     """AnyVar ORM model for Locations"""
 
     __tablename__ = "locations"
@@ -52,7 +52,7 @@ class Location(Base):
     sequence_reference_id: Mapped[str] = mapped_column(
         String, ForeignKey("sequence_references.id")
     )
-    sequence_reference: Mapped["SequenceReference"] = relationship()
+    sequence_reference: Mapped["SequenceReferenceOrm"] = relationship()
     start: Mapped[int | None]
     end: Mapped[int | None]
     start_outer: Mapped[int | None]
@@ -61,7 +61,7 @@ class Location(Base):
     end_inner: Mapped[int | None]
 
 
-class SequenceReference(Base):
+class SequenceReferenceOrm(Base):
     """AnyVar ORM model for SequenceReferences"""
 
     __tablename__ = "sequence_references"
@@ -70,7 +70,7 @@ class SequenceReference(Base):
     molecule_type: Mapped[str | None]
 
 
-class Annotation(Base):
+class AnnotationOrm(Base):
     """AnyVar ORM model for annotations table."""
 
     __tablename__ = "annotations"

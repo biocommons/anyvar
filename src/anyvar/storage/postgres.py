@@ -7,22 +7,20 @@ from sqlalchemy import create_engine, delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload, sessionmaker
 
-# from anyvar.storage.orm import (
-#     Allele,
-#     Annotation,
-#     Location,
-#     SequenceReference,
-#     VrsObject,
-#     create_tables,
-# )
-from anyvar.storage import orm
 from anyvar.storage.base_storage import (
     Storage,
     StoredVrsObjectType,
     VariationMappingType,
 )
 from anyvar.storage.mapper_registry import mapper_registry
-from anyvar.storage.orm import create_tables
+from anyvar.storage.orm import (
+    AlleleOrm,
+    AnnotationOrm,
+    LocationOrm,
+    SequenceReferenceOrm,
+    VrsObjectOrm,
+    create_tables,
+)
 from anyvar.utils.types import Annotation
 
 
@@ -59,13 +57,13 @@ class PostgresObjectStore(Storage):
         """Wipe all data from the storage backend."""
         with self.session_factory() as session, session.begin():
             # Delete all data from tables in dependency order
-            session.execute(delete(orm.Allele))
-            session.execute(delete(orm.Location))
-            session.execute(delete(orm.SequenceReference))
+            session.execute(delete(AlleleOrm))
+            session.execute(delete(LocationOrm))
+            session.execute(delete(SequenceReferenceOrm))
 
             # Delete other tables
-            session.execute(delete(orm.VrsObject))
-            session.execute(delete(orm.Annotation))
+            session.execute(delete(VrsObjectOrm))
+            session.execute(delete(AnnotationOrm))
 
     # TODO also store vrs_objects table in addition to
     # the tables per type.
@@ -84,7 +82,7 @@ class PostgresObjectStore(Storage):
         for vrs_object in objects_list:
             db_entity = mapper_registry.to_db_entity(vrs_object)
 
-            if isinstance(db_entity, orm.Allele):
+            if isinstance(db_entity, AlleleOrm):
                 alleles[db_entity.id] = db_entity
                 # Also collect the nested location and sequence reference
                 if db_entity.location:
@@ -93,13 +91,13 @@ class PostgresObjectStore(Storage):
                         sequence_references[
                             db_entity.location.sequence_reference.id
                         ] = db_entity.location.sequence_reference
-            elif isinstance(db_entity, orm.Location):
+            elif isinstance(db_entity, LocationOrm):
                 locations[db_entity.id] = db_entity
                 if db_entity.sequence_reference:
                     sequence_references[db_entity.sequence_reference.id] = (
                         db_entity.sequence_reference
                     )
-            elif isinstance(db_entity, orm.SequenceReference):
+            elif isinstance(db_entity, SequenceReferenceOrm):
                 sequence_references[db_entity.id] = db_entity
             else:
                 raise ValueError(f"Unsupported object type: {type(db_entity)}")  # noqa: TRY004
@@ -114,19 +112,19 @@ class PostgresObjectStore(Storage):
                 sequence_reference_dicts = [
                     sr.to_dict() for sr in sequence_references.values()
                 ]
-                stmt = insert(orm.SequenceReference)
+                stmt = insert(SequenceReferenceOrm)
                 stmt = stmt.on_conflict_do_nothing()
                 session.execute(stmt, sequence_reference_dicts)
 
             if locations:
                 location_dicts = [loc.to_dict() for loc in locations.values()]
-                stmt = insert(orm.Location)
+                stmt = insert(LocationOrm)
                 stmt = stmt.on_conflict_do_nothing()
                 session.execute(stmt, location_dicts)
 
             if alleles:
                 allele_dicts = [allele.to_dict() for allele in alleles.values()]
-                stmt = insert(orm.Allele)
+                stmt = insert(AlleleOrm)
                 stmt = stmt.on_conflict_do_nothing()
                 session.execute(stmt, allele_dicts)
 
@@ -141,27 +139,27 @@ class PostgresObjectStore(Storage):
             if object_type == StoredVrsObjectType.ALLELE:
                 # Get alleles with eager loading
                 stmt = (
-                    select(orm.Allele)
+                    select(AlleleOrm)
                     .options(
-                        joinedload(orm.Allele.location).joinedload(
-                            orm.Location.sequence_reference
+                        joinedload(AlleleOrm.location).joinedload(
+                            LocationOrm.sequence_reference
                         )
                     )
-                    .where(orm.Allele.id.in_(object_ids_list))
+                    .where(AlleleOrm.id.in_(object_ids_list))
                 )
                 db_objects = session.scalars(stmt).all()
             elif object_type == StoredVrsObjectType.SEQUENCE_LOCATION:
                 # Get locations with eager loading
                 stmt = (
-                    select(orm.Location)
-                    .options(joinedload(orm.Location.sequence_reference))
-                    .where(orm.Location.id.in_(object_ids_list))
+                    select(LocationOrm)
+                    .options(joinedload(LocationOrm.sequence_reference))
+                    .where(LocationOrm.id.in_(object_ids_list))
                 )
                 db_objects = session.scalars(stmt).all()
             elif object_type == StoredVrsObjectType.SEQUENCE_REFERENCE:
                 # Get sequence references
-                stmt = select(orm.SequenceReference).where(
-                    orm.SequenceReference.id.in_(object_ids_list)
+                stmt = select(SequenceReferenceOrm).where(
+                    SequenceReferenceOrm.id.in_(object_ids_list)
                 )
                 db_objects = session.scalars(stmt).all()
             else:
@@ -178,7 +176,7 @@ class PostgresObjectStore(Storage):
         with self.session_factory() as session:
             # TODO This only handles Alleles for now
             # TODO This seems like it could be a lot of data
-            stmt = select(orm.Allele.id)
+            stmt = select(AlleleOrm.id)
             allele_ids = session.execute(stmt).scalars().all()
             return allele_ids
 
@@ -190,14 +188,14 @@ class PostgresObjectStore(Storage):
 
         with self.session_factory() as session, session.begin():
             if object_type == StoredVrsObjectType.ALLELE:
-                stmt = delete(orm.Allele).where(orm.Allele.id.in_(object_ids_list))
+                stmt = delete(AlleleOrm).where(AlleleOrm.id.in_(object_ids_list))
                 session.execute(stmt)
             elif object_type == StoredVrsObjectType.SEQUENCE_LOCATION:
-                stmt = delete(orm.Location).where(orm.Location.id.in_(object_ids_list))
+                stmt = delete(LocationOrm).where(LocationOrm.id.in_(object_ids_list))
                 session.execute(stmt)
             elif object_type == StoredVrsObjectType.SEQUENCE_REFERENCE:
-                stmt = delete(orm.SequenceReference).where(
-                    orm.SequenceReference.id.in_(object_ids_list)
+                stmt = delete(SequenceReferenceOrm).where(
+                    SequenceReferenceOrm.id.in_(object_ids_list)
                 )
                 session.execute(stmt)
             else:
@@ -262,18 +260,18 @@ class PostgresObjectStore(Storage):
             # Query alleles with overlapping locations
             # TODO this is any overlap, not containment.
             stmt = (
-                select(orm.Allele)
+                select(AlleleOrm)
                 .options(
-                    joinedload(orm.Allele.location).joinedload(
-                        orm.Location.sequence_reference
+                    joinedload(AlleleOrm.location).joinedload(
+                        LocationOrm.sequence_reference
                     )
                 )
-                .join(orm.Location)
-                .join(orm.SequenceReference)
+                .join(LocationOrm)
+                .join(SequenceReferenceOrm)
                 .where(
-                    orm.SequenceReference.id == refget_accession,
-                    orm.Location.start <= stop,
-                    orm.Location.end >= start,
+                    SequenceReferenceOrm.id == refget_accession,
+                    LocationOrm.start <= stop,
+                    LocationOrm.end >= start,
                 )
             )
             db_alleles = session.scalars(stmt).all()
@@ -288,19 +286,19 @@ class PostgresObjectStore(Storage):
         :param annotation: The annotation to add
         :return: The ID of the newly-added annotation
         """
-        db_entity = mapper_registry.to_db_entity(annotation)
+        db_entity: AnnotationOrm = mapper_registry.to_db_entity(annotation)
         with self.session_factory() as session, session.begin():
             stmt = (
-                insert(orm.Annotation)
+                insert(AnnotationOrm)
                 .on_conflict_do_update(
-                    index_elements=[orm.Annotation.id],  # conflict target: primary key
+                    index_elements=[AnnotationOrm.id],  # conflict target: primary key
                     set_={
                         "object_id": db_entity.object_id,
                         "annotation_type": db_entity.annotation_type,
                         "annotation_value": db_entity.annotation_value,
                     },
                 )
-                .returning(orm.Annotation.id)
+                .returning(AnnotationOrm.id)
             )
             return session.execute(stmt, db_entity.to_dict()).scalar_one()
 
@@ -315,9 +313,9 @@ class PostgresObjectStore(Storage):
         """
         with self.session_factory() as session, session.begin():
             stmt = (
-                select(orm.Annotation)
-                .where(orm.Annotation.object_id == object_id)
-                .where(orm.Annotation.annotation_type == annotation_type)
+                select(AnnotationOrm)
+                .where(AnnotationOrm.object_id == object_id)
+                .where(AnnotationOrm.annotation_type == annotation_type)
             )
             db_annotations = session.execute(stmt).scalars().all()
 
@@ -332,5 +330,5 @@ class PostgresObjectStore(Storage):
         :param annotation_id: The ID of the annotation to delete
         """
         with self.session_factory() as session, session.begin():
-            stmt = delete(orm.Annotation).where(orm.Annotation.id == annotation_id)
+            stmt = delete(AnnotationOrm).where(AnnotationOrm.id == annotation_id)
             session.execute(stmt)
