@@ -181,7 +181,7 @@ class AnyVar:
     def get_object_annotations(
         self, object_id: str, annotation_type: str | None = None
     ) -> list[Annotation]:
-        """Get all annotations for the specified object, optionally filtered by type
+        """Get all annotations for the specified object, optionally filtered by type.
 
         :param object_id: The ID of the object to retrieve annotations for
         :param annotation_type: The type of annotation to retrieve

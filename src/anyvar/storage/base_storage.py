@@ -140,7 +140,7 @@ class Storage(ABC):
     def get_annotations_by_object_and_type(
         self, object_id: str, annotation_type: str | None = None
     ) -> list[Annotation]:
-        """Retrieves all annotations for the given object, optionally filtered to only annotations of the specified type from the database
+        """Get all annotations for the specified object, optionally filtered by type.
 
         :param object_id: The ID of the object to retrieve annotations for
         :param annotation_type: The type of annotation to retrieve

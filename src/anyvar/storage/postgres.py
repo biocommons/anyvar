@@ -291,7 +291,7 @@ class PostgresObjectStore(Storage):
             stmt = (
                 insert(AnnotationOrm)
                 .on_conflict_do_update(
-                    index_elements=[AnnotationOrm.id],  # conflict target: primary key
+                    index_elements=[AnnotationOrm.id],
                     set_={
                         "object_id": db_entity.object_id,
                         "annotation_type": db_entity.annotation_type,
@@ -305,18 +305,17 @@ class PostgresObjectStore(Storage):
     def get_annotations_by_object_and_type(
         self, object_id: str, annotation_type: str | None = None
     ) -> list[Annotation]:
-        """Retrieves all annotations for the given object, optionally filtered to only annotations of the specified type from the database
+        """Get all annotations for the specified object, optionally filtered by type
 
         :param object_id: The ID of the object to retrieve annotations for
         :param annotation_type: The type of annotation to retrieve
         :return: A list of annotations
         """
         with self.session_factory() as session, session.begin():
-            stmt = (
-                select(AnnotationOrm)
-                .where(AnnotationOrm.object_id == object_id)
-                .where(AnnotationOrm.annotation_type == annotation_type)
-            )
+            stmt = select(AnnotationOrm).where(AnnotationOrm.object_id == object_id)
+            if annotation_type:
+                stmt = stmt.where(AnnotationOrm.annotation_type == annotation_type)
+
             db_annotations = session.execute(stmt).scalars().all()
 
             return [
