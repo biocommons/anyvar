@@ -288,18 +288,7 @@ class PostgresObjectStore(Storage):
         """
         db_entity: AnnotationOrm = mapper_registry.to_db_entity(annotation)
         with self.session_factory() as session, session.begin():
-            stmt = (
-                insert(AnnotationOrm)
-                .on_conflict_do_update(
-                    index_elements=[AnnotationOrm.id],
-                    set_={
-                        "object_id": db_entity.object_id,
-                        "annotation_type": db_entity.annotation_type,
-                        "annotation_value": db_entity.annotation_value,
-                    },
-                )
-                .returning(AnnotationOrm.id)
-            )
+            stmt = insert(AnnotationOrm).returning(AnnotationOrm.id)
             return session.execute(stmt, db_entity.to_dict()).scalar_one()
 
     def get_annotations_by_object_and_type(
