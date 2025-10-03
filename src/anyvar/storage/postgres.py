@@ -308,7 +308,7 @@ class PostgresObjectStore(Storage):
         """Get all annotations for the specified object, optionally filtered by type
 
         :param object_id: The ID of the object to retrieve annotations for
-        :param annotation_type: The type of annotation to retrieve
+        :param annotation_type: The type of annotation to retrieve (defaults to `None` to retrieve all annotations for the object)
         :return: A list of annotations
         """
         with self.session_factory() as session, session.begin():

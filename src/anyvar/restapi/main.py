@@ -43,12 +43,11 @@ from anyvar.restapi.schema import (
     ServiceInfo,
 )
 from anyvar.restapi.vcf import router as vcf_router
-from anyvar.storage.orm import VrsObjectOrm
 from anyvar.translate.translate import (
     TranslationError,
 )
 from anyvar.utils import liftover_utils
-from anyvar.utils.types import Annotation, VrsVariation, variation_class_map
+from anyvar.utils.types import Annotation, VrsObject, VrsVariation, variation_class_map
 
 load_dotenv()
 _logger = logging.getLogger(__name__)
@@ -221,7 +220,7 @@ def add_variation_annotation(
     messages: list[str] = []
     # Look up the variation from the AnyVar store
     av: AnyVar = request.app.state.anyvar
-    variation: VrsObjectOrm | None = None
+    variation: VrsObject | None = None
     try:
         variation = av.get_object(vrs_id)
     except KeyError as e:
@@ -233,7 +232,7 @@ def add_variation_annotation(
     annotation_id: int | None = None
     try:
         annotation = Annotation(
-            object_id=variation.id,
+            object_id=variation.id,  # pyright: ignore[reportArgumentType] - variations from the DB will never NOT have an ID
             annotation_type=annotation_request.annotation_type,
             annotation_value=annotation_request.annotation_value,
         )
