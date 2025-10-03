@@ -206,5 +206,5 @@ class VariationMappingMapper(BaseMapper[VariationMapping, orm.VariationMapping])
         return orm.VariationMapping(
             source_id=vrs_model.source_id,
             dest_id=vrs_model.dest_id,
-            relationship_type=vrs_model.mapping_type,
+            mapping_type=vrs_model.mapping_type,
         )

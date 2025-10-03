@@ -60,6 +60,7 @@ class PostgresObjectStore(Storage):
         """Wipe all data from the storage backend."""
         with self.session_factory() as session, session.begin():
             # Delete all data from tables in dependency order
+            session.execute(delete(DbVariationMapping))
             session.execute(delete(Allele))
             session.execute(delete(Location))
             session.execute(delete(SequenceReference))
@@ -230,7 +231,7 @@ class PostgresObjectStore(Storage):
                     {
                         "source_id": source_object_id,
                         "dest_id": destination_object_id,
-                        "relationship_type": "liftover",  # TODO use enum properly
+                        "mapping_type": "liftover",  # TODO use enum properly
                     }
                 ]
             )
@@ -255,7 +256,7 @@ class PostgresObjectStore(Storage):
             delete(DbVariationMapping)
             .where(DbVariationMapping.source_id == source_object_id)
             .where(DbVariationMapping.dest_id == destination_object_id)
-            .where(DbVariationMapping.relationship_type == mapping_type)
+            .where(DbVariationMapping.mapping_type == mapping_type)
         )
         with self.session_factory() as session, session.begin():
             session.execute(stmt)
@@ -273,7 +274,7 @@ class PostgresObjectStore(Storage):
         stmt = (
             select(DbVariationMapping)
             .where(DbVariationMapping.source_id == source_object_id)
-            .where(DbVariationMapping.relationship_type == mapping_type)
+            .where(DbVariationMapping.mapping_type == mapping_type)
         )
         with self.session_factory() as session, session.begin():
             result = session.execute(stmt)

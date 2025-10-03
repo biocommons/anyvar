@@ -97,9 +97,9 @@ class Annotation(Base):
     )
 
 
-relationship_type_enum = PgEnum(
+mapping_type_enum = PgEnum(
     VariationMappingType,
-    name="relationship_type",
+    name="mapping_type",
     metadata=Base.metadata,
     create_type=True,
     validate_strings=True,
@@ -116,12 +116,12 @@ class VariationMapping(Base):
     )
     source_id: Mapped[str] = mapped_column(String, ForeignKey("alleles.id"))
     dest_id: Mapped[str] = mapped_column(String, ForeignKey("alleles.id"))
-    relationship_type: Mapped[str] = mapped_column(relationship_type_enum)
+    mapping_type: Mapped[str] = mapped_column(mapping_type_enum)
 
     __table_args__ = (
         Index("idx_mappings_source_id", "source_id"),
         Index("ids_mappings_dest_id", "dest_id"),
-        UniqueConstraint("source_id", "dest_id", "relationship_type"),
+        UniqueConstraint("source_id", "dest_id", "mapping_type"),
     )
 
 
