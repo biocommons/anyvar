@@ -49,6 +49,11 @@ _logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+# high side estimate for time is 500 variants per second
+_expected_vrs_ids_per_second = int(
+    os.getenv("ANYVAR_EXPECTED_VRS_IDS_PER_SECOND", "500")
+)
+
 
 async def _annotate_vcf_async(
     response: Response,
@@ -84,16 +89,20 @@ async def _annotate_vcf_async(
     )
     if not input_file_path.parent.exists():
         input_file_path.parent.mkdir(parents=True)
-    _logger.debug("writing working file for async vcf to %s", input_file_path)
+    _logger.debug(
+        "writing working file for async run %s vcf to %s", run_id, input_file_path
+    )
 
     vcf_site_count = 0
+    newline_bytes = b"\n"
     async with aiofiles.open(input_file_path, mode="wb") as fd:
         while buffer := await vcf.read(1024 * 1024):
-            if ord("\n") in buffer:
-                vcf_site_count = vcf_site_count + 1
+            vcf_site_count += buffer.count(newline_bytes)
             await fd.write(buffer)
-    _logger.debug("wrote working file for async vcf to %s", input_file_path)
-    _logger.debug("vcf site count of async vcf is %s", vcf_site_count)
+    _logger.debug(
+        "wrote working file for async run %s vcf to %s", run_id, input_file_path
+    )
+    _logger.debug("vcf site count of async run %s vcf is %s", run_id, vcf_site_count)
 
     # submit async job
     task_result = anyvar.queueing.celery_worker.annotate_vcf.apply_async(
@@ -115,10 +124,14 @@ async def _annotate_vcf_async(
     # set response headers
     response.status_code = status.HTTP_202_ACCEPTED
     response.headers["Location"] = f"/vcf/{task_result.id}"
-    # low side estimate for time is 333 variants per second
-    retry_after = max(1, round((vcf_site_count * (2 if for_ref else 1)) / 333, 0))
+    retry_after = max(
+        1,
+        round(
+            (vcf_site_count * (2 if for_ref else 1)) / _expected_vrs_ids_per_second, 0
+        ),
+    )
     _logger.debug("%s - retry after is %s", task_result.id, str(retry_after))
-    response.headers["Retry-After"] = str(retry_after)
+    response.headers["Retry-After"] = str(int(retry_after))
     return RunStatusResponse(
         run_id=task_result.id,
         status="PENDING",
@@ -167,8 +180,8 @@ async def _annotate_vcf_sync(
         _logger.info("Waiting for object store writes from API handler method")
         av.object_store.wait_for_writes()
 
-    bg_tasks.add_task(os.unlink, temp_in_path)
-    bg_tasks.add_task(os.unlink, temp_out_path)
+    bg_tasks.add_task(_working_file_cleanup, temp_in_path)
+    bg_tasks.add_task(_working_file_cleanup, temp_out_path)
 
     return FileResponse(temp_out_path)
 
@@ -245,29 +258,45 @@ async def annotate_vcf(
     # ensure the temporary file is flushed to disk
     vcf.file.rollover()
 
-    # Submit asynchronous run
-    if run_async:
-        return await _annotate_vcf_async(
-            response=response,
-            vcf=vcf,
-            for_ref=for_ref,
-            allow_async_write=allow_async_write,
-            assembly=assembly,
-            add_vrs_attributes=add_vrs_attributes,
-            run_id=run_id,
-        )
-    # Run synchronously
-    else:  # noqa: RET505
-        return await _annotate_vcf_sync(
-            request=request,
-            response=response,
-            bg_tasks=bg_tasks,
-            vcf=vcf,
-            for_ref=for_ref,
-            allow_async_write=allow_async_write,
-            assembly=assembly,
-            add_vrs_attributes=add_vrs_attributes,
-        )
+    try:
+        # Submit asynchronous run
+        if run_async:
+            return await _annotate_vcf_async(
+                response=response,
+                vcf=vcf,
+                for_ref=for_ref,
+                allow_async_write=allow_async_write,
+                assembly=assembly,
+                add_vrs_attributes=add_vrs_attributes,
+                run_id=run_id,
+            )
+        # Run synchronously
+        else:  # noqa: RET505
+            return await _annotate_vcf_sync(
+                request=request,
+                response=response,
+                bg_tasks=bg_tasks,
+                vcf=vcf,
+                for_ref=for_ref,
+                allow_async_write=allow_async_write,
+                assembly=assembly,
+                add_vrs_attributes=add_vrs_attributes,
+            )
+    except Exception:
+        _logger.exception("Unhandled error encountered error during VCF registration")
+        raise
+
+
+def _working_file_cleanup(file_path: str, missing_ok: bool = False) -> None:
+    """Cleanup working files after successful completion of async task.
+
+    :param input_file_path: path to VCF file
+    """
+    try:
+        _logger.debug("removing working file %s", file_path)
+        pathlib.Path(file_path).unlink(missing_ok=missing_ok)
+    except Exception as e:  # noqa: BLE001
+        _logger.warning("unable to remove working file %s: %s", file_path, str(e))
 
 
 async def _ingest_annotated_vcf_sync(
@@ -294,9 +323,9 @@ async def _ingest_annotated_vcf_sync(
         _logger.info("Waiting for object store writes from API handler method")
         av.object_store.wait_for_writes()
 
-    bg_tasks.add_task(os.unlink, temp_in_path)
+    bg_tasks.add_task(_working_file_cleanup, temp_in_path)
     if conflicts_file:
-        bg_tasks.add_task(os.unlink, conflicts_file)
+        bg_tasks.add_task(_working_file_cleanup, conflicts_file)
         return FileResponse(conflicts_file)
     return None
 
@@ -315,6 +344,20 @@ async def _ingest_annotated_vcf_async(
         return ErrorResponse(
             error="Required modules and/or configurations for asynchronous VCF annotation are missing"
         )
+
+    # if run_id is provided, validate it does not already exist
+    if run_id:
+        existing_result = AsyncResult(id=run_id)
+        existing_result_status = existing_result.status
+
+        # explicitly delete to limit chances of deadlocks in the Redis client
+        del existing_result
+
+        if existing_result_status != "PENDING":
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return ErrorResponse(
+                error=f"An existing run with id {run_id} is {existing_result_status}.  Fetch the completed run result before submitting with the same run_id."
+            )
 
     async_work_dir = os.environ.get("ANYVAR_VCF_ASYNC_WORK_DIR", None)
     utc_now = datetime.datetime.now(tz=datetime.UTC)
@@ -521,7 +564,7 @@ async def get_vcf_run_status(
         async_result.forget()
         if output_file_path:
             _logger.debug("%s - output file path is %s", run_id, output_file_path)
-            bg_tasks.add_task(os.unlink, output_file_path)
+            bg_tasks.add_task(_working_file_cleanup, output_file_path)
             return FileResponse(path=output_file_path)
         # for tasks that don't need to return a file, just send a success notification
         return RunStatusResponse(
@@ -560,7 +603,9 @@ async def get_vcf_run_status(
                         run_id,
                         str(input_file_path),
                     )
-                    bg_tasks.add_task(input_file_path.unlink, missing_ok=True)
+                    bg_tasks.add_task(
+                        _working_file_cleanup, str(input_file_path), missing_ok=True
+                    )
                 output_file_path = pathlib.Path(f"{input_file_path_str}_outputvcf")
                 if output_file_path.is_file():
                     _logger.debug(
@@ -568,7 +613,9 @@ async def get_vcf_run_status(
                         run_id,
                         str(output_file_path),
                     )
-                    bg_tasks.add_task(output_file_path.unlink, missing_ok=True)
+                    bg_tasks.add_task(
+                        _working_file_cleanup, str(output_file_path), missing_ok=True
+                    )
 
         # forget the run and return the response
         async_result.forget()
@@ -582,13 +629,17 @@ async def get_vcf_run_status(
         # the after_task_publish handler sets the state to "SENT"
         #  so a status of PENDING is actually unknown task
         # but there can be a race condition, so if status is pending
-        #  pause half a second and check again
+        #  pause half a second at a time up to 5 seconds
         if async_result.status == "PENDING":
-            await asyncio.sleep(0.5)
-            async_result = AsyncResult(id=run_id)
-            _logger.debug(
-                "%s - after 0.5 second wait, status is %s", run_id, async_result.status
-            )
+            for _ in range(10):
+                await asyncio.sleep(0.5)
+                _logger.debug(
+                    "%s - after 0.5 second wait, status is %s",
+                    run_id,
+                    async_result.status,
+                )
+                if async_result.status != "PENDING":
+                    break
 
         # status is "PENDING" - unknown run id
         if async_result.status == "PENDING":
@@ -599,8 +650,10 @@ async def get_vcf_run_status(
                 status_message="Run not found",
             )
         # status is "SENT" - return 202
+        #  with retry after 2 seconds
         else:  # noqa: RET505
             response.status_code = status.HTTP_202_ACCEPTED
+            response.headers["Retry-After"] = "2"
             return RunStatusResponse(
                 run_id=run_id,
                 status="PENDING",
