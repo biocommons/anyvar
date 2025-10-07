@@ -114,13 +114,17 @@ class VariationMapping(Base):
     id: Mapped[UUID] = mapped_column(
         primary_key=True, server_default=func.gen_random_uuid()
     )
-    source_id: Mapped[str] = mapped_column(String, ForeignKey("alleles.id"))
-    dest_id: Mapped[str] = mapped_column(String, ForeignKey("alleles.id"))
+    source_id: Mapped[str] = mapped_column(
+        String, ForeignKey("alleles.id", ondelete="cascade")
+    )
+    dest_id: Mapped[str] = mapped_column(
+        String, ForeignKey("alleles.id", ondelete="cascade")
+    )
     mapping_type: Mapped[str] = mapped_column(mapping_type_enum)
 
     __table_args__ = (
         Index("idx_mappings_source_id", "source_id"),
-        Index("ids_mappings_dest_id", "dest_id"),
+        Index("idx_mappings_dest_id", "dest_id"),
         UniqueConstraint("source_id", "dest_id", "mapping_type"),
     )
 

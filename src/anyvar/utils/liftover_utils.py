@@ -208,6 +208,7 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
             type="SequenceReference", refgetAccession=converted_refget_accession
         ),  # type: ignore (missing parameters are fine, all absent params will default to `None`)
     )  # type: ignore (missing parameters are fine, all absent params will default to `None`)
+    ga4gh_identify(converted_variant_location, in_place="always")
 
     # Build the liftover variant object
     # Start by copying the original variant
@@ -215,11 +216,9 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
 
     # Replace the location with the lifted-over version
     converted_variant.location = converted_variant_location
-    converted_variant.location.id = ga4gh_identify(
-        converted_variant.location, in_place="always"
-    )
 
     # Recompute object ID
+    converted_variant.digest = None
     converted_variant.id = ga4gh_identify(converted_variant, in_place="always")
 
     return converted_variant

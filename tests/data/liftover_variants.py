@@ -6,6 +6,76 @@ from anyvar.utils.liftover_utils import (
 )
 
 test_variants = {
+    # example from PUT /variation
+    "allele_int_rle_grch37_variant": {
+        "variant_input": {
+            "id": "ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb",
+            "type": "Allele",
+            "digest": "d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb",
+            "location": {
+                "id": "ga4gh:SL.JOFKL4nL5mRUlO_xLwQ8VOD1v7mxhs3I",
+                "type": "SequenceLocation",
+                "digest": "JOFKL4nL5mRUlO_xLwQ8VOD1v7mxhs3I",
+                "sequenceReference": {
+                    "type": "SequenceReference",
+                    "refgetAccession": "SQ.IW78mgV5Cqf6M24hy52hPjyyo5tCCd86",
+                },
+                "start": 36561661,
+                "end": 36561663,
+            },
+            "state": {
+                "type": "ReferenceLengthExpression",
+                "length": 0,
+                "sequence": "",
+                "repeatSubunitLength": 2,
+            },
+        },
+        "expected_output": models.Allele(
+            id="ga4gh:VA.QiKnpRR8S7SPoUE-RMUJJbT-RS1akuHA",
+            digest="QiKnpRR8S7SPoUE-RMUJJbT-RS1akuHA",
+            type="Allele",
+            location=models.SequenceLocation(
+                id="ga4gh:SL.0FYyfN4jIyShfruHwdYrSQ-2qmvuVNFK",
+                digest="0FYyfN4jIyShfruHwdYrSQ-2qmvuVNFK",
+                type="SequenceLocation",
+                sequenceReference=models.SequenceReference(
+                    refgetAccession="SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
+                    type="SequenceReference",
+                    id=None,
+                    name=None,
+                    description=None,
+                    aliases=None,
+                    extensions=None,
+                    sequence=None,
+                    moleculeType=None,
+                    residueAlphabet=None,
+                    circular=None,
+                ),
+                start=36522055,
+                end=36522057,
+                name=None,
+                description=None,
+                aliases=None,
+                extensions=None,
+                sequence=None,
+            ),
+            state=models.ReferenceLengthExpression(
+                id=None,
+                type="ReferenceLengthExpression",
+                length=0,
+                sequence=models.sequenceString(""),
+                repeatSubunitLength=2,
+                name=None,
+                description=None,
+                aliases=None,
+                extensions=None,
+            ),
+            name=None,
+            description=None,
+            aliases=None,
+            extensions=None,
+        ),
+    },
     "copynumber_ranged_positive_grch37_variant": {
         "variant_input": {
             "id": "ga4gh:CN.CTCgVehH0FEqrlaOMhUsDjKwzavnQegk",
@@ -22,8 +92,8 @@ test_variants = {
             "copies": 3,
         },
         "expected_output": models.CopyNumberCount(
-            id="ga4gh:CN.LQAMim_Q7_sXVRLX2UFVsHNOolDsK4Bo",
-            digest="LQAMim_Q7_sXVRLX2UFVsHNOolDsK4Bo",
+            id="ga4gh:CN.fmrn873tRhAiNLybjHlftgHjcAEExPKQ",
+            digest="fmrn873tRhAiNLybjHlftgHjcAEExPKQ",
             type="CopyNumberCount",
             name=None,
             description=None,
@@ -77,20 +147,20 @@ test_variants = {
             "state": {"type": "LiteralSequenceExpression", "sequence": "T"},
         },
         "expected_output": models.Allele(
+            id="ga4gh:VA.nmp-bzYpO00NYIqr3CaVF0ZH2ZpSj1ly",
+            digest="nmp-bzYpO00NYIqr3CaVF0ZH2ZpSj1ly",
             aliases=None,
             description=None,
-            digest="dvp7PZ4uKIb9L7IpieJewYSTkgpXgaza",
             expressions=None,
             extensions=None,
-            id="ga4gh:VA.dvp7PZ4uKIb9L7IpieJewYSTkgpXgaza",
             type="Allele",
             location=models.SequenceLocation(
+                id="ga4gh:SL.hVna-JOV5bBTGdXexL--IQm135MG3bGT",
+                digest="hVna-JOV5bBTGdXexL--IQm135MG3bGT",
                 aliases=None,
                 description=None,
-                digest="hVna-JOV5bBTGdXexL--IQm135MG3bGT",
                 end=140453136,
                 extensions=None,
-                id="ga4gh:SL.hVna-JOV5bBTGdXexL--IQm135MG3bGT",
                 name=None,
                 sequence=None,
                 sequenceReference=models.SequenceReference(
@@ -140,12 +210,12 @@ test_variants = {
             "state": {"sequence": "G", "type": "LiteralSequenceExpression"},
         },
         "expected_output": models.Allele(
+            id="ga4gh:VA.J-gW7La8EblIdT1MfqZzhzbO26lkEH7D",
+            digest="J-gW7La8EblIdT1MfqZzhzbO26lkEH7D",
             aliases=None,
             description=None,
-            digest="FTRS8BT4hXgVVOnbq4rGPqQo5tZInhoP",
             expressions=None,
             extensions=None,
-            id="ga4gh:VA.FTRS8BT4hXgVVOnbq4rGPqQo5tZInhoP",
             location=models.SequenceLocation(
                 aliases=None,
                 description=None,
@@ -275,4 +345,3 @@ test_variants = {
 
 # STILL NEED:
 # - A variant that exists on GRCh38 but not GRCH37
-# - A CopyNumberCount variant?

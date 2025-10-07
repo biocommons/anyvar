@@ -4,6 +4,7 @@ import pytest
 from data.liftover_variants import test_variants
 from starlette.testclient import TestClient
 
+from anyvar.anyvar import AnyVar
 from anyvar.utils import liftover_utils
 from anyvar.utils.funcs import build_vrs_variant_from_dict
 
@@ -27,6 +28,11 @@ def allele_int_negative_grch38_variant():
 @pytest.fixture
 def allele_int_unknown_grch38_variant():
     return extract_variants("allele_int_unknown_grch38_variant")
+
+
+@pytest.fixture
+def allele_int_rle_grch37_variant():
+    return extract_variants("allele_int_rle_grch37_variant")
 
 
 # Failure Cases
@@ -59,6 +65,7 @@ def invalid_variant():
 # Cases where liftover should be successful
 SUCCESS_CASES = [
     # "copynumber_ranged_positive_grch37_variant",  # TODO restore upon support for copy number variants
+    "allele_int_rle_grch37_variant",
     "allele_int_negative_grch38_variant",
     "allele_int_unknown_grch38_variant",
 ]
@@ -98,71 +105,35 @@ def test_liftover_failure(request, variant_fixture_name, client):
 
 
 ######################################################################################################
-## Tests for the middleware function src/anyvar/restapi/main.py > 'add_liftover_annotation' ##
+## Tests for `src/anyvar/utils/liftover_utils.py > 'add_liftover_mapping' ##
 ######################################################################################################
 @pytest.mark.parametrize(
     "variant_fixture_name",
     SUCCESS_CASES,
 )
-def test_liftover_annotation_success(request, variant_fixture_name, client):
-    # Ensure we have a clean slate for each test case
-    annotator = client.app.state.anyannotation
-    annotator.reset_mock()
-
-    variant_input, expected_lifted_over_variant = request.getfixturevalue(
-        variant_fixture_name
-    )
-    client.put("/vrs_variation", json=variant_input)
-
-    annotator.put_annotation.assert_any_call(
-        object_id=variant_input.get("id"),
-        annotation_type="liftover",
-        annotation={"liftover": expected_lifted_over_variant.model_dump().get("id")},
+def test_liftover_mapping_success(request, variant_fixture_name, client):
+    variant_input = build_vrs_variant_from_dict(
+        request.getfixturevalue(variant_fixture_name)[0]
     )
 
-    # TODO: we'll need to update this when we implement logic to verify that the liftover is reversible,
-    # because then if the liftover is NOT reversible, this `put_annotation` call won't trigger. See Issue # 195.
-    annotator.put_annotation.assert_any_call(
-        object_id=expected_lifted_over_variant.model_dump().get("id"),
-        annotation_type="liftover",
-        annotation={"liftover": variant_input.get("id")},
-    )
+    # ensure input is present in DB
+    av: AnyVar = client.app.state.anyvar
+    av.object_store.add_objects([variant_input])
+
+    liftover_utils.add_liftover_mapping(variant_input, av)
 
 
 @pytest.mark.parametrize(
     "variant_fixture_name",
     FAILURE_CASES,
 )
-def test_liftover_annotation_failure(request, variant_fixture_name, client):
-    # Ensure we have a clean slate for each test case
-    annotator = client.app.state.anyannotation
-    annotator.reset_mock()
+def test_liftover_mapping_failure(request, variant_fixture_name, client):
+    variant_input, expected_error = request.getfixturevalue(variant_fixture_name)
+    variant_input = build_vrs_variant_from_dict(variant_input)
 
-    variant_input, expected_lifted_over_variant = request.getfixturevalue(
-        variant_fixture_name
-    )
-    client.put("/vrs_variation", json=variant_input)
+    # ensure input is present in DB
+    av: AnyVar = client.app.state.anyvar
+    av.object_store.add_objects([variant_input])
 
-    # Variants that can be registered successfully but are unable to be lifted over are annotated with an error message.
-    annotator.put_annotation.assert_called_with(
-        object_id=variant_input.get("id"),
-        annotation_type="liftover",
-        annotation={"liftover": expected_lifted_over_variant.get_error_message()},
-    )
-
-
-@pytest.mark.parametrize(
-    "variant_fixture_name",
-    NO_LIFTOVER_CASES,
-)
-def test_liftover_annotation_not_attempted(request, variant_fixture_name, client):
-    # Ensure we have a clean slate for each test case
-    annotator = client.app.state.anyannotation
-    annotator.reset_mock()
-
-    variant_input, _ = request.getfixturevalue(variant_fixture_name)
-    client.put("/vrs_variation", json=variant_input)
-
-    # Variant was invalid, so it should not have been registered; which means
-    # we shouldn't have tried to make any liftover annotations for it at all
-    annotator.put_annotation.assert_not_called()
+    with pytest.raises(expected_error):
+        liftover_utils.add_liftover_mapping(variant_input, client.app.state.anyvar)

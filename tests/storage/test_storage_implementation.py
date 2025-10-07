@@ -3,7 +3,9 @@ To test against different SQL backends, this test can
 be run with different ANYVAR_TEST_STORAGE_URI env var.
 """
 
-from anyvar.storage.base_storage import StoredObjectType
+from ga4gh.vrs import models
+
+from anyvar.storage.base_storage import Storage, StoredObjectType, VariationMappingType
 from anyvar.translate.vrs_python import VrsPythonTranslator
 
 
@@ -47,6 +49,18 @@ def test_get_all_object_ids_contains_alleles(storage, alleles):
 def test_delete_objects(storage, alleles):
     allele_ids = list(alleles.keys())
     storage.delete_objects(StoredObjectType.ALLELE, allele_ids)
+
+
+def test_cascading_delete(storage: Storage, alleles: dict):
+    allele_38_fixture = alleles["ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU"]
+    allele_38 = models.Allele(**allele_38_fixture["allele_response"]["object"])
+    allele_37_fixture = alleles["ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf"]
+    allele_37 = models.Allele(**allele_37_fixture["allele_response"]["object"])
+
+    storage.add_objects([allele_38, allele_37])
+    storage.add_mapping(allele_38.id, allele_37.id, VariationMappingType.LIFTOVER)
+
+    storage.delete_objects(StoredObjectType.ALLELE, [allele_38.id])
 
 
 # Test that objects were deleted
