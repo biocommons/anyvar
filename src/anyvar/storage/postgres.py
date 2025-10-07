@@ -3,14 +3,13 @@
 from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
-from sqlalchemy import create_engine, delete, insert, select
+from sqlalchemy import create_engine, delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload, sessionmaker
 
 from anyvar.storage.base_storage import (
     Storage,
     StoredObjectType,
-    VariationMapping,
     VariationMappingType,
 )
 from anyvar.storage.mapper_registry import mapper_registry
@@ -217,13 +216,6 @@ class PostgresObjectStore(Storage):
         :param destination_object_id: ID of the destination object
         :param mapping_type: Type of VariationMappingType
         """
-        mapping_instance = VariationMapping(
-            source_id=source_object_id,
-            dest_id=destination_object_id,
-            mapping_type=mapping_type,
-        )
-        db_mapping_instance = mapper_registry.to_db_entity(mapping_instance)
-        # TODO use ORM thing
         stmt = (
             insert(DbVariationMapping)
             .values(
@@ -231,7 +223,7 @@ class PostgresObjectStore(Storage):
                     {
                         "source_id": source_object_id,
                         "dest_id": destination_object_id,
-                        "mapping_type": "liftover",  # TODO use enum properly
+                        "mapping_type": mapping_type,
                     }
                 ]
             )
@@ -265,20 +257,21 @@ class PostgresObjectStore(Storage):
         self,
         source_object_id: str,
         mapping_type: VariationMappingType,
-    ) -> list[str]:
-        """Return a list of ids of destination objects mapped from the source object.
+    ) -> Iterable[str]:
+        """Return a list of IDs of destination objects mapped from the source object.
 
         :param source_object_id: ID of the source object
-        :param mapping_type: Type of VariationMappingType
+        :param mapping_type: kind of mapping to retrieve
+        :return: iterable collection of IDs
         """
         stmt = (
-            select(DbVariationMapping)
+            select(DbVariationMapping.dest_id)
             .where(DbVariationMapping.source_id == source_object_id)
             .where(DbVariationMapping.mapping_type == mapping_type)
         )
         with self.session_factory() as session, session.begin():
             result = session.execute(stmt)
-        return []
+        return [r[0] for r in result.fetchall()]
 
     def search_alleles(
         self,

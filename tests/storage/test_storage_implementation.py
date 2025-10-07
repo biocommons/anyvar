@@ -51,18 +51,6 @@ def test_delete_objects(storage, alleles):
     storage.delete_objects(StoredObjectType.ALLELE, allele_ids)
 
 
-def test_cascading_delete(storage: Storage, alleles: dict):
-    allele_38_fixture = alleles["ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU"]
-    allele_38 = models.Allele(**allele_38_fixture["allele_response"]["object"])
-    allele_37_fixture = alleles["ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf"]
-    allele_37 = models.Allele(**allele_37_fixture["allele_response"]["object"])
-
-    storage.add_objects([allele_38, allele_37])
-    storage.add_mapping(allele_38.id, allele_37.id, VariationMappingType.LIFTOVER)
-
-    storage.delete_objects(StoredObjectType.ALLELE, [allele_38.id])
-
-
 # Test that objects were deleted
 def test_objects_deleted(storage, alleles):
     """
@@ -73,3 +61,32 @@ def test_objects_deleted(storage, alleles):
             storage.get_objects(StoredObjectType.ALLELE, [allele_id])
         )
         assert len(retrieved_objects) == 0
+
+
+def test_mappings_crud(storage: Storage, alleles: dict):
+    allele_38_fixture = alleles["ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU"]
+    allele_38 = models.Allele(**allele_38_fixture["allele_response"]["object"])
+    allele_37_fixture = alleles["ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf"]
+    allele_37 = models.Allele(**allele_37_fixture["allele_response"]["object"])
+
+    storage.add_objects([allele_38, allele_37])
+    storage.add_mapping(allele_38.id, allele_37.id, VariationMappingType.LIFTOVER)
+
+    assert storage.get_mappings(allele_38.id, VariationMappingType.LIFTOVER) == [
+        allele_37.id
+    ]
+
+    storage.delete_mapping(allele_38.id, allele_37.id, VariationMappingType.LIFTOVER)
+
+
+def test_cascading_delete(storage: Storage, alleles: dict):
+    allele_38_fixture = alleles["ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU"]
+    allele_38 = models.Allele(**allele_38_fixture["allele_response"]["object"])
+    allele_37_fixture = alleles["ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf"]
+    allele_37 = models.Allele(**allele_37_fixture["allele_response"]["object"])
+
+    storage.add_objects([allele_38, allele_37])
+    storage.add_mapping(allele_38.id, allele_37.id, VariationMappingType.LIFTOVER)
+
+    storage.delete_objects(StoredObjectType.ALLELE, [allele_38.id])
+    storage.delete_objects(StoredObjectType.ALLELE, [allele_37.id])

@@ -112,11 +112,12 @@ class Storage(ABC):
         self,
         source_object_id: str,
         mapping_type: VariationMappingType,
-    ) -> list[str]:
-        """Return a list of ids of destination objects mapped from the source object.
+    ) -> Iterable[str]:
+        """Return an iterable of ids of destination objects mapped from the source object.
 
         :param source_object_id: ID of the source object
-        :param mapping_type: Type of VariationMappingType
+        :param mapping_type: kind of mapping to retrieve
+        :return: iterable collection of IDs
         """
 
     @abstractmethod

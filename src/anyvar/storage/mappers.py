@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
 from ga4gh.vrs import models as vrs_models
-from sqlalchemy.orm import relationship
 
 from anyvar.storage import orm
 from anyvar.storage.base_storage import VariationMapping, VariationMappingType
