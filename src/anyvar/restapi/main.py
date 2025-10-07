@@ -309,7 +309,7 @@ def get_variation_annotation(
 async def add_registration_annotations(
     request: Request, call_next: Callable
 ) -> Response:
-    """Add all required annotations ("creation_timestamp" & "liftover") for newly-registered variants
+    """Add all required annotations ("creation_timestamp") for newly-registered variants
 
     :param request: FastAPI `Request` object
     :param call_next: A FastAPI function that receives the `request` as a parameter, passes it to the corresponding path operation, and returns the generated `response`
@@ -404,18 +404,12 @@ def register_variation(
     messages: list[str] = []
     v_id: str = av.put_object(translated_variation)  # type: ignore
 
-    try:
-        liftover_utils.add_liftover_mapping(
-            variation=translated_variation,
-            anyvar=request.app.state.anyvar,
-        )
-    except liftover_utils.LiftoverError as e:
-        _logger.exception(
-            "Encountered error during roundtrip liftover/mapping storage with input variation `%s`, which was translated to `%s`",
-            variation,
-            translated_variation,
-        )
-        messages = list(e.args)
+    liftover_messages = liftover_utils.add_liftover_mapping(
+        variation=translated_variation,
+        anyvar=request.app.state.anyvar,
+    )
+    if liftover_messages:
+        messages += liftover_messages
 
     return RegisterVariationResponse(
         object=translated_variation,  # type: ignore
@@ -473,6 +467,19 @@ def register_vrs_object(
             f"Registration for {variation_type} not currently supported."
         )
         return RegisterVariationResponse(**result)
+
+    try:
+        liftover_utils.add_liftover_mapping(
+            variation=translated_variation,
+            anyvar=request.app.state.anyvar,
+        )
+    except liftover_utils.LiftoverError as e:
+        _logger.exception(
+            "Encountered error during roundtrip liftover/mapping storage with input variation `%s`, which was translated to `%s`",
+            variation,
+            translated_variation,
+        )
+        messages = list(e.args)
 
     variation_object = variation_class_map[variation_type](**variation.model_dump())
     v_id = av.put_object(variation_object)

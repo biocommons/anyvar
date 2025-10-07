@@ -1,5 +1,6 @@
 """Defines functions used to lift over variants between GRCh37 & GRCh38"""
 
+import logging
 from enum import Enum
 from typing import TypeVar
 
@@ -11,6 +12,8 @@ from ga4gh.vrs import models
 from anyvar.anyvar import AnyVar
 from anyvar.storage.base_storage import VariationMappingType
 from anyvar.utils.types import VrsVariation
+
+_logger = logging.getLogger(__name__)
 
 
 class ReferenceAssembly(Enum):
@@ -224,7 +227,7 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
     return converted_variant
 
 
-def add_liftover_mapping(variation: VrsVariation, anyvar: AnyVar) -> None:
+def add_liftover_mapping(variation: VrsVariation, anyvar: AnyVar) -> list[str] | None:
     """Perform liftover between GRCh37 <-> GRCh38.
 
     Register the lifted-over variant and store mappings to and from the original variant.
@@ -234,23 +237,37 @@ def add_liftover_mapping(variation: VrsVariation, anyvar: AnyVar) -> None:
     * liftover is ambiguous in either direction
     * liftover fails to roundtrip
 
+    This function is intended to be quite directly 'user-facing', i.e. it catches and
+    suppresses major error cases and communicates results as they are to be transmitted
+    in the REST API routes. Library users hoping for more direct control will want to
+    employ ``get_liftover_variant`` to perform liftover and make their own decisions
+    about when to call ``add_mapping()``.
+
     :param variation: variation to attempt liftover upon
     :param anyvar: An `AnyVar` instance
+    :return: list of messages describing warnings or failures, or ``None`` if completely successful
     """
     input_vrs_id: str = variation.id  # type: ignore
-    lifted_over_variant = get_liftover_variant(
-        input_variant=variation,
-        anyvar=anyvar,
-    )
-    lifted_over_variant_id: str = lifted_over_variant.id  # type: ignore
-
-    reverse_liftover_variant = get_liftover_variant(
-        input_variant=lifted_over_variant, anyvar=anyvar
-    )
-    if reverse_liftover_variant.id != variation.id:
-        raise LiftoverError(
-            f"{LiftoverError.base_error_message}: Lifted-over variant id of {reverse_liftover_variant.id} does not match expected value of {input_vrs_id}"
+    try:
+        lifted_over_variant = get_liftover_variant(
+            input_variant=variation,
+            anyvar=anyvar,
         )
+        reverse_liftover_variant = get_liftover_variant(
+            input_variant=lifted_over_variant, anyvar=anyvar
+        )
+    except LiftoverError as e:
+        _logger.exception(
+            "Encountered error during liftover of variation `%s`",
+            variation,
+        )
+        return list(e.args)
+
+    lifted_over_variant_id: str = lifted_over_variant.id  # type: ignore
+    if reverse_liftover_variant.id != variation.id:
+        return [
+            f"{LiftoverError.base_error_message}: Roundtripped lifted-over id `{reverse_liftover_variant.id}` does not match initial value of {input_vrs_id}"
+        ]
 
     anyvar.put_object(lifted_over_variant)
     anyvar.object_store.add_mapping(
@@ -263,3 +280,4 @@ def add_liftover_mapping(variation: VrsVariation, anyvar: AnyVar) -> None:
         destination_object_id=input_vrs_id,
         mapping_type=VariationMappingType.LIFTOVER,
     )
+    return None
