@@ -51,15 +51,6 @@ class UnsupportedVariantLocationTypeError(LiftoverError):
 class UnsupportedReferenceAssemblyError(LiftoverError):
     """Indicates a failure to retrieve alias data for a refget accession in any supported reference assembly."""
 
-    def __init__(self, message: str, accession_id: str) -> None:
-        """Initialize reference assembly error
-
-        :param message: exception msg
-        :param accession_id: accession ID that failed to resolve to a genomic sequence ID
-        """
-        super().__init__(message)
-        self.accession_id = accession_id
-
     error_details = "Could not resolve reference assembly - accession not found in any supported assembly"
 
 
@@ -187,7 +178,7 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
         )
     else:
         msg = f"Unable to get reference sequence ID for {prefixed_accession}"
-        raise UnsupportedReferenceAssemblyError(msg, prefixed_accession)
+        raise UnsupportedReferenceAssemblyError(msg)
 
     # Get the Converter that will liftover the variant's coordinates
     converter_key = f"{from_assembly}_to_{to_assembly}"
