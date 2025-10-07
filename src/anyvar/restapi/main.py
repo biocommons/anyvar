@@ -38,7 +38,6 @@ from anyvar.restapi.schema import (
     GetVariationResponse,
     RegisterVariationRequest,
     RegisterVariationResponse,
-    RegisterVrsVariationResponse,
     SearchResponse,
     ServiceInfo,
 )
@@ -355,13 +354,6 @@ async def add_registration_annotations(
                     "timestamp": datetime.datetime.now(tz=datetime.UTC).isoformat()
                 },
             )
-
-    liftover_utils.add_liftover_mapping(
-        input_vrs_id=input_vrs_id,
-        input_vrs_variant_dict=input_variant,
-        anyvar=request.app.state.anyvar,
-    )
-
     return new_response
 
 
@@ -389,35 +381,47 @@ def register_variation(
         ),
     ],
 ) -> RegisterVariationResponse:
-    """Register a variation based on a provided description or reference.
-
-    :param request: FastAPI request object
-    :param variation: provided variation description
-    :return: messages describing translation failure, or object and references if
-        successful
-    """
+    """Register a variation based on a provided description or reference."""
     av: AnyVar = request.app.state.anyvar
     definition = variation.definition
 
-    result = {"object": None, "messages": [], "object_id": None}
     try:
         translated_variation = av.translator.translate_variation(
             definition, **variation.model_dump()
         )
     except TranslationError:
-        result["messages"].append(f'Unable to translate "{definition}"')
-    except NotImplementedError:
-        result["messages"].append(
-            f"Variation class for {definition} is currently unsupported."
+        return RegisterVariationResponse(
+            messages=[f'Unable to translate "{definition}"']
         )
-    else:
-        if translated_variation:
-            v_id = av.put_object(translated_variation)
-            result["object"] = translated_variation
-            result["object_id"] = v_id
-        else:
-            result["messages"].append(f"Translation of {definition} failed.")
-    return RegisterVariationResponse(**result)
+    except NotImplementedError:
+        return RegisterVariationResponse(
+            messages=[f"Variation class for {definition} is currently unsupported."]
+        )
+    if not translated_variation:
+        return RegisterVariationResponse(
+            messages=[f"Translation of {definition} failed."]
+        )
+    messages: list[str] = []
+    v_id: str = av.put_object(translated_variation)  # type: ignore
+
+    try:
+        liftover_utils.add_liftover_mapping(
+            variation=translated_variation,
+            anyvar=request.app.state.anyvar,
+        )
+    except liftover_utils.LiftoverError as e:
+        _logger.exception(
+            "Encountered error during roundtrip liftover/mapping storage with input variation `%s`, which was translated to `%s`",
+            variation,
+            translated_variation,
+        )
+        messages = list(e.args)
+
+    return RegisterVariationResponse(
+        object=translated_variation,  # type: ignore
+        object_id=v_id,
+        messages=messages,
+    )
 
 
 @app.put(
@@ -451,7 +455,7 @@ def register_vrs_object(
             ],
         ),
     ],
-) -> RegisterVrsVariationResponse:
+) -> RegisterVariationResponse:
     """Register a complete VRS object. No additional normalization is performed.
 
     :param request: FastAPI request object
@@ -468,13 +472,13 @@ def register_vrs_object(
         result["messages"].append(
             f"Registration for {variation_type} not currently supported."
         )
-        return RegisterVrsVariationResponse(**result)
+        return RegisterVariationResponse(**result)
 
     variation_object = variation_class_map[variation_type](**variation.model_dump())
     v_id = av.put_object(variation_object)
     result["object"] = variation_object
     result["object_id"] = v_id
-    return RegisterVrsVariationResponse(**result)
+    return RegisterVariationResponse(**result)
 
 
 @app.get(
