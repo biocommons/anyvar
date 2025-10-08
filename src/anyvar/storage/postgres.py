@@ -241,21 +241,21 @@ class PostgresObjectStore(Storage):
         self,
         source_object_id: str,
         mapping_type: anyvar_types.VariationMappingType,
-    ) -> Iterable[str]:
+    ) -> Iterable[anyvar_types.VariationMapping]:
         """Return a list of IDs of destination objects mapped from the source object.
 
         :param source_object_id: ID of the source object
         :param mapping_type: kind of mapping to retrieve
-        :return: iterable collection of IDs
+        :return: iterable collection of mapping descriptors
         """
         stmt = (
-            select(VariationMapping.dest_id)
+            select(VariationMapping)
             .where(VariationMapping.source_id == source_object_id)
             .where(VariationMapping.mapping_type == mapping_type)
         )
         with self.session_factory() as session, session.begin():
-            result = session.execute(stmt)
-        return [r[0] for r in result.fetchall()]
+            mappings = session.scalars(stmt).all()
+            return [mapper_registry.from_db_entity(mapping) for mapping in mappings]
 
     def search_alleles(
         self,

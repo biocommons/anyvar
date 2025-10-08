@@ -80,7 +80,7 @@ def test_mappings_crud(storage: Storage, alleles: dict):
 
     assert storage.get_mappings(
         allele_38.id, anyvar_types.VariationMappingType.LIFTOVER
-    ) == [allele_37.id]
+    ) == [mapping]
 
     storage.delete_mapping(mapping)
     assert (

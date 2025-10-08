@@ -66,7 +66,7 @@ class NoObjectStore(Storage):
 
         :param source_object_id: ID of the source object
         :param mapping_type: kind of mapping to retrieve
-        :return: iterable collection of IDs
+        :return: iterable collection of mapping descriptors
         """
         return []
 
