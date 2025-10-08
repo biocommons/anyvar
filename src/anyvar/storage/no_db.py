@@ -4,6 +4,8 @@ from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
 
+import anyvar.utils.types as anyvar_types
+
 from .base_storage import Storage, StoredObjectType, VariationMappingType
 
 
@@ -24,14 +26,14 @@ class NoObjectStore(Storage):
     def wipe_db(self) -> None:
         """Wipe all data from the storage backend."""
 
-    def add_objects(self, objects: Iterable[vrs_models.VrsType]) -> None:
+    def add_objects(self, objects: Iterable[anyvar_types.VrsObject]) -> None:
         """Add multiple VRS objects to storage."""
 
     def get_objects(
         self,
         object_type: StoredObjectType,  # noqa: ARG002
         object_ids: Iterable[str],  # noqa: ARG002
-    ) -> Iterable[vrs_models.VrsType]:
+    ) -> Iterable[anyvar_types.VrsObject]:
         """Retrieve multiple VRS objects from storage by their IDs."""
         return []
 

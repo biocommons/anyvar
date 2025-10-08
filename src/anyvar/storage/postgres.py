@@ -7,6 +7,7 @@ from sqlalchemy import create_engine, delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import joinedload, sessionmaker
 
+import anyvar.utils.types as anyvar_types
 from anyvar.storage.base_storage import Storage, StoredObjectType, VariationMappingType
 from anyvar.storage.mapper_registry import mapper_registry
 from anyvar.storage.orm import (
@@ -62,7 +63,7 @@ class PostgresObjectStore(Storage):
 
     # TODO also store vrs_objects table in addition to
     # the tables per type.
-    def add_objects(self, objects: Iterable[vrs_models.VrsType]) -> None:
+    def add_objects(self, objects: Iterable[anyvar_types.VrsObject]) -> None:
         """Add multiple VRS objects to storage using bulk inserts."""
         objects_list = list(objects)
         if not objects_list:
@@ -125,7 +126,7 @@ class PostgresObjectStore(Storage):
 
     def get_objects(
         self, object_type: StoredObjectType, object_ids: Iterable[str]
-    ) -> Iterable[vrs_models.VrsType]:
+    ) -> Iterable[anyvar_types.VrsObject]:
         """Retrieve multiple VRS objects from storage by their IDs."""
         object_ids_list = list(object_ids)
         results = []

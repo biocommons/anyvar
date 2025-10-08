@@ -6,6 +6,8 @@ from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
 
+import anyvar.utils.types as anyvar_types
+
 
 class StoredObjectType(enum.StrEnum):
     """Supported VRS object types for AnyVar storage."""
@@ -51,13 +53,13 @@ class Storage(ABC):
         """Wipe all data from the storage backend."""
 
     @abstractmethod
-    def add_objects(self, objects: Iterable[vrs_models.VrsType]) -> None:
+    def add_objects(self, objects: Iterable[anyvar_types.VrsObject]) -> None:
         """Add multiple VRS objects to storage."""
 
     @abstractmethod
     def get_objects(
         self, object_type: StoredObjectType, object_ids: Iterable[str]
-    ) -> Iterable[vrs_models.VrsType]:
+    ) -> Iterable[anyvar_types.VrsObject]:
         """Retrieve multiple VRS objects from storage by their IDs."""
 
     @abstractmethod
