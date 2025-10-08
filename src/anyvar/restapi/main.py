@@ -406,7 +406,7 @@ def register_variation(
 
     liftover_messages = liftover_utils.add_liftover_mapping(
         variation=translated_variation,
-        anyvar=request.app.state.anyvar,
+        anyvar=av,
     )
     if liftover_messages:
         messages += liftover_messages
@@ -450,42 +450,26 @@ def register_vrs_object(
         ),
     ],
 ) -> RegisterVariationResponse:
-    """Register a complete VRS object. No additional normalization is performed.
-
-    :param request: FastAPI request object
-    :param variation: provided VRS variation object
-    :return: object and references if successful
-    """
+    """Register a complete VRS object. No additional normalization is performed."""
     av: AnyVar = request.app.state.anyvar
-    result = {
-        "object": None,
-        "messages": [],
-    }
     variation_type = variation.type
     if variation_type not in variation_class_map:
-        result["messages"].append(
-            f"Registration for {variation_type} not currently supported."
+        return RegisterVariationResponse(
+            messages=[f"Registration for {variation_type} not currently supported."]
         )
-        return RegisterVariationResponse(**result)
-
-    try:
-        liftover_utils.add_liftover_mapping(
-            variation=translated_variation,
-            anyvar=request.app.state.anyvar,
-        )
-    except liftover_utils.LiftoverError as e:
-        _logger.exception(
-            "Encountered error during roundtrip liftover/mapping storage with input variation `%s`, which was translated to `%s`",
-            variation,
-            translated_variation,
-        )
-        messages = list(e.args)
 
     variation_object = variation_class_map[variation_type](**variation.model_dump())
     v_id = av.put_object(variation_object)
-    result["object"] = variation_object
-    result["object_id"] = v_id
-    return RegisterVariationResponse(**result)
+
+    liftover_messages = liftover_utils.add_liftover_mapping(
+        variation=variation, anyvar=av
+    )
+
+    return RegisterVariationResponse(
+        object=variation_object,  # type: ignore
+        object_id=v_id,
+        messages=liftover_messages or [],
+    )
 
 
 @app.get(
