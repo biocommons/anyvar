@@ -77,6 +77,7 @@ def test_mappings_crud(storage: Storage, alleles: dict):
     ]
 
     storage.delete_mapping(allele_38.id, allele_37.id, VariationMappingType.LIFTOVER)
+    assert storage.get_mappings(allele_38.id, VariationMappingType.LIFTOVER) == []
 
 
 def test_cascading_delete(storage: Storage, alleles: dict):
