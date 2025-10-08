@@ -17,11 +17,9 @@ from anyvar.storage.orm import (
     Annotation,
     Location,
     SequenceReference,
+    VariationMapping,
     VrsObject,
     create_tables,
-)
-from anyvar.storage.orm import (
-    VariationMapping as DbVariationMapping,
 )
 from anyvar.utils import types as anyvar_types
 
@@ -59,7 +57,7 @@ class PostgresObjectStore(Storage):
         """Wipe all data from the storage backend."""
         with self.session_factory() as session, session.begin():
             # Delete all data from tables in dependency order
-            session.execute(delete(DbVariationMapping))
+            session.execute(delete(VariationMapping))
             session.execute(delete(Allele))
             session.execute(delete(Location))
             session.execute(delete(SequenceReference))
@@ -210,7 +208,7 @@ class PostgresObjectStore(Storage):
         :param mapping: mapping object
         """
         stmt = (
-            insert(DbVariationMapping)
+            insert(VariationMapping)
             .values(
                 [
                     {
@@ -231,10 +229,10 @@ class PostgresObjectStore(Storage):
         :param mapping: mapping object
         """
         stmt = (
-            delete(DbVariationMapping)
-            .where(DbVariationMapping.source_id == mapping.source_id)
-            .where(DbVariationMapping.dest_id == mapping.dest_id)
-            .where(DbVariationMapping.mapping_type == mapping.mapping_type)
+            delete(VariationMapping)
+            .where(VariationMapping.source_id == mapping.source_id)
+            .where(VariationMapping.dest_id == mapping.dest_id)
+            .where(VariationMapping.mapping_type == mapping.mapping_type)
         )
         with self.session_factory() as session, session.begin():
             session.execute(stmt)
@@ -251,9 +249,9 @@ class PostgresObjectStore(Storage):
         :return: iterable collection of IDs
         """
         stmt = (
-            select(DbVariationMapping.dest_id)
-            .where(DbVariationMapping.source_id == source_object_id)
-            .where(DbVariationMapping.mapping_type == mapping_type)
+            select(VariationMapping.dest_id)
+            .where(VariationMapping.source_id == source_object_id)
+            .where(VariationMapping.mapping_type == mapping_type)
         )
         with self.session_factory() as session, session.begin():
             result = session.execute(stmt)
