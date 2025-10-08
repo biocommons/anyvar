@@ -98,7 +98,10 @@ def test_liftover_success(
 @pytest.mark.parametrize("variant_fixture_name", FAILURE_CASES)
 def test_liftover_failure(request, variant_fixture_name, client):
     variant_input, expected_error = request.getfixturevalue(variant_fixture_name)
-    with pytest.raises(expected_error):
+    with pytest.raises(
+        type(expected_error),
+        match=expected_error.args[0] if expected_error.args else None,
+    ):
         liftover_utils.get_liftover_variant(
             build_vrs_variant_from_dict(variant_input), client.app.state.anyvar
         )
@@ -135,5 +138,6 @@ def test_liftover_mapping_failure(request, variant_fixture_name, client):
     av: AnyVar = client.app.state.anyvar
     av.object_store.add_objects([variant_input])
 
-    with pytest.raises(expected_error):
-        liftover_utils.add_liftover_mapping(variant_input, client.app.state.anyvar)
+    assert liftover_utils.add_liftover_mapping(
+        variant_input, client.app.state.anyvar
+    ) == [expected_error.get_error_message()]

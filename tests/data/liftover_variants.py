@@ -272,7 +272,9 @@ test_variants = {
             },
             "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
         },
-        "expected_output": UnsupportedReferenceAssemblyError,
+        "expected_output": UnsupportedReferenceAssemblyError(
+            "Unable to get reference sequence ID for ga4gh:SQ.JY7UegcaYT-M0PYn1yDGQ_4XJsa-DsXq",
+        ),
     },
     "unconvertible_grch37_variant": {
         "variant_input": {
@@ -292,7 +294,7 @@ test_variants = {
             },
             "state": {"type": "LiteralSequenceExpression", "sequence": "T"},
         },
-        "expected_output": CoordinateConversionFailureError,
+        "expected_output": CoordinateConversionFailureError(),
     },
     "unconvertible_grch38_variant": {  # see: https://www.ncbi.nlm.nih.gov/clinvar/variation/3035826/?oq=NC_000017.11:50150040:GC:GCGC&m=NM_032595.5(PPP1R9B):c.472_473dup%20(p.Ala159fs)
         "variant_input": {
@@ -317,7 +319,7 @@ test_variants = {
             },
             "type": "Allele",
         },
-        "expected_output": CoordinateConversionFailureError,
+        "expected_output": CoordinateConversionFailureError(),
     },
     "empty_variation_object": {
         "variant_input": {},

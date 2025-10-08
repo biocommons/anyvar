@@ -10,7 +10,6 @@ from sqlalchemy.orm import joinedload, sessionmaker
 from anyvar.storage.base_storage import (
     Storage,
     StoredObjectType,
-    VariationMappingType,
 )
 from anyvar.storage.mapper_registry import mapper_registry
 from anyvar.storage.orm import (
@@ -24,6 +23,7 @@ from anyvar.storage.orm import (
 from anyvar.storage.orm import (
     VariationMapping as DbVariationMapping,
 )
+from anyvar.utils import types as anyvar_types
 
 
 class PostgresObjectStore(Storage):
@@ -204,26 +204,19 @@ class PostgresObjectStore(Storage):
             else:
                 raise ValueError(f"Unsupported object type: {object_type}")
 
-    def add_mapping(
-        self,
-        source_object_id: str,
-        destination_object_id: str,
-        mapping_type: VariationMappingType,
-    ) -> None:
+    def add_mapping(self, mapping: anyvar_types.VariationMapping) -> None:
         """Add a mapping between two objects.
 
-        :param source_object_id: ID of the source object
-        :param destination_object_id: ID of the destination object
-        :param mapping_type: Type of VariationMappingType
+        :param mapping: mapping object
         """
         stmt = (
             insert(DbVariationMapping)
             .values(
                 [
                     {
-                        "source_id": source_object_id,
-                        "dest_id": destination_object_id,
-                        "mapping_type": mapping_type,
+                        "source_id": mapping.source_id,
+                        "dest_id": mapping.dest_id,
+                        "mapping_type": mapping.mapping_type,
                     }
                 ]
             )
@@ -232,23 +225,16 @@ class PostgresObjectStore(Storage):
         with self.session_factory() as session, session.begin():
             session.execute(stmt)
 
-    def delete_mapping(
-        self,
-        source_object_id: str,
-        destination_object_id: str,
-        mapping_type: VariationMappingType,
-    ) -> None:
+    def delete_mapping(self, mapping: anyvar_types.VariationMapping) -> None:
         """Delete a mapping between two objects.
 
-        :param source_object_id: ID of the source object
-        :param destination_object_id: ID of the destination object
-        :param mapping_type: Type of VariationMappingType
+        :param mapping: mapping object
         """
         stmt = (
             delete(DbVariationMapping)
-            .where(DbVariationMapping.source_id == source_object_id)
-            .where(DbVariationMapping.dest_id == destination_object_id)
-            .where(DbVariationMapping.mapping_type == mapping_type)
+            .where(DbVariationMapping.source_id == mapping.source_id)
+            .where(DbVariationMapping.dest_id == mapping.dest_id)
+            .where(DbVariationMapping.mapping_type == mapping.mapping_type)
         )
         with self.session_factory() as session, session.begin():
             session.execute(stmt)
@@ -256,7 +242,7 @@ class PostgresObjectStore(Storage):
     def get_mappings(
         self,
         source_object_id: str,
-        mapping_type: VariationMappingType,
+        mapping_type: anyvar_types.VariationMappingType,
     ) -> Iterable[str]:
         """Return a list of IDs of destination objects mapped from the source object.
 

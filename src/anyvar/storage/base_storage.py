@@ -5,7 +5,8 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
-from pydantic import BaseModel
+
+from anyvar.utils import types as anyvar_types
 
 
 class StoredObjectType(enum.StrEnum):
@@ -17,22 +18,6 @@ class StoredObjectType(enum.StrEnum):
     COPY_NUMBER_CHANGE = "CopyNumberChange"
     SEQUENCE_LOCATION = "SequenceLocation"
     SEQUENCE_REFERENCE = "SequenceReference"
-
-
-class VariationMappingType(enum.StrEnum):
-    """Supported mapping types between VRS Variations."""
-
-    LIFTOVER = "liftover"
-    TRANSCRIPTION = "transcription"
-    TRANSLATION = "translation"
-
-
-class VariationMapping(BaseModel):
-    """Mapping between variation instances"""
-
-    source_id: str
-    dest_id: str
-    mapping_type: VariationMappingType
 
 
 class Storage(ABC):
@@ -80,38 +65,24 @@ class Storage(ABC):
         """Delete all objects of a specific type from storage."""
 
     @abstractmethod
-    def add_mapping(
-        self,
-        source_object_id: str,
-        destination_object_id: str,
-        mapping_type: VariationMappingType,
-    ) -> None:
+    def add_mapping(self, mapping: anyvar_types.VariationMapping) -> None:
         """Add a mapping between two objects.
 
-        :param source_object_id: ID of the source object
-        :param destination_object_id: ID of the destination object
-        :param mapping_type: Type of VariationMappingType
+        :param mapping: mapping object
         """
 
     @abstractmethod
-    def delete_mapping(
-        self,
-        source_object_id: str,
-        destination_object_id: str,
-        mapping_type: VariationMappingType,
-    ) -> None:
+    def delete_mapping(self, mapping: anyvar_types.VariationMapping) -> None:
         """Delete a mapping between two objects.
 
-        :param source_object_id: ID of the source object
-        :param destination_object_id: ID of the destination object
-        :param mapping_type: Type of VariationMappingType
+        :param mapping: mapping object
         """
 
     @abstractmethod
     def get_mappings(
         self,
         source_object_id: str,
-        mapping_type: VariationMappingType,
+        mapping_type: anyvar_types.VariationMappingType,
     ) -> Iterable[str]:
         """Return an iterable of ids of destination objects mapped from the source object.
 

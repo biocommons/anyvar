@@ -13,7 +13,7 @@ from sqlalchemy.orm import (
     sessionmaker,
 )
 
-from anyvar.storage.base_storage import VariationMappingType
+from anyvar.utils.types import VariationMappingType
 
 
 class Base(DeclarativeBase):

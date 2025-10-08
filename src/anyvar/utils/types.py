@@ -5,6 +5,7 @@ from enum import StrEnum
 from typing import Any
 
 from ga4gh.vrs import models
+from pydantic import BaseModel
 
 # should include all supported VRS Python variation types
 VrsVariation = models.Allele | models.CopyNumberChange | models.CopyNumberCount
@@ -32,6 +33,27 @@ class SupportedVariationType(StrEnum):
     ALLELE = "Allele"
     COPY_NUMBER_COUNT = "CopyNumberCount"
     COPY_NUMBER_CHANGE = "CopyNumberChange"
+
+
+class VariationMappingType(StrEnum):
+    """Supported mapping types between VRS Variations."""
+
+    LIFTOVER = "liftover"
+    TRANSCRIPTION = "transcription"
+    TRANSLATION = "translation"
+
+
+class VariationMapping(BaseModel):
+    """Describe a mapping between two variations.
+
+    The ``.id`` property may be unavailable, depending on whether the instance is
+    supposed to correspond to a mapping that may be retained in storage.
+    """
+
+    id: int | None = None
+    source_id: str
+    dest_id: str
+    mapping_type: VariationMappingType
 
 
 @dataclass

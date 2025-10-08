@@ -10,8 +10,7 @@ from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import models
 
 from anyvar.anyvar import AnyVar
-from anyvar.storage.base_storage import VariationMappingType
-from anyvar.utils.types import VrsVariation
+from anyvar.utils.types import VariationMapping, VariationMappingType, VrsVariation
 
 _logger = logging.getLogger(__name__)
 
@@ -181,6 +180,7 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
         )
     else:
         msg = f"Unable to get reference sequence ID for {prefixed_accession}"
+        _logger.error(msg)
         raise UnsupportedReferenceAssemblyError(msg)
 
     # Get the Converter that will liftover the variant's coordinates
@@ -200,6 +200,10 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
         new_alias, "ga4gh"
     )[0].split("ga4gh:")[1]
     if not converted_refget_accession:
+        _logger.error(
+            "Unable to convert constructed sequence ID `%s` into refgetAccession",
+            new_alias,
+        )
         raise AccessionConversionError
 
     # Build the converted location object
@@ -261,7 +265,7 @@ def add_liftover_mapping(variation: VrsVariation, anyvar: AnyVar) -> list[str] |
             "Encountered error during liftover of variation `%s`",
             variation,
         )
-        return list(e.args)
+        return [e.get_error_message()]
 
     lifted_over_variant_id: str = lifted_over_variant.id  # type: ignore
     if reverse_liftover_variant.id != variation.id:
@@ -271,13 +275,17 @@ def add_liftover_mapping(variation: VrsVariation, anyvar: AnyVar) -> list[str] |
 
     anyvar.put_object(lifted_over_variant)
     anyvar.object_store.add_mapping(
-        source_object_id=input_vrs_id,
-        destination_object_id=lifted_over_variant_id,
-        mapping_type=VariationMappingType.LIFTOVER,
+        VariationMapping(
+            source_id=input_vrs_id,
+            dest_id=lifted_over_variant_id,
+            mapping_type=VariationMappingType.LIFTOVER,
+        )
     )
     anyvar.object_store.add_mapping(
-        source_object_id=lifted_over_variant_id,
-        destination_object_id=input_vrs_id,
-        mapping_type=VariationMappingType.LIFTOVER,
+        VariationMapping(
+            source_id=lifted_over_variant_id,
+            dest_id=input_vrs_id,
+            mapping_type=VariationMappingType.LIFTOVER,
+        )
     )
     return None
