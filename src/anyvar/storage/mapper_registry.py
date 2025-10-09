@@ -4,6 +4,7 @@ from typing import TypeVar
 
 from ga4gh.vrs import models as vrs_models
 
+from anyvar.storage import orm
 from anyvar.storage.mappers import (
     AlleleMapper,
     AnnotationMapper,
@@ -11,13 +12,7 @@ from anyvar.storage.mappers import (
     SequenceLocationMapper,
     SequenceReferenceMapper,
 )
-from anyvar.storage.orm import (
-    AlleleOrm,
-    AnnotationOrm,
-    LocationOrm,
-    SequenceReferenceOrm,
-)
-from anyvar.utils.types import Annotation
+from anyvar.utils import types
 
 T = TypeVar("T")
 
@@ -28,17 +23,17 @@ class MapperRegistry:
     def __init__(self) -> None:
         """Initialize the MapperRegistry with known mappers."""
         self.anyvar_to_db_mapping = {
-            vrs_models.Allele: AlleleOrm,
-            vrs_models.SequenceLocation: LocationOrm,
-            vrs_models.SequenceReference: SequenceReferenceOrm,
-            Annotation: AnnotationOrm,
+            vrs_models.Allele: orm.Allele,
+            vrs_models.SequenceLocation: orm.Location,
+            vrs_models.SequenceReference: orm.SequenceReference,
+            types.Annotation: orm.Annotation,
         }
 
         self._mappers: dict[type, BaseMapper] = {
-            AlleleOrm: AlleleMapper(),
-            LocationOrm: SequenceLocationMapper(),
-            SequenceReferenceOrm: SequenceReferenceMapper(),
-            AnnotationOrm: AnnotationMapper(),
+            orm.Allele: AlleleMapper(),
+            orm.Location: SequenceLocationMapper(),
+            orm.SequenceReference: SequenceReferenceMapper(),
+            orm.Annotation: AnnotationMapper(),
         }
 
     def get_mapper(self, entity_type: type[T]) -> BaseMapper:

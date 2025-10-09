@@ -46,8 +46,8 @@ from anyvar.restapi.vcf import router as vcf_router
 from anyvar.translate.translate import (
     TranslationError,
 )
-from anyvar.utils import liftover_utils
-from anyvar.utils.types import Annotation, VrsObject, VrsVariation, variation_class_map
+from anyvar.utils import liftover_utils, types
+from anyvar.utils.types import VrsObject, VrsVariation, variation_class_map
 
 load_dotenv()
 _logger = logging.getLogger(__name__)
@@ -230,7 +230,7 @@ def add_variation_annotation(
     # Add the annotation to the database
     annotation_id: int | None = None
     try:
-        annotation = Annotation(
+        annotation = types.Annotation(
             object_id=variation.id,  # pyright: ignore[reportArgumentType] - variations from the DB will never NOT have an ID
             annotation_type=annotation_request.annotation_type,
             annotation_value=annotation_request.annotation_value,
@@ -276,7 +276,9 @@ def get_variation_annotation(
     :return: response object containing list of annotations for the variation
     """
     av: AnyVar = request.app.state.anyvar
-    annotations: list[Annotation] = av.get_object_annotations(vrs_id, annotation_type)
+    annotations: list[types.Annotation] = av.get_object_annotations(
+        vrs_id, annotation_type
+    )
     return GetAnnotationResponse(annotations=annotations)
 
 
@@ -317,19 +319,19 @@ async def add_registration_annotations(
 
     # Add annotations
     av: AnyVar = request.app.state.anyvar
-    timestamp_annotations: list[Annotation] = av.get_object_annotations(
+    timestamp_annotations: list[types.Annotation] = av.get_object_annotations(
         input_vrs_id, "creation_timestamp"
     )
     if not timestamp_annotations:
         av.put_annotation(
-            Annotation(
+            types.Annotation(
                 object_id=input_vrs_id,
                 annotation_type="creation_timestamp",
                 annotation_value=datetime.datetime.now(tz=datetime.UTC).isoformat(),
             )
         )
 
-    liftover_annotations: list[Annotation] = av.get_object_annotations(
+    liftover_annotations: list[types.Annotation] = av.get_object_annotations(
         input_vrs_id, "liftover"
     )
     if not liftover_annotations:

@@ -6,7 +6,7 @@ from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
 
-from anyvar.utils.types import Annotation
+from anyvar.utils import types
 
 
 class StoredObjectType(enum.StrEnum):
@@ -129,7 +129,7 @@ class Storage(ABC):
         """
 
     @abstractmethod
-    def add_annotation(self, annotation: Annotation) -> int:
+    def add_annotation(self, annotation: types.Annotation) -> int:
         """Adds an annotation to the database.
 
         :param annotation: The annotation to add
@@ -139,7 +139,7 @@ class Storage(ABC):
     @abstractmethod
     def get_annotations_by_object_and_type(
         self, object_id: str, annotation_type: str | None = None
-    ) -> list[Annotation]:
+    ) -> list[types.Annotation]:
         """Get all annotations for the specified object, optionally filtered by type.
 
         :param object_id: The ID of the object to retrieve annotations for

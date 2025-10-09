@@ -15,7 +15,8 @@ from anyvar.storage import DEFAULT_STORAGE_URI
 from anyvar.storage.base_storage import Storage, StoredObjectType
 from anyvar.translate.translate import _Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
-from anyvar.utils.types import Annotation, VrsObject
+from anyvar.utils import types
+from anyvar.utils.types import VrsObject
 
 # Suppress pydantic warnings unless otherwise indicated
 if os.environ.get("ANYVAR_SHOW_PYDANTIC_WARNINGS", None) is None:
@@ -164,7 +165,7 @@ class AnyVar:
                 continue
         raise KeyError(f"Object {object_id} not found in any table")
 
-    def put_annotation(self, annotation: Annotation) -> int | None:
+    def put_annotation(self, annotation: types.Annotation) -> int | None:
         """Attempt to store an annotation.
 
         :param annotation: an Annotation object
@@ -180,7 +181,7 @@ class AnyVar:
 
     def get_object_annotations(
         self, object_id: str, annotation_type: str | None = None
-    ) -> list[Annotation]:
+    ) -> list[types.Annotation]:
         """Get all annotations for the specified object, optionally filtered by type.
 
         :param object_id: The ID of the object to retrieve annotations for

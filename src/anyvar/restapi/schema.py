@@ -14,8 +14,8 @@ from ga4gh.vrs import (
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
 from anyvar import __version__
+from anyvar.utils import types
 from anyvar.utils.types import (
-    Annotation,
     SupportedVariationType,
     VrsObject,
 )
@@ -160,7 +160,7 @@ class AddAnnotationRequest(BaseModel):
 class GetAnnotationResponse(BaseModel):
     """Response for the GET /variation/{vrs_id}/annotations/{annotation_type} endpoint"""
 
-    annotations: list[Annotation]
+    annotations: list[types.Annotation]
 
 
 class RegisterVariationResponse(BaseModel):

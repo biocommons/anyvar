@@ -4,7 +4,7 @@ from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
 
-from anyvar.utils.types import Annotation
+from anyvar.utils import types
 
 from .base_storage import Storage, StoredObjectType, VariationMappingType
 
@@ -100,7 +100,7 @@ class NoObjectStore(Storage):
         """
         return []
 
-    def add_annotation(self, annotation: Annotation) -> int:  # noqa: ARG002
+    def add_annotation(self, annotation: types.Annotation) -> int:  # noqa: ARG002
         """Adds an annotation to the database.
 
         :param annotation: The annotation to add
@@ -112,7 +112,7 @@ class NoObjectStore(Storage):
         self,
         object_id: str,  # noqa: ARG002
         annotation_type: str | None = None,  # noqa: ARG002
-    ) -> list[Annotation]:
+    ) -> list[types.Annotation]:
         """Get all annotations for the specified object, optionally filtered by type.
 
         :param object_id: The ID of the object to retrieve annotations for
