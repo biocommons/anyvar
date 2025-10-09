@@ -6,15 +6,10 @@ from pathlib import Path
 
 import pysam
 from ga4gh.core import ga4gh_identify
+from ga4gh.vrs import models as vrs_models
 from ga4gh.vrs import normalize
 from ga4gh.vrs.dataproxy import _DataProxy
 from ga4gh.vrs.extras.annotator.vcf import FieldName, VcfAnnotator
-from ga4gh.vrs.models import (
-    Allele,
-    LiteralSequenceExpression,
-    SequenceLocation,
-    SequenceReference,
-)
 
 from anyvar.anyvar import AnyVar
 
@@ -36,14 +31,14 @@ class VcfRegistrar(VcfAnnotator):
     def on_vrs_object(  # noqa: D102
         self,
         vcf_coords: str,  # noqa: ARG002
-        vrs_allele: Allele,
+        vrs_allele: vrs_models.Allele,
         **kwargs,  # noqa: ARG002
-    ) -> Allele | None:
+    ) -> vrs_models.Allele | None:
         self.av.put_object(vrs_allele)
         return vrs_allele
 
     def on_vrs_object_collection(  # noqa: D102
-        self, vrs_alleles_collection: list[Allele] | None, **kwargs
+        self, vrs_alleles_collection: list[vrs_models.Allele] | None, **kwargs
     ) -> None:
         pass
 
@@ -129,14 +124,14 @@ def register_existing_annotations(
                 if vrs_id == ".":
                     continue
                 true_state = "" if state == "." else state
-                seq_ref = SequenceReference(refgetAccession=refget_accession)  # pyright: ignore[reportCallIssue] - values that aren't specified default to `None`
-                location = SequenceLocation(
+                seq_ref = vrs_models.SequenceReference(refgetAccession=refget_accession)  # pyright: ignore[reportCallIssue] - values that aren't specified default to `None`
+                location = vrs_models.SequenceLocation(
                     sequenceReference=seq_ref, start=start, end=end
                 )  # pyright: ignore[reportCallIssue]
                 location_id = ga4gh_identify(location)
                 location.id = location_id
-                lse = LiteralSequenceExpression(sequence=true_state)  # pyright: ignore[reportCallIssue]
-                allele = Allele(location=location, state=lse)  # pyright: ignore[reportCallIssue]
+                lse = vrs_models.LiteralSequenceExpression(sequence=true_state)  # pyright: ignore[reportCallIssue]
+                allele = vrs_models.Allele(location=location, state=lse)  # pyright: ignore[reportCallIssue]
                 allele = normalize(allele, av.translator.dp)
                 new_vrs_id = ga4gh_identify(allele)
                 if conflict_logfile and new_vrs_id != vrs_id:
