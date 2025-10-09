@@ -28,7 +28,6 @@ class Base(DeclarativeBase):
         # e.g., the environment variable to override the table name created by the "VrsObject" ORM class is `VRS_OBJECTS_TABLE_NAME`
         environment_variable_name: str = f"{default_name.upper()}_TABLE_NAME"
 
-        # If environment variable is set, override the table name
         return os.getenv(environment_variable_name) or default_name
 
     def to_dict(self) -> dict:
