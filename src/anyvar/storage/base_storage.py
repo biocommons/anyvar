@@ -6,9 +6,11 @@ from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
 
+from anyvar.utils import types
+
 
 class StoredObjectType(enum.StrEnum):
-    """Supported VRS object types for AnyVar storage."""
+    """Supported object types for AnyVar storage."""
 
     ALLELE = "Allele"
     LOCATION = "Location"
@@ -124,4 +126,30 @@ class Storage(ABC):
         :param stop: Stop genomic region to query
 
         :return: a list of Alleles
+        """
+
+    @abstractmethod
+    def add_annotation(self, annotation: types.Annotation) -> int:
+        """Adds an annotation to the database.
+
+        :param annotation: The annotation to add
+        :return: The ID of the newly-added annotation
+        """
+
+    @abstractmethod
+    def get_annotations_by_object_and_type(
+        self, object_id: str, annotation_type: str | None = None
+    ) -> list[types.Annotation]:
+        """Get all annotations for the specified object, optionally filtered by type.
+
+        :param object_id: The ID of the object to retrieve annotations for
+        :param annotation_type: The type of annotation to retrieve (defaults to `None` to retrieve all annotations for the object)
+        :return: A list of annotations
+        """
+
+    @abstractmethod
+    def delete_annotation(self, annotation_id: int) -> None:
+        """Deletes an annotation from the database
+
+        :param annotation_id: The ID of the annotation to delete
         """

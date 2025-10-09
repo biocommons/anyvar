@@ -8,7 +8,7 @@ from bioutils.accessions import chr22XY
 from ga4gh.vrs import models
 from ga4gh.vrs.enderef import vrs_deref, vrs_enref
 
-from anyvar.anyvar import AnyAnnotation, AnyVar
+from anyvar.anyvar import AnyVar
 from anyvar.utils.funcs import build_vrs_variant_from_dict
 from anyvar.utils.types import VrsVariation
 
@@ -252,7 +252,6 @@ def add_liftover_annotations(
     input_vrs_id: str,
     input_vrs_variant_dict: dict,
     anyvar: AnyVar,
-    annotator: AnyAnnotation | None,
 ) -> None:
     """Perform liftover between GRCh37 <-> GRCh38. Store the ID of converted variant as an annotation of the original,
     register the lifted-over variant, and store the ID of the original variant as an annotation of the lifted-over one.
@@ -260,8 +259,8 @@ def add_liftover_annotations(
     :param input_vrs_id: The ID of the VRS variant to lift over
     :param input_vrs_variant_dict: A dictionary representation of the VRS variant to lift over
     :param anyvar: An `AnyVar` instance
-    :param annotator: An `AnyAnnotation` instance
     """
+    # TODO: Remove 'annotator' references from this function - use Mappings instead
     # convert `input_vrs_object_dict` into an actual VrsVariation class instance
     input_vrs_variant = build_vrs_variant_from_dict(input_vrs_variant_dict)
 

@@ -4,6 +4,8 @@ from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
 
+from anyvar.utils import types
+
 from .base_storage import Storage, StoredObjectType, VariationMappingType
 
 
@@ -97,3 +99,31 @@ class NoObjectStore(Storage):
         :return: a list of Alleles
         """
         return []
+
+    def add_annotation(self, annotation: types.Annotation) -> int:  # noqa: ARG002
+        """Adds an annotation to the database.
+
+        :param annotation: The annotation to add
+        :return: The ID of the newly-added annotation
+        """
+        raise TypeError("Unsupported operations for this storage type")
+
+    def get_annotations_by_object_and_type(
+        self,
+        object_id: str,  # noqa: ARG002
+        annotation_type: str | None = None,  # noqa: ARG002
+    ) -> list[types.Annotation]:
+        """Get all annotations for the specified object, optionally filtered by type.
+
+        :param object_id: The ID of the object to retrieve annotations for
+        :param annotation_type: The type of annotation to retrieve (defaults to `None` to retrieve all annotations for the object)
+        :return: A list of annotations
+        """
+        raise TypeError("Unsupported operations for this storage type")
+
+    def delete_annotation(self, annotation_id: int) -> None:  # noqa: ARG002
+        """Deletes an annotation from the database
+
+        :param annotation_id: The ID of the annotation to delete
+        """
+        raise TypeError("Unsupported operations for this storage type")

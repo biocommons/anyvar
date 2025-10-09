@@ -7,10 +7,12 @@ from ga4gh.vrs import models as vrs_models
 from anyvar.storage import orm
 from anyvar.storage.mappers import (
     AlleleMapper,
+    AnnotationMapper,
     BaseMapper,
     SequenceLocationMapper,
     SequenceReferenceMapper,
 )
+from anyvar.utils import types
 
 T = TypeVar("T")
 
@@ -20,16 +22,18 @@ class MapperRegistry:
 
     def __init__(self) -> None:
         """Initialize the MapperRegistry with known mappers."""
-        self.vrs_to_db_mapping = {
+        self.anyvar_to_db_mapping = {
             vrs_models.Allele: orm.Allele,
             vrs_models.SequenceLocation: orm.Location,
             vrs_models.SequenceReference: orm.SequenceReference,
+            types.Annotation: orm.Annotation,
         }
 
         self._mappers: dict[type, BaseMapper] = {
             orm.Allele: AlleleMapper(),
             orm.Location: SequenceLocationMapper(),
             orm.SequenceReference: SequenceReferenceMapper(),
+            orm.Annotation: AnnotationMapper(),
         }
 
     def get_mapper(self, entity_type: type[T]) -> BaseMapper:
@@ -44,18 +48,18 @@ class MapperRegistry:
         mapper = self.get_mapper(type(db_entity))
         return mapper.from_db_entity(db_entity)
 
-    def to_db_entity(self, vrs_model):  # noqa: ANN201, ANN001
+    def to_db_entity(self, anyvar_entity):  # noqa: ANN201, ANN001
         """Convert any VRS model to its corresponding DB entity."""
         # Map VRS model types to DB entity types
 
-        db_type = self.vrs_to_db_mapping.get(type(vrs_model))
+        db_type = self.anyvar_to_db_mapping.get(type(anyvar_entity))
         if db_type is None:
             raise ValueError(
-                f"No DB entity type mapped for VRS model: {type(vrs_model)}"
+                f"No DB entity type mapped for VRS model: {type(anyvar_entity)}"
             )
 
         mapper = self.get_mapper(db_type)
-        return mapper.to_db_entity(vrs_model)
+        return mapper.to_db_entity(anyvar_entity)
 
 
 # Global registry instance
