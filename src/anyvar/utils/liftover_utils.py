@@ -273,7 +273,9 @@ def add_liftover_mapping(variation: VrsVariation, anyvar: AnyVar) -> list[str] |
             f"{LiftoverError.base_error_message}: Roundtripped lifted-over id `{reverse_liftover_variant.id}` does not match initial value of {input_vrs_id}"
         ]
 
-    normalized_lifted_over_variant = normalize(lifted_over_variant)
+    normalized_lifted_over_variant = normalize(
+        lifted_over_variant, data_proxy=anyvar.translator.dp
+    )
     anyvar.put_object(normalized_lifted_over_variant)
     anyvar.object_store.add_mapping(
         VariationMapping(
