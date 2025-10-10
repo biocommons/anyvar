@@ -232,9 +232,8 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
 
 
 def add_liftover_mapping(variation: VrsVariation, anyvar: AnyVar) -> list[str] | None:
-    """Perform liftover between GRCh37 <-> GRCh38.
-
-    Register the lifted-over variant and store mappings to and from the original variant.
+    """Perform liftover between GRCh37 <-> GRCh38. Store the ID of converted variant as an annotation of the original,
+    register the lifted-over variant, and store the ID of the original variant as an annotation of the lifted-over one.
 
     Don't register lifted-over variant or mappings if
     * liftover fails in either direction
