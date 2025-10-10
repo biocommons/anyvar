@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 from ga4gh.vrs import (
     VRS_VERSION,
@@ -13,8 +14,8 @@ from ga4gh.vrs import (
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
 from anyvar import __version__
+from anyvar.utils import types
 from anyvar.utils.types import (
-    Annotation,
     SupportedVariationType,
     VrsObject,
 )
@@ -139,11 +140,11 @@ class RegisterVariationRequest(BaseModel):
 class AddAnnotationResponse(BaseModel):
     """Response for the POST /variation/{vrs_id}/annotations endpoint"""
 
-    messages: list[str]
     object: VrsObject | None
     object_id: str | None
     annotation_type: str | None
-    annotation: dict | None
+    annotation_value: Any | None
+    annotation_id: int | None
 
 
 class AddAnnotationRequest(BaseModel):
@@ -153,13 +154,13 @@ class AddAnnotationRequest(BaseModel):
     """
 
     annotation_type: str
-    annotation: dict
+    annotation_value: Any
 
 
 class GetAnnotationResponse(BaseModel):
     """Response for the GET /variation/{vrs_id}/annotations/{annotation_type} endpoint"""
 
-    annotations: list[Annotation]
+    annotations: list[types.Annotation]
 
 
 class RegisterVariationResponse(BaseModel):

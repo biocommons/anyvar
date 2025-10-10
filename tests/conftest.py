@@ -1,7 +1,6 @@
 import json
 import os
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -46,17 +45,9 @@ def storage():
 
 
 @pytest.fixture(scope="session")
-def annotator():
-    annotator = MagicMock()
-    annotator.get_annotation.return_value = []
-    return annotator
-
-
-@pytest.fixture(scope="session")
-def client(storage, annotator):
+def client(storage):
     translator = create_translator()
     anyvar_restapi.state.anyvar = AnyVar(object_store=storage, translator=translator)
-    anyvar_restapi.state.anyannotation = annotator
     return TestClient(app=anyvar_restapi)
 
 

@@ -15,7 +15,8 @@ from anyvar.storage import DEFAULT_STORAGE_URI
 from anyvar.storage.base_storage import Storage, StoredObjectType
 from anyvar.translate.translate import _Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
-from anyvar.utils.types import Annotation, AnnotationKey, VrsObject
+from anyvar.utils import types
+from anyvar.utils.types import VrsObject
 
 # Suppress pydantic warnings unless otherwise indicated
 if os.environ.get("ANYVAR_SHOW_PYDANTIC_WARNINGS", None) is None:
@@ -54,30 +55,6 @@ def create_storage(uri: str | None = None) -> Storage:
 
     _logger.debug("create_storage: %s → %s}", uri, storage)
     return storage
-
-
-def create_annotation_storage(
-    uri: str | None = None,
-    table_name: str | None = None,  # noqa: ARG001
-) -> Storage:
-    """Provide factory to create annotation storage based on `uri` or the
-    ANYVAR_ANNOTATION_STORAGE_URI environment value.
-
-    :param uri: storage URI
-    :param table_name: table name to use for storage (if the storage supports it)
-    """
-    uri = uri or os.environ.get("ANYVAR_ANNOTATION_STORAGE_URI", DEFAULT_STORAGE_URI)
-
-    parsed_uri = urlparse(uri)
-
-    if parsed_uri.scheme == "postgresql":
-        raise NotImplementedError("PostgresAnnotationObjectStore has been removed")
-    msg = f"URI scheme {parsed_uri.scheme} is not implemented"
-    raise ValueError(msg)
-
-    _logger.debug("create_annotation_storage: %s → NotImplementedError", uri)
-    # This should never be reached since all paths above raise exceptions
-    raise NotImplementedError("No annotation storage implementation available")
 
 
 def create_translator() -> _Translator:
@@ -188,41 +165,35 @@ class AnyVar:
                 continue
         raise KeyError(f"Object {object_id} not found in any table")
 
+    def put_annotation(self, annotation: types.Annotation) -> int | None:
+        """Attempt to store an annotation.
 
-class AnyAnnotation:
-    """Class for interacting with annotations"""
-
-    def __init__(self, annotation_store: Storage) -> None:
-        """Initialize AnyAnnotation instance.
-
-        :param annotation_store: Annotation storage instance
+        :param annotation: an Annotation object
+        :return: annotation ID if successful, None otherwise
         """
-        self.annotation_store = annotation_store
+        annotation_id: int | None = None
+        try:
+            annotation_id = self.object_store.add_annotation(annotation)
+        except Exception as e:
+            _logger.exception("Failed to add object: %s", annotation)
+            raise e  # noqa: TRY201
+        return annotation_id
 
-    def get_annotation(self, object_id: str, annotation_type: str) -> list[Annotation]:
-        """Retrieve annotations for object.
+    def get_object_annotations(
+        self, object_id: str, annotation_type: str | None = None
+    ) -> list[types.Annotation]:
+        """Get all annotations for the specified object, optionally filtered by type.
 
-        :param object_id: object identifier
-        :param annotation_type: type of annotation
-        :return: list of annotations
+        :param object_id: The ID of the object to retrieve annotations for
+        :param annotation_type: The type of annotation to retrieve (defaults to `None` to retrieve all annotations for the object)
+        :return: A list of Annotations
         """
-        return self.annotation_store.get(
-            AnnotationKey(object_id=object_id, annotation_type=annotation_type), []
-        )
-
-    def put_annotation(
-        self, object_id: str, annotation_type: str, annotation: dict
-    ) -> None:
-        """Attach annotation to object.
-
-        :param object_id: object identifier
-        :param annotation_type: type of annotation
-        :param annotation: annotation dictionary
-        """
-        self.annotation_store.push(
-            Annotation(
-                object_id=object_id,
-                annotation_type=annotation_type,
-                annotation=annotation,
+        try:
+            return self.object_store.get_annotations_by_object_and_type(
+                object_id, annotation_type
             )
-        )
+        except Exception as e:
+            _logger.exception(
+                "Failed to retrieve annotations for object: %s", object_id
+            )
+            raise e  # noqa: TRY201

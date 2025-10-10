@@ -1,6 +1,6 @@
 """SQLAlchemy ORM models for AnyVar database schema."""
 
-from sqlalchemy import ForeignKey, Index, String, create_engine
+from sqlalchemy import ForeignKey, Index, Integer, String, create_engine
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -75,11 +75,10 @@ class Annotation(Base):
 
     __tablename__ = "annotations"
 
-    object_id: Mapped[str] = mapped_column(
-        String, ForeignKey("vrs_objects.vrs_id"), primary_key=True
-    )
-    annotation_type: Mapped[str] = mapped_column(String, primary_key=True)
-    annotation: Mapped[dict] = mapped_column(JSONB)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    object_id: Mapped[str] = mapped_column(String)
+    annotation_type: Mapped[str] = mapped_column(String)
+    annotation_value: Mapped[JSONB] = mapped_column(JSONB)
 
     # https://docs.sqlalchemy.org/en/20/core/constraints.html#indexes
     # TODO is this needed because of the primary key?
