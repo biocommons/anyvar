@@ -5,9 +5,9 @@ be run with different ANYVAR_TEST_STORAGE_URI env var.
 
 from ga4gh.vrs import models
 
-import anyvar.utils.types as anyvar_types
 from anyvar.storage.base_storage import Storage, StoredObjectType
 from anyvar.translate.vrs_python import VrsPythonTranslator
+from anyvar.utils import types
 
 
 # Test add_objects method (replaces __setitem__)
@@ -69,24 +69,21 @@ def test_mappings_crud(storage: Storage, alleles: dict):
     allele_38 = models.Allele(**allele_38_fixture["allele_response"]["object"])
     allele_37_fixture = alleles["ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf"]
     allele_37 = models.Allele(**allele_37_fixture["allele_response"]["object"])
-    mapping = anyvar_types.VariationMapping(
+    mapping = types.VariationMapping(
         source_id=allele_38.id,
         dest_id=allele_37.id,
-        mapping_type=anyvar_types.VariationMappingType.LIFTOVER,
+        mapping_type=types.VariationMappingType.LIFTOVER,
     )
 
     storage.add_objects([allele_38, allele_37])
     storage.add_mapping(mapping)
 
-    assert storage.get_mappings(
-        allele_38.id, anyvar_types.VariationMappingType.LIFTOVER
-    ) == [mapping]
+    assert storage.get_mappings(allele_38.id, types.VariationMappingType.LIFTOVER) == [
+        mapping
+    ]
 
     storage.delete_mapping(mapping)
-    assert (
-        storage.get_mappings(allele_38.id, anyvar_types.VariationMappingType.LIFTOVER)
-        == []
-    )
+    assert storage.get_mappings(allele_38.id, types.VariationMappingType.LIFTOVER) == []
 
 
 def test_cascading_delete(storage: Storage, alleles: dict):
@@ -94,10 +91,10 @@ def test_cascading_delete(storage: Storage, alleles: dict):
     allele_38 = models.Allele(**allele_38_fixture["allele_response"]["object"])
     allele_37_fixture = alleles["ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf"]
     allele_37 = models.Allele(**allele_37_fixture["allele_response"]["object"])
-    mapping = anyvar_types.VariationMapping(
+    mapping = types.VariationMapping(
         source_id=allele_38.id,
         dest_id=allele_37.id,
-        mapping_type=anyvar_types.VariationMappingType.LIFTOVER,
+        mapping_type=types.VariationMappingType.LIFTOVER,
     )
 
     storage.add_objects([allele_38, allele_37])
