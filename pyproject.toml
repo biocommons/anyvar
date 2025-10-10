@@ -173,6 +173,7 @@ ignore = [
 "__init__.py" = ["F401", "E402"]
 "src/anyvar/restapi/main.py" = ["B008"]
 "src/anyvar/queueing/celery_worker.py" = ["PLW0602", "PLW0603"]
+"src/anyvar/storage/no_db.py" = ["ARG002"]  # suppress until it's reimplemented
 "tests/*" = ["ANN001", "ANN2", "ANN102", "S101", "B011", "INP001", "D", "C400", "PLR2004"]
 "tests/storage/*" = ["S608"]
 "tests/storage/sqlalchemy_mocks.py" = ["ARG002", "A002", "TRY002"]
