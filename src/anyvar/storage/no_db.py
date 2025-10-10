@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from ga4gh.vrs import models as vrs_models
 
 from anyvar.storage.base_storage import Storage, StoredObjectType
-from anyvar.utils import types as anyvar_types
+from anyvar.utils import types
 
 
 class NoObjectStore(Storage):
@@ -45,13 +45,13 @@ class NoObjectStore(Storage):
     ) -> None:
         """Delete all objects of a specific type from storage."""
 
-    def add_mapping(self, mapping: anyvar_types.VariationMapping) -> None:
+    def add_mapping(self, mapping: types.VariationMapping) -> None:
         """Add a mapping between two objects.
 
         :param mapping: mapping object
         """
 
-    def delete_mapping(self, mapping: anyvar_types.VariationMapping) -> None:
+    def delete_mapping(self, mapping: types.VariationMapping) -> None:
         """Delete a mapping between two objects.
 
         :param mapping: mapping object
@@ -60,7 +60,7 @@ class NoObjectStore(Storage):
     def get_mappings(
         self,
         source_object_id: str,  # noqa: ARG002
-        mapping_type: anyvar_types.VariationMappingType,  # noqa: ARG002
+        mapping_type: types.VariationMappingType,  # noqa: ARG002
     ) -> Iterable[str]:
         """Return an iterable of ids of destination objects mapped from the source object.
 
@@ -86,7 +86,7 @@ class NoObjectStore(Storage):
         """
         return []
 
-    def add_annotation(self, annotation: anyvar_types.Annotation) -> int:  # noqa: ARG002
+    def add_annotation(self, annotation: types.Annotation) -> int:  # noqa: ARG002
         """Adds an annotation to the database.
 
         :param annotation: The annotation to add
@@ -98,7 +98,7 @@ class NoObjectStore(Storage):
         self,
         object_id: str,  # noqa: ARG002
         annotation_type: str | None = None,  # noqa: ARG002
-    ) -> list[anyvar_types.Annotation]:
+    ) -> list[types.Annotation]:
         """Get all annotations for the specified object, optionally filtered by type.
 
         :param object_id: The ID of the object to retrieve annotations for

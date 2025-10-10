@@ -5,7 +5,6 @@ from typing import Generic, TypeVar
 
 from ga4gh.vrs import models as vrs_models
 
-import anyvar.utils.types as anyvar_types
 from anyvar.storage import orm
 from anyvar.utils import types
 
@@ -191,25 +190,19 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, orm.Allele]):
         raise ValueError(f"Unknown state type '{state_type}' from: {state_data}")
 
 
-class VariationMappingMapper(
-    BaseMapper[anyvar_types.VariationMapping, orm.VariationMapping]
-):
+class VariationMappingMapper(BaseMapper[types.VariationMapping, orm.VariationMapping]):
     """Maps between VariationMapping entities."""
 
-    def from_db_entity(
-        self, db_entity: orm.VariationMapping
-    ) -> anyvar_types.VariationMapping:
+    def from_db_entity(self, db_entity: orm.VariationMapping) -> types.VariationMapping:
         """Convert DB instance into business logic object"""
-        mapping_type = anyvar_types.VariationMappingType(db_entity.mapping_type)
-        return anyvar_types.VariationMapping(
+        mapping_type = types.VariationMappingType(db_entity.mapping_type)
+        return types.VariationMapping(
             source_id=db_entity.source_id,
             dest_id=db_entity.dest_id,
             mapping_type=mapping_type,
         )
 
-    def to_db_entity(
-        self, vrs_model: anyvar_types.VariationMapping
-    ) -> orm.VariationMapping:
+    def to_db_entity(self, vrs_model: types.VariationMapping) -> orm.VariationMapping:
         """Convert VariationMapping object to DB mapping instance."""
         return orm.VariationMapping(
             source_id=vrs_model.source_id,

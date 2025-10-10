@@ -14,7 +14,7 @@ from anyvar.storage.base_storage import (
 )
 from anyvar.storage.mapper_registry import mapper_registry
 from anyvar.storage.orm import create_tables
-from anyvar.utils import types as anyvar_types
+from anyvar.utils import types
 
 
 class PostgresObjectStore(Storage):
@@ -195,7 +195,7 @@ class PostgresObjectStore(Storage):
             else:
                 raise ValueError(f"Unsupported object type: {object_type}")
 
-    def add_mapping(self, mapping: anyvar_types.VariationMapping) -> None:
+    def add_mapping(self, mapping: types.VariationMapping) -> None:
         """Add a mapping between two objects.
 
         :param mapping: mapping object
@@ -216,7 +216,7 @@ class PostgresObjectStore(Storage):
         with self.session_factory() as session, session.begin():
             session.execute(stmt)
 
-    def delete_mapping(self, mapping: anyvar_types.VariationMapping) -> None:
+    def delete_mapping(self, mapping: types.VariationMapping) -> None:
         """Delete a mapping between two objects.
 
         :param mapping: mapping object
@@ -233,8 +233,8 @@ class PostgresObjectStore(Storage):
     def get_mappings(
         self,
         source_object_id: str,
-        mapping_type: anyvar_types.VariationMappingType,
-    ) -> Iterable[anyvar_types.VariationMapping]:
+        mapping_type: types.VariationMappingType,
+    ) -> Iterable[types.VariationMapping]:
         """Return a list of IDs of destination objects mapped from the source object.
 
         :param source_object_id: ID of the source object
@@ -289,7 +289,7 @@ class PostgresObjectStore(Storage):
                 mapper_registry.from_db_entity(db_allele) for db_allele in db_alleles
             ]
 
-    def add_annotation(self, annotation: anyvar_types.Annotation) -> int:
+    def add_annotation(self, annotation: types.Annotation) -> int:
         """Adds an annotation to the database.
 
         :param annotation: The annotation to add
@@ -302,7 +302,7 @@ class PostgresObjectStore(Storage):
 
     def get_annotations_by_object_and_type(
         self, object_id: str, annotation_type: str | None = None
-    ) -> list[anyvar_types.Annotation]:
+    ) -> list[types.Annotation]:
         """Get all annotations for the specified object, optionally filtered by type
 
         :param object_id: The ID of the object to retrieve annotations for

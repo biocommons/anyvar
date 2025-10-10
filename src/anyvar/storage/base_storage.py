@@ -6,7 +6,7 @@ from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
 
-from anyvar.utils import types as anyvar_types
+from anyvar.utils import types
 
 
 class StoredObjectType(enum.StrEnum):
@@ -65,14 +65,14 @@ class Storage(ABC):
         """Delete all objects of a specific type from storage."""
 
     @abstractmethod
-    def add_mapping(self, mapping: anyvar_types.VariationMapping) -> None:
+    def add_mapping(self, mapping: types.VariationMapping) -> None:
         """Add a mapping between two objects.
 
         :param mapping: mapping object
         """
 
     @abstractmethod
-    def delete_mapping(self, mapping: anyvar_types.VariationMapping) -> None:
+    def delete_mapping(self, mapping: types.VariationMapping) -> None:
         """Delete a mapping between two objects.
 
         :param mapping: mapping object
@@ -82,8 +82,8 @@ class Storage(ABC):
     def get_mappings(
         self,
         source_object_id: str,
-        mapping_type: anyvar_types.VariationMappingType,
-    ) -> Iterable[anyvar_types.VariationMapping]:
+        mapping_type: types.VariationMappingType,
+    ) -> Iterable[types.VariationMapping]:
         """Return an iterable of ids of destination objects mapped from the source object.
 
         :param source_object_id: ID of the source object
@@ -108,7 +108,7 @@ class Storage(ABC):
         """
 
     @abstractmethod
-    def add_annotation(self, annotation: anyvar_types.Annotation) -> int:
+    def add_annotation(self, annotation: types.Annotation) -> int:
         """Adds an annotation to the database.
 
         :param annotation: The annotation to add
@@ -118,7 +118,7 @@ class Storage(ABC):
     @abstractmethod
     def get_annotations_by_object_and_type(
         self, object_id: str, annotation_type: str | None = None
-    ) -> list[anyvar_types.Annotation]:
+    ) -> list[types.Annotation]:
         """Get all annotations for the specified object, optionally filtered by type.
 
         :param object_id: The ID of the object to retrieve annotations for

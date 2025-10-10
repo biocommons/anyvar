@@ -13,7 +13,7 @@ from anyvar.storage.mappers import (
     SequenceReferenceMapper,
     VariationMappingMapper,
 )
-from anyvar.utils import types as anyvar_types
+from anyvar.utils import types
 
 T = TypeVar("T")
 
@@ -27,8 +27,8 @@ class MapperRegistry:
             vrs_models.Allele: orm.Allele,
             vrs_models.SequenceLocation: orm.Location,
             vrs_models.SequenceReference: orm.SequenceReference,
-            anyvar_types.VariationMapping: orm.VariationMapping,
-            anyvar_types.Annotation: orm.Annotation,
+            types.VariationMapping: orm.VariationMapping,
+            types.Annotation: orm.Annotation,
         }
 
         self._mappers: dict[type, BaseMapper] = {
