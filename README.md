@@ -126,6 +126,13 @@ Run tests:
    SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/latest
    ```
 
+   The wags-tails library also uses XDG_DATA_HOME/XDG_DATA_DIRS, which can vary by platform, terminal, and shell settings. If you see an error about writing to `/usr/` or an application data directory, it may be related to this. For example if XDG_DATA_DIRS is not set, the `ghostty` terminal sets it automatically and the value it may set it to may not exist or be writable by your user account. An easy fix is to add to your shell startup script (e.g. ~/.bashrc, ~/.zshrc, etc) and set these variables to some location in your user home directory.
+
+   ```shell
+   export XDG_DATA_HOME="$HOME/.local/share"
+   export XDG_DATA_DIRS="$XDG_DATA_HOME:$XDG_DATA_DIRS"
+   ```
+
 6. Finally, run tests with the following command:
 
    ```shell
