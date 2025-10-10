@@ -164,7 +164,7 @@ class GetAnnotationResponse(BaseModel):
 
 
 class RegisterVariationResponse(BaseModel):
-    """Describe response for the PUT /variation endpoint"""
+    """Describe response for the PUT /variation and PUT /vrs_variation endpoints"""
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -192,17 +192,9 @@ class RegisterVariationResponse(BaseModel):
         }
     )
 
-    messages: list[str]
-    object: models.Variation | None
-    object_id: str | None
-
-
-class RegisterVrsVariationResponse(BaseModel):
-    """Describe response for the PUT /vrs_variation endpoint"""
-
-    messages: list[str]
-    object: models.Variation | None
-    object_id: str | None
+    messages: list[str] = []
+    object: models.Variation | None = None
+    object_id: str | None = None
 
 
 class GetVariationResponse(BaseModel):

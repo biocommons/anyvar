@@ -35,6 +35,27 @@ class SupportedVariationType(StrEnum):
     COPY_NUMBER_CHANGE = "CopyNumberChange"
 
 
+class VariationMappingType(StrEnum):
+    """Supported mapping types between VRS Variations."""
+
+    LIFTOVER = "liftover"
+    TRANSCRIPTION = "transcription"
+    TRANSLATION = "translation"
+
+
+class VariationMapping(BaseModel):
+    """Describe a mapping between two variations.
+
+    The ``.id`` property may be unavailable, depending on whether the instance is
+    supposed to correspond to a mapping that may be retained in storage.
+    """
+
+    id: int | None = None
+    source_id: str
+    dest_id: str
+    mapping_type: VariationMappingType
+
+
 class Annotation(BaseModel):
     """Generic annotation class which attaches any object to an identifier"""
 
