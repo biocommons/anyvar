@@ -1,8 +1,13 @@
 """SQLAlchemy ORM models for AnyVar database schema."""
 
-from uuid import UUID
-
-from sqlalchemy import ForeignKey, Index, String, UniqueConstraint, create_engine, func
+from sqlalchemy import (
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    create_engine,
+)
 from sqlalchemy.dialects.postgresql import ENUM as PgEnum  # noqa: N811
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import (
@@ -111,9 +116,7 @@ class VariationMapping(Base):
 
     __tablename__ = "variation_mappings"
 
-    id: Mapped[UUID] = mapped_column(
-        primary_key=True, server_default=func.gen_random_uuid()
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     source_id: Mapped[str] = mapped_column(
         String, ForeignKey("alleles.id", ondelete="cascade")
     )
