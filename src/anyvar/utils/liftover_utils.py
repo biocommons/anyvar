@@ -7,7 +7,7 @@ from typing import TypeVar
 from agct import Converter, Strand
 from bioutils.accessions import chr22XY
 from ga4gh.core import ga4gh_identify
-from ga4gh.vrs import models
+from ga4gh.vrs import models, normalize
 
 from anyvar.anyvar import AnyVar
 from anyvar.utils.types import VariationMapping, VariationMappingType, VrsVariation
@@ -233,18 +233,19 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
 
 def add_liftover_mapping(variation: VrsVariation, anyvar: AnyVar) -> list[str] | None:
     """Perform liftover between GRCh37 <-> GRCh38. Store the ID of converted variant as an annotation of the original,
-    register the lifted-over variant, and store the ID of the original variant as an annotation of the lifted-over one.
+    register the lifted-over and normalized variant, and store the ID of the original variant as an annotation of
+    the lifted-over one.
 
     Don't register lifted-over variant or mappings if
     * liftover fails in either direction
     * liftover is ambiguous in either direction
-    * liftover fails to roundtrip
+    * liftover fails to roundtrip accurately
 
     This function is intended to be quite directly 'user-facing', i.e. it catches and
     suppresses major error cases and communicates results as they are to be transmitted
     in the REST API routes. Library users hoping for more direct control will want to
     employ ``get_liftover_variant`` to perform liftover and make their own decisions
-    about when to call ``add_mapping()``.
+    about when to register objects and mappings.
 
     :param variation: variation to attempt liftover upon
     :param anyvar: An `AnyVar` instance
@@ -272,7 +273,8 @@ def add_liftover_mapping(variation: VrsVariation, anyvar: AnyVar) -> list[str] |
             f"{LiftoverError.base_error_message}: Roundtripped lifted-over id `{reverse_liftover_variant.id}` does not match initial value of {input_vrs_id}"
         ]
 
-    anyvar.put_object(lifted_over_variant)
+    normalized_lifted_over_variant = normalize(lifted_over_variant)
+    anyvar.put_object(normalized_lifted_over_variant)
     anyvar.object_store.add_mapping(
         VariationMapping(
             source_id=input_vrs_id,
