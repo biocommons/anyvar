@@ -16,6 +16,7 @@ from pytest_mock import MockerFixture
 
 import anyvar.anyvar
 from anyvar.queueing.celery_worker import celery_app
+from anyvar.restapi.vcf import _working_file_cleanup
 
 
 @pytest.fixture
@@ -241,7 +242,7 @@ def test_vcf_submit_duplicate_run_id(
     assert "error" in resp.json()
     assert (
         resp.json()["error"]
-        == "An existing run with id 12345 is SENT.  Fetch the completed run result before submitting with the same run_id."
+        == "An existing run with id 12345 is SENT. Fetch the completed run result before submitting with the same run_id."
     )
 
 
@@ -273,7 +274,7 @@ def test_vcf_get_result_success(client: TestClient, mocker: MockerFixture):
     with pathlib.Path(__file__).open(mode="rb") as fd:
         assert resp.content == fd.read()
     mock_result.return_value.forget.assert_called_once()
-    mock_bg_tasks.assert_called_with(os.unlink, __file__)
+    mock_bg_tasks.assert_called_with(_working_file_cleanup, __file__)
 
 
 def test_vcf_get_result_failure_timeout(client: TestClient, mocker: MockerFixture):

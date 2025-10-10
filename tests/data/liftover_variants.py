@@ -2,12 +2,13 @@ from ga4gh.vrs import models
 
 from anyvar.utils.liftover_utils import (
     CoordinateConversionFailureError,
+    ReverseLiftoverError,
     UnsupportedReferenceAssemblyError,
 )
 
 test_variants = {
     "copynumber_ranged_positive_grch37_variant": {
-        "variant_input": {
+        "input_variant": {
             "id": "ga4gh:CN.CTCgVehH0FEqrlaOMhUsDjKwzavnQegk",
             "type": "CopyNumberCount",
             "location": {
@@ -21,45 +22,28 @@ test_variants = {
             },
             "copies": 3,
         },
-        "expected_output": models.CopyNumberCount(
+        "expected_liftover_output": models.CopyNumberCount(
             id="ga4gh:CN.LQAMim_Q7_sXVRLX2UFVsHNOolDsK4Bo",
             digest="LQAMim_Q7_sXVRLX2UFVsHNOolDsK4Bo",
             type="CopyNumberCount",
-            name=None,
-            description=None,
-            aliases=None,
-            extensions=None,
             location=models.SequenceLocation(
                 id="ga4gh:SL.7HsIbSybxJRfiRNr2r0gz1JNsV-wJJfQ",
                 type="SequenceLocation",
                 digest="7HsIbSybxJRfiRNr2r0gz1JNsV-wJJfQ",
-                name=None,
-                description=None,
-                aliases=None,
-                extensions=None,
-                sequence=None,
                 sequenceReference=models.SequenceReference(
-                    id=None,
                     type="SequenceReference",
-                    name=None,
-                    description=None,
-                    aliases=None,
-                    extensions=None,
                     refgetAccession="SQ.-A1QmD_MatoqxvgVxBLZTONHz9-c7nQo",
-                    sequence=None,
-                    moleculeType=None,
-                    residueAlphabet=None,
-                    circular=None,
-                ),
+                ),  # type: ignore[reportAssignmentType]
                 start=models.Range([None, 30417575]),
                 end=models.Range([31394018, None]),
-            ),
+            ),  # type: ignore[reportAssignmentType]
             copies=3,
-        ),
+        ),  # type: ignore[reportAssignmentType]
+        "expected_reverse_liftover_annotation": "ga4gh:CN.CTCgVehH0FEqrlaOMhUsDjKwzavnQegk",
     },
     # BRAF V600E
     "allele_int_negative_grch38_variant": {
-        "variant_input": {
+        "input_variant": {
             "id": "ga4gh:VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe",
             "type": "Allele",
             "digest": "Otc5ovrw906Ack087o1fhegB4jDRqCAe",
@@ -76,53 +60,33 @@ test_variants = {
             },
             "state": {"type": "LiteralSequenceExpression", "sequence": "T"},
         },
-        "expected_output": models.Allele(
-            aliases=None,
-            description=None,
+        "expected_liftover_output": models.Allele(
             digest="dvp7PZ4uKIb9L7IpieJewYSTkgpXgaza",
-            expressions=None,
-            extensions=None,
             id="ga4gh:VA.dvp7PZ4uKIb9L7IpieJewYSTkgpXgaza",
             type="Allele",
             location=models.SequenceLocation(
-                aliases=None,
-                description=None,
                 digest="hVna-JOV5bBTGdXexL--IQm135MG3bGT",
                 end=140453136,
-                extensions=None,
                 id="ga4gh:SL.hVna-JOV5bBTGdXexL--IQm135MG3bGT",
-                name=None,
-                sequence=None,
                 sequenceReference=models.SequenceReference(
-                    aliases=None,
-                    circular=None,
-                    description=None,
-                    extensions=None,
-                    id=None,
-                    moleculeType=None,
-                    name=None,
                     refgetAccession="SQ.IW78mgV5Cqf6M24hy52hPjyyo5tCCd86",
-                    residueAlphabet=None,
-                    sequence=None,
                     type="SequenceReference",
-                ),
+                ),  # type: ignore[reportAssignmentType]
                 start=140453135,
                 type="SequenceLocation",
             ),
-            name=None,
             state=models.LiteralSequenceExpression(
-                aliases=None,
-                description=None,
-                extensions=None,
-                id=None,
-                name=None,
                 sequence=models.sequenceString("T"),
                 type="LiteralSequenceExpression",
-            ),
+            ),  # type: ignore[reportAssignmentType]
         ),
+        "expected_reverse_liftover_annotation": ReverseLiftoverError(
+            "ga4gh:VA.Au4CvWQcjNe4wXU3SDo2Xtb94cv5Bgoh",
+            "ga4gh:VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe",
+        ).get_error_message(),
     },
     "allele_int_unknown_grch38_variant": {
-        "variant_input": {
+        "input_variant": {
             "id": "ga4gh:VA.9gW_iJbQAIO3SIxJ9ACyAZA1X2lEgO39",
             "digest": "9gW_iJbQAIO3SIxJ9ACyAZA1X2lEgO39",
             "type": "Allele",
@@ -139,53 +103,33 @@ test_variants = {
             },
             "state": {"sequence": "G", "type": "LiteralSequenceExpression"},
         },
-        "expected_output": models.Allele(
-            aliases=None,
-            description=None,
+        "expected_liftover_output": models.Allele(
             digest="FTRS8BT4hXgVVOnbq4rGPqQo5tZInhoP",
-            expressions=None,
-            extensions=None,
             id="ga4gh:VA.FTRS8BT4hXgVVOnbq4rGPqQo5tZInhoP",
             location=models.SequenceLocation(
-                aliases=None,
-                description=None,
                 digest="yuqVJ7v6Q1h7-oXiyVToQn0AsukMMRb8",
                 end=178921549,
-                extensions=None,
                 id="ga4gh:SL.yuqVJ7v6Q1h7-oXiyVToQn0AsukMMRb8",
-                name=None,
-                sequence=None,
                 sequenceReference=models.SequenceReference(
-                    aliases=None,
-                    circular=None,
-                    description=None,
-                    extensions=None,
-                    id=None,
-                    moleculeType=None,
-                    name=None,
                     refgetAccession="SQ.VNBualIltAyi2AI_uXcKU7M9XUOuA7MS",
-                    residueAlphabet=None,
-                    sequence=None,
                     type="SequenceReference",
-                ),
+                ),  # type: ignore[reportAssignmentType]
                 start=178921548,
                 type="SequenceLocation",
             ),
-            name=None,
             state=models.LiteralSequenceExpression(
-                aliases=None,
-                description=None,
-                extensions=None,
-                id=None,
-                name=None,
                 sequence=models.sequenceString("G"),
                 type="LiteralSequenceExpression",
-            ),
+            ),  # type: ignore[reportAssignmentType]
             type="Allele",
         ),
+        "expected_reverse_liftover_annotation": ReverseLiftoverError(
+            "ga4gh:VA.RNgtXtdPKTKdHhUQsBCdHsPrtbPRBmAO",
+            "ga4gh:VA.9gW_iJbQAIO3SIxJ9ACyAZA1X2lEgO39",
+        ).get_error_message(),
     },  # FAILURES
     "grch36_variant": {  # Variant that's on an unsupported assembly (GRCh36)
-        "variant_input": {
+        "input_variant": {
             "digest": "4dEsVNR2JC_ZiHsYSGZgariIUOfYl6a0",
             "id": "ga4gh:VA.4dEsVNR2JC_ZiHsYSGZgariIUOfYl6a0",
             "type": "Allele",
@@ -202,10 +146,11 @@ test_variants = {
             },
             "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
         },
-        "expected_output": UnsupportedReferenceAssemblyError,
+        "expected_liftover_output": UnsupportedReferenceAssemblyError,
+        "expected_reverse_liftover_annotation": None,
     },
     "unconvertible_grch37_variant": {
-        "variant_input": {
+        "input_variant": {
             "id": "ga4gh:VA.qP-qtMJqKhTEJfpTdAZN9CoIFCRKv4kg",
             "type": "Allele",
             "digest": "qP-qtMJqKhTEJfpTdAZN9CoIFCRKv4kg",
@@ -222,10 +167,11 @@ test_variants = {
             },
             "state": {"type": "LiteralSequenceExpression", "sequence": "T"},
         },
-        "expected_output": CoordinateConversionFailureError,
+        "expected_liftover_output": CoordinateConversionFailureError,
+        "expected_reverse_liftover_annotation": None,
     },
     "unconvertible_grch38_variant": {  # see: https://www.ncbi.nlm.nih.gov/clinvar/variation/3035826/?oq=NC_000017.11:50150040:GC:GCGC&m=NM_032595.5(PPP1R9B):c.472_473dup%20(p.Ala159fs)
-        "variant_input": {
+        "input_variant": {
             "digest": "5-m9wM6WTY5osPxLFg1_bITsOwSoMFui",
             "id": "ga4gh:VA.5-m9wM6WTY5osPxLFg1_bITsOwSoMFui",
             "location": {
@@ -247,14 +193,16 @@ test_variants = {
             },
             "type": "Allele",
         },
-        "expected_output": CoordinateConversionFailureError,
+        "expected_liftover_output": CoordinateConversionFailureError,
+        "expected_reverse_liftover_annotation": None,
     },
     "empty_variation_object": {
-        "variant_input": {},
-        "expected_output": None,
+        "input_variant": {},
+        "expected_liftover_output": None,
+        "expected_reverse_liftover_annotation": None,
     },
     "invalid_variant": {
-        "variant_input": {
+        "input_variant": {
             "location": {
                 "id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8",
                 "end": 0,
@@ -268,11 +216,7 @@ test_variants = {
             "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
             "type": "UNSUPPORTED",
         },
-        "expected_output": None,
+        "expected_liftover_output": None,
+        "expected_reverse_liftover_annotation": None,
     },
 }
-
-
-# STILL NEED:
-# - A variant that exists on GRCh38 but not GRCH37
-# - A CopyNumberCount variant?
