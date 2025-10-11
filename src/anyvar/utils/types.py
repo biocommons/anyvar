@@ -50,7 +50,6 @@ class VariationMapping(BaseModel):
     supposed to correspond to a mapping that may be retained in storage.
     """
 
-    id: int | None = None
     source_id: str
     dest_id: str
     mapping_type: VariationMappingType
@@ -62,4 +61,3 @@ class Annotation(BaseModel):
     object_id: str
     annotation_type: str
     annotation_value: Any
-    id: int | None = None  # ID of the annotation itself

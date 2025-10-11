@@ -37,6 +37,7 @@ class Storage(ABC):
     @abstractmethod
     def wait_for_writes(self) -> None:
         """Wait for all background writes to complete.
+
         NOTE: This is a no-op for synchronous storage backends.
         """
 
@@ -45,35 +46,61 @@ class Storage(ABC):
         """Wipe all data from the storage backend."""
 
     @abstractmethod
-    def add_objects(self, objects: Iterable[vrs_models.VrsType]) -> None:
-        """Add multiple VRS objects to storage."""
+    def add_objects(self, objects: Iterable[types.VrsObject]) -> None:
+        """Add multiple VRS objects to storage.
+
+        If an object ID conflicts with an existing object, skip it.
+
+        :param objects: VRS objects to add to storage
+        """
 
     @abstractmethod
     def get_objects(
         self, object_type: StoredObjectType, object_ids: Iterable[str]
-    ) -> Iterable[vrs_models.VrsType]:
-        """Retrieve multiple VRS objects from storage by their IDs."""
+    ) -> Iterable[types.VrsObject]:
+        """Retrieve multiple VRS objects from storage by their IDs.
+
+        If no object matches a given ID, that ID is skipped
+
+        :param object_type: type of object to get
+        :param object_ids: IDs of objects to fetch
+        :return: iterable collection of VRS objects matching given IDs
+        """
 
     @abstractmethod
     def get_all_object_ids(self) -> Iterable[str]:
-        """Retrieve all object IDs from storage."""
+        """Retrieve all object IDs from storage.
+
+        :return: all stored VRS object IDs
+        """
 
     @abstractmethod
     def delete_objects(
         self, object_type: StoredObjectType, object_ids: Iterable[str]
     ) -> None:
-        """Delete all objects of a specific type from storage."""
+        """Delete all objects of a specific type from storage.
+
+        If no object matching a given ID is found, it's ignored.
+
+        :param object_type: type of objects to delete
+        :param object_ids: IDs of objects to delete
+        """
 
     @abstractmethod
     def add_mapping(self, mapping: types.VariationMapping) -> None:
         """Add a mapping between two objects.
 
+        If the mapping instance already exists, do nothing.
+
         :param mapping: mapping object
+        :raise KeyError: if source or destination IDs aren't present in DB
         """
 
     @abstractmethod
     def delete_mapping(self, mapping: types.VariationMapping) -> None:
         """Delete a mapping between two objects.
+
+        If no such mapping exists in the DB, does nothing.
 
         :param mapping: mapping object
         """
@@ -82,13 +109,13 @@ class Storage(ABC):
     def get_mappings(
         self,
         source_object_id: str,
-        mapping_type: types.VariationMappingType,
+        mapping_type: types.VariationMappingType | None,
     ) -> Iterable[types.VariationMapping]:
-        """Return an iterable of ids of destination objects mapped from the source object.
+        """Return an iterable of mappings from the source ID of the given mapping type.
 
         :param source_object_id: ID of the source object
-        :param mapping_type: kind of mapping to retrieve
-        :return: iterable collection of mapping descriptors
+        :param mapping_type: kind of mapping to retrieve (optional)
+        :return: iterable collection of mapping descriptors (empty if no matching mappings exist)
         """
 
     @abstractmethod
@@ -108,7 +135,7 @@ class Storage(ABC):
         """
 
     @abstractmethod
-    def add_annotation(self, annotation: types.Annotation) -> int:
+    def add_annotation(self, annotation: types.Annotation) -> None:
         """Adds an annotation to the database.
 
         :param annotation: The annotation to add
@@ -127,8 +154,10 @@ class Storage(ABC):
         """
 
     @abstractmethod
-    def delete_annotation(self, annotation_id: int) -> None:
+    def delete_annotation(self, annotation: types.Annotation) -> None:
         """Deletes an annotation from the database
 
-        :param annotation_id: The ID of the annotation to delete
+        If no such annotation exists, do nothing.
+
+        :param annotation: The annotation object to delete
         """
