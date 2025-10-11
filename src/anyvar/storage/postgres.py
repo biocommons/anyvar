@@ -5,6 +5,7 @@ from collections.abc import Iterable
 from ga4gh.vrs import models as vrs_models
 from sqlalchemy import create_engine, delete, select
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, sessionmaker
 
 from anyvar.storage import orm
@@ -199,6 +200,7 @@ class PostgresObjectStore(Storage):
         """Add a mapping between two objects.
 
         :param mapping: mapping object
+        :raise KeyError: if source or destination IDs aren't present in DB
         """
         stmt = (
             insert(orm.VariationMapping)
@@ -213,8 +215,11 @@ class PostgresObjectStore(Storage):
             )
             .on_conflict_do_nothing()
         )
-        with self.session_factory() as session, session.begin():
-            session.execute(stmt)
+        try:
+            with self.session_factory() as session, session.begin():
+                session.execute(stmt)
+        except IntegrityError as e:
+            raise KeyError from e
 
     def delete_mapping(self, mapping: types.VariationMapping) -> None:
         """Delete a mapping between two objects.
