@@ -21,7 +21,7 @@ class Base(DeclarativeBase):
     @declared_attr.directive
     def __tablename__(cls) -> str:  # noqa: N805 (param name here should be 'cls', not 'self')
         # Default table name = class name, transformed from PascalCase into snake_case and pluralized.
-        # NOTE: May need more robust pluralization in the future to support additional classes/tables.
+        # NOTE: Classes/tables that require a different pluralization scheme should override this function.
         default_name: str = re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower() + "s"
 
         # Environment variable name is the class name transformed into UPPER_SNAKE_CASE, pluralized, and prefixed by 'ANYVAR_' + suffixed with "_TABLE_NAME".
