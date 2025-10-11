@@ -24,9 +24,9 @@ class Base(DeclarativeBase):
         # NOTE: May need more robust pluralization in the future to support additional classes/tables.
         default_name: str = re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower() + "s"
 
-        # Environment variable name is the class name transformed into UPPER_SNAKE_CASE, pluralized, and suffixed with "_TABLE_NAME".
-        # e.g., the environment variable to override the table name created by the "VrsObject" ORM class is `VRS_OBJECTS_TABLE_NAME`
-        environment_variable_name: str = f"{default_name.upper()}_TABLE_NAME"
+        # Environment variable name is the class name transformed into UPPER_SNAKE_CASE, pluralized, and prefixed by 'ANYVAR_' + suffixed with "_TABLE_NAME".
+        # e.g., the environment variable to override the table name created by the "VrsObject" ORM class is `ANYVAR_VRS_OBJECTS_TABLE_NAME`
+        environment_variable_name: str = f"ANYVAR_{default_name.upper()}_TABLE_NAME"
 
         return os.getenv(environment_variable_name) or default_name
 
