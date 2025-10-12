@@ -102,3 +102,7 @@ def test_cascading_delete(storage: Storage, alleles: dict):
 
     storage.delete_objects(StoredObjectType.ALLELE, [allele_38.id])
     storage.delete_objects(StoredObjectType.ALLELE, [allele_37.id])
+
+    assert not storage.get_mappings(mapping.source_id, mapping.mapping_type), (
+        "cascading delete should remove dependent mapping instance"
+    )
