@@ -26,14 +26,14 @@ class NoObjectStore(Storage):
     def wipe_db(self) -> None:
         """Wipe all data from the storage backend."""
 
-    def add_objects(self, objects: Iterable[vrs_models.VrsType]) -> None:
+    def add_objects(self, objects: Iterable[types.VrsObject]) -> None:
         """Add multiple VRS objects to storage."""
 
     def get_objects(
         self,
         object_type: StoredObjectType,
         object_ids: Iterable[str],
-    ) -> Iterable[vrs_models.VrsType]:
+    ) -> Iterable[types.VrsObject]:
         """Retrieve multiple VRS objects from storage by their IDs."""
         return []
 
