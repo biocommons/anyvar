@@ -45,13 +45,13 @@ class Storage(ABC):
         """Wipe all data from the storage backend."""
 
     @abstractmethod
-    def add_objects(self, objects: Iterable[vrs_models.VrsType]) -> None:
+    def add_objects(self, objects: Iterable[types.VrsObject]) -> None:
         """Add multiple VRS objects to storage."""
 
     @abstractmethod
     def get_objects(
         self, object_type: StoredObjectType, object_ids: Iterable[str]
-    ) -> Iterable[vrs_models.VrsType]:
+    ) -> Iterable[types.VrsObject]:
         """Retrieve multiple VRS objects from storage by their IDs."""
 
     @abstractmethod
