@@ -28,6 +28,10 @@ class MissingVariationReferenceError(Exception):
     """Raise for attempts to insert an annotation or mapping that references a non-existent variation"""
 
 
+class IncompleteVrsObjectError(Exception):
+    """Raise if provided VRS object is missing fully-materialized properties required for storage"""
+
+
 class Storage(ABC):
     """Abstract base class for interacting with storage backends."""
 
@@ -61,9 +65,12 @@ class Storage(ABC):
 
         This method assumes that for VRS objects (e.g. `Allele`, `SequenceLocation`,
         `SequenceReference`) the `.id` property is present and uses the correct
-        GA4GH identifier for that object
+        GA4GH identifier for that object. It also assumes that contained objects are
+        similarly properly identified and materialized in full, not just as an IRI reference.
 
         :param objects: VRS objects to add to storage
+        :raise IncompleteVrsObjectError: if object is missing required properties or if
+            required properties aren't fully materialized
         """
 
     @abstractmethod
@@ -108,7 +115,7 @@ class Storage(ABC):
         If the mapping instance already exists, do nothing.
 
         :param mapping: mapping object
-        :raise : if source or destination IDs aren't present in DB
+        :raise MissingVariationReferenceError: if source or destination IDs aren't present in DB
         """
 
     @abstractmethod
@@ -160,7 +167,7 @@ class Storage(ABC):
 
         :param annotation: The annotation to add
         :return: The ID of the newly-added annotation
-        :raise KeyError: if source or destination IDs aren't present in DB
+        :raise MissingVariationReferenceError: if source or destination IDs aren't present in DB
         """
 
     @abstractmethod
