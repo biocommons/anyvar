@@ -20,6 +20,13 @@ class StoredObjectType(enum.StrEnum):
     SEQUENCE_REFERENCE = "SequenceReference"
 
 
+class DataIntegrityError(Exception):
+    """Raise for attempts to delete objects depended upon by other objects
+
+    TODO better name?
+    """
+
+
 class Storage(ABC):
     """Abstract base class for interacting with storage backends."""
 
@@ -50,6 +57,10 @@ class Storage(ABC):
         """Add multiple VRS objects to storage.
 
         If an object ID conflicts with an existing object, skip it.
+
+        This method assumes that for VRS objects (e.g. `Allele`, `SequenceLocation`,
+        `SequenceReference`) the `.id` property is present and uses the correct
+        GA4GH identifier for that object
 
         :param objects: VRS objects to add to storage
         """
@@ -84,6 +95,8 @@ class Storage(ABC):
 
         :param object_type: type of objects to delete
         :param object_ids: IDs of objects to delete
+        :raise DataIntegrityError: if attempting to delete an object which is
+            depended upon by another object
         """
 
     @abstractmethod
@@ -103,6 +116,8 @@ class Storage(ABC):
         If no such mapping exists in the DB, does nothing.
 
         :param mapping: mapping object
+        :raise DataIntegrityError: if attempting to delete an object which is
+            depended upon by another object
         """
 
     @abstractmethod
@@ -114,7 +129,8 @@ class Storage(ABC):
         """Return an iterable of mappings from the source ID of the given mapping type.
 
         :param source_object_id: ID of the source object
-        :param mapping_type: kind of mapping to retrieve (optional)
+        :param mapping_type: The type of mapping to retrieve (defaults to `None` to
+            retrieve all mappings for the source ID)
         :return: iterable collection of mapping descriptors (empty if no matching mappings exist)
         """
 
@@ -160,4 +176,6 @@ class Storage(ABC):
         If no such annotation exists, do nothing.
 
         :param annotation: The annotation object to delete
+        :raise DataIntegrityError: if attempting to delete an object which is
+            depended upon by another object
         """

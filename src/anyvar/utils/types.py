@@ -16,6 +16,7 @@ VrsObject = (
     | models.CopyNumberChange
     | models.CopyNumberCount
     | models.SequenceLocation
+    | models.SequenceReference
 )
 
 
