@@ -70,7 +70,7 @@ class Storage(ABC):
 
         :param objects: VRS objects to add to storage
         :raise IncompleteVrsObjectError: if object is missing required properties or if
-            required properties aren't fully materialized
+            required properties aren't fully dereferenced
         """
 
     @abstractmethod
