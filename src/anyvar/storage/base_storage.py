@@ -91,7 +91,8 @@ class Storage(ABC):
     ) -> None:
         """Delete all objects of a specific type from storage.
 
-        If no object matching a given ID is found, it's ignored.
+        * If no object matching a given ID is found, it's ignored.
+        * Deletes do not cascade.
 
         :param object_type: type of objects to delete
         :param object_ids: IDs of objects to delete
@@ -113,7 +114,8 @@ class Storage(ABC):
     def delete_mapping(self, mapping: types.VariationMapping) -> None:
         """Delete a mapping between two objects.
 
-        If no such mapping exists in the DB, does nothing.
+        * If no such mapping exists in the DB, does nothing.
+        * Deletes do not cascade.
 
         :param mapping: mapping object
         :raise DataIntegrityError: if attempting to delete an object which is
@@ -173,7 +175,8 @@ class Storage(ABC):
     def delete_annotation(self, annotation: types.Annotation) -> None:
         """Deletes an annotation from the database
 
-        If no such annotation exists, do nothing.
+        * If no such annotation exists, do nothing.
+        * Deletes do not cascade.
 
         :param annotation: The annotation object to delete
         :raise DataIntegrityError: if attempting to delete an object which is
