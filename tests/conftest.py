@@ -94,7 +94,7 @@ def celery_config():
 
 
 class TemporaryStorage(Storage):
-    """Abstract base class for interacting with storage backends."""
+    """Non-persistent storage implementation. Used for testing."""
 
     def __init__(self, db_url: str | None = None) -> None:
         """Initialize the storage backend.

@@ -21,10 +21,11 @@ class StoredObjectType(enum.StrEnum):
 
 
 class DataIntegrityError(Exception):
-    """Raise for attempts to delete objects depended upon by other objects
+    """Raise for attempts to delete objects depended upon by other objects"""
 
-    TODO better name?
-    """
+
+class AnnotationVariationNotFoundError(Exception):
+    """Raise for attempts to insert an annotation that references a non-existent variation"""
 
 
 class Storage(ABC):
@@ -148,7 +149,6 @@ class Storage(ABC):
         :param refget_accession: refget accession (SQ. identifier)
         :param start: Start genomic region to query
         :param stop: Stop genomic region to query
-
         :return: a list of Alleles
         """
 
@@ -158,6 +158,7 @@ class Storage(ABC):
 
         :param annotation: The annotation to add
         :return: The ID of the newly-added annotation
+        :raise KeyError: if source or destination IDs aren't present in DB
         """
 
     @abstractmethod
