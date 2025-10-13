@@ -24,8 +24,8 @@ class DataIntegrityError(Exception):
     """Raise for attempts to delete objects depended upon by other objects"""
 
 
-class AnnotationVariationNotFoundError(Exception):
-    """Raise for attempts to insert an annotation that references a non-existent variation"""
+class MissingVariationReferenceError(Exception):
+    """Raise for attempts to insert an annotation or mapping that references a non-existent variation"""
 
 
 class Storage(ABC):
@@ -108,7 +108,7 @@ class Storage(ABC):
         If the mapping instance already exists, do nothing.
 
         :param mapping: mapping object
-        :raise KeyError: if source or destination IDs aren't present in DB
+        :raise : if source or destination IDs aren't present in DB
         """
 
     @abstractmethod
@@ -129,7 +129,9 @@ class Storage(ABC):
         source_object_id: str,
         mapping_type: types.VariationMappingType | None,
     ) -> Iterable[types.VariationMapping]:
-        """Return an iterable of mappings from the source ID of the given mapping type.
+        """Return an iterable of mappings from the source ID
+
+        Optionally provide a type to filter results.
 
         :param source_object_id: ID of the source object
         :param mapping_type: The type of mapping to retrieve (defaults to `None` to
