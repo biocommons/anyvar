@@ -84,25 +84,3 @@ def test_mappings_crud(storage: Storage, alleles: dict):
 
     storage.delete_mapping(mapping)
     assert storage.get_mappings(allele_38.id, types.VariationMappingType.LIFTOVER) == []
-
-
-def test_cascading_delete(storage: Storage, alleles: dict):
-    allele_38_fixture = alleles["ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU"]
-    allele_38 = models.Allele(**allele_38_fixture["allele_response"]["object"])
-    allele_37_fixture = alleles["ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf"]
-    allele_37 = models.Allele(**allele_37_fixture["allele_response"]["object"])
-    mapping = types.VariationMapping(
-        source_id=allele_38.id,
-        dest_id=allele_37.id,
-        mapping_type=types.VariationMappingType.LIFTOVER,
-    )
-
-    storage.add_objects([allele_38, allele_37])
-    storage.add_mapping(mapping)
-
-    storage.delete_objects(StoredObjectType.ALLELE, [allele_38.id])
-    storage.delete_objects(StoredObjectType.ALLELE, [allele_37.id])
-
-    assert not storage.get_mappings(mapping.source_id, mapping.mapping_type), (
-        "cascading delete should remove dependent mapping instance"
-    )

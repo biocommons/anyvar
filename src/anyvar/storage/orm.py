@@ -116,12 +116,8 @@ class VariationMapping(Base):
     __tablename__ = "variation_mappings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    source_id: Mapped[str] = mapped_column(
-        String, ForeignKey("alleles.id", ondelete="cascade")
-    )
-    dest_id: Mapped[str] = mapped_column(
-        String, ForeignKey("alleles.id", ondelete="cascade")
-    )
+    source_id: Mapped[str] = mapped_column(String, ForeignKey("alleles.id"))
+    dest_id: Mapped[str] = mapped_column(String, ForeignKey("alleles.id"))
     mapping_type: Mapped[str] = mapped_column(mapping_type_enum)
 
     __table_args__ = (
