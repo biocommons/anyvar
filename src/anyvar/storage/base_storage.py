@@ -67,6 +67,8 @@ class Storage(ABC):
         `SequenceReference`) the `.id` property is present and uses the correct
         GA4GH identifier for that object. It also assumes that contained objects are
         similarly properly identified and materialized in full, not just as an IRI reference.
+        An error is raised if these assumptions are violated, rolling back the entire
+        transaction.
 
         :param objects: VRS objects to add to storage
         :raise IncompleteVrsObjectError: if object is missing required properties or if
