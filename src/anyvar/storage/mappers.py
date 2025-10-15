@@ -202,12 +202,14 @@ class VariationMappingMapper(BaseMapper[types.VariationMapping, orm.VariationMap
             mapping_type=mapping_type,
         )
 
-    def to_db_entity(self, vrs_model: types.VariationMapping) -> orm.VariationMapping:
+    def to_db_entity(
+        self, anyvar_entity: types.VariationMapping
+    ) -> orm.VariationMapping:
         """Convert VariationMapping object to DB mapping instance."""
         return orm.VariationMapping(
-            source_id=vrs_model.source_id,
-            dest_id=vrs_model.dest_id,
-            mapping_type=vrs_model.mapping_type,
+            source_id=anyvar_entity.source_id,
+            dest_id=anyvar_entity.dest_id,
+            mapping_type=anyvar_entity.mapping_type,
         )
 
 
@@ -224,7 +226,6 @@ class AnnotationMapper(BaseMapper[types.Annotation, orm.Annotation]):
             object_id=db_entity.object_id,
             annotation_type=db_entity.annotation_type,
             annotation_value=db_entity.annotation_value,
-            id=db_entity.id,
         )
 
     def to_db_entity(self, anyvar_entity: types.Annotation) -> orm.Annotation:

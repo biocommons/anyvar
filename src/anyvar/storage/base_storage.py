@@ -20,6 +20,18 @@ class StoredObjectType(enum.StrEnum):
     SEQUENCE_REFERENCE = "SequenceReference"
 
 
+class DataIntegrityError(Exception):
+    """Raise for attempts to delete objects depended upon by other objects"""
+
+
+class MissingVariationReferenceError(Exception):
+    """Raise for attempts to insert an annotation or mapping that references a non-existent variation"""
+
+
+class IncompleteVrsObjectError(Exception):
+    """Raise if provided VRS object is missing fully-materialized properties required for storage"""
+
+
 class Storage(ABC):
     """Abstract base class for interacting with storage backends."""
 
@@ -37,6 +49,7 @@ class Storage(ABC):
     @abstractmethod
     def wait_for_writes(self) -> None:
         """Wait for all background writes to complete.
+
         NOTE: This is a no-op for synchronous storage backends.
         """
 
@@ -46,49 +59,93 @@ class Storage(ABC):
 
     @abstractmethod
     def add_objects(self, objects: Iterable[types.VrsObject]) -> None:
-        """Add multiple VRS objects to storage."""
+        """Add multiple VRS objects to storage.
+
+        If an object ID conflicts with an existing object, skip it.
+
+        This method assumes that for VRS objects (e.g. `Allele`, `SequenceLocation`,
+        `SequenceReference`) the `.id` property is present and uses the correct
+        GA4GH identifier for that object. It also assumes that contained objects are
+        similarly properly identified and materialized in full, not just as an IRI reference.
+        An error is raised if these assumptions are violated, rolling back the entire
+        transaction.
+
+        :param objects: VRS objects to add to storage
+        :raise IncompleteVrsObjectError: if object is missing required properties or if
+            required properties aren't fully dereferenced
+        """
 
     @abstractmethod
     def get_objects(
         self, object_type: StoredObjectType, object_ids: Iterable[str]
     ) -> Iterable[types.VrsObject]:
-        """Retrieve multiple VRS objects from storage by their IDs."""
+        """Retrieve multiple VRS objects from storage by their IDs.
+
+        If no object matches a given ID, that ID is skipped
+
+        :param object_type: type of object to get
+        :param object_ids: IDs of objects to fetch
+        :return: iterable collection of VRS objects matching given IDs
+        """
 
     @abstractmethod
     def get_all_object_ids(self) -> Iterable[str]:
-        """Retrieve all object IDs from storage."""
+        """Retrieve all object IDs from storage.
+
+        :return: all stored VRS object IDs
+        """
 
     @abstractmethod
     def delete_objects(
         self, object_type: StoredObjectType, object_ids: Iterable[str]
     ) -> None:
-        """Delete all objects of a specific type from storage."""
+        """Delete all objects of a specific type from storage.
+
+        * If no object matching a given ID is found, it's ignored.
+        * Deletes do not cascade.
+
+        :param object_type: type of objects to delete
+        :param object_ids: IDs of objects to delete
+        :raise DataIntegrityError: if attempting to delete an object which is
+            depended upon by another object
+        """
 
     @abstractmethod
     def add_mapping(self, mapping: types.VariationMapping) -> None:
         """Add a mapping between two objects.
 
+        If the mapping instance already exists, do nothing.
+
         :param mapping: mapping object
+        :raise MissingVariationReferenceError: if source or destination IDs aren't present in DB
         """
 
     @abstractmethod
     def delete_mapping(self, mapping: types.VariationMapping) -> None:
         """Delete a mapping between two objects.
 
+        * If no such mapping exists in the DB, does nothing.
+        * Deletes do not cascade.
+
         :param mapping: mapping object
+        :raise DataIntegrityError: if attempting to delete an object which is
+            depended upon by another object
         """
 
     @abstractmethod
     def get_mappings(
         self,
         source_object_id: str,
-        mapping_type: types.VariationMappingType,
+        mapping_type: types.VariationMappingType | None,
     ) -> Iterable[types.VariationMapping]:
-        """Return an iterable of ids of destination objects mapped from the source object.
+        """Return an iterable of mappings from the source ID
+
+        Optionally provide a type to filter results.
 
         :param source_object_id: ID of the source object
-        :param mapping_type: kind of mapping to retrieve
-        :return: iterable collection of mapping descriptors
+        :param mapping_type: The type of mapping to retrieve (defaults to `None` to
+            retrieve all mappings for the source ID)
+        :return: iterable collection of mapping descriptors (empty if no matching mappings exist)
         """
 
     @abstractmethod
@@ -103,16 +160,16 @@ class Storage(ABC):
         :param refget_accession: refget accession (SQ. identifier)
         :param start: Start genomic region to query
         :param stop: Stop genomic region to query
-
         :return: a list of Alleles
         """
 
     @abstractmethod
-    def add_annotation(self, annotation: types.Annotation) -> int:
+    def add_annotation(self, annotation: types.Annotation) -> None:
         """Adds an annotation to the database.
 
         :param annotation: The annotation to add
         :return: The ID of the newly-added annotation
+        :raise MissingVariationReferenceError: if source or destination IDs aren't present in DB
         """
 
     @abstractmethod
@@ -127,8 +184,13 @@ class Storage(ABC):
         """
 
     @abstractmethod
-    def delete_annotation(self, annotation_id: int) -> None:
+    def delete_annotation(self, annotation: types.Annotation) -> None:
         """Deletes an annotation from the database
 
-        :param annotation_id: The ID of the annotation to delete
+        * If no such annotation exists, do nothing.
+        * Deletes do not cascade.
+
+        :param annotation: The annotation object to delete
+        :raise DataIntegrityError: if attempting to delete an object which is
+            depended upon by another object
         """
