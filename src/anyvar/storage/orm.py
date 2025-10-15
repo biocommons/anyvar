@@ -1,5 +1,8 @@
 """SQLAlchemy ORM models for AnyVar database schema."""
 
+import os
+import re
+
 from sqlalchemy import (
     ForeignKey,
     Index,
@@ -17,12 +20,25 @@ from sqlalchemy.orm import (
     relationship,
     sessionmaker,
 )
+from sqlalchemy.orm.decl_api import declared_attr
 
 from anyvar.utils.types import VariationMappingType
 
 
 class Base(DeclarativeBase):
     """Base class for all AnyVar ORM models."""
+
+    @declared_attr.directive
+    def __tablename__(cls) -> str:  # noqa: N805 (param name here should be 'cls', not 'self')
+        # Default table name = class name, transformed from PascalCase into snake_case and pluralized.
+        # NOTE: Classes/tables that require a different pluralization scheme should override this function.
+        default_name: str = re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower() + "s"
+
+        # Environment variable name is the class name transformed into UPPER_SNAKE_CASE, pluralized, and prefixed by 'ANYVAR_' + suffixed with "_TABLE_NAME".
+        # e.g., the environment variable to override the table name created by the "VrsObject" ORM class is `ANYVAR_VRS_OBJECTS_TABLE_NAME`
+        environment_variable_name: str = f"ANYVAR_{default_name.upper()}_TABLE_NAME"
+
+        return os.getenv(environment_variable_name) or default_name
 
     def to_dict(self) -> dict:
         """Convert the model fields to a dictionary (non-recursive)."""
@@ -34,16 +50,12 @@ class Base(DeclarativeBase):
 class VrsObject(Base):
     """AnyVar ORM model for vrs_objects table."""
 
-    __tablename__ = "vrs_objects"
-
     vrs_id: Mapped[str] = mapped_column(String, primary_key=True)
     vrs_object: Mapped[dict] = mapped_column(JSONB)
 
 
 class Allele(Base):
     """AnyVar ORM model for Alleles"""
-
-    __tablename__ = "alleles"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     digest: Mapped[str] = mapped_column(String)
@@ -54,8 +66,6 @@ class Allele(Base):
 
 class Location(Base):
     """AnyVar ORM model for Locations"""
-
-    __tablename__ = "locations"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     digest: Mapped[str] = mapped_column(String)
@@ -74,16 +84,12 @@ class Location(Base):
 class SequenceReference(Base):
     """AnyVar ORM model for SequenceReferences"""
 
-    __tablename__ = "sequence_references"
-
     id: Mapped[str] = mapped_column(String, primary_key=True)
     molecule_type: Mapped[str | None]
 
 
 class Annotation(Base):
     """AnyVar ORM model for annotations table."""
-
-    __tablename__ = "annotations"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     object_id: Mapped[str] = mapped_column(String)
@@ -116,13 +122,14 @@ class VariationMapping(Base):
     __tablename__ = "variation_mappings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    source_id: Mapped[str] = mapped_column(String, ForeignKey("alleles.id"))
-    dest_id: Mapped[str] = mapped_column(String, ForeignKey("alleles.id"))
+    source_id: Mapped[str] = mapped_column(String)
+    dest_id: Mapped[str] = mapped_column(String)
     mapping_type: Mapped[str] = mapped_column(mapping_type_enum)
 
     __table_args__ = (
         Index("idx_mappings_source_id", "source_id"),
         Index("idx_mappings_dest_id", "dest_id"),
+        Index("idx_mappings_source_id_type", "source_id", "mapping_type"),
         UniqueConstraint("source_id", "dest_id", "mapping_type"),
     )
 
