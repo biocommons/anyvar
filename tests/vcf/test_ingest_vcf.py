@@ -7,6 +7,7 @@ from http import HTTPStatus
 
 import pytest
 from celery.contrib.testing.worker import start_worker
+from celery.result import AsyncResult
 from fastapi.testclient import TestClient
 
 from anyvar.queueing.celery_worker import celery_app
@@ -148,7 +149,7 @@ def test_registration_sync(
     monkeypatch.setattr(
         client.app.state.anyvar,
         "put_objects",
-        lambda allele_list: recorded.append(*allele_list),
+        lambda allele_list: recorded.extend(allele_list),
     )
     resp = client.put("/annotated_vcf", files={"vcf": ("test.vcf", basic_vcf)})
 
@@ -177,7 +178,7 @@ def test_registration_sync_validate(
     monkeypatch.setattr(
         client.app.state.anyvar,
         "put_objects",
-        lambda allele_list: recorded.append(*allele_list),
+        lambda allele_list: recorded.extend(allele_list),
     )
     resp = client.put(
         "/annotated_vcf",
@@ -214,6 +215,7 @@ def test_registration_async(
     vcf_incorrect_id: io.BytesIO,
 ):
     """Test async file registration"""
+
     monkeypatch.setenv("ANYVAR_VCF_ASYNC_WORK_DIR", "tests/tmp_async_work_dir")
     with start_worker(
         celery_app,
@@ -223,6 +225,10 @@ def test_registration_async(
         shutdown_timeout=30,
     ):
         run_id = 12345
+
+        celery_app.control.purge()
+        AsyncResult(f"{run_id}").forget()
+
         resp = client.put(
             "/annotated_vcf",
             files={"vcf": ("test.vcf", basic_vcf)},
