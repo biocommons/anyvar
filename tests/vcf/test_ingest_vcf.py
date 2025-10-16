@@ -226,6 +226,7 @@ def test_registration_async(
     ):
         run_id = 12345
 
+        # Ensure there are no other tasks currently running with this ID
         celery_app.control.purge()
         AsyncResult(f"{run_id}").forget()
 
