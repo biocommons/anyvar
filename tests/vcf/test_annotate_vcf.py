@@ -181,7 +181,7 @@ def test_vcf_registration_async(
         shutdown_timeout=30,
     ):
         # Ensure there are no other tasks currently running with this ID
-        celery_app.control.revoke(f"{run_id}", terminate=True, signal="SIGTERM")
+        celery_app.control.purge()
         AsyncResult(f"{run_id}").forget()
 
         resp = client.put(
@@ -189,7 +189,7 @@ def test_vcf_registration_async(
             params={"assembly": "GRCh38", "run_id": f"{run_id}", "run_async": True},
             files={"vcf": ("test.vcf", sample_vcf_grch38)},
         )
-        assert resp.status_code == HTTPStatus.ACCEPTED.value, resp.text
+        assert resp.status_code == HTTPStatus.ACCEPTED, resp.text
         assert "status_message" in resp.json()
         assert (
             resp.json()["status_message"]
