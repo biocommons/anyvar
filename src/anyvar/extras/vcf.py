@@ -28,14 +28,14 @@ class VcfRegistrar(VcfAnnotator):
         self.av: AnyVar = av
         super().__init__(data_proxy)
 
-    def on_vrs_object(  # noqa: D102
-        self,
-        vcf_coords: str,  # noqa: ARG002
-        vrs_allele: vrs_models.Allele,
-        **kwargs,  # noqa: ARG002
-    ) -> vrs_models.Allele | None:
-        self.av.put_object(vrs_allele)
-        return vrs_allele
+    # def on_vrs_object(  # noqa: D102
+    #     self,
+    #     vcf_coords: str,  # noqa: ARG002
+    #     vrs_allele: vrs_models.Allele,
+    #     **kwargs,  # noqa: ARG002
+    # ) -> vrs_models.Allele | None:
+    #     self.av.put_objects(vrs_allele)
+    #     return vrs_allele
 
     def on_vrs_object_collection(  # noqa: D102
         self, vrs_alleles_collection: list[vrs_models.Allele] | None, **kwargs
@@ -148,5 +148,5 @@ def register_existing_annotations(
                     conflict_logfile.write(
                         f"{vrs_id},{assembly},{record.chrom},{record.pos},{start},{end},{true_state},{new_vrs_id}\n"
                     )
-                av.put_object(allele)
+                av.put_objects([allele])
     return conflict_logfile_path

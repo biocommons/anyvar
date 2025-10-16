@@ -392,9 +392,9 @@ def register_variation(
         )
     else:
         if translated_variation:
-            v_id = av.put_object(translated_variation)
+            av.put_objects([translated_variation])
             result["object"] = translated_variation
-            result["object_id"] = v_id
+            result["object_id"] = translated_variation.id
         else:
             result["messages"].append(f"Translation of {definition} failed.")
     return RegisterVariationResponse(**result)
@@ -451,9 +451,9 @@ def register_vrs_object(
         return RegisterVrsVariationResponse(**result)
 
     variation_object = variation_class_map[variation_type](**variation.model_dump())
-    v_id = av.put_object(variation_object)
+    av.put_objects([variation_object])
     result["object"] = variation_object
-    result["object_id"] = v_id
+    result["object_id"] = variation_object.id
     return RegisterVrsVariationResponse(**result)
 
 

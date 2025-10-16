@@ -288,7 +288,7 @@ def add_liftover_annotations(
     # If liftover was successful, also register the lifted-over variant
     # and add an annotation on the lifted-over variant linking it back to the original
     if lifted_over_variant:
-        anyvar.put_object(lifted_over_variant)
+        anyvar.put_objects(lifted_over_variant)
 
         if annotator:
             reverse_liftover_variant = None

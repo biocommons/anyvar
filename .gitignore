@@ -52,6 +52,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 anyvar-test.duckdb
+tmp_async_work_dir
 
 # Translations
 *.mo

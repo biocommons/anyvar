@@ -1,6 +1,7 @@
 """Test ingestion of VCF that already contains VRS annotations."""
 
 import io
+import pprint
 import shutil
 import time
 from http import HTTPStatus
@@ -147,13 +148,13 @@ def test_registration_sync(
     recorded = []
     monkeypatch.setattr(
         client.app.state.anyvar,
-        "put_object",
-        lambda allele: recorded.append(allele),
+        "put_objects",
+        lambda allele_list: recorded.append(*allele_list),
     )
     resp = client.put("/annotated_vcf", files={"vcf": ("test.vcf", basic_vcf)})
 
     assert resp.status_code == HTTPStatus.OK
-    assert recorded, "put_object was never called"
+    assert recorded, "put_objects was never called"
     assert recorded[0].id == "ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe"
     assert recorded[1].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
 
@@ -161,7 +162,7 @@ def test_registration_sync(
     resp = client.put("/annotated_vcf", files={"vcf": ("test.vcf", vcf_incorrect_id)})
 
     assert resp.status_code == HTTPStatus.OK
-    assert recorded, "put_object was never called"
+    assert recorded, "put_objects was never called"
     assert recorded[2].id == "ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe"
     assert recorded[3].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
 
@@ -176,8 +177,8 @@ def test_registration_sync_validate(
     recorded = []
     monkeypatch.setattr(
         client.app.state.anyvar,
-        "put_object",
-        lambda allele: recorded.append(allele),
+        "put_objects",
+        lambda allele_list: recorded.append(*allele_list),
     )
     resp = client.put(
         "/annotated_vcf",
@@ -186,7 +187,7 @@ def test_registration_sync_validate(
     )
 
     assert resp.status_code == HTTPStatus.OK
-    assert recorded, "put_object was never called"
+    assert recorded, "put_objects was never called"
     assert recorded[0].id == "ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe"
     assert recorded[1].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
     assert resp.content.count(b"\n") == 1  # just header
@@ -199,7 +200,7 @@ def test_registration_sync_validate(
     )
 
     assert resp.status_code == HTTPStatus.OK
-    assert recorded, "put_object was never called"
+    assert recorded, "put_objects was never called"
     assert recorded[0].id == "ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe"
     # use correct ID (it's wrong in the input)
     assert recorded[1].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
@@ -214,6 +215,9 @@ def test_registration_async(
     vcf_incorrect_id: io.BytesIO,
 ):
     """Test async file registration"""
+    import debugpy
+    # debugpy.breakpoint()
+
     monkeypatch.setenv("ANYVAR_VCF_ASYNC_WORK_DIR", "tests/tmp_async_work_dir")
     with start_worker(
         celery_app,
@@ -231,16 +235,16 @@ def test_registration_async(
         assert resp.status_code == HTTPStatus.ACCEPTED
         assert "status_message" in resp.json()
         assert (
-            resp.json()["status_message"] == "Run submitted. Check status at /vcf/12345"
+            resp.json()["status_message"] == f"Run submitted. Check status at /vcf/{run_id}"
         )
         assert "status" in resp.json()
         assert resp.json()["status"] == "PENDING"
         assert "run_id" in resp.json()
-        assert resp.json()["run_id"] == "12345"
+        assert resp.json()["run_id"] == f"{run_id}"
 
         time.sleep(5)
 
-        resp = client.get("/vcf/12345")
+        resp = client.get(f"/vcf/{run_id}")
         assert resp.status_code == HTTPStatus.OK
         assert resp.json()["status"] == "SUCCESS"
 
@@ -253,16 +257,16 @@ def test_registration_async(
         assert resp.status_code == HTTPStatus.ACCEPTED
         assert "status_message" in resp.json()
         assert (
-            resp.json()["status_message"] == "Run submitted. Check status at /vcf/12345"
+            resp.json()["status_message"] == f"Run submitted. Check status at /vcf/{run_id}"
         )
         assert "status" in resp.json()
         assert resp.json()["status"] == "PENDING"
         assert "run_id" in resp.json()
-        assert resp.json()["run_id"] == "12345"
+        assert resp.json()["run_id"] == f"{run_id}"
 
         time.sleep(5)
 
-        resp = client.get("/vcf/12345")
+        resp = client.get(f"/vcf/{run_id}")
         assert resp.status_code == HTTPStatus.OK
         assert resp.json()["status"] == "SUCCESS"
 
@@ -293,16 +297,16 @@ def test_registration_async_validate(
         assert resp.status_code == HTTPStatus.ACCEPTED
         assert "status_message" in resp.json()
         assert (
-            resp.json()["status_message"] == "Run submitted. Check status at /vcf/12345"
+            resp.json()["status_message"] == f"Run submitted. Check status at /vcf/{run_id}"
         )
         assert "status" in resp.json()
         assert resp.json()["status"] == "PENDING"
         assert "run_id" in resp.json()
-        assert resp.json()["run_id"] == "12345"
+        assert resp.json()["run_id"] == f"{run_id}"
 
         time.sleep(5)
 
-        resp = client.get("/vcf/12345")
+        resp = client.get(f"/vcf/{run_id}")
         assert resp.status_code == HTTPStatus.OK
         assert resp.content.count(b"\n") == 1  # just header
 
