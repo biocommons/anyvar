@@ -13,14 +13,19 @@ from anyvar.utils import types
 from anyvar.utils.funcs import build_vrs_variant_from_dict
 
 
-@pytest.fixture
-def postgres_storage():
-    """Reset storage state after each test case"""
+@pytest.fixture(scope="session")
+def postgres_uri():
     uri = os.environ.get(
         "ANYVAR_TEST_STORAGE_URI",
         "postgresql://postgres:postgres@localhost:5432/anyvar_test",
     )
-    storage = PostgresObjectStore(uri)
+    return uri
+
+
+@pytest.fixture
+def postgres_storage(postgres_uri: str):
+    """Reset storage state after each test case"""
+    storage = PostgresObjectStore(postgres_uri)
     yield storage
     storage.wipe_db()
 
@@ -32,9 +37,38 @@ def alleles(test_data_dir: Path):
         return data["alleles"]
 
 
-def test_db_lifecycle():
-    # TODO test wipe db, maybe test setup?
-    pass
+def test_db_lifecycle(postgres_uri: str, alleles: dict):
+    # set up and populate DB
+    storage = PostgresObjectStore(postgres_uri)
+    allele_38 = models.Allele(
+        **alleles["ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU"]["variation"]
+    )
+    allele_37 = models.Allele(
+        **alleles["ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf"]["variation"]
+    )
+    storage.add_objects([allele_38, allele_37])
+    storage.add_annotation(
+        types.Annotation(
+            object_id=allele_38.id,
+            annotation_type="classification",
+            annotation_value="uncertain",
+        )
+    )
+    storage.add_mapping(
+        types.VariationMapping(
+            source_id=allele_38.id,
+            dest_id=allele_37.id,
+            mapping_type=types.VariationMappingType.LIFTOVER,
+        )
+    )
+
+    # wipe_db removes objects
+    storage.wipe_db()
+    result = storage.get_objects(
+        StoredObjectType.SEQUENCE_REFERENCE,
+        [allele_38.location.sequenceReference.refgetAccession],
+    )
+    assert result == []
 
 
 def test_alleles_crud(postgres_storage: PostgresObjectStore, alleles: dict):
@@ -50,37 +84,37 @@ def test_alleles_crud(postgres_storage: PostgresObjectStore, alleles: dict):
     postgres_storage.add_objects(alleles_to_add)
 
     # get 1 allele
-    response = postgres_storage.get_objects(
+    result = postgres_storage.get_objects(
         StoredObjectType.ALLELE, [alleles_to_add[0].id]
     )
-    assert response == [alleles_to_add[0]]
+    assert result == [alleles_to_add[0]]
 
     # get multiple alleles
-    response = postgres_storage.get_objects(
+    result = postgres_storage.get_objects(
         StoredObjectType.ALLELE, [alleles_to_add[1].id, alleles_to_add[2].id]
     )
-    assert len(list(response)) == 2
-    assert alleles_to_add[1] in list(response)
-    assert alleles_to_add[2] in list(response)
+    assert len(list(result)) == 2
+    assert alleles_to_add[1] in list(result)
+    assert alleles_to_add[2] in list(result)
 
     # get alleles, including some that don't exist
-    response = postgres_storage.get_objects(
+    result = postgres_storage.get_objects(
         StoredObjectType.ALLELE, ["ga4gh:VA.not_real", alleles_to_add[0].id]
     )
-    assert response == [alleles_to_add[0]]
-    response = postgres_storage.get_objects(
+    assert result == [alleles_to_add[0]]
+    result = postgres_storage.get_objects(
         StoredObjectType.ALLELE, ["ga4gh:VA.sdfljsdflk"]
     )
-    assert response == []
+    assert result == []
 
     # add empty allele
     _ = postgres_storage.add_objects([])
 
     # get contained objects
-    response = postgres_storage.get_objects(
+    result = postgres_storage.get_objects(
         StoredObjectType.SEQUENCE_LOCATION, [alleles_to_add[0].location.id]
     )
-    assert response == [alleles_to_add[0].location]
+    assert result == [alleles_to_add[0].location]
 
     # delete objects
     postgres_storage.delete_objects(
@@ -90,10 +124,10 @@ def test_alleles_crud(postgres_storage: PostgresObjectStore, alleles: dict):
         postgres_storage.get_objects(StoredObjectType.ALLELE, [alleles_to_add[1].id])
         == []
     )
-    response = postgres_storage.get_objects(
+    result = postgres_storage.get_objects(
         StoredObjectType.ALLELE, [alleles_to_add[0].id]
     )
-    assert response == [alleles_to_add[0]]
+    assert result == [alleles_to_add[0]]
     postgres_storage.delete_objects(StoredObjectType.ALLELE, [alleles_to_add[0].id])
     assert (
         postgres_storage.get_objects(StoredObjectType.ALLELE, [alleles_to_add[0].id])
@@ -101,10 +135,10 @@ def test_alleles_crud(postgres_storage: PostgresObjectStore, alleles: dict):
     )
 
     # contained objects persist
-    response = postgres_storage.get_objects(
+    result = postgres_storage.get_objects(
         StoredObjectType.SEQUENCE_LOCATION, [alleles_to_add[0].location.id]
     )
-    assert response == [alleles_to_add[0].location]
+    assert result == [alleles_to_add[0].location]
 
 
 def test_sequencelocations_crud(postgres_storage: PostgresObjectStore, alleles: dict):
@@ -119,25 +153,25 @@ def test_sequencelocations_crud(postgres_storage: PostgresObjectStore, alleles: 
     postgres_storage.add_objects(sls_to_add)
 
     # get SLs, including one with the wrong type/ID
-    response = postgres_storage.get_objects(
+    result = postgres_storage.get_objects(
         StoredObjectType.SEQUENCE_LOCATION,
         [
             "ga4gh:VA.1FzYrqG-7jB3Wr46eIL_L5BWElQZEB7i",
             sls_to_add[0].id,
         ],
     )
-    assert response == [sls_to_add[0]]
+    assert result == [sls_to_add[0]]
 
     # delete objects, other objects still persist
     postgres_storage.delete_objects(
         StoredObjectType.SEQUENCE_LOCATION, [sls_to_add[2].id]
     )
-    response = postgres_storage.get_objects(
+    result = postgres_storage.get_objects(
         StoredObjectType.SEQUENCE_LOCATION, [sls_to_add[1].id, sls_to_add[0].id]
     )
-    assert len(response) == 2
-    assert sls_to_add[0] in response
-    assert sls_to_add[1] in response
+    assert len(result) == 2
+    assert sls_to_add[0] in result
+    assert sls_to_add[1] in result
 
 
 def test_get_all_ids(postgres_storage: PostgresObjectStore, alleles: dict):
@@ -152,11 +186,11 @@ def test_get_all_ids(postgres_storage: PostgresObjectStore, alleles: dict):
             )
         ]
     )
-    response = list(postgres_storage.get_all_object_ids())
-    assert len(response) == 3
-    assert "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU" in response
-    assert "ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf" in response
-    assert "ga4gh:VA.1FzYrqG-7jB3Wr46eIL_L5BWElQZEB7i" in response
+    result = list(postgres_storage.get_all_object_ids())
+    assert len(result) == 3
+    assert "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU" in result
+    assert "ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf" in result
+    assert "ga4gh:VA.1FzYrqG-7jB3Wr46eIL_L5BWElQZEB7i" in result
 
 
 def test_mappings_crud(postgres_storage: PostgresObjectStore, alleles: dict):
@@ -231,28 +265,28 @@ def test_annotations_crud(postgres_storage: PostgresObjectStore, alleles: dict):
     postgres_storage.add_annotation(ann4)
 
     # get annotations back
-    response = postgres_storage.get_annotations_by_object_and_type(
+    result = postgres_storage.get_annotations_by_object_and_type(
         alleles_to_add[0].id, "classification"
     )
-    assert response[0].object_id == ann1.object_id
-    assert response[0].annotation_type == ann1.annotation_type
-    assert response[0].annotation_value == ann1.annotation_value
+    assert result[0].object_id == ann1.object_id
+    assert result[0].annotation_type == ann1.annotation_type
+    assert result[0].annotation_value == ann1.annotation_value
 
-    response = postgres_storage.get_annotations_by_object_and_type(
+    result = postgres_storage.get_annotations_by_object_and_type(
         alleles_to_add[2].id, "reference"
     )
-    assert response[0].object_id == ann4.object_id
-    assert response[0].annotation_type == ann4.annotation_type
-    assert response[0].annotation_value == ann4.annotation_value
+    assert result[0].object_id == ann4.object_id
+    assert result[0].annotation_type == ann4.annotation_type
+    assert result[0].annotation_value == ann4.annotation_value
 
-    response = postgres_storage.get_annotations_by_object_and_type(alleles_to_add[2].id)
-    sorted(response, key=lambda i: (i.annotation_type, i.annotation_value))
-    assert response[0].object_id == ann3.object_id
-    assert response[0].annotation_type == ann3.annotation_type
-    assert response[0].annotation_value == ann3.annotation_value
-    assert response[1].object_id == ann4.object_id
-    assert response[1].annotation_type == ann4.annotation_type
-    assert response[1].annotation_value == ann4.annotation_value
+    result = postgres_storage.get_annotations_by_object_and_type(alleles_to_add[2].id)
+    sorted(result, key=lambda i: (i.annotation_type, i.annotation_value))
+    assert result[0].object_id == ann3.object_id
+    assert result[0].annotation_type == ann3.annotation_type
+    assert result[0].annotation_value == ann3.annotation_value
+    assert result[1].object_id == ann4.object_id
+    assert result[1].annotation_type == ann4.annotation_type
+    assert result[1].annotation_value == ann4.annotation_value
 
     # test optional type
     assert postgres_storage.get_annotations_by_object_and_type(
@@ -262,7 +296,15 @@ def test_annotations_crud(postgres_storage: PostgresObjectStore, alleles: dict):
     )
 
     # fetch nonexistent annotation
-    response = postgres_storage.get_annotations_by_object_and_type("ga4gh:VA.ZZZZZZZ")
-    assert response == []
+    result = postgres_storage.get_annotations_by_object_and_type("ga4gh:VA.ZZZZZZZ")
+    assert result == []
 
     # delete annotations
+    result = postgres_storage.get_annotations_by_object_and_type(
+        alleles_to_add[0].id, "classification"
+    )
+    postgres_storage.delete_annotation(result[0].id)
+    result = postgres_storage.get_annotations_by_object_and_type(
+        alleles_to_add[0].id, "classification"
+    )
+    assert result == []
