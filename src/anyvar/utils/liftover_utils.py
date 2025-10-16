@@ -274,7 +274,7 @@ def add_liftover_mapping(variation: VrsVariation, anyvar: AnyVar) -> list[str] |
         lifted_over_variant, data_proxy=anyvar.translator.dp
     )
     normalized_lifted_over_variant_id: str = normalized_lifted_over_variant.id  # type: ignore
-    anyvar.put_object(normalized_lifted_over_variant)
+    anyvar.put_objects([normalized_lifted_over_variant])
     anyvar.object_store.add_mapping(
         VariationMapping(
             source_id=input_vrs_id,

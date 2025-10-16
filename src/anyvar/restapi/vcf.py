@@ -101,8 +101,8 @@ async def _annotate_vcf_async(
             "input_file_path": str(input_file_path),
             "assembly": assembly,
             "for_ref": for_ref,
-            "add_vrs_attributes": add_vrs_attributes,
             "allow_async_write": allow_async_write,
+            "add_vrs_attributes": add_vrs_attributes,
         },
         task_id=run_id,
     )
