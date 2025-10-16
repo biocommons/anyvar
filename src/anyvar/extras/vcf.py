@@ -35,16 +35,16 @@ class VcfRegistrar(VcfAnnotator):
     #     vrs_allele: vrs_models.Allele,
     #     **kwargs,
     # ) -> vrs_models.Allele | None:
-    #     self.av.put_objects(vrs_allele)
+    #     self.av.put_objects([vrs_allele])
     #     return vrs_allele
 
-    def on_vrs_object_collection(  # noqa: D102
-        self, vrs_alleles_collection: list[vrs_models.Allele] | None, **kwargs
-    ) -> None:
-        pass
+    # def on_vrs_object_collection(
+    #     self, vrs_alleles_collection: list[vrs_models.Allele] | None, **kwargs
+    # ) -> None:
+    #     pass
 
-    def raise_for_output_args(self, output_vcf_path: Path | None, **kwargs) -> None:  # noqa: D102
-        pass
+    # def raise_for_output_args(self, output_vcf_path: Path | None, **kwargs) -> None:
+    #     pass
 
 
 class RequiredAnnotationsError(Exception):
