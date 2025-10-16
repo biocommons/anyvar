@@ -1,16 +1,18 @@
 """Defines functions used to lift over variants between GRCh37 & GRCh38"""
 
+import logging
 from enum import Enum
 from typing import TypeVar
 
 from agct import Converter, Strand
 from bioutils.accessions import chr22XY
-from ga4gh.vrs import models
-from ga4gh.vrs.enderef import vrs_deref, vrs_enref
+from ga4gh.core import ga4gh_identify
+from ga4gh.vrs import models, normalize
 
 from anyvar.anyvar import AnyVar
-from anyvar.utils.funcs import build_vrs_variant_from_dict
-from anyvar.utils.types import VrsVariation
+from anyvar.utils.types import VariationMapping, VariationMappingType, VrsVariation
+
+_logger = logging.getLogger(__name__)
 
 
 class ReferenceAssembly(Enum):
@@ -52,18 +54,6 @@ class UnsupportedReferenceAssemblyError(LiftoverError):
     """Indicates a failure to retrieve alias data for a refget accession in any supported reference assembly."""
 
     error_details = "Could not resolve reference assembly - accession not found in any supported assembly"
-
-
-class AmbiguousReferenceAssemblyError(LiftoverError):
-    """Indicates a failure to determine which reference assembly a variant is one due to alias matches in multiple reference assemblies, making the result ambiguous"""
-
-    error_details = "Could not resolve reference assembly - accession found in multiple supported assemblies"
-
-
-class ChromosomeResolutionError(LiftoverError):
-    """Indicates a failure to resolve a variant's chromosome"""
-
-    error_details = "Unable to resolve variant's chromosome"
 
 
 class CoordinateConversionFailureError(LiftoverError):
@@ -155,10 +145,6 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
 
         - `UnsupportedReferenceAssemblyError`: If the variant's accession was not found in any supported assembly
 
-        - `AmbiguousReferenceAssemblyError`: If the variant's accession was found in multiple supported assemblies
-
-        - `ChromosomeResolutionError`: If unable to resolve variant's chromosome
-
         - `CoordinateConversionFailureError`: If unable to lift over the variant's start and/or end position(s)
 
         - `AmbiguousCoordinateConversionError`: If variant's start and/or end position(s) map to multiple possible locations
@@ -194,6 +180,7 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
         )
     else:
         msg = f"Unable to get reference sequence ID for {prefixed_accession}"
+        _logger.error(msg)
         raise UnsupportedReferenceAssemblyError(msg)
 
     # Get the Converter that will liftover the variant's coordinates
@@ -213,6 +200,10 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
         new_alias, "ga4gh"
     )[0].split("ga4gh:")[1]
     if not converted_refget_accession:
+        _logger.error(
+            "Unable to convert constructed sequence ID `%s` into refgetAccession",
+            new_alias,
+        )
         raise AccessionConversionError
 
     # Build the converted location object
@@ -224,6 +215,7 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
             type="SequenceReference", refgetAccession=converted_refget_accession
         ),  # type: ignore (missing parameters are fine, all absent params will default to `None`)
     )  # type: ignore (missing parameters are fine, all absent params will default to `None`)
+    ga4gh_identify(converted_variant_location, in_place="always")
 
     # Build the liftover variant object
     # Start by copying the original variant
@@ -232,84 +224,69 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
     # Replace the location with the lifted-over version
     converted_variant.location = converted_variant_location
 
-    # Get rid of the identifiers since these were from the original input variant and we need to re-compute them
+    # Recompute object ID
     converted_variant.digest = None
-    converted_variant.id = None
+    converted_variant.id = ga4gh_identify(converted_variant, in_place="always")
 
-    # Compute the identifiers
-    object_store = {}
-    enreffed_variant = vrs_enref(
-        o=converted_variant,
-        object_store=object_store,
-        return_id_obj_tuple=False,
-    )
-
-    # return the dereffed lifted-over variant
-    return vrs_deref(o=enreffed_variant, object_store=object_store)  # type: ignore (this will always return a `VrsVariation`)
+    return converted_variant
 
 
-def add_liftover_annotations(
-    input_vrs_id: str,
-    input_vrs_variant_dict: dict,
-    anyvar: AnyVar,
-) -> None:
-    """Perform liftover between GRCh37 <-> GRCh38. Store the ID of converted variant as an annotation of the original,
-    register the lifted-over variant, and store the ID of the original variant as an annotation of the lifted-over one.
+def add_liftover_mapping(variation: VrsVariation, anyvar: AnyVar) -> list[str] | None:
+    """Perform liftover between GRCh37 <-> GRCh38. Store mappings between the original and lifted-over variants.
 
-    :param input_vrs_id: The ID of the VRS variant to lift over
-    :param input_vrs_variant_dict: A dictionary representation of the VRS variant to lift over
+    Don't register lifted-over variant or mappings if
+    * liftover fails in either direction
+    * liftover is ambiguous in either direction
+    * liftover fails to roundtrip accurately
+
+    This function is intended to be quite directly 'user-facing', i.e. it catches and
+    suppresses major error cases and communicates results as they are to be transmitted
+    in the REST API routes. Library users hoping for more direct control will want to
+    employ ``get_liftover_variant`` to perform liftover and make their own decisions
+    about when to register objects and mappings.
+
+    :param variation: variation to attempt liftover upon
     :param anyvar: An `AnyVar` instance
+    :return: list of messages describing warnings or failures, or ``None`` if completely successful
     """
-    # TODO: Remove 'annotator' references from this function - use Mappings instead
-    # convert `input_vrs_object_dict` into an actual VrsVariation class instance
-    input_vrs_variant = build_vrs_variant_from_dict(input_vrs_variant_dict)
-
-    lifted_over_variant: VrsVariation | None = None
+    input_vrs_id: str = variation.id  # type: ignore
     try:
         lifted_over_variant = get_liftover_variant(
-            input_variant=input_vrs_variant,
+            input_variant=variation,
             anyvar=anyvar,
         )
-        # If liftover was successful, we'll annotate with the ID of the lifted-over variant
-        annotation_value = lifted_over_variant.id
-    except LiftoverError as e:
-        # If liftover was unsuccessful, we'll annotate with an error message
-        annotation_value = e.get_error_message()
-
-    # Add the annotation to the original variant
-    annotation_type = "liftover"
-    if annotator:
-        annotator.put_annotation(
-            object_id=input_vrs_id,
-            annotation_type=annotation_type,
-            annotation={annotation_type: annotation_value},
+        reverse_liftover_variant = get_liftover_variant(
+            input_variant=lifted_over_variant, anyvar=anyvar
         )
+    except LiftoverError as e:
+        _logger.exception(
+            "Encountered error during liftover of variation `%s`",
+            variation,
+        )
+        return [e.get_error_message()]
 
-    # If liftover was successful, also register the lifted-over variant
-    # and add an annotation on the lifted-over variant linking it back to the original
-    if lifted_over_variant:
-        anyvar.put_object(lifted_over_variant)
+    if reverse_liftover_variant.id != variation.id:
+        return [
+            f"{LiftoverError.base_error_message}: Roundtripped lifted-over id `{reverse_liftover_variant.id}` does not match initial value of {input_vrs_id}"
+        ]
 
-        if annotator:
-            reverse_liftover_variant = None
-            reverse_liftover_annotation_value = ""
-            try:
-                # First, ensure liftover is reversible
-                reverse_liftover_variant = get_liftover_variant(
-                    input_variant=lifted_over_variant, anyvar=anyvar
-                )
-            except LiftoverError as e:
-                # If reverse liftover is NOT reversible, annotate the lifted-over variant with an error message
-                reverse_liftover_annotation_value = e.get_error_message()
-
-            if reverse_liftover_variant:
-                if reverse_liftover_variant.id == input_vrs_variant.id:
-                    reverse_liftover_annotation_value = input_vrs_variant.id
-                else:
-                    reverse_liftover_annotation_value = f"{LiftoverError.base_error_message}: Lifted-over variant id of {reverse_liftover_variant.id} does not match expected value of {input_vrs_id}"
-
-            annotator.put_annotation(
-                object_id=str(lifted_over_variant.id),
-                annotation_type=annotation_type,
-                annotation={annotation_type: reverse_liftover_annotation_value},
-            )
+    normalized_lifted_over_variant = normalize(
+        lifted_over_variant, data_proxy=anyvar.translator.dp
+    )
+    normalized_lifted_over_variant_id: str = normalized_lifted_over_variant.id  # type: ignore
+    anyvar.put_object(normalized_lifted_over_variant)
+    anyvar.object_store.add_mapping(
+        VariationMapping(
+            source_id=input_vrs_id,
+            dest_id=normalized_lifted_over_variant_id,
+            mapping_type=VariationMappingType.LIFTOVER,
+        )
+    )
+    anyvar.object_store.add_mapping(
+        VariationMapping(
+            source_id=normalized_lifted_over_variant_id,
+            dest_id=input_vrs_id,
+            mapping_type=VariationMappingType.LIFTOVER,
+        )
+    )
+    return None

@@ -3,7 +3,15 @@
 import os
 import re
 
-from sqlalchemy import ForeignKey, Index, Integer, String, create_engine
+from sqlalchemy import (
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    create_engine,
+)
+from sqlalchemy.dialects.postgresql import ENUM as PgEnum  # noqa: N811
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -13,6 +21,8 @@ from sqlalchemy.orm import (
     sessionmaker,
 )
 from sqlalchemy.orm.decl_api import declared_attr
+
+from anyvar.utils.types import VariationMappingType
 
 
 class Base(DeclarativeBase):
@@ -94,6 +104,33 @@ class Annotation(Base):
             "object_id",
             "annotation_type",
         ),
+    )
+
+
+mapping_type_enum = PgEnum(
+    VariationMappingType,
+    name="mapping_type",
+    metadata=Base.metadata,
+    create_type=True,
+    validate_strings=True,
+)
+
+
+class VariationMapping(Base):
+    """AnyVar ORM model for variation-to-variation mapping"""
+
+    __tablename__ = "variation_mappings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    source_id: Mapped[str] = mapped_column(String)
+    dest_id: Mapped[str] = mapped_column(String)
+    mapping_type: Mapped[str] = mapped_column(mapping_type_enum)
+
+    __table_args__ = (
+        Index("idx_mappings_source_id", "source_id"),
+        Index("idx_mappings_dest_id", "dest_id"),
+        Index("idx_mappings_source_id_type", "source_id", "mapping_type"),
+        UniqueConstraint("source_id", "dest_id", "mapping_type"),
     )
 
 
