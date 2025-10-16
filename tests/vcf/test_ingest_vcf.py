@@ -1,7 +1,6 @@
 """Test ingestion of VCF that already contains VRS annotations."""
 
 import io
-import pprint
 import shutil
 import time
 from http import HTTPStatus
@@ -215,9 +214,6 @@ def test_registration_async(
     vcf_incorrect_id: io.BytesIO,
 ):
     """Test async file registration"""
-    import debugpy
-    # debugpy.breakpoint()
-
     monkeypatch.setenv("ANYVAR_VCF_ASYNC_WORK_DIR", "tests/tmp_async_work_dir")
     with start_worker(
         celery_app,
@@ -235,7 +231,8 @@ def test_registration_async(
         assert resp.status_code == HTTPStatus.ACCEPTED
         assert "status_message" in resp.json()
         assert (
-            resp.json()["status_message"] == f"Run submitted. Check status at /vcf/{run_id}"
+            resp.json()["status_message"]
+            == f"Run submitted. Check status at /vcf/{run_id}"
         )
         assert "status" in resp.json()
         assert resp.json()["status"] == "PENDING"
@@ -257,7 +254,8 @@ def test_registration_async(
         assert resp.status_code == HTTPStatus.ACCEPTED
         assert "status_message" in resp.json()
         assert (
-            resp.json()["status_message"] == f"Run submitted. Check status at /vcf/{run_id}"
+            resp.json()["status_message"]
+            == f"Run submitted. Check status at /vcf/{run_id}"
         )
         assert "status" in resp.json()
         assert resp.json()["status"] == "PENDING"
@@ -297,7 +295,8 @@ def test_registration_async_validate(
         assert resp.status_code == HTTPStatus.ACCEPTED
         assert "status_message" in resp.json()
         assert (
-            resp.json()["status_message"] == f"Run submitted. Check status at /vcf/{run_id}"
+            resp.json()["status_message"]
+            == f"Run submitted. Check status at /vcf/{run_id}"
         )
         assert "status" in resp.json()
         assert resp.json()["status"] == "PENDING"
