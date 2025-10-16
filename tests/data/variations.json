@@ -29,6 +29,35 @@
       },
       "location_id": "ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy"
     },
+    "ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf": {
+      "params": {
+        "definition": "NC_000010.10:g.89653834C>T"
+      },
+      "allele_response": {
+        "messages": [],
+        "object": {
+          "id": "ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf",
+          "digest": "rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf",
+          "location": {
+            "id": "ga4gh:SL.WZec1uaNf5go9BVpBP2ts2kLhFqiCvMe",
+            "digest": "WZec1uaNf5go9BVpBP2ts2kLhFqiCvMe",
+            "start": 89653833,
+            "end": 89653834,
+            "sequenceReference": {
+              "refgetAccession": "SQ.-BOZ8Esn8J88qDwNiSEwUr5425UXdiGX",
+              "type": "SequenceReference"
+            },
+            "type": "SequenceLocation"
+          },
+          "state": {
+            "sequence": "T",
+            "type": "LiteralSequenceExpression"
+          },
+          "type": "Allele"
+        }
+      },
+      "location_id": "ga4gh:SL.WZec1uaNf5go9BVpBP2ts2kLhFqiCvMe"
+    },
     "ga4gh:VA.1FzYrqG-7jB3Wr46eIL_L5BWElQZEB7i": {
       "params": {
         "definition": "NM_000551.3:c.1A>T"

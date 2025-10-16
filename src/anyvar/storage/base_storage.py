@@ -20,14 +20,6 @@ class StoredObjectType(enum.StrEnum):
     SEQUENCE_REFERENCE = "SequenceReference"
 
 
-class VariationMappingType(enum.StrEnum):
-    """Supported mapping types between VRS Variations."""
-
-    LIFTOVER = "liftover"
-    TRANSCRIPTION = "transcription"
-    TRANSLATION = "translation"
-
-
 class Storage(ABC):
     """Abstract base class for interacting with storage backends."""
 
@@ -73,43 +65,30 @@ class Storage(ABC):
         """Delete all objects of a specific type from storage."""
 
     @abstractmethod
-    def add_mapping(
-        self,
-        source_object_id: str,
-        destination_object_id: str,
-        mapping_type: VariationMappingType,
-    ) -> None:
+    def add_mapping(self, mapping: types.VariationMapping) -> None:
         """Add a mapping between two objects.
 
-        :param source_object_id: ID of the source object
-        :param destination_object_id: ID of the destination object
-        :param mapping_type: Type of VariationMappingType
+        :param mapping: mapping object
         """
 
     @abstractmethod
-    def delete_mapping(
-        self,
-        source_object_id: str,
-        destination_object_id: str,
-        mapping_type: VariationMappingType,
-    ) -> None:
+    def delete_mapping(self, mapping: types.VariationMapping) -> None:
         """Delete a mapping between two objects.
 
-        :param source_object_id: ID of the source object
-        :param destination_object_id: ID of the destination object
-        :param mapping_type: Type of VariationMappingType
+        :param mapping: mapping object
         """
 
     @abstractmethod
     def get_mappings(
         self,
         source_object_id: str,
-        mapping_type: VariationMappingType,
-    ) -> list[str]:
-        """Return a list of ids of destination objects mapped from the source object.
+        mapping_type: types.VariationMappingType,
+    ) -> Iterable[types.VariationMapping]:
+        """Return a list of variation mappings.
 
         :param source_object_id: ID of the source object
-        :param mapping_type: Type of VariationMappingType
+        :param mapping_type: kind of mapping to retrieve
+        :return: iterable collection of mapping objects
         """
 
     @abstractmethod

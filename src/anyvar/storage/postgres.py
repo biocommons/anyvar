@@ -11,7 +11,6 @@ from anyvar.storage import orm
 from anyvar.storage.base_storage import (
     Storage,
     StoredObjectType,
-    VariationMappingType,
 )
 from anyvar.storage.mapper_registry import mapper_registry
 from anyvar.storage.orm import create_tables
@@ -51,6 +50,7 @@ class PostgresObjectStore(Storage):
         """Wipe all data from the storage backend."""
         with self.session_factory() as session, session.begin():
             # Delete all data from tables in dependency order
+            session.execute(delete(orm.VariationMapping))
             session.execute(delete(orm.Allele))
             session.execute(delete(orm.Location))
             session.execute(delete(orm.SequenceReference))
@@ -195,45 +195,60 @@ class PostgresObjectStore(Storage):
             else:
                 raise ValueError(f"Unsupported object type: {object_type}")
 
-    def add_mapping(
-        self,
-        source_object_id: str,
-        destination_object_id: str,
-        mapping_type: VariationMappingType,
-    ) -> None:
+    def add_mapping(self, mapping: types.VariationMapping) -> None:
         """Add a mapping between two objects.
 
-        :param source_object_id: ID of the source object
-        :param destination_object_id: ID of the destination object
-        :param mapping_type: Type of VariationMappingType
+        :param mapping: mapping object
         """
-        raise NotImplementedError
+        stmt = (
+            insert(orm.VariationMapping)
+            .values(
+                [
+                    {
+                        "source_id": mapping.source_id,
+                        "dest_id": mapping.dest_id,
+                        "mapping_type": mapping.mapping_type,
+                    }
+                ]
+            )
+            .on_conflict_do_nothing()
+        )
+        with self.session_factory() as session, session.begin():
+            session.execute(stmt)
 
-    def delete_mapping(
-        self,
-        source_object_id: str,
-        destination_object_id: str,
-        mapping_type: VariationMappingType,
-    ) -> None:
+    def delete_mapping(self, mapping: types.VariationMapping) -> None:
         """Delete a mapping between two objects.
 
-        :param source_object_id: ID of the source object
-        :param destination_object_id: ID of the destination object
-        :param mapping_type: Type of VariationMappingType
+        :param mapping: mapping object
         """
-        raise NotImplementedError
+        stmt = (
+            delete(orm.VariationMapping)
+            .where(orm.VariationMapping.source_id == mapping.source_id)
+            .where(orm.VariationMapping.dest_id == mapping.dest_id)
+            .where(orm.VariationMapping.mapping_type == mapping.mapping_type)
+        )
+        with self.session_factory() as session, session.begin():
+            session.execute(stmt)
 
     def get_mappings(
         self,
         source_object_id: str,
-        mapping_type: VariationMappingType,
-    ) -> list[str]:
-        """Return a list of ids of destination objects mapped from the source object.
+        mapping_type: types.VariationMappingType,
+    ) -> Iterable[types.VariationMapping]:
+        """Return a list of variation mappings.
 
         :param source_object_id: ID of the source object
-        :param mapping_type: Type of VariationMappingType
+        :param mapping_type: kind of mapping to retrieve
+        :return: iterable collection of mapping objects
         """
-        raise NotImplementedError
+        stmt = (
+            select(orm.VariationMapping)
+            .where(orm.VariationMapping.source_id == source_object_id)
+            .where(orm.VariationMapping.mapping_type == mapping_type)
+        )
+        with self.session_factory() as session, session.begin():
+            mappings = session.scalars(stmt).all()
+            return [mapper_registry.from_db_entity(mapping) for mapping in mappings]
 
     def search_alleles(
         self,

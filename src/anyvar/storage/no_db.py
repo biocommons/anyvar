@@ -4,9 +4,8 @@ from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
 
+from anyvar.storage.base_storage import Storage, StoredObjectType
 from anyvar.utils import types
-
-from .base_storage import Storage, StoredObjectType, VariationMappingType
 
 
 class NoObjectStore(Storage):
@@ -46,41 +45,28 @@ class NoObjectStore(Storage):
     ) -> None:
         """Delete all objects of a specific type from storage."""
 
-    def add_mapping(
-        self,
-        source_object_id: str,
-        destination_object_id: str,
-        mapping_type: VariationMappingType,
-    ) -> None:
+    def add_mapping(self, mapping: types.VariationMapping) -> None:
         """Add a mapping between two objects.
 
-        :param source_object_id: ID of the source object
-        :param destination_object_id: ID of the destination object
-        :param mapping_type: Type of VariationMappingType
+        :param mapping: mapping object
         """
 
-    def delete_mapping(
-        self,
-        source_object_id: str,
-        destination_object_id: str,
-        mapping_type: VariationMappingType,
-    ) -> None:
+    def delete_mapping(self, mapping: types.VariationMapping) -> None:
         """Delete a mapping between two objects.
 
-        :param source_object_id: ID of the source object
-        :param destination_object_id: ID of the destination object
-        :param mapping_type: Type of VariationMappingType
+        :param mapping: mapping object
         """
 
     def get_mappings(
         self,
         source_object_id: str,
-        mapping_type: VariationMappingType,
-    ) -> list[str]:
-        """Return a list of ids of destination objects mapped from the source object.
+        mapping_type: types.VariationMappingType,
+    ) -> Iterable[str]:
+        """Return a list of variation mappings.
 
         :param source_object_id: ID of the source object
-        :param mapping_type: Type of VariationMappingType
+        :param mapping_type: kind of mapping to retrieve
+        :return: iterable collection of mapping objects
         """
         return []
 

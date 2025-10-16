@@ -11,6 +11,7 @@ from anyvar.storage.mappers import (
     BaseMapper,
     SequenceLocationMapper,
     SequenceReferenceMapper,
+    VariationMappingMapper,
 )
 from anyvar.utils import types
 
@@ -26,6 +27,7 @@ class MapperRegistry:
             vrs_models.Allele: orm.Allele,
             vrs_models.SequenceLocation: orm.Location,
             vrs_models.SequenceReference: orm.SequenceReference,
+            types.VariationMapping: orm.VariationMapping,
             types.Annotation: orm.Annotation,
         }
 
@@ -33,6 +35,7 @@ class MapperRegistry:
             orm.Allele: AlleleMapper(),
             orm.Location: SequenceLocationMapper(),
             orm.SequenceReference: SequenceReferenceMapper(),
+            orm.VariationMapping: VariationMappingMapper(),
             orm.Annotation: AnnotationMapper(),
         }
 
