@@ -11,7 +11,6 @@ import pytest
 from billiard.exceptions import TimeLimitExceeded
 from celery.contrib.testing.worker import start_worker
 from celery.exceptions import WorkerLostError
-from celery.result import AsyncResult
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
@@ -180,10 +179,6 @@ def test_vcf_registration_async(
         perform_ping_check=False,
         shutdown_timeout=30,
     ):
-        # Ensure there are no other tasks currently running with this ID
-        celery_app.control.purge()
-        AsyncResult(f"{run_id}").forget()
-
         resp = client.put(
             "/vcf",
             params={"assembly": "GRCh38", "run_id": f"{run_id}", "run_async": True},
