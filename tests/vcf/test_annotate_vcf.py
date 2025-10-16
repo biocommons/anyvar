@@ -11,6 +11,7 @@ import pytest
 from billiard.exceptions import TimeLimitExceeded
 from celery.contrib.testing.worker import start_worker
 from celery.exceptions import WorkerLostError
+from celery.result import AsyncResult
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
@@ -170,6 +171,8 @@ def test_vcf_registration_async(
         os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "tests/tmp_async_work_dir"}
     )
     assert anyvar.anyvar.has_queueing_enabled(), "async vcf queueing is not enabled"
+
+    run_id = 1234
     with start_worker(
         celery_app,
         pool="solo",
@@ -177,24 +180,29 @@ def test_vcf_registration_async(
         perform_ping_check=False,
         shutdown_timeout=30,
     ):
+        # Ensure there are no other tasks currently running with this ID
+        celery_app.control.revoke(f"{run_id}", terminate=True, signal="SIGTERM")
+        AsyncResult(f"{run_id}").forget()
+
         resp = client.put(
             "/vcf",
-            params={"assembly": "GRCh38", "run_id": "12345", "run_async": True},
+            params={"assembly": "GRCh38", "run_id": f"{run_id}", "run_async": True},
             files={"vcf": ("test.vcf", sample_vcf_grch38)},
         )
-        assert resp.status_code == HTTPStatus.ACCEPTED, resp.text
+        assert resp.status_code == HTTPStatus.ACCEPTED.value, resp.text
         assert "status_message" in resp.json()
         assert (
-            resp.json()["status_message"] == "Run submitted. Check status at /vcf/12345"
+            resp.json()["status_message"]
+            == f"Run submitted. Check status at /vcf/{run_id}"
         )
         assert "status" in resp.json()
         assert resp.json()["status"] == "PENDING"
         assert "run_id" in resp.json()
-        assert resp.json()["run_id"] == "12345"
+        assert resp.json()["run_id"] == f"{run_id}"
 
         time.sleep(5)
 
-        resp = client.get("/vcf/12345")
+        resp = client.get(f"/vcf/{run_id}")
         assert resp.status_code == HTTPStatus.OK
         assert (
             b"VRS_Allele_IDs=ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe,ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
