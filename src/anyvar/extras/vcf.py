@@ -12,6 +12,7 @@ from ga4gh.vrs.dataproxy import _DataProxy
 from ga4gh.vrs.extras.annotator.vcf import FieldName, VcfAnnotator
 
 from anyvar.anyvar import AnyVar
+from anyvar.utils.types import VrsObject
 
 _logger = logging.getLogger(__name__)
 
@@ -28,11 +29,11 @@ class VcfRegistrar(VcfAnnotator):
         self.av: AnyVar = av
         super().__init__(data_proxy)
 
-    # def on_vrs_object(  # noqa: D102
+    # def on_vrs_object(
     #     self,
-    #     vcf_coords: str,  # noqa: ARG002
+    #     vcf_coords: str,
     #     vrs_allele: vrs_models.Allele,
-    #     **kwargs,  # noqa: ARG002
+    #     **kwargs,
     # ) -> vrs_models.Allele | None:
     #     self.av.put_objects(vrs_allele)
     #     return vrs_allele
@@ -78,6 +79,9 @@ def register_existing_annotations(
     :return:  Path to ID conflict file, if requested, or None otherwise
     :raise: ValueError if input VCF lacks required annotations
     """
+    batch_size = 10000
+    variants: list[VrsObject] = []
+
     _logger.info("Registering existing annotations from VCF at %s", file_path)
     variantfile = pysam.VariantFile(filename=str(file_path), mode="r")
     _raise_for_missing_vcf_annotations(variantfile)
@@ -148,5 +152,11 @@ def register_existing_annotations(
                     conflict_logfile.write(
                         f"{vrs_id},{assembly},{record.chrom},{record.pos},{start},{end},{true_state},{new_vrs_id}\n"
                     )
-                av.put_objects([allele])
+                variants.append(allele)
+
+                if len(variants) == batch_size:
+                    av.put_objects(variants)
+
+            if len(variants) > 0:
+                av.put_objects(variants)
     return conflict_logfile_path
