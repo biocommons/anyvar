@@ -62,11 +62,11 @@ class NoObjectStore(Storage):
         source_object_id: str,
         mapping_type: types.VariationMappingType,
     ) -> Iterable[str]:
-        """Return an iterable of ids of destination objects mapped from the source object.
+        """Return a list of variation mappings.
 
         :param source_object_id: ID of the source object
         :param mapping_type: kind of mapping to retrieve
-        :return: iterable collection of mapping descriptors
+        :return: iterable collection of mapping objects
         """
         return []
 
