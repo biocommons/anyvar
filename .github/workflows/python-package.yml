@@ -25,7 +25,6 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: |
         run: uv sync --extra dev
 
       - name: Check style
