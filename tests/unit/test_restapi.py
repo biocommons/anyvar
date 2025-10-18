@@ -14,6 +14,7 @@ from anyvar.restapi.main import app_lifespan
 from anyvar.storage import Storage
 
 
+@pytest.mark.ci_ok
 @pytest.fixture(scope="module")
 def restapi_client(anyvar_instance: AnyVar):
     anyvar_restapi.state.anyvar = anyvar_instance
