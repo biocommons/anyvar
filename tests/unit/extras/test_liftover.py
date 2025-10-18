@@ -1,65 +1,122 @@
-import copy
-
 import pytest
-from data.liftover_variants import test_variants
-from starlette.testclient import TestClient
+from ga4gh.vrs import models
 
 from anyvar.anyvar import AnyVar
+from anyvar.storage.base_storage import StoredObjectType
 from anyvar.utils import liftover_utils
-from anyvar.utils.funcs import build_vrs_variant_from_dict
-
-
-def extract_variants(variant_name: str) -> tuple:
-    variant_test_case = copy.deepcopy(test_variants[variant_name])
-    return (variant_test_case["variant_input"], variant_test_case["expected_output"])
+from anyvar.utils.types import VariationMappingType
 
 
 # Success Cases
-@pytest.fixture
-def copynumber_ranged_positive_grch37_variant():
-    return extract_variants("copynumber_ranged_positive_grch37_variant")
+@pytest.fixture(scope="session")
+def copynumber_ranged_positive_grch37_variant(alleles: dict):
+    return {
+        "grch37": models.Allele(
+            **alleles["ga4gh:CN.CTCgVehH0FEqrlaOMhUsDjKwzavnQegk"]["variation"]
+        ),
+        "grch38": models.Allele(
+            **alleles["ga4gh:CN.fmrn873tRhAiNLybjHlftgHjcAEExPKQ"]["variation"]
+        ),
+    }
+
+
+@pytest.fixture(scope="session")
+def allele_int_negative_grch38_variant(alleles: dict):
+    return {
+        "grch37": models.Allele(
+            **alleles["ga4gh:VA.nmp-bzYpO00NYIqr3CaVF0ZH2ZpSj1ly"]["variation"]
+        ),
+        "grch38": models.Allele(
+            **alleles["ga4gh:VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe"]["variation"]
+        ),
+    }
 
 
 @pytest.fixture
-def allele_int_negative_grch38_variant():
-    return extract_variants("allele_int_negative_grch38_variant")
+def allele_int_unknown_grch38_variant(alleles: dict):
+    return {
+        "grch37": models.Allele(
+            **alleles["ga4gh:VA.J-gW7La8EblIdT1MfqZzhzbO26lkEH7D"]["variation"]
+        ),
+        "grch38": models.Allele(
+            **alleles["ga4gh:VA.9gW_iJbQAIO3SIxJ9ACyAZA1X2lEgO39"]["variation"]
+        ),
+    }
 
 
 @pytest.fixture
-def allele_int_unknown_grch38_variant():
-    return extract_variants("allele_int_unknown_grch38_variant")
-
-
-@pytest.fixture
-def allele_int_rle_grch37_variant():
-    return extract_variants("allele_int_rle_grch37_variant")
+def allele_int_rle_grch37_variant(alleles: dict):
+    return {
+        "grch37": models.Allele(
+            **alleles["ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb"]["variation"]
+        ),
+        "grch38": models.Allele(
+            **alleles["ga4gh:VA.QiKnpRR8S7SPoUE-RMUJJbT-RS1akuHA"]["variation"]
+        ),
+    }
 
 
 # Failure Cases
 @pytest.fixture
-def grch36_variant():
-    return extract_variants("grch36_variant")
+def grch36_variant(alleles: dict):
+    return {
+        "variant": models.Allele(
+            **alleles["ga4gh:VA.4dEsVNR2JC_ZiHsYSGZgariIUOfYl6a0"]["variation"]
+        ),
+        "error": liftover_utils.UnsupportedReferenceAssemblyError(
+            "Unable to get reference sequence ID for ga4gh:SQ.JY7UegcaYT-M0PYn1yDGQ_4XJsa-DsXq",
+        ),
+    }
 
 
 @pytest.fixture
-def unconvertible_grch37_variant():
-    return extract_variants("unconvertible_grch37_variant")
+def unconvertible_grch37_variant(alleles: dict):
+    return {
+        "variant": models.Allele(
+            **alleles["ga4gh:VA.qP-qtMJqKhTEJfpTdAZN9CoIFCRKv4kg"]["variation"]
+        ),
+        "error": liftover_utils.CoordinateConversionFailureError(),
+    }
 
 
 @pytest.fixture
-def unconvertible_grch38_variant():
-    return extract_variants("unconvertible_grch38_variant")
+def unconvertible_grch38_variant(alleles: dict):
+    return {
+        "variant": models.Allele(
+            **alleles["ga4gh:VA.5-m9wM6WTY5osPxLFg1_bITsOwSoMFui"]["variation"]
+        ),
+        "error": liftover_utils.CoordinateConversionFailureError(),
+    }
 
 
 # Cases where liftover should not be attempted
 @pytest.fixture
 def empty_variation_object():
-    return extract_variants("empty_variation_object")
+    return {
+        "variant": {},
+        "error": None,
+    }
 
 
 @pytest.fixture
 def invalid_variant():
-    return extract_variants("invalid_variant")
+    return {
+        "variant": {
+            "location": {
+                "id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8",
+                "end": 0,
+                "start": -1,
+                "sequenceReference": {
+                    "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
+                    "type": "SequenceReference",
+                },
+                "type": "SequenceLocation",
+            },
+            "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
+            "type": "UNSUPPORTED",
+        },
+        "error": None,
+    }
 
 
 # Cases where liftover should be successful
@@ -86,25 +143,35 @@ NO_LIFTOVER_CASES = ["empty_variation_object", "invalid_variant"]
 ####################################################################################
 @pytest.mark.parametrize("variant_fixture_name", SUCCESS_CASES)
 def test_liftover_success(
-    request: pytest.FixtureRequest, variant_fixture_name: str, client: TestClient
+    request: pytest.FixtureRequest, variant_fixture_name: str, anyvar_instance: AnyVar
 ):
-    variant_input, expected_output = request.getfixturevalue(variant_fixture_name)
+    fixture = request.getfixturevalue(variant_fixture_name)
+    grch37 = fixture["grch37"]
+    grch38 = fixture["grch38"]
+
+    # 37 to 38
     lifted_over_variant_output = liftover_utils.get_liftover_variant(
-        build_vrs_variant_from_dict(variant_input), client.app.state.anyvar
+        grch37, anyvar_instance
     )
-    assert lifted_over_variant_output == expected_output
+    assert lifted_over_variant_output == grch38
+
+    # 38 to 37
+    lifted_over_variant_output = liftover_utils.get_liftover_variant(
+        grch38, anyvar_instance
+    )
+    assert lifted_over_variant_output == grch37
 
 
 @pytest.mark.parametrize("variant_fixture_name", FAILURE_CASES)
-def test_liftover_failure(request, variant_fixture_name, client):
-    variant_input, expected_error = request.getfixturevalue(variant_fixture_name)
+def test_liftover_failure(request, variant_fixture_name, anyvar_instance: AnyVar):
+    fixture = request.getfixturevalue(variant_fixture_name)
+    variant_input = fixture["variant"]
+    expected_error = fixture["error"]
     with pytest.raises(
         type(expected_error),
         match=expected_error.args[0] if expected_error.args else None,
     ):
-        liftover_utils.get_liftover_variant(
-            build_vrs_variant_from_dict(variant_input), client.app.state.anyvar
-        )
+        liftover_utils.get_liftover_variant(variant_input, anyvar_instance)
 
 
 ######################################################################################################
@@ -114,30 +181,49 @@ def test_liftover_failure(request, variant_fixture_name, client):
     "variant_fixture_name",
     SUCCESS_CASES,
 )
-def test_liftover_mapping_success(request, variant_fixture_name, client):
-    variant_input = build_vrs_variant_from_dict(
-        request.getfixturevalue(variant_fixture_name)[0]
-    )
+@pytest.mark.parametrize(
+    ("src_key", "dst_key"),
+    [("grch37", "grch38"), ("grch38", "grch37")],
+    ids=["37->38", "38->37"],
+)
+def test_liftover_mapping_success(
+    request, variant_fixture_name, src_key: str, dst_key: str, anyvar_instance: AnyVar
+):
+    fixture = request.getfixturevalue(variant_fixture_name)
+    src = fixture[src_key]
+    dst = fixture[dst_key]
 
     # ensure input is present in DB
-    av: AnyVar = client.app.state.anyvar
-    av.object_store.add_objects([variant_input])
+    anyvar_instance.object_store.add_objects([src])
+    liftover_utils.add_liftover_mapping(src, anyvar_instance)
 
-    liftover_utils.add_liftover_mapping(variant_input, av)
+    # mapping and lifted-over variant should be present
+    mappings = list(
+        anyvar_instance.object_store.get_mappings(src.id, VariationMappingType.LIFTOVER)
+    )
+    assert len(mappings) == 1
+    assert mappings[0].dest_id == dst.id
+
+    result = list(
+        anyvar_instance.object_store.get_objects(StoredObjectType.ALLELE, [dst.id])
+    )
+    assert len(result) == 1
 
 
 @pytest.mark.parametrize(
     "variant_fixture_name",
     FAILURE_CASES,
 )
-def test_liftover_mapping_failure(request, variant_fixture_name, client):
-    variant_input, expected_error = request.getfixturevalue(variant_fixture_name)
-    variant_input = build_vrs_variant_from_dict(variant_input)
+def test_liftover_mapping_failure(
+    request, variant_fixture_name, anyvar_instance: AnyVar
+):
+    fixture = request.getfixturevalue(variant_fixture_name)
+    variant_input = fixture["variant"]
+    expected_error = fixture["error"]
 
     # ensure input is present in DB
-    av: AnyVar = client.app.state.anyvar
-    av.object_store.add_objects([variant_input])
+    anyvar_instance.object_store.add_objects([variant_input])
 
-    assert liftover_utils.add_liftover_mapping(
-        variant_input, client.app.state.anyvar
-    ) == [expected_error.get_error_message()]
+    assert liftover_utils.add_liftover_mapping(variant_input, anyvar_instance) == [
+        expected_error.get_error_message()
+    ]

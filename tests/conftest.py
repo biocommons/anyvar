@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pytest
 
+from anyvar.anyvar import AnyVar, create_storage, create_translator
+
 pytest_plugins = ("celery.contrib.pytest",)
 
 
@@ -34,10 +36,10 @@ def test_data_dir() -> Path:
 
 
 @pytest.fixture(scope="session")
-def alleles(test_data_dir) -> dict:
-    """Provide allele object fixtures."""
+def alleles(test_data_dir: Path):
     with (test_data_dir / "variations.json").open() as f:
-        return json.load(f)["alleles"]
+        data = json.load(f)
+        return data["alleles"]
 
 
 @pytest.fixture(scope="session")
@@ -51,3 +53,16 @@ def celery_config():
         "result_serializer": "json",
         "accept_content": ["application/json"],
     }
+
+
+@pytest.fixture(scope="module")
+def anyvar_instance():
+    """TODO this should not live here!!! should not be used for unit tests like this!!!"""
+    storage_uri = os.environ.get(
+        "ANYVAR_TEST_STORAGE_URI",
+        "postgresql://postgres:postgres@localhost:5432/anyvar_test",
+    )
+    storage = create_storage(uri=storage_uri)
+    storage.wipe_db()
+    translator = create_translator()
+    return AnyVar(object_store=storage, translator=translator)

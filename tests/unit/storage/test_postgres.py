@@ -1,8 +1,6 @@
 """Tests postgres storage implementation methods directly."""
 
-import json
 import os
-from pathlib import Path
 
 import pytest
 from ga4gh.vrs import models
@@ -28,13 +26,6 @@ def postgres_storage(postgres_uri: str):
     storage = PostgresObjectStore(postgres_uri)
     yield storage
     storage.wipe_db()
-
-
-@pytest.fixture(scope="session")
-def alleles(test_data_dir: Path):
-    with (test_data_dir / "variations.json").open() as f:
-        data = json.load(f)
-        return data["alleles"]
 
 
 def test_db_lifecycle(postgres_uri: str, alleles: dict):
