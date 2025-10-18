@@ -1,8 +1,13 @@
+"""Test storage integration methods when no database is configured"""
+
 import difflib
 import json
 import logging
 import re
 import time
+
+from anyvar.anyvar import create_storage
+from anyvar.storage.no_db import NoObjectStore
 
 logger = logging.getLogger(__name__)
 
@@ -179,3 +184,16 @@ class MockVRSObject:
 
     def to_json(self):
         return json.dumps(self.model_dump(exclude_none=True))
+
+
+def test_create_storage():
+    sf = create_storage("")
+    assert isinstance(sf, NoObjectStore)
+
+
+def test_adding_stuff():
+    sf = NoObjectStore()
+    sf.add_objects([MockVRSObject("01"), MockVRSObject("02")])
+    sf.wait_for_writes()
+    assert len(list(sf.get_all_object_ids())) == 0
+    sf.close()
