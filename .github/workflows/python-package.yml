@@ -44,7 +44,7 @@ jobs:
         uses: actions/setup-python@v5
 
       - name: Install dependencies
-        run: python3 -m pip install ".[test]"
+        run: python3 -m pip install ".[test,queueing]"
 
       - name: Run tests
         run: python3 -m pytest -m "ci_ok"
