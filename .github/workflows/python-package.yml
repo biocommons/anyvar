@@ -40,6 +40,8 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+        ports:
+          - 5432:5432
     steps:
       - uses: actions/checkout@v4
 
@@ -54,7 +56,7 @@ jobs:
       - name: Run tests
         run: python3 -m pytest -m "ci_ok"
         env:
-          ANYVAR_TEST_STORAGE_URI: postgresql://postgres:postgres@localhost:5432/anyvar_test
+          ANYVAR_TEST_STORAGE_URI: postgresql://postgres:postgres@localhost:5432/postgres
 
   precommit_hooks:
     runs-on: ubuntu-latest
