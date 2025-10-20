@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from anyvar.anyvar import AnyVar, create_storage, create_translator
+from anyvar.storage.base_storage import Storage
 
 pytest_plugins = ("celery.contrib.pytest",)
 
@@ -56,13 +57,23 @@ def celery_config():
 
 
 @pytest.fixture(scope="module")
-def anyvar_instance():
-    """TODO this should not live here!!! should not be used for unit tests like this!!!"""
+def storage():
+    """Provide live storage instance from factory.
+
+    Configures from env var ``ANYVAR_TEST_STORAGE_URI``. Defaults to a Postgres DB
+    named ``anyvar_test``
+    """
     storage_uri = os.environ.get(
         "ANYVAR_TEST_STORAGE_URI",
         "postgresql://postgres:postgres@localhost:5432/anyvar_test",
     )
     storage = create_storage(uri=storage_uri)
     storage.wipe_db()
+    return storage
+
+
+@pytest.fixture(scope="module")
+def anyvar_instance(storage: Storage):
+    """Provide a test AnyVar instance"""
     translator = create_translator()
     return AnyVar(object_store=storage, translator=translator)
