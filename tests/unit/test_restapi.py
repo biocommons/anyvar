@@ -14,13 +14,13 @@ from anyvar.restapi.main import app_lifespan
 from anyvar.storage import Storage
 
 
-@pytest.mark.ci_ok
 @pytest.fixture(scope="module")
 def restapi_client(anyvar_instance: AnyVar):
     anyvar_restapi.state.anyvar = anyvar_instance
     return TestClient(app=anyvar_restapi)
 
 
+@pytest.mark.ci_ok
 def test_service_info(restapi_client: TestClient, test_data_dir: Path):
     response = restapi_client.get("/service-info")
     response.raise_for_status()
