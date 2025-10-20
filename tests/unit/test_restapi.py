@@ -37,6 +37,7 @@ def test_service_info(restapi_client: TestClient, test_data_dir: Path):
     jsonschema.validate(instance=data, schema=resp_schema, resolver=resolver)
 
 
+@pytest.mark.ci_ok
 def test_fastapi_lifespan(mocker):
     create_storage_mock = mocker.patch("anyvar.anyvar.create_storage")
     storage_mock = mocker.Mock(spec=Storage)

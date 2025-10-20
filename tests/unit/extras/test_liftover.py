@@ -186,6 +186,7 @@ def test_liftover_failure(request, variant_fixture_name, anyvar_instance: AnyVar
     [("grch37", "grch38"), ("grch38", "grch37")],
     ids=["37->38", "38->37"],
 )
+@pytest.mark.ci_ok
 def test_liftover_mapping_success(
     request, variant_fixture_name, src_key: str, dst_key: str, anyvar_instance: AnyVar
 ):
