@@ -19,11 +19,16 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
       - name: Install dependencies
-        run: python3 -m pip install ".[dev]"
+        run: uv sync --extra dev
 
       - name: Check style
-        run: python3 -m ruff check . && python3 -m ruff format --check .
+        run: uv run ruff check && uv run ruff format --check
   test:
     name: test
     runs-on: ubuntu-latest
@@ -51,10 +56,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: python3 -m pip install ".[test,queueing]"
+        run: uv sync --extra test --extra queueing
 
       - name: Run tests
-        run: python3 -m pytest -m "ci_ok"
+        run: uv run pytest -m "ci_ok"
         env:
           ANYVAR_TEST_STORAGE_URI: postgresql://postgres:postgres@localhost:5432/postgres
 
@@ -89,11 +94,14 @@ jobs:
         with:
           python-version: 3.11
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
       - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install '.[docs]'
+        run: uv sync --extra docs
 
       - name: Attempt docs build
         working-directory: ./docs
-        run: make html json
+        run: source ../.venv/bin/activate && make html
