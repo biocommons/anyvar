@@ -44,6 +44,13 @@ def alleles(test_data_dir: Path):
 
 
 @pytest.fixture(scope="session")
+def copy_number_variations(test_data_dir: Path):
+    with (test_data_dir / "variations.json").open() as f:
+        data = json.load(f)
+        return data["copy_numbers"]
+
+
+@pytest.fixture(scope="session")
 def celery_config():
     return {
         "broker_url": os.environ.get("CELERY_BROKER_URL", "redis://"),

@@ -9,13 +9,17 @@ from anyvar.utils.types import VariationMappingType
 
 # Success Cases
 @pytest.fixture(scope="session")
-def copynumber_ranged_positive_grch37_variant(alleles: dict):
+def copynumber_ranged_positive_grch37_variant(copy_number_variations: dict):
     return {
-        "grch37": models.Allele(
-            **alleles["ga4gh:CN.CTCgVehH0FEqrlaOMhUsDjKwzavnQegk"]["variation"]
+        "grch37": models.CopyNumberCount(
+            **copy_number_variations["ga4gh:CN.CTCgVehH0FEqrlaOMhUsDjKwzavnQegk"][
+                "variation"
+            ]
         ),
-        "grch38": models.Allele(
-            **alleles["ga4gh:CN.fmrn873tRhAiNLybjHlftgHjcAEExPKQ"]["variation"]
+        "grch38": models.CopyNumberCount(
+            **copy_number_variations["ga4gh:CN.fmrn873tRhAiNLybjHlftgHjcAEExPKQ"][
+                "variation"
+            ]
         ),
     }
 

@@ -50,43 +50,6 @@
       },
       "comment": "grch38 liftover from VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb"
     },
-    "ga4gh:CN.CTCgVehH0FEqrlaOMhUsDjKwzavnQegk": {
-      "variation": {
-        "id": "ga4gh:CN.CTCgVehH0FEqrlaOMhUsDjKwzavnQegk",
-        "type": "CopyNumberCount",
-        "location": {
-          "sequenceReference": {
-            "type": "SequenceReference",
-            "refgetAccession": "SQ.iy_UbUrvECxFRX5LPTH_KPojdlT7BKsf"
-          },
-          "start": [null, 29652251],
-          "end": [29981821, null],
-          "type": "SequenceLocation"
-        },
-        "copies": 3
-      },
-      "comment": "grch37 liftover of CN.fmrn873tRhAiNLybjHlftgHjcAEExPKQ. copynumber ranged positive strand."
-    },
-    "ga4gh:CN.fmrn873tRhAiNLybjHlftgHjcAEExPKQ": {
-      "variation": {
-        "id": "ga4gh:CN.fmrn873tRhAiNLybjHlftgHjcAEExPKQ",
-        "type": "CopyNumberCount",
-        "digest": "fmrn873tRhAiNLybjHlftgHjcAEExPKQ",
-        "location": {
-          "id": "ga4gh:SL.7HsIbSybxJRfiRNr2r0gz1JNsV-wJJfQ",
-          "type": "SequenceLocation",
-          "digest": "7HsIbSybxJRfiRNr2r0gz1JNsV-wJJfQ",
-          "sequenceReference": {
-            "type": "SequenceReference",
-            "refgetAccession": "SQ.-A1QmD_MatoqxvgVxBLZTONHz9-c7nQo"
-          },
-          "start": [null, 30417575],
-          "end": [31394018, null]
-        },
-        "copies": 3
-      },
-      "comment": "grch38 liftover of CN.CTCgVehH0FEqrlaOMhUsDjKwzavnQegk. copynumber ranged positive strand."
-    },
     "ga4gh:VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe": {
       "variation": {
         "id": "ga4gh:VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe",
@@ -190,8 +153,7 @@
           "type": "LiteralSequenceExpression"
         },
         "type": "Allele"
-      },
-      "location_id": "ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy"
+      }
     },
     "ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf": {
       "register_params": {
@@ -216,8 +178,7 @@
           "type": "LiteralSequenceExpression"
         },
         "type": "Allele"
-      },
-      "location_id": "ga4gh:SL.WZec1uaNf5go9BVpBP2ts2kLhFqiCvMe"
+      }
     },
     "ga4gh:VA.1FzYrqG-7jB3Wr46eIL_L5BWElQZEB7i": {
       "register_params": {
@@ -242,8 +203,7 @@
           "sequence": "T"
         },
         "type": "Allele"
-      },
-      "location_id": "ga4gh:SL.WoWgQNl0L6EkWkW_xRl0TSwzmzh-Z3FD"
+      }
     },
     "ga4gh:VA.4dEsVNR2JC_ZiHsYSGZgariIUOfYl6a0": {
       "variation": {
@@ -359,8 +319,44 @@
         },
         "copies": 1,
         "type": "CopyNumberCount"
+      }
+    },
+    "ga4gh:CN.CTCgVehH0FEqrlaOMhUsDjKwzavnQegk": {
+      "variation": {
+        "id": "ga4gh:CN.CTCgVehH0FEqrlaOMhUsDjKwzavnQegk",
+        "type": "CopyNumberCount",
+        "location": {
+          "sequenceReference": {
+            "type": "SequenceReference",
+            "refgetAccession": "SQ.iy_UbUrvECxFRX5LPTH_KPojdlT7BKsf"
+          },
+          "start": [null, 29652251],
+          "end": [29981821, null],
+          "type": "SequenceLocation"
+        },
+        "copies": 3
       },
-      "location_id": "ga4gh:SL.4akcjXlbAu4xBKnxjOL_b4DM_20HOCA3"
+      "comment": "grch37 liftover of CN.fmrn873tRhAiNLybjHlftgHjcAEExPKQ. copynumber ranged positive strand."
+    },
+    "ga4gh:CN.fmrn873tRhAiNLybjHlftgHjcAEExPKQ": {
+      "variation": {
+        "id": "ga4gh:CN.fmrn873tRhAiNLybjHlftgHjcAEExPKQ",
+        "type": "CopyNumberCount",
+        "digest": "fmrn873tRhAiNLybjHlftgHjcAEExPKQ",
+        "location": {
+          "id": "ga4gh:SL.7HsIbSybxJRfiRNr2r0gz1JNsV-wJJfQ",
+          "type": "SequenceLocation",
+          "digest": "7HsIbSybxJRfiRNr2r0gz1JNsV-wJJfQ",
+          "sequenceReference": {
+            "type": "SequenceReference",
+            "refgetAccession": "SQ.-A1QmD_MatoqxvgVxBLZTONHz9-c7nQo"
+          },
+          "start": [null, 30417575],
+          "end": [31394018, null]
+        },
+        "copies": 3
+      },
+      "comment": "grch38 liftover of CN.CTCgVehH0FEqrlaOMhUsDjKwzavnQegk. copynumber ranged positive strand."
     }
   }
 }
