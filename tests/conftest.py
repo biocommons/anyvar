@@ -10,26 +10,6 @@ from anyvar.storage.base_storage import Storage
 pytest_plugins = ("celery.contrib.pytest",)
 
 
-# TODO add back
-# def pytest_collection_modifyitems(items):
-#     """Modify test items in place to ensure test modules run in a given order."""
-#     module_order = [
-#         "test_lifespan",
-#         "test_variation",
-#         "test_general",
-#         "test_location",
-#         "test_search",
-#         "test_annotate_vcf",
-#         "test_ingest_vcf",
-#         "test_storage_implementation",
-#         "test_no_db",
-#         "test_liftover",
-#     ]
-#     # remember to add new test modules to the order constant:
-#     assert len(module_order) == len(list(Path(__file__).parent.rglob("test_*.py")))
-#     items.sort(key=lambda i: module_order.index(i.module.__name__))
-
-
 @pytest.fixture(scope="session")
 def test_data_dir() -> Path:
     """Provide Path instance pointing to test data directory"""
