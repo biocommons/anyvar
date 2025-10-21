@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 
 import pytest
+from ga4gh.vrs import models
+from pydantic import BaseModel
 
 from anyvar.anyvar import AnyVar, create_storage, create_translator
 from anyvar.storage.base_storage import Storage
@@ -18,16 +20,38 @@ def test_data_dir() -> Path:
 
 @pytest.fixture(scope="session")
 def alleles(test_data_dir: Path):
+    class _AlleleFixture(BaseModel):
+        """Validate data structure in variations.json"""
+
+        variation: models.Allele
+        comment: str | None = None
+        register_params: dict[str, str | int] | None = None
+
     with (test_data_dir / "variations.json").open() as f:
         data = json.load(f)
-        return data["alleles"]
+        alleles = data["alleles"]
+        for allele in alleles.values():
+            assert _AlleleFixture(**allele), f"Not a valid allele fixture: {allele}"
+        return alleles
 
 
 @pytest.fixture(scope="session")
 def copy_number_variations(test_data_dir: Path):
+    class _CopyNumberFixture(BaseModel):
+        """Validate data structure in variations.json"""
+
+        variation: models.CopyNumberChange | models.CopyNumberCount
+        comment: str | None = None
+        register_params: dict[str, str | int] | None = None
+
     with (test_data_dir / "variations.json").open() as f:
         data = json.load(f)
-        return data["copy_numbers"]
+        cns = data["copy_numbers"]
+        for cn in cns.values():
+            assert _CopyNumberFixture(**cn), (
+                f"Not a valid copy number variation fixture: {cn}"
+            )
+        return cns
 
 
 @pytest.fixture(scope="session")
