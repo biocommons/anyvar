@@ -1,24 +1,20 @@
-# /// script
+# /// script  # noqa: D100
 # dependencies = [
 #   "requests",
 #   "click",
 # ]
 # ///
-#
-# invoke with e.g. `uv run scripts/vcf_benchmark.py --workers 2 vcfs/vcf_1.vcf vcfs/vcf_2.vcf`
 
 import logging
 import time
 from concurrent.futures import ProcessPoolExecutor
+from json import JSONDecodeError
 from pathlib import Path
 from timeit import default_timer as timer
 
 import click
 import requests
 
-# -------------------------------------------------------------------
-# Logging setup
-# -------------------------------------------------------------------
 LOG_FILE = "anyvar_benchmark.log"
 logging.basicConfig(
     level=logging.INFO,
@@ -29,7 +25,6 @@ logging.basicConfig(
     ],
 )
 logger = logging.getLogger(__name__)
-# -------------------------------------------------------------------
 
 
 def submit_variants(file: Path, anyvar_host: str) -> None:
@@ -53,8 +48,22 @@ def submit_variants(file: Path, anyvar_host: str) -> None:
         logger.info("Polling ingestion status...")
         time.sleep(5)
         response = requests.get(f"{anyvar_host}/vcf/{run_id}")
-        if response.json()["status"] != "PENDING":
-            logger.info("Ingestion complete!")
+        try:
+            if response.json()["status"] != "PENDING":
+                logger.info("Ingestion complete!")
+                break
+        except JSONDecodeError:
+            # presumably a successful response
+            if response.text.startswith("##fileformat="):
+                logger.info("Annotated VCF returned successfully")
+            else:
+                filename = f"vcf_benchmark_output_{run_id}"
+                with Path(filename).open("w") as f:
+                    f.write(response.text)
+                logger.info(
+                    "Received malformed response from vcf run ID lookup. Saved to %s",
+                    filename,
+                )
             break
 
 
@@ -63,7 +72,7 @@ def process_file(filepath: Path) -> None:
     start = timer()
     submit_variants(filepath, anyvar_host)
     end = timer()
-    logger.info(f"Completed VCF submission of {filepath} in {end - start:.5f}")
+    logger.info("Completed VCF submission of %s in %s", filepath, f"{end - start:.5f}")
 
 
 @click.command()
@@ -88,7 +97,7 @@ def main(filepaths: tuple[Path], workers: int):
 
     end = timer()
     duration = end - start
-    logger.info(f"Completed ingest of {filepaths} in {duration:.5f}")
+    logger.info("Completed ingest of %s in %s", filepaths, f"{duration:.5f}")
 
 
 if __name__ == "__main__":
