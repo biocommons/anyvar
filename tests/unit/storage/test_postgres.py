@@ -83,6 +83,7 @@ def test_db_lifecycle(
     assert result == []
 
 
+@pytest.mark.ci_ok
 def test_alleles_crud(
     postgres_storage: PostgresObjectStore,
     focus_alleles: tuple[models.Allele, models.Allele, models.Allele],
@@ -152,6 +153,7 @@ def test_alleles_crud(
     postgres_storage.add_objects(validated_vrs_alleles.values())
 
 
+@pytest.mark.ci_ok
 def test_sequencelocations_crud(
     postgres_storage: PostgresObjectStore,
     focus_alleles: tuple[models.Allele, models.Allele, models.Allele],
@@ -190,6 +192,7 @@ def test_sequencelocations_crud(
     postgres_storage.add_objects(all_sls)
 
 
+@pytest.mark.ci_ok
 def test_get_all_ids(
     postgres_storage: PostgresObjectStore,
     focus_alleles: tuple[models.Allele, models.Allele, models.Allele],
@@ -203,6 +206,7 @@ def test_get_all_ids(
     assert "ga4gh:VA.1FzYrqG-7jB3Wr46eIL_L5BWElQZEB7i" in result
 
 
+@pytest.mark.ci_ok
 def test_mappings_crud(
     postgres_storage: PostgresObjectStore,
     validated_vrs_alleles: dict[str, models.Allele],
@@ -234,6 +238,7 @@ def test_mappings_crud(
     )
 
 
+@pytest.mark.ci_ok
 def test_annotations_crud(
     postgres_storage: PostgresObjectStore,
     focus_alleles: tuple[models.Allele, models.Allele, models.Allele],
