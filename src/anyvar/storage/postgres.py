@@ -242,9 +242,13 @@ class PostgresObjectStore(Storage):
     ) -> Iterable[types.VariationMapping]:
         """Return a list of IDs of destination objects mapped from the source object.
 
+
         :param source_object_id: ID of the source object
         :param mapping_type: kind of mapping to retrieve
         :return: iterable collection of mapping descriptors
+        :param mapping_type: Type of VariationMappingType
+        :param mapping_type: kind of mapping to retrieve
+        :return: iterable collection of mapping objects
         """
         stmt = (
             select(orm.VariationMapping)
