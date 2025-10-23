@@ -28,6 +28,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+HTTP_TIMEOUT = 60
+
 
 def submit_variants(file: Path, anyvar_host: str) -> None:
     with file.open("rb") as f:
@@ -39,7 +41,7 @@ def submit_variants(file: Path, anyvar_host: str) -> None:
                 "run_async": True,
                 "require_validation": False,
             },
-            timeout=60,
+            timeout=HTTP_TIMEOUT,
             headers={"accept": "application/json"},
         )
     logger.info("Submitting VCF to ingestion endpoint")
@@ -49,7 +51,7 @@ def submit_variants(file: Path, anyvar_host: str) -> None:
     while True:
         logger.info("Polling ingestion status...")
         time.sleep(5)
-        response = requests.get(f"{anyvar_host}/vcf/{run_id}")
+        response = requests.get(f"{anyvar_host}/vcf/{run_id}", timeout=HTTP_TIMEOUT)
         try:
             if response.json()["status"] != "PENDING":
                 logger.info("Ingestion complete!")
