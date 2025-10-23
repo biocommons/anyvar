@@ -50,6 +50,7 @@ def postgres_storage(postgres_uri: str):
     storage.wipe_db()
 
 
+@pytest.mark.ci_ok
 def test_db_lifecycle(
     postgres_uri: str, validated_vrs_alleles: dict[str, models.Allele]
 ):
