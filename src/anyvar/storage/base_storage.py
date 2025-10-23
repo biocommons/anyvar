@@ -20,15 +20,19 @@ class StoredObjectType(enum.StrEnum):
     SEQUENCE_REFERENCE = "SequenceReference"
 
 
-class DataIntegrityError(Exception):
+class StorageError(Exception):
+    """Base AnyVar storage error."""
+
+
+class DataIntegrityError(StorageError):
     """Raise for attempts to delete objects depended upon by other objects"""
 
 
-class MissingVariationReferenceError(Exception):
+class MissingVariationReferenceError(StorageError):
     """Raise for attempts to insert an annotation or mapping that references a non-existent variation"""
 
 
-class IncompleteVrsObjectError(Exception):
+class IncompleteVrsObjectError(StorageError):
     """Raise if provided VRS object is missing fully-materialized properties required for storage"""
 
 
