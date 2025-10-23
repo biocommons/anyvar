@@ -3,6 +3,8 @@
 import json
 import logging
 
+import pytest
+
 from anyvar.anyvar import create_storage
 from anyvar.storage.no_db import NoObjectStore
 
@@ -20,6 +22,7 @@ class MockVRSObject:
         return json.dumps(self.model_dump(exclude_none=True))
 
 
+@pytest.mark.ci_ok
 def test_storage_factory():
     null_storage = create_storage("")
     assert isinstance(null_storage, NoObjectStore), (
@@ -27,6 +30,7 @@ def test_storage_factory():
     )
 
 
+@pytest.mark.ci_ok
 def test_adding_stuff():
     null_storage = NoObjectStore()
     null_storage.add_objects([MockVRSObject("01"), MockVRSObject("02")])
