@@ -3,7 +3,7 @@
 #   "requests",
 #   "click",
 # ]
-# 
+#
 # invoke with e.g. `uv run scripts/vcf_benchmark.py --workers 2 vcfs/vcf_1.vcf vcfs/vcf_2.vcf vcfs/vcf_3.vcf vcfs/vcf_4.vcf`
 # ///
 
