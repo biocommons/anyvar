@@ -1,4 +1,8 @@
-"""Provide minimal class for backend with no persistent storage"""
+"""Stateless storage implementation (no persistence).
+
+Use for processing-only deployments (e.g., variation translation, VCF annotation);
+writes are discarded and reads always miss.
+"""
 
 from collections.abc import Iterable
 
@@ -12,15 +16,13 @@ class NoObjectStore(Storage):
     """Storage backend that does not persistently store any data."""
 
     def __init__(self, db_url: str | None = None) -> None:
-        """Initialize DB handler."""
+        """Initialize storage instance."""
 
     def close(self) -> None:
         """Close the storage backend."""
 
     def wait_for_writes(self) -> None:
-        """Wait for all background writes to complete.
-        NOTE: This is a no-op for synchronous storage backends.
-        """
+        """Wait for all background writes to complete."""
 
     def wipe_db(self) -> None:
         """Wipe all data from the storage backend."""
@@ -48,27 +50,68 @@ class NoObjectStore(Storage):
     def add_mapping(self, mapping: types.VariationMapping) -> None:
         """Add a mapping between two objects.
 
+        If the mapping instance already exists, do nothing.
+
         :param mapping: mapping object
+        :raise MissingVariationReferenceError: if source or destination IDs aren't present in DB
         """
 
     def delete_mapping(self, mapping: types.VariationMapping) -> None:
         """Delete a mapping between two objects.
 
+        * If no such mapping exists in the DB, does nothing.
+        * Deletes do not cascade.
+
         :param mapping: mapping object
+        :raise DataIntegrityError: if attempting to delete an object which is
+            depended upon by another object
         """
 
     def get_mappings(
         self,
         source_object_id: str,
-        mapping_type: types.VariationMappingType,
-    ) -> Iterable[str]:
-        """Return an iterable of ids of destination objects mapped from the source object.
+        mapping_type: types.VariationMappingType | None,
+    ) -> Iterable[types.VariationMapping]:
+        """Return an iterable of mappings from the source ID
+
+        Optionally provide a type to filter results.
 
         :param source_object_id: ID of the source object
-        :param mapping_type: kind of mapping to retrieve
-        :return: iterable collection of mapping descriptors
+        :param mapping_type: The type of mapping to retrieve (defaults to `None` to
+            retrieve all mappings for the source ID)
+        :return: iterable collection of mapping descriptors (empty if no matching mappings exist)
         """
         return []
+
+    def add_annotation(self, annotation: types.Annotation) -> None:
+        """Adds an annotation to the database.
+
+        :param annotation: The annotation to add
+        :raise MissingVariationReferenceError: if no object corresponding to the annotation's
+            object ID is present in DB
+        """
+
+    def get_annotations(
+        self, object_id: str, annotation_type: str | None = None
+    ) -> list[types.Annotation]:
+        """Get all annotations for the specified object, optionally filtered by type.
+
+        :param object_id: The ID of the object to retrieve annotations for
+        :param annotation_type: The type of annotation to retrieve (defaults to `None` to retrieve all annotations for the object)
+        :return: A list of annotations
+        """
+        return []
+
+    def delete_annotation(self, annotation: types.Annotation) -> None:
+        """Deletes an annotation from the database
+
+        * If no such annotation exists, do nothing.
+        * Deletes do not cascade.
+
+        :param annotation: The annotation object to delete
+        :raise DataIntegrityError: if attempting to delete an object which is
+            depended upon by another object
+        """
 
     def search_alleles(
         self,
@@ -81,35 +124,6 @@ class NoObjectStore(Storage):
         :param refget_accession: refget accession (SQ. identifier)
         :param start: Start genomic region to query
         :param stop: Stop genomic region to query
-
         :return: a list of Alleles
         """
         return []
-
-    def add_annotation(self, annotation: types.Annotation) -> int:
-        """Adds an annotation to the database.
-
-        :param annotation: The annotation to add
-        :return: The ID of the newly-added annotation
-        """
-        raise TypeError("Unsupported operations for this storage type")
-
-    def get_annotations_by_object_and_type(
-        self,
-        object_id: str,
-        annotation_type: str | None = None,
-    ) -> list[types.Annotation]:
-        """Get all annotations for the specified object, optionally filtered by type.
-
-        :param object_id: The ID of the object to retrieve annotations for
-        :param annotation_type: The type of annotation to retrieve (defaults to `None` to retrieve all annotations for the object)
-        :return: A list of annotations
-        """
-        raise TypeError("Unsupported operations for this storage type")
-
-    def delete_annotation(self, annotation_id: int) -> None:
-        """Deletes an annotation from the database
-
-        :param annotation_id: The ID of the annotation to delete
-        """
-        raise TypeError("Unsupported operations for this storage type")

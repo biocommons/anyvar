@@ -63,7 +63,22 @@ class PostgresObjectStore(Storage):
     # TODO also store vrs_objects table in addition to
     # the tables per type.
     def add_objects(self, objects: Iterable[types.VrsObject]) -> None:
-        """Add multiple VRS objects to storage using bulk inserts."""
+        """Add multiple VRS objects to storage using bulk inserts.
+
+        If an object ID conflicts with an existing object, skip it.
+
+        This method assumes that for VRS objects (e.g. `Allele`, `SequenceLocation`,
+        `SequenceReference`) the `.id` property is present and uses the correct
+        GA4GH identifier for that object. It also assumes that contained objects are
+        similarly properly identified and materialized in full, not just as an IRI reference.
+        An error is raised if these assumptions are violated, rolling back the entire
+        transaction.
+
+        :param objects: VRS objects to add to storage
+        :raise IncompleteVrsObjectError: if object is missing required properties or if
+            required properties aren't fully dereferenced
+        """
+        # TODO -- raise incomplete error for missing id, location, etc
         objects_list = list(objects)
         if not objects_list:
             return
@@ -126,7 +141,14 @@ class PostgresObjectStore(Storage):
     def get_objects(
         self, object_type: StoredObjectType, object_ids: Iterable[str]
     ) -> Iterable[types.VrsObject]:
-        """Retrieve multiple VRS objects from storage by their IDs."""
+        """Retrieve multiple VRS objects from storage by their IDs.
+
+        If no object matches a given ID, that ID is skipped
+
+        :param object_type: type of object to get
+        :param object_ids: IDs of objects to fetch
+        :return: iterable collection of VRS objects matching given IDs
+        """
         object_ids_list = list(object_ids)
         results = []
 
@@ -167,7 +189,10 @@ class PostgresObjectStore(Storage):
         return results
 
     def get_all_object_ids(self) -> Iterable[str]:
-        """Retrieve all object IDs from storage."""
+        """Retrieve all object IDs from storage.
+
+        :return: all stored VRS object IDs
+        """
         with self.session_factory() as session:
             # TODO This only handles Alleles for now
             # TODO This seems like it could be a lot of data
@@ -178,7 +203,17 @@ class PostgresObjectStore(Storage):
     def delete_objects(
         self, object_type: StoredObjectType, object_ids: Iterable[str]
     ) -> None:
-        """Delete all objects of a specific type from storage."""
+        """Delete all objects of a specific type from storage.
+
+        * If no object matching a given ID is found, it's ignored.
+        * Deletes do not cascade.
+
+        :param object_type: type of objects to delete
+        :param object_ids: IDs of objects to delete
+        :raise DataIntegrityError: if attempting to delete an object which is
+            depended upon by another object
+        """
+        # TODO catch/raise data integry error
         object_ids_list = list(object_ids)
 
         with self.session_factory() as session, session.begin():
@@ -199,8 +234,10 @@ class PostgresObjectStore(Storage):
     def add_mapping(self, mapping: types.VariationMapping) -> None:
         """Add a mapping between two objects.
 
+        If the mapping instance already exists, do nothing.
+
         :param mapping: mapping object
-        :raise KeyError: if source or destination IDs aren't present in DB
+        :raise MissingVariationReferenceError: if source or destination IDs aren't present in DB
         """
         stmt = (
             insert(orm.VariationMapping)
@@ -224,7 +261,12 @@ class PostgresObjectStore(Storage):
     def delete_mapping(self, mapping: types.VariationMapping) -> None:
         """Delete a mapping between two objects.
 
+        * If no such mapping exists in the DB, does nothing.
+        * Deletes do not cascade.
+
         :param mapping: mapping object
+        :raise DataIntegrityError: if attempting to delete an object which is
+            depended upon by another object
         """
         stmt = (
             delete(orm.VariationMapping)
@@ -238,18 +280,18 @@ class PostgresObjectStore(Storage):
     def get_mappings(
         self,
         source_object_id: str,
-        mapping_type: types.VariationMappingType,
+        mapping_type: types.VariationMappingType | None,
     ) -> Iterable[types.VariationMapping]:
-        """Return a list of IDs of destination objects mapped from the source object.
+        """Return an iterable of mappings from the source ID
 
+        Optionally provide a type to filter results.
 
         :param source_object_id: ID of the source object
-        :param mapping_type: kind of mapping to retrieve
-        :return: iterable collection of mapping descriptors
-        :param mapping_type: Type of VariationMappingType
-        :param mapping_type: kind of mapping to retrieve
-        :return: iterable collection of mapping objects
+        :param mapping_type: The type of mapping to retrieve (defaults to `None` to
+            retrieve all mappings for the source ID)
+        :return: iterable collection of mapping descriptors (empty if no matching mappings exist)
         """
+        # TODO optional filter
         stmt = (
             select(orm.VariationMapping)
             .where(orm.VariationMapping.source_id == source_object_id)
@@ -258,6 +300,53 @@ class PostgresObjectStore(Storage):
         with self.session_factory() as session, session.begin():
             mappings = session.scalars(stmt).all()
             return [mapper_registry.from_db_entity(mapping) for mapping in mappings]
+
+    def add_annotation(self, annotation: types.Annotation) -> None:
+        """Adds an annotation to the database.
+
+        :param annotation: The annotation to add
+        :raise MissingVariationReferenceError: if no object corresponding to the annotation's
+            object ID is present in DB
+        """
+        db_entity: orm.Annotation = mapper_registry.to_db_entity(annotation)
+        with self.session_factory() as session, session.begin():
+            stmt = insert(orm.Annotation).returning(orm.Annotation.id)
+            return session.execute(stmt, db_entity.to_dict()).scalar_one()
+
+    def get_annotations(
+        self, object_id: str, annotation_type: str | None = None
+    ) -> list[types.Annotation]:
+        """Get all annotations for the specified object, optionally filtered by type.
+
+        :param object_id: The ID of the object to retrieve annotations for
+        :param annotation_type: The type of annotation to retrieve (defaults to `None` to retrieve all annotations for the object)
+        :return: A list of annotations
+        """
+        with self.session_factory() as session, session.begin():
+            stmt = select(orm.Annotation).where(orm.Annotation.object_id == object_id)
+            if annotation_type:
+                stmt = stmt.where(orm.Annotation.annotation_type == annotation_type)
+
+            db_annotations = session.execute(stmt).scalars().all()
+
+            return [
+                mapper_registry.from_db_entity(db_annotation)
+                for db_annotation in db_annotations
+            ]
+
+    def delete_annotation(self, annotation: types.Annotation) -> None:  # noqa: ARG002
+        """Deletes an annotation from the database
+
+        * If no such annotation exists, do nothing.
+        * Deletes do not cascade.
+
+        :param annotation: The annotation object to delete
+        :raise DataIntegrityError: if attempting to delete an object which is
+            depended upon by another object
+        """
+        with self.session_factory() as session, session.begin():
+            stmt = delete(orm.Annotation).where(orm.Annotation.id == 1)  # TODO
+            session.execute(stmt)
 
     def search_alleles(
         self,
@@ -297,44 +386,3 @@ class PostgresObjectStore(Storage):
             return [
                 mapper_registry.from_db_entity(db_allele) for db_allele in db_alleles
             ]
-
-    def add_annotation(self, annotation: types.Annotation) -> int:
-        """Adds an annotation to the database.
-
-        :param annotation: The annotation to add
-        :return: The ID of the newly-added annotation
-        """
-        db_entity: orm.Annotation = mapper_registry.to_db_entity(annotation)
-        with self.session_factory() as session, session.begin():
-            stmt = insert(orm.Annotation).returning(orm.Annotation.id)
-            return session.execute(stmt, db_entity.to_dict()).scalar_one()
-
-    def get_annotations_by_object_and_type(
-        self, object_id: str, annotation_type: str | None = None
-    ) -> list[types.Annotation]:
-        """Get all annotations for the specified object, optionally filtered by type
-
-        :param object_id: The ID of the object to retrieve annotations for
-        :param annotation_type: The type of annotation to retrieve (defaults to `None` to retrieve all annotations for the object)
-        :return: A list of annotations
-        """
-        with self.session_factory() as session, session.begin():
-            stmt = select(orm.Annotation).where(orm.Annotation.object_id == object_id)
-            if annotation_type:
-                stmt = stmt.where(orm.Annotation.annotation_type == annotation_type)
-
-            db_annotations = session.execute(stmt).scalars().all()
-
-            return [
-                mapper_registry.from_db_entity(db_annotation)
-                for db_annotation in db_annotations
-            ]
-
-    def delete_annotation(self, annotation_id: int) -> None:
-        """Deletes an annotation from the database
-
-        :param annotation_id: The ID of the annotation to delete
-        """
-        with self.session_factory() as session, session.begin():
-            stmt = delete(orm.Annotation).where(orm.Annotation.id == annotation_id)
-            session.execute(stmt)

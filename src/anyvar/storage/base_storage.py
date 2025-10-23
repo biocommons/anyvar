@@ -153,31 +153,16 @@ class Storage(ABC):
         """
 
     @abstractmethod
-    def search_alleles(
-        self,
-        refget_accession: str,
-        start: int,
-        stop: int,
-    ) -> list[vrs_models.Allele]:
-        """Find all Alleles in the particular region
-
-        :param refget_accession: refget accession (SQ. identifier)
-        :param start: Start genomic region to query
-        :param stop: Stop genomic region to query
-        :return: a list of Alleles
-        """
-
-    @abstractmethod
     def add_annotation(self, annotation: types.Annotation) -> None:
         """Adds an annotation to the database.
 
         :param annotation: The annotation to add
-        :return: The ID of the newly-added annotation
-        :raise MissingVariationReferenceError: if source or destination IDs aren't present in DB
+        :raise MissingVariationReferenceError: if no object corresponding to the annotation's
+            object ID is present in DB
         """
 
     @abstractmethod
-    def get_annotations_by_object_and_type(
+    def get_annotations(
         self, object_id: str, annotation_type: str | None = None
     ) -> list[types.Annotation]:
         """Get all annotations for the specified object, optionally filtered by type.
@@ -197,4 +182,19 @@ class Storage(ABC):
         :param annotation: The annotation object to delete
         :raise DataIntegrityError: if attempting to delete an object which is
             depended upon by another object
+        """
+
+    @abstractmethod
+    def search_alleles(
+        self,
+        refget_accession: str,
+        start: int,
+        stop: int,
+    ) -> list[vrs_models.Allele]:
+        """Find all Alleles in the particular region
+
+        :param refget_accession: refget accession (SQ. identifier)
+        :param start: Start genomic region to query
+        :param stop: Stop genomic region to query
+        :return: a list of Alleles
         """
