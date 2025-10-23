@@ -8,16 +8,8 @@ import yaml
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from anyvar.anyvar import AnyVar
-from anyvar.restapi.main import app as anyvar_restapi
 from anyvar.restapi.main import app_lifespan
 from anyvar.storage import Storage
-
-
-@pytest.fixture(scope="module")
-def restapi_client(anyvar_instance: AnyVar):
-    anyvar_restapi.state.anyvar = anyvar_instance
-    return TestClient(app=anyvar_restapi)
 
 
 @pytest.mark.ci_ok

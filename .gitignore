@@ -117,3 +117,6 @@ uv.lock
 archive
 
 docker/data*
+
+# test stuff
+tests/tmp_async_work_dir

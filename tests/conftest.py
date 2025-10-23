@@ -3,10 +3,12 @@ import os
 from pathlib import Path
 
 import pytest
+from fastapi.testclient import TestClient
 from ga4gh.vrs import models
 from pydantic import BaseModel
 
 from anyvar.anyvar import AnyVar, create_storage, create_translator
+from anyvar.restapi.main import app as anyvar_restapi
 from anyvar.storage.base_storage import Storage
 
 pytest_plugins = ("celery.contrib.pytest",)
@@ -88,3 +90,9 @@ def anyvar_instance(storage: Storage):
     """Provide a test AnyVar instance"""
     translator = create_translator()
     return AnyVar(object_store=storage, translator=translator)
+
+
+@pytest.fixture(scope="module")
+def restapi_client(anyvar_instance: AnyVar):
+    anyvar_restapi.state.anyvar = anyvar_instance
+    return TestClient(app=anyvar_restapi)
