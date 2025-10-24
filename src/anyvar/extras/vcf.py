@@ -82,7 +82,7 @@ def register_existing_annotations(
     :return:  Path to ID conflict file, if requested, or None otherwise
     :raise: ValueError if input VCF lacks required annotations
     """
-    batch_size = 10000
+    # batch_size = 10000
     variants: list[VrsObject] = []
 
     _logger.info("Registering existing annotations from VCF at %s", file_path)
@@ -157,10 +157,10 @@ def register_existing_annotations(
                     )
 
                 variants.append(allele)
-                if len(variants) == batch_size:
-                    av.put_objects(variants)
+                # if len(variants) == batch_size:
+                #     av.put_objects(variants)
 
-            if len(variants) > 0:
-                av.put_objects(variants)
+            # if len(variants) > 0:
+            av.put_objects(variants)
 
     return conflict_logfile_path
