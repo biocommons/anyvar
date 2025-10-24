@@ -23,27 +23,28 @@ class VcfRegistrar(VcfAnnotator):
     """
 
     def __init__(self, data_proxy: _DataProxy, **kwargs) -> None:  # noqa: D107
-        av = kwargs.get("av")
+        av: AnyVar | None = kwargs.get("av")
         if av is None:
             raise ValueError  # TODO more specific
         self.av: AnyVar = av
         super().__init__(data_proxy)
 
-    def on_vrs_object(  # noqa: D102
-        self,
-        vcf_coords: str,  # noqa: ARG002
-        vrs_allele: vrs_models.Allele,
-        **kwargs,  # noqa: ARG002
-    ) -> vrs_models.Allele | None:
-        self.av.put_objects([vrs_allele])
-        return vrs_allele
+    # def on_vrs_object(
+    #     self,
+    #     vcf_coords: str,
+    #     vrs_allele: vrs_models.Allele,
+    #     **kwargs,
+    # ) -> vrs_models.Allele | None:
+    #     self.av.put_objects([vrs_allele])
+    #     return vrs_allele
 
     def on_vrs_object_collection(  # noqa: D102
         self,
         vrs_alleles_collection: list[vrs_models.Allele] | None,
-        **kwargs,
+        **kwargs,  # noqa: ARG002
     ) -> None:
-        pass
+        if vrs_alleles_collection:
+            self.av.put_objects(vrs_alleles_collection)  # type: ignore
 
     def raise_for_output_args(self, output_vcf_path: Path | None, **kwargs) -> None:  # noqa: D102
         pass
@@ -154,11 +155,12 @@ def register_existing_annotations(
                     conflict_logfile.write(
                         f"{vrs_id},{assembly},{record.chrom},{record.pos},{start},{end},{true_state},{new_vrs_id}\n"
                     )
-                variants.append(allele)
 
+                variants.append(allele)
                 if len(variants) == batch_size:
                     av.put_objects(variants)
 
             if len(variants) > 0:
                 av.put_objects(variants)
+
     return conflict_logfile_path
