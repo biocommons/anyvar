@@ -186,6 +186,10 @@ def get_liftover_variant(input_variant: VrsVariation) -> VrsVariation:
     converted_end = convert_position(converter, chromosome, end_position)  # type: ignore (`converter` and `end_position` will always be valid)
 
     converted_refget_accession = get_refget_id_from_seqinfo(to_assembly, chromosome)
+    if converted_refget_accession is None:
+        # this should be ~impossible
+        msg = f"Unable to get refget accession for {chromosome} on {to_assembly}"
+        raise UnsupportedReferenceAssemblyError(msg)
 
     # Build the converted location object
     converted_variant_location = models.SequenceLocation(
