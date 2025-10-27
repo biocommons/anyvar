@@ -141,16 +141,19 @@ chr1	10330	.	CCCCTAACCCTAACCCTAACCCTACCCTAACCCTAACCCTAACCCTAACCCTAA	C	.	PASS	QUA
 
 
 def test_registration_sync(
-    monkeypatch, client: TestClient, basic_vcf: io.BytesIO, vcf_incorrect_id: io.BytesIO
+    monkeypatch,
+    restapi_client: TestClient,
+    basic_vcf: io.BytesIO,
+    vcf_incorrect_id: io.BytesIO,
 ):
     """Test basic file registration, synchronous + no validation"""
     recorded = []
     monkeypatch.setattr(
-        client.app.state.anyvar,
+        restapi_client.app.state.anyvar,
         "put_object",
         lambda allele: recorded.append(allele),
     )
-    resp = client.put("/annotated_vcf", files={"vcf": ("test.vcf", basic_vcf)})
+    resp = restapi_client.put("/annotated_vcf", files={"vcf": ("test.vcf", basic_vcf)})
 
     assert resp.status_code == HTTPStatus.OK
     assert recorded, "put_object was never called"
@@ -158,7 +161,9 @@ def test_registration_sync(
     assert recorded[1].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
 
     # ignore wrong IDs
-    resp = client.put("/annotated_vcf", files={"vcf": ("test.vcf", vcf_incorrect_id)})
+    resp = restapi_client.put(
+        "/annotated_vcf", files={"vcf": ("test.vcf", vcf_incorrect_id)}
+    )
 
     assert resp.status_code == HTTPStatus.OK
     assert recorded, "put_object was never called"
@@ -168,18 +173,18 @@ def test_registration_sync(
 
 def test_registration_sync_validate(
     monkeypatch,
-    client: TestClient,
+    restapi_client: TestClient,
     basic_vcf: io.BytesIO,
     vcf_incorrect_id: io.BytesIO,
 ):
     """Test basic file registration, synchronous + validation"""
     recorded = []
     monkeypatch.setattr(
-        client.app.state.anyvar,
+        restapi_client.app.state.anyvar,
         "put_object",
         lambda allele: recorded.append(allele),
     )
-    resp = client.put(
+    resp = restapi_client.put(
         "/annotated_vcf",
         files={"vcf": ("test.vcf", basic_vcf)},
         params={"require_validation": True},
@@ -192,7 +197,7 @@ def test_registration_sync_validate(
     assert resp.content.count(b"\n") == 1  # just header
 
     # handle wrong ID
-    resp = client.put(
+    resp = restapi_client.put(
         "/annotated_vcf",
         files={"vcf": ("test.vcf", vcf_incorrect_id)},
         params={"require_validation": True},
@@ -209,7 +214,7 @@ def test_registration_sync_validate(
 
 def test_registration_async(
     monkeypatch,
-    client: TestClient,
+    restapi_client: TestClient,
     basic_vcf: io.BytesIO,
     vcf_incorrect_id: io.BytesIO,
 ):
@@ -223,7 +228,7 @@ def test_registration_async(
         shutdown_timeout=30,
     ):
         run_id = 12345
-        resp = client.put(
+        resp = restapi_client.put(
             "/annotated_vcf",
             files={"vcf": ("test.vcf", basic_vcf)},
             params={"run_async": True, "run_id": run_id},
@@ -240,11 +245,11 @@ def test_registration_async(
 
         time.sleep(5)
 
-        resp = client.get("/vcf/12345")
+        resp = restapi_client.get("/vcf/12345")
         assert resp.status_code == HTTPStatus.OK
         assert resp.json()["status"] == "SUCCESS"
 
-        resp = client.put(
+        resp = restapi_client.put(
             "/annotated_vcf",
             files={"vcf": ("test.vcf", vcf_incorrect_id)},
             params={"run_async": True, "run_id": run_id},
@@ -262,7 +267,7 @@ def test_registration_async(
 
         time.sleep(5)
 
-        resp = client.get("/vcf/12345")
+        resp = restapi_client.get("/vcf/12345")
         assert resp.status_code == HTTPStatus.OK
         assert resp.json()["status"] == "SUCCESS"
 
@@ -271,7 +276,7 @@ def test_registration_async(
 
 def test_registration_async_validate(
     monkeypatch,
-    client: TestClient,
+    restapi_client: TestClient,
     basic_vcf: io.BytesIO,
 ):
     """Test file registration, asynchronous + validation"""
@@ -285,7 +290,7 @@ def test_registration_async_validate(
         shutdown_timeout=30,
     ):
         run_id = 12345
-        resp = client.put(
+        resp = restapi_client.put(
             "/annotated_vcf",
             files={"vcf": ("test.vcf", basic_vcf)},
             params={"require_validation": True, "run_async": True, "run_id": run_id},
@@ -302,7 +307,7 @@ def test_registration_async_validate(
 
         time.sleep(5)
 
-        resp = client.get("/vcf/12345")
+        resp = restapi_client.get("/vcf/12345")
         assert resp.status_code == HTTPStatus.OK
         assert resp.content.count(b"\n") == 1  # just header
 
@@ -311,7 +316,7 @@ def test_registration_async_validate(
 
 def test_registration_async_validate_wrongid(
     vcf_incorrect_id: io.BytesIO,
-    client: TestClient,
+    restapi_client: TestClient,
     monkeypatch,
 ):
     """Test file registration, asynchronous + validation of a file with a wrong ID"""
@@ -325,7 +330,7 @@ def test_registration_async_validate_wrongid(
         shutdown_timeout=30,
     ):
         run_id = 12345
-        resp = client.put(
+        resp = restapi_client.put(
             "/annotated_vcf",
             files={"vcf": ("test.vcf", vcf_incorrect_id)},
             params={"require_validation": True, "run_async": True, "run_id": run_id},
@@ -343,7 +348,7 @@ def test_registration_async_validate_wrongid(
 
         time.sleep(5)
 
-        resp = client.get("/vcf/12345")
+        resp = restapi_client.get("/vcf/12345")
         assert resp.status_code == HTTPStatus.OK
         assert b"ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6z" in resp.content
 
@@ -351,10 +356,10 @@ def test_registration_async_validate_wrongid(
 
 
 def test_handle_incomplete_annotation(
-    client: TestClient, vcf_incomplete_annotations: io.BytesIO
+    restapi_client: TestClient, vcf_incomplete_annotations: io.BytesIO
 ):
     """Test that client gracefully handles an incompletely-annotated VCF"""
-    resp = client.put(
+    resp = restapi_client.put(
         "/annotated_vcf", files={"vcf": ("test.vcf", vcf_incomplete_annotations)}
     )
 
