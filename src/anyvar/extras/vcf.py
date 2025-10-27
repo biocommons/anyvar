@@ -22,32 +22,70 @@ class VcfRegistrar(VcfAnnotator):
     and values in order to enable use of existing AnyVar translator.
     """
 
+    BATCH_SIZE = 10000
+    vrs_object_batch_collection: list[VrsObject]
+
     def __init__(self, data_proxy: _DataProxy, **kwargs) -> None:  # noqa: D107
         av: AnyVar | None = kwargs.get("av")
         if av is None:
             raise ValueError  # TODO more specific
         self.av: AnyVar = av
+        # self.collect_alleles = True
+        self.vrs_object_batch_collection = []
         super().__init__(data_proxy)
 
-    # def on_vrs_object(
-    #     self,
-    #     vcf_coords: str,
-    #     vrs_allele: vrs_models.Allele,
-    #     **kwargs,
-    # ) -> vrs_models.Allele | None:
-    #     self.av.put_objects([vrs_allele])
-    #     return vrs_allele
+    def on_vrs_object(
+        self,
+        vcf_coords: str,  # noqa: ARG002
+        vrs_allele: vrs_models.Allele,
+        **kwargs,  # noqa: ARG002
+    ) -> vrs_models.Allele | None:
+        """Adds the VRS object to the current batch collection list.
+        If the collection now exceeds the BATCH_SIZE limit, adds the whole collection to the database,
+        then truncates the collection list to prepare for the next batch.
+        """
+        self.vrs_object_batch_collection.append(vrs_allele)
+        if len(self.vrs_object_batch_collection) >= self.BATCH_SIZE:
+            self.av.put_objects(self.vrs_object_batch_collection)
+            self.vrs_object_batch_collection = []
+
+        return vrs_allele
 
     def on_vrs_object_collection(  # noqa: D102
         self,
         vrs_alleles_collection: list[vrs_models.Allele] | None,
-        **kwargs,  # noqa: ARG002
+        **kwargs,
     ) -> None:
-        if vrs_alleles_collection:
-            self.av.put_objects(vrs_alleles_collection)  # type: ignore
+        # if vrs_alleles_collection:
+        #     self.av.put_objects(vrs_alleles_collection)  # type: ignore
+        pass
 
     def raise_for_output_args(self, output_vcf_path: Path | None, **kwargs) -> None:  # noqa: D102
         pass
+
+    def annotate(
+        self,
+        input_vcf_path: Path,
+        output_vcf_path: Path | None = None,
+        vrs_attributes: bool = False,
+        assembly: str = "GRCh38",
+        compute_for_ref: bool = True,
+        require_validation: bool = True,
+        **kwargs,
+    ) -> None:
+        """Calls the parent 'annotate' function, then adds the final batch of VRS objects to the database"""
+        super().annotate(
+            input_vcf_path,
+            output_vcf_path,
+            vrs_attributes,
+            assembly,
+            compute_for_ref,
+            require_validation,
+            **kwargs,
+        )
+        if self.vrs_object_batch_collection:
+            self.av.put_objects(self.vrs_object_batch_collection)
+            self.vrs_object_batch_collection = []
 
 
 class RequiredAnnotationsError(Exception):

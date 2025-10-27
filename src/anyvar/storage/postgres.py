@@ -3,9 +3,9 @@
 from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
-from sqlalchemy import Insert, create_engine, delete, select
+from sqlalchemy import create_engine, delete, select
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session, joinedload, sessionmaker
+from sqlalchemy.orm import joinedload, sessionmaker
 
 from anyvar.storage import orm
 from anyvar.storage.base_storage import (
@@ -59,28 +59,28 @@ class PostgresObjectStore(Storage):
             session.execute(delete(orm.VrsObject))
             session.execute(delete(orm.Annotation))
 
-    def _batch_insert(
-        self, session: Session, stmt: Insert, entities: list[dict]
-    ) -> None:
-        """Inserts entities into the database in batches
+    # def _batch_insert(
+    #     self, session: Session, stmt: Insert, entities: list[dict]
+    # ) -> None:
+    #     """Inserts entities into the database in batches
 
-        :param session: The SqlAlchemy session to use
-        :param stmt: The SqlAlchemy insert statement to use
-        :param entities: A list of dictionary entries to insert
-        """
-        batch_size: int = 10000
-        start_index: int = 0
-        end_index: int = start_index + batch_size
+    #     :param session: The SqlAlchemy session to use
+    #     :param stmt: The SqlAlchemy insert statement to use
+    #     :param entities: A list of dictionary entries to insert
+    #     """
+    #     batch_size: int = 10000
+    #     start_index: int = 0
+    #     end_index: int = start_index + batch_size
 
-        while True:
-            batch_entities: list[dict] = entities[start_index:end_index]
-            session.execute(stmt, batch_entities)
+    #     while True:
+    #         batch_entities: list[dict] = entities[start_index:end_index]
+    #         session.execute(stmt, batch_entities)
 
-            if end_index >= len(entities):
-                return
+    #         if end_index >= len(entities):
+    #             return
 
-            start_index = end_index
-            end_index = end_index + batch_size
+    #         start_index = end_index
+    #         end_index = end_index + batch_size
 
     # TODO also store vrs_objects table in addition to
     # the tables per type.
@@ -131,22 +131,22 @@ class PostgresObjectStore(Storage):
                 ]
                 stmt = insert(orm.SequenceReference)
                 stmt = stmt.on_conflict_do_nothing()
-                # session.execute(stmt, sequence_reference_dicts)
-                self._batch_insert(session, stmt, sequence_reference_dicts)
+                session.execute(stmt, sequence_reference_dicts)
+                # self._batch_insert(session, stmt, sequence_reference_dicts)
 
             if locations:
                 location_dicts = [loc.to_dict() for loc in locations.values()]
                 stmt = insert(orm.Location)
                 stmt = stmt.on_conflict_do_nothing()
-                # session.execute(stmt, location_dicts)
-                self._batch_insert(session, stmt, location_dicts)
+                session.execute(stmt, location_dicts)
+                # self._batch_insert(session, stmt, location_dicts)
 
             if alleles:
                 allele_dicts = [allele.to_dict() for allele in alleles.values()]
                 stmt = insert(orm.Allele)
                 stmt = stmt.on_conflict_do_nothing()
-                # session.execute(stmt, allele_dicts)
-                self._batch_insert(session, stmt, allele_dicts)
+                session.execute(stmt, allele_dicts)
+                # self._batch_insert(session, stmt, allele_dicts)
 
     def get_objects(
         self, object_type: StoredObjectType, object_ids: Iterable[str]
