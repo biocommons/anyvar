@@ -140,6 +140,54 @@ def convert_position(
     return models.Range([lower_bound, upper_bound])
 
 
+def convert_positions(
+    converter: Converter,
+    chromosome: Chromosome,
+    start: models.Range | int | None,
+    end: models.Range | int | None,
+) -> tuple[models.Range | int | None, models.Range | int | None]:
+    """TODO"""
+    if start is None:
+        converted_start = None
+    if end is None:
+        converted_end = None
+    start_is_range = isinstance(start, models.Range)
+    end_is_range = isinstance(end, models.Range)
+
+    if isinstance(start, models.Range) and isinstance()
+    if start is None or end is None:
+        raise MalformedInputError("TODO")
+    if isinstance(start, models.Range):
+        if start.root[0] is None:
+            raise MalformedInputError("TODO")
+        start_bound = start.root[0]
+    else:
+        start_bound = start
+    if isinstance(end, models.Range):
+        if end.root[1] is None:
+            raise MalformedInputError("TODO")
+        end_bound = end.root[1]
+    else:
+        end_bound = end
+    bound_liftover = converter.convert_coordinate(
+        chromosome.value, start_bound, end_bound
+    )
+    raise NotImplementedError
+"""
+If start = range and end = range:
+    - do bound liftover
+    - do liftover on start and end ranges
+if start = int and end = range:
+    - do bound liftover
+    - do liftover on start pos and end range:
+if start = range and end = int:
+    - do bound liftover
+    - do liftover on start range and end pos
+if start = int and end = int:
+    - do bound liftover + return
+"""
+
+
 def get_liftover_variant(input_variant: VrsVariation) -> VrsVariation:
     """Liftover a variant from GRCh37 or GRCH38 into the opposite assembly, and return the converted variant as a VrsVariation.
     If liftover is unsuccessful, raise an Exception.
@@ -172,7 +220,7 @@ def get_liftover_variant(input_variant: VrsVariation) -> VrsVariation:
 
     # Determine which assembly we're converting from/to
     refget_accession_info = get_seqinfo_from_refget_id(refget_accession)
-    if refget_accession is None:
+    if refget_accession_info is None:
         msg = f"Unable to get reference sequence ID for {refget_accession}"
         _logger.error(msg)
         raise UnsupportedReferenceAssemblyError(msg)
@@ -182,14 +230,16 @@ def get_liftover_variant(input_variant: VrsVariation) -> VrsVariation:
     converter = get_converter(from_assembly, to_assembly)
 
     # Get converted start/end positions. `convert_position` will raise a `CoordinateConversionError` if unsuccessful
-    converted_start = convert_position(converter, chromosome, start_position)  # type: ignore (`converter` and `start_position` will always be valid)
-    converted_end = convert_position(converter, chromosome, end_position)  # type: ignore (`converter` and `end_position` will always be valid)
+    # TODO figure out convert position trickiness
+    converted_start, converted_end = convert_positions(
+        converter, chromosome, start_position, end_position
+    )
 
     converted_refget_accession = get_refget_id_from_seqinfo(to_assembly, chromosome)
     if converted_refget_accession is None:
         # this should be ~impossible
         msg = f"Unable to get refget accession for {chromosome} on {to_assembly}"
-        raise UnsupportedReferenceAssemblyError(msg)
+        raise AccessionConversionError(msg)
 
     # Build the converted location object
     converted_variant_location = models.SequenceLocation(
@@ -233,6 +283,7 @@ def add_liftover_mapping(
     about when to register objects and mappings.
 
     :param variation: variation to attempt liftover upon
+    :param seqrepo_dataproxy: dataproxy instance for sequence access when normalizing lifted-over variants
     :param anyvar: An `AnyVar` instance
     :return: list of messages describing warnings or failures, or ``None`` if completely successful
     """
