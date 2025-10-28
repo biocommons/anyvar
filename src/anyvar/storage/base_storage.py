@@ -201,8 +201,8 @@ class Storage(ABC):
         Currently, any variation which overlaps the queried region is returned.
 
         Todo:
-        * provide alternate match modes (partial/full overlap/contained/etc)
-        * refine behavior for LSE indels and for alternative types of state (RLEs)
+        * define alternate match modes (partial/full overlap/contained/etc)
+        * define behavior for LSE indels and for alternative types of state (RLEs)
 
         Raises an error if
         * `start` or `end` are negative

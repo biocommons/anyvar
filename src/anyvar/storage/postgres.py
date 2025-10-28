@@ -316,7 +316,7 @@ class PostgresObjectStore(Storage):
             return [mapper_registry.from_db_entity(mapping) for mapping in mappings]
 
     def add_annotation(self, annotation: types.Annotation) -> None:
-        """Adds an annotation to the database.
+        """Add an annotation to the database.
 
         Todo:
         * Implement insert constraint/MissingVariationReferenceError in #286
@@ -383,8 +383,8 @@ class PostgresObjectStore(Storage):
         Currently, any variation which overlaps the queried region is returned.
 
         Todo:
-        * provide alternate match modes (partial/full overlap/contained/etc)
-        * refine behavior for LSE indels and for alternative types of state (RLEs)
+        * define alternate match modes (partial/full overlap/contained/etc)
+        * define behavior for LSE indels and for alternative types of state (RLEs)
 
         Raises an error if
         * `start` or `end` are negative
