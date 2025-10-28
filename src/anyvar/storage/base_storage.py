@@ -40,11 +40,8 @@ class Storage(ABC):
     """Abstract base class for interacting with storage backends."""
 
     @abstractmethod
-    def __init__(self, db_url: str | None = None) -> None:
-        """Initialize the storage backend.
-
-        :param db_url: Database connection URL
-        """
+    def __init__(self, *args, **kwargs) -> None:
+        """Initialize the storage backend."""
 
     @abstractmethod
     def close(self) -> None:
@@ -191,10 +188,14 @@ class Storage(ABC):
         start: int,
         stop: int,
     ) -> list[vrs_models.Allele]:
-        """Find all Alleles in the particular region
+        """Find all Alleles within the specified interval.
 
-        :param refget_accession: refget accession (SQ. identifier)
-        :param start: Start genomic region to query
-        :param stop: Stop genomic region to query
-        :return: a list of Alleles
+        The interval is the closed range [start, stop] on the sequence identified by
+        the RefGet SequenceReference accession (`SQ.*`). Both `start` and `stop` are
+        inclusive and represent inter-residue positions.
+
+        :param refget_accession: refget accession (e.g. `"SQ.IW78mgV5Cqf6M24hy52hPjyyo5tCCd86"`)
+        :param start: Inclusive, inter-residue start position of the interval
+        :param stop: Inclusive, inter-residue end position of the interval
+        :return: a list of matching VRS alleles
         """

@@ -25,7 +25,7 @@ class PostgresObjectStore(Storage):
     with object mapping to convert between VRS models and database entities.
     """
 
-    def __init__(self, db_url: str | None = None) -> None:
+    def __init__(self, db_url: str, *args, **kwargs) -> None:
         """Initialize PostgreSQL storage.
 
         :param db_url: Database connection URL (e.g., postgresql://user:pass@host:port/db)
@@ -354,13 +354,16 @@ class PostgresObjectStore(Storage):
         start: int,
         stop: int,
     ) -> list[vrs_models.Allele]:
-        """Find all Alleles in the particular region.
+        """Find all Alleles within the specified interval.
 
-        :param refget_accession: refget accession (SQ. identifier)
-        :param start: Start genomic region to query
-        :param stop: Stop genomic region to query
+        The interval is the closed range [start, stop] on the sequence identified by
+        the RefGet SequenceReference accession (`SQ.*`). Both `start` and `stop` are
+        inclusive and represent inter-residue positions.
 
-        :return: a list of Alleles
+        :param refget_accession: refget accession (e.g. `"SQ.IW78mgV5Cqf6M24hy52hPjyyo5tCCd86"`)
+        :param start: Inclusive, inter-residue start position of the interval
+        :param stop: Inclusive, inter-residue end position of the interval
+        :return: a list of matching VRS alleles
         """
         # TODO may load a lot of data
         with self.session_factory() as session:
