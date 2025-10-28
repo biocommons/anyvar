@@ -250,7 +250,7 @@ class PostgresObjectStore(Storage):
         If the mapping instance already exists, do nothing.
 
         Todo:
-        * Implement insert constraint/MissingVariationReferenceError
+        * Implement insert constraint/MissingVariationReferenceError in #286
 
         :param mapping: mapping object
         :raise MissingVariationReferenceError: if source or destination IDs aren't present in DB
@@ -319,7 +319,7 @@ class PostgresObjectStore(Storage):
         """Adds an annotation to the database.
 
         Todo:
-        * Implement insert constraint/MissingVariationReferenceError
+        * Implement insert constraint/MissingVariationReferenceError in #286
 
         :param annotation: The annotation to add
         :raise MissingVariationReferenceError: if no object corresponding to the annotation's

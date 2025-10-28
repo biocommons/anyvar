@@ -32,7 +32,7 @@ class VcfRegistrar(VcfAnnotator):
         self,
         vcf_coords: str,  # noqa: ARG002
         vrs_allele: vrs_models.Allele,
-        **kwargs,  # noqa: ARG002
+        **kwargs,
     ) -> vrs_models.Allele | None:
         self.av.put_object(vrs_allele)
         return vrs_allele
