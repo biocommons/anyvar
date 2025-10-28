@@ -23,7 +23,7 @@
           "repeatSubunitLength": 2
         }
       },
-      "comment": "grch37 liftover from VA.QiKnpRR8S7SPoUE-RMUJJbT-RS1akuHA. Example from PUT /variation"
+      "comment": "NC_000007.13:g.36561662_36561663del -- grch37 liftover from VA.QiKnpRR8S7SPoUE-RMUJJbT-RS1akuHA. Example from PUT /variation"
     },
     "ga4gh:VA.QiKnpRR8S7SPoUE-RMUJJbT-RS1akuHA": {
       "variation": {
@@ -68,7 +68,31 @@
         },
         "state": { "type": "LiteralSequenceExpression", "sequence": "T" }
       },
-      "comment": "BRAF V600E, grch38. liftover to VA.nmp-bzYpO00NYIqr3CaVF0ZH2ZpSj1ly"
+      "comment": "BRAF V600E (genomic), grch38. liftover to VA.nmp-bzYpO00NYIqr3CaVF0ZH2ZpSj1ly"
+    },
+    "ga4gh:VA.VrGVDMrq3BCWHIopVxMDtVpMOrxjfQJC": {
+      "variation": {
+        "id": "ga4gh:VA.VrGVDMrq3BCWHIopVxMDtVpMOrxjfQJC",
+        "type": "Allele",
+        "digest": "VrGVDMrq3BCWHIopVxMDtVpMOrxjfQJC",
+        "location": {
+          "id": "ga4gh:SL.2d7zDEoMgH0So2wMaM9tLL_Pg6ckqiqb",
+          "type": "SequenceLocation",
+          "digest": "2d7zDEoMgH0So2wMaM9tLL_Pg6ckqiqb",
+          "sequenceReference": {
+            "type": "SequenceReference",
+            "refgetAccession": "SQ.cQvw4UsHHRRlogxbWCB8W-mKD4AraM9y"
+          },
+          "start": 1799,
+          "end": 1800,
+          "sequence": null
+        },
+        "state": {
+          "type": "LiteralSequenceExpression",
+          "sequence": "A"
+        }
+      },
+      "comment": "BRAF V600E, grch38, transcript variant"
     },
     "ga4gh:VA.nmp-bzYpO00NYIqr3CaVF0ZH2ZpSj1ly": {
       "variation": {
@@ -88,7 +112,27 @@
         },
         "state": { "type": "LiteralSequenceExpression", "sequence": "T" }
       },
-      "comment": "BRAF V600E, grch37. liftover to VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe"
+      "comment": "BRAF V600E (genomic), grch37. liftover to VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe"
+    },
+    "ga4gh:VA.jm5N6PIwuQ8H0rBZCqxOVMlZN7lGvCrX": {
+      "variation": {
+        "id": "ga4gh:VA.jm5N6PIwuQ8H0rBZCqxOVMlZN7lGvCrX",
+        "type": "Allele",
+        "digest": "jm5N6PIwuQ8H0rBZCqxOVMlZN7lGvCrX",
+        "location": {
+          "id": "ga4gh:SL.tfIrqhTnxF6iVIb1SOtjGR8CFgKVL_qf",
+          "type": "SequenceLocation",
+          "digest": "tfIrqhTnxF6iVIb1SOtjGR8CFgKVL_qf",
+          "sequenceReference": {
+            "type": "SequenceReference",
+            "refgetAccession": "SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul"
+          },
+          "start": 55174014,
+          "end": 55174015
+        },
+        "state": { "type": "LiteralSequenceExpression", "sequence": "C" }
+      },
+      "comment": "NM_005228.5(EGFR):c.2156G>C (p.Gly719Ala) -- VCV000045225.8"
     },
     "ga4gh:VA.J-gW7La8EblIdT1MfqZzhzbO26lkEH7D": {
       "variation": {
@@ -269,6 +313,54 @@
         "type": "Allele"
       },
       "comment": "uncovertible grch38 variant. see https://www.ncbi.nlm.nih.gov/clinvar/variation/3035826/?oq=NC_000017.11:50150040:GC:GCGC&m=NM_032595.5(PPP1R9B):c.472_473dup%20(p.Ala159fs)"
+    },
+    "ga4gh:VA.pc65jiqYvcLLocEPb3msu216eBQ3R-mr": {
+      "variation": {
+        "id": "ga4gh:VA.pc65jiqYvcLLocEPb3msu216eBQ3R-mr",
+        "type": "Allele",
+        "digest": "pc65jiqYvcLLocEPb3msu216eBQ3R-mr",
+        "location": {
+          "id": "ga4gh:SL.VTLPmLOmPBk5wFKyhEi89WRDjybjLmzZ",
+          "type": "SequenceLocation",
+          "digest": "VTLPmLOmPBk5wFKyhEi89WRDjybjLmzZ",
+          "sequenceReference": {
+            "type": "SequenceReference",
+            "refgetAccession": "SQ.5m24V-2-XTPEeib-dyHFmi6czbYEUkrR"
+          },
+          "start": 890,
+          "end": 904
+        },
+        "state": {
+          "type": "ReferenceLengthExpression",
+          "length": 5,
+          "sequence": "CCATC",
+          "repeatSubunitLength": 9
+        }
+      },
+      "comment": "NM_000546.6(TP53):c.754_762del (p.Leu252_Ile254del) -- VCV000843641.13. Multi-base deletion that normalizes into an RLE"
+    },
+    "ga4gh:VA.uR23Z7AAFaLHhPUymUEYNG4o2CCE560T": {
+      "variation": {
+        "id": "ga4gh:VA.uR23Z7AAFaLHhPUymUEYNG4o2CCE560T",
+        "type": "Allele",
+        "digest": "uR23Z7AAFaLHhPUymUEYNG4o2CCE560T",
+        "location": {
+          "id": "ga4gh:SL.U8b3eMCw6QjGA9cnDx_KYxqbol0UrEKx",
+          "type": "SequenceLocation",
+          "digest": "U8b3eMCw6QjGA9cnDx_KYxqbol0UrEKx",
+          "sequenceReference": {
+            "type": "SequenceReference",
+            "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO"
+          },
+          "start": 10598981,
+          "end": 10599291
+        },
+        "state": {
+          "type": "LiteralSequenceExpression",
+          "sequence": "AAAGCAGCAATAAACTCAAGGATAAATTAAGGAAATTGAATGAGCCACATTTGGAAGCAGTGTTGAGGCTAATATTCTGTCGCTTAAGGTTAAATTGCAACTGAGAGAGGTTCCGGAGAATCTGAAATCGGGGAGGCAACTTACTAGGATGCGAGGCATTCTGTGGCTGTAAAGGTCTTTGCTCAGTGAAGATTCTGTTGCAGCTATGGACACTGACAAAAGGTACTCACCTGCAATGATGTCCTCTTCTCCCCAGGGCTGACAGATGAAGAGATTGATATGGCCTTCCAGCAGTCGGGCACTGCTGCCGTAAAGCAGCAATAAACTCAAGGATAAATTAAGGAAATTGAATGAGCCACATTTGGAAGCAGTGTTGAGGCTAATATTCTGTCGCTTAAGGTTAAATTGCAACTGAGAGAGGTTCCGGAGAATCTGAAATCGGGGAGGCAACTTACTAGGATGCGAGGCATTCTGTGGCTGTAAAGGTCTTTGCTCAGTGAAGATTCTGTTGCAGCTATGGACACTGACAAAAGGTACTCACCTGCAATGATGTCCTCTTCTCCCCAGGGCTGACAGATGAAGAGATTGATATGGCCTTCCAGCAGTCGGGCACTGCTGCCG"
+        }
+      },
+      "comment": "large insertion, VCV003663959.1"
     }
   },
   "copy_numbers": {

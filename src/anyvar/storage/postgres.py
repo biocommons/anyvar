@@ -1,5 +1,6 @@
 """Provide PostgreSQL-based storage implementation."""
 
+import logging
 from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
@@ -10,12 +11,17 @@ from sqlalchemy.orm import joinedload, sessionmaker
 
 from anyvar.storage import orm
 from anyvar.storage.base_storage import (
+    DataIntegrityError,
+    IncompleteVrsObjectError,
+    InvalidSearchParamsError,
     Storage,
     StoredObjectType,
 )
 from anyvar.storage.mapper_registry import mapper_registry
 from anyvar.storage.orm import create_tables
 from anyvar.utils import types
+
+_logger = logging.getLogger(__name__)
 
 
 class PostgresObjectStore(Storage):
@@ -90,7 +96,10 @@ class PostgresObjectStore(Storage):
 
         # Process all objects and extract their components
         for vrs_object in objects_list:
-            db_entity = mapper_registry.to_db_entity(vrs_object)
+            try:
+                db_entity = mapper_registry.to_db_entity(vrs_object)
+            except AttributeError as e:
+                raise IncompleteVrsObjectError from e
 
             if isinstance(db_entity, orm.Allele):
                 alleles[db_entity.id] = db_entity
@@ -219,25 +228,33 @@ class PostgresObjectStore(Storage):
         with self.session_factory() as session, session.begin():
             if object_type == StoredObjectType.ALLELE:
                 stmt = delete(orm.Allele).where(orm.Allele.id.in_(object_ids_list))
-                session.execute(stmt)
             elif object_type == StoredObjectType.SEQUENCE_LOCATION:
                 stmt = delete(orm.Location).where(orm.Location.id.in_(object_ids_list))
-                session.execute(stmt)
             elif object_type == StoredObjectType.SEQUENCE_REFERENCE:
                 stmt = delete(orm.SequenceReference).where(
                     orm.SequenceReference.id.in_(object_ids_list)
                 )
-                session.execute(stmt)
             else:
                 raise ValueError(f"Unsupported object type: {object_type}")
+            try:
+                session.execute(stmt)
+            except IntegrityError as e:
+                _logger.exception(
+                    "Attempted deletion that violated a foreign key constraint"
+                )
+                raise DataIntegrityError from e
 
     def add_mapping(self, mapping: types.VariationMapping) -> None:
         """Add a mapping between two objects.
 
         If the mapping instance already exists, do nothing.
 
+        Todo:
+        * Implement insert constraint/MissingVariationReferenceError
+
         :param mapping: mapping object
         :raise MissingVariationReferenceError: if source or destination IDs aren't present in DB
+
         """
         stmt = (
             insert(orm.VariationMapping)
@@ -265,8 +282,6 @@ class PostgresObjectStore(Storage):
         * Deletes do not cascade.
 
         :param mapping: mapping object
-        :raise DataIntegrityError: if attempting to delete an object which is
-            depended upon by another object
         """
         stmt = (
             delete(orm.VariationMapping)
@@ -280,7 +295,7 @@ class PostgresObjectStore(Storage):
     def get_mappings(
         self,
         source_object_id: str,
-        mapping_type: types.VariationMappingType | None,
+        mapping_type: types.VariationMappingType | None = None,
     ) -> Iterable[types.VariationMapping]:
         """Return an iterable of mappings from the source ID
 
@@ -291,12 +306,11 @@ class PostgresObjectStore(Storage):
             retrieve all mappings for the source ID)
         :return: iterable collection of mapping descriptors (empty if no matching mappings exist)
         """
-        # TODO optional filter
-        stmt = (
-            select(orm.VariationMapping)
-            .where(orm.VariationMapping.source_id == source_object_id)
-            .where(orm.VariationMapping.mapping_type == mapping_type)
+        stmt = select(orm.VariationMapping).where(
+            orm.VariationMapping.source_id == source_object_id
         )
+        if mapping_type:
+            stmt = stmt.where(orm.VariationMapping.mapping_type == mapping_type)
         with self.session_factory() as session, session.begin():
             mappings = session.scalars(stmt).all()
             return [mapper_registry.from_db_entity(mapping) for mapping in mappings]
@@ -304,14 +318,18 @@ class PostgresObjectStore(Storage):
     def add_annotation(self, annotation: types.Annotation) -> None:
         """Adds an annotation to the database.
 
+        Todo:
+        * Implement insert constraint/MissingVariationReferenceError
+
         :param annotation: The annotation to add
         :raise MissingVariationReferenceError: if no object corresponding to the annotation's
             object ID is present in DB
+
         """
         db_entity: orm.Annotation = mapper_registry.to_db_entity(annotation)
+        stmt = insert(orm.Annotation).returning(orm.Annotation.id)
         with self.session_factory() as session, session.begin():
-            stmt = insert(orm.Annotation).returning(orm.Annotation.id)
-            return session.execute(stmt, db_entity.to_dict()).scalar_one()
+            session.execute(stmt, db_entity.to_dict()).scalar_one()
 
     def get_annotations(
         self, object_id: str, annotation_type: str | None = None
@@ -322,11 +340,10 @@ class PostgresObjectStore(Storage):
         :param annotation_type: The type of annotation to retrieve (defaults to `None` to retrieve all annotations for the object)
         :return: A list of annotations
         """
+        stmt = select(orm.Annotation).where(orm.Annotation.object_id == object_id)
+        if annotation_type:
+            stmt = stmt.where(orm.Annotation.annotation_type == annotation_type)
         with self.session_factory() as session, session.begin():
-            stmt = select(orm.Annotation).where(orm.Annotation.object_id == object_id)
-            if annotation_type:
-                stmt = stmt.where(orm.Annotation.annotation_type == annotation_type)
-
             db_annotations = session.execute(stmt).scalars().all()
 
             return [
@@ -334,18 +351,21 @@ class PostgresObjectStore(Storage):
                 for db_annotation in db_annotations
             ]
 
-    def delete_annotation(self, annotation: types.Annotation) -> None:  # noqa: ARG002
+    def delete_annotation(self, annotation: types.Annotation) -> None:
         """Deletes an annotation from the database
 
         * If no such annotation exists, do nothing.
         * Deletes do not cascade.
 
         :param annotation: The annotation object to delete
-        :raise DataIntegrityError: if attempting to delete an object which is
-            depended upon by another object
         """
+        stmt = (
+            delete(orm.Annotation)
+            .where(orm.Annotation.object_id == annotation.object_id)
+            .where(orm.Annotation.annotation_type == annotation.annotation_type)
+            .where(orm.Annotation.annotation_value == annotation.annotation_value)
+        )
         with self.session_factory() as session, session.begin():
-            stmt = delete(orm.Annotation).where(orm.Annotation.id == 1)  # TODO
             session.execute(stmt)
 
     def search_alleles(
@@ -354,17 +374,31 @@ class PostgresObjectStore(Storage):
         start: int,
         stop: int,
     ) -> list[vrs_models.Allele]:
-        """Find all Alleles within the specified interval.
+        """Find all Alleles that are located within the specified interval.
 
         The interval is the closed range [start, stop] on the sequence identified by
         the RefGet SequenceReference accession (`SQ.*`). Both `start` and `stop` are
         inclusive and represent inter-residue positions.
 
+        Currently, any variation which overlaps the queried region is returned.
+
+        Todo:
+        * provide alternate match modes (partial/full overlap/contained/etc)
+        * refine behavior for LSE indels and for alternative types of state (RLEs)
+
+        Raises an error if
+        * `start` or `end` are negative
+        * `end` > `start`
+
         :param refget_accession: refget accession (e.g. `"SQ.IW78mgV5Cqf6M24hy52hPjyyo5tCCd86"`)
         :param start: Inclusive, inter-residue start position of the interval
         :param stop: Inclusive, inter-residue end position of the interval
         :return: a list of matching VRS alleles
+        :raise InvalidSearchParamsError: if above search param requirements are violated
+
         """
+        if start < 0 or stop < 0 or start > stop:
+            raise InvalidSearchParamsError
         # TODO may load a lot of data
         with self.session_factory() as session:
             # Query alleles with overlapping locations

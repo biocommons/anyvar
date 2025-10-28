@@ -36,6 +36,10 @@ class IncompleteVrsObjectError(StorageError):
     """Raise if provided VRS object is missing fully-materialized properties required for storage"""
 
 
+class InvalidSearchParamsError(StorageError):
+    """Raise if search params violate specified logical constraints"""
+
+
 class Storage(ABC):
     """Abstract base class for interacting with storage backends."""
 
@@ -137,7 +141,7 @@ class Storage(ABC):
     def get_mappings(
         self,
         source_object_id: str,
-        mapping_type: types.VariationMappingType | None,
+        mapping_type: types.VariationMappingType | None = None,
     ) -> Iterable[types.VariationMapping]:
         """Return an iterable of mappings from the source ID
 
@@ -188,14 +192,26 @@ class Storage(ABC):
         start: int,
         stop: int,
     ) -> list[vrs_models.Allele]:
-        """Find all Alleles within the specified interval.
+        """Find all Alleles that are located within the specified interval.
 
         The interval is the closed range [start, stop] on the sequence identified by
         the RefGet SequenceReference accession (`SQ.*`). Both `start` and `stop` are
         inclusive and represent inter-residue positions.
 
+        Currently, any variation which overlaps the queried region is returned.
+
+        Todo:
+        * provide alternate match modes (partial/full overlap/contained/etc)
+        * refine behavior for LSE indels and for alternative types of state (RLEs)
+
+        Raises an error if
+        * `start` or `end` are negative
+        * `end` > `start`
+
         :param refget_accession: refget accession (e.g. `"SQ.IW78mgV5Cqf6M24hy52hPjyyo5tCCd86"`)
         :param start: Inclusive, inter-residue start position of the interval
         :param stop: Inclusive, inter-residue end position of the interval
         :return: a list of matching VRS alleles
+        :raise InvalidSearchParamsError: if above search param requirements are violated
+
         """

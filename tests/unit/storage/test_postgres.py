@@ -5,7 +5,12 @@ import os
 import pytest
 from ga4gh.vrs import models
 
-from anyvar.storage.base_storage import StoredObjectType
+from anyvar.storage.base_storage import (
+    DataIntegrityError,
+    IncompleteVrsObjectError,
+    InvalidSearchParamsError,
+    StoredObjectType,
+)
 from anyvar.storage.postgres import PostgresObjectStore
 from anyvar.utils import types
 from anyvar.utils.funcs import build_vrs_variant_from_dict
@@ -154,6 +159,48 @@ def test_alleles_crud(
 
 
 @pytest.mark.ci_ok
+def test_add_incomplete_objects(postgres_storage: PostgresObjectStore):
+    reffed_allele = models.Allele(
+        id="ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb",
+        location=models.iriReference(root="ga4gh:SL.JOFKL4nL5mRUlO_xLwQ8VOD1v7mxhs3I"),
+        state=models.ReferenceLengthExpression(
+            length=0, sequence=models.sequenceString(root=""), repeatSubunitLength=2
+        ),
+    )
+    with pytest.raises(IncompleteVrsObjectError):
+        postgres_storage.add_objects([reffed_allele])
+
+    idless_allele = models.Allele(
+        location=models.SequenceLocation(
+            id="ga4gh:SL.JOFKL4nL5mRUlO_xLwQ8VOD1v7mxhs3I",
+            sequenceReference=models.SequenceReference(
+                refgetAccession="SQ.IW78mgV5Cqf6M24hy52hPjyyo5tCCd86"
+            ),
+            start=36561661,
+            end=36561663,
+        ),
+        state=models.ReferenceLengthExpression(
+            length=0, sequence=models.sequenceString(root=""), repeatSubunitLength=2
+        ),
+    )
+    with pytest.raises(IncompleteVrsObjectError):
+        postgres_storage.add_objects([idless_allele])
+
+
+@pytest.mark.ci_ok
+def test_objects_raises_integrityerror(
+    postgres_storage: PostgresObjectStore,
+    focus_alleles: tuple[models.Allele, models.Allele, models.Allele],
+):
+    postgres_storage.add_objects(focus_alleles)
+    with pytest.raises(DataIntegrityError):
+        postgres_storage.delete_objects(
+            StoredObjectType.SEQUENCE_REFERENCE,
+            [focus_alleles[0].location.sequenceReference.refgetAccession],
+        )
+
+
+@pytest.mark.ci_ok
 def test_sequencelocations_crud(
     postgres_storage: PostgresObjectStore,
     focus_alleles: tuple[models.Allele, models.Allele, models.Allele],
@@ -215,27 +262,53 @@ def test_mappings_crud(
     # prepopulate
     allele_38 = validated_vrs_alleles["ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU"]
     allele_37 = validated_vrs_alleles["ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf"]
-    postgres_storage.add_objects([allele_38, allele_37])
+    allele_tx = validated_vrs_alleles["ga4gh:VA.VrGVDMrq3BCWHIopVxMDtVpMOrxjfQJC"]
+    postgres_storage.add_objects([allele_38, allele_37, allele_tx])
 
     # add mapping
-    mapping = types.VariationMapping(
+    liftover_mapping = types.VariationMapping(
         source_id=allele_38.id,
         dest_id=allele_37.id,
         mapping_type=types.VariationMappingType.LIFTOVER,
     )
-    postgres_storage.add_mapping(mapping)
+    postgres_storage.add_mapping(liftover_mapping)
+    tx_mapping = types.VariationMapping(
+        source_id=allele_38.id,
+        dest_id=allele_tx.id,
+        mapping_type=types.VariationMappingType.TRANSCRIPTION,
+    )
+    postgres_storage.add_mapping(tx_mapping)
 
     # get mapping
     assert postgres_storage.get_mappings(
+        allele_38.id, types.VariationMappingType.TRANSCRIPTION
+    ) == [tx_mapping]
+    assert postgres_storage.get_mappings(
         allele_38.id, types.VariationMappingType.LIFTOVER
-    ) == [mapping]
+    ) == [liftover_mapping]
+
+    # redundant adds still work
+    postgres_storage.add_mapping(liftover_mapping)
+    assert postgres_storage.get_mappings(
+        allele_38.id, types.VariationMappingType.LIFTOVER
+    ) == [liftover_mapping]
+
+    # type param optional
+    get_result = postgres_storage.get_mappings(allele_38.id)
+    assert len(get_result) == 2
+    sorted(get_result, key=lambda a: a.mapping_type)
+    assert get_result[0] == liftover_mapping
+    assert get_result[1] == tx_mapping
 
     # delete mapping
-    postgres_storage.delete_mapping(mapping)
+    postgres_storage.delete_mapping(liftover_mapping)
     assert (
         postgres_storage.get_mappings(allele_38.id, types.VariationMappingType.LIFTOVER)
         == []
     )
+    assert postgres_storage.get_mappings(allele_38.id) == [tx_mapping]
+    postgres_storage.delete_mapping(tx_mapping)
+    assert postgres_storage.get_mappings(allele_38.id) == []
 
 
 @pytest.mark.ci_ok
@@ -274,21 +347,17 @@ def test_annotations_crud(
     postgres_storage.add_annotation(ann4)
 
     # get annotations back
-    result = postgres_storage.get_annotations_by_object_and_type(
-        focus_alleles[0].id, "classification"
-    )
+    result = postgres_storage.get_annotations(focus_alleles[0].id, "classification")
     assert result[0].object_id == ann1.object_id
     assert result[0].annotation_type == ann1.annotation_type
     assert result[0].annotation_value == ann1.annotation_value
 
-    result = postgres_storage.get_annotations_by_object_and_type(
-        focus_alleles[2].id, "reference"
-    )
+    result = postgres_storage.get_annotations(focus_alleles[2].id, "reference")
     assert result[0].object_id == ann4.object_id
     assert result[0].annotation_type == ann4.annotation_type
     assert result[0].annotation_value == ann4.annotation_value
 
-    result = postgres_storage.get_annotations_by_object_and_type(focus_alleles[2].id)
+    result = postgres_storage.get_annotations(focus_alleles[2].id)
     sorted(result, key=lambda i: (i.annotation_type, i.annotation_value))
     assert result[0].object_id == ann3.object_id
     assert result[0].annotation_type == ann3.annotation_type
@@ -298,22 +367,97 @@ def test_annotations_crud(
     assert result[1].annotation_value == ann4.annotation_value
 
     # test optional type
-    assert postgres_storage.get_annotations_by_object_and_type(
+    assert postgres_storage.get_annotations(
         focus_alleles[0].id
-    ) == postgres_storage.get_annotations_by_object_and_type(
+    ) == postgres_storage.get_annotations(
         focus_alleles[0].id, annotation_type="classification"
     )
 
     # fetch nonexistent annotation
-    result = postgres_storage.get_annotations_by_object_and_type("ga4gh:VA.ZZZZZZZ")
+    result = postgres_storage.get_annotations("ga4gh:VA.ZZZZZZZ")
     assert result == []
 
     # delete annotations
-    result = postgres_storage.get_annotations_by_object_and_type(
-        focus_alleles[0].id, "classification"
-    )
-    postgres_storage.delete_annotation(result[0].id)
-    result = postgres_storage.get_annotations_by_object_and_type(
-        focus_alleles[0].id, "classification"
-    )
+    result = postgres_storage.get_annotations(focus_alleles[0].id, "classification")
+    postgres_storage.delete_annotation(result[0])
+    result = postgres_storage.get_annotations(focus_alleles[0].id, "classification")
     assert result == []
+
+
+def test_search_alleles(
+    postgres_storage: PostgresObjectStore,
+    validated_vrs_alleles: dict[str, models.Allele],
+):
+    # these are on the same accession
+    egfr_variant = validated_vrs_alleles["ga4gh:VA.jm5N6PIwuQ8H0rBZCqxOVMlZN7lGvCrX"]
+    braf_variant = validated_vrs_alleles["ga4gh:VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe"]
+    # this is on a different accession
+    other_variant = validated_vrs_alleles["ga4gh:VA.J-gW7La8EblIdT1MfqZzhzbO26lkEH7D"]
+    # some edge cases
+    rle = validated_vrs_alleles["ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb"]
+    long_ins = validated_vrs_alleles["ga4gh:VA.uR23Z7AAFaLHhPUymUEYNG4o2CCE560T"]
+    rle_del = validated_vrs_alleles["ga4gh:VA.pc65jiqYvcLLocEPb3msu216eBQ3R-mr"]
+    postgres_storage.add_objects(
+        [egfr_variant, braf_variant, other_variant, rle, long_ins, rle_del]
+    )
+
+    # result fully contained in interval
+    result = postgres_storage.search_alleles(
+        rle.location.sequenceReference.refgetAccession, 36561660, 36561665
+    )
+    assert result == [rle]
+    result = postgres_storage.search_alleles(
+        egfr_variant.location.sequenceReference.refgetAccession, 55174010, 140753340
+    )
+    sorted(result, key=lambda a: a.id)
+    assert result == [egfr_variant, braf_variant]
+
+    # result partially overlaps with interval
+    result = postgres_storage.search_alleles(
+        rle.location.sequenceReference.refgetAccession, 36561662, 36561665
+    )
+    assert result == [rle]
+    assert postgres_storage.search_alleles(
+        rle.location.sequenceReference.refgetAccession, 36561662, 36561663
+    ) == [rle]
+
+    # position ranges are inclusive
+    result = postgres_storage.search_alleles(
+        braf_variant.location.sequenceReference.refgetAccession, 140753335, 140753336
+    )
+    assert result == [braf_variant]
+
+    # handle unrecognized accession
+    assert postgres_storage.search_alleles("SQ.unknown-sequence", 1, 10) == []
+
+    # handle invalid params
+    with pytest.raises(InvalidSearchParamsError):
+        postgres_storage.search_alleles(
+            braf_variant.location.sequenceReference.refgetAccession, -1, 36561665
+        )
+
+    with pytest.raises(InvalidSearchParamsError):
+        postgres_storage.search_alleles(
+            braf_variant.location.sequenceReference.refgetAccession, -5, -1
+        )
+    with pytest.raises(InvalidSearchParamsError):
+        postgres_storage.search_alleles(
+            braf_variant.location.sequenceReference.refgetAccession, 10, 9
+        )
+
+    # intervals adjacent to, but not within sequence location of, larger indels/RLEs
+    assert (
+        postgres_storage.search_alleles(
+            long_ins.location.sequenceReference.refgetAccession, 10599292, 10599295
+        )
+        == []
+    )
+    assert (
+        postgres_storage.search_alleles(
+            rle_del.location.sequenceReference.refgetAccession, 905, 910
+        )
+        == []
+    )
+    assert postgres_storage.search_alleles(
+        rle_del.location.sequenceReference.refgetAccession, 904, 910
+    ) == [rle_del]
