@@ -7,6 +7,8 @@ from fastapi.testclient import TestClient
 
 from anyvar.anyvar import AnyVar, create_storage, create_translator
 from anyvar.restapi.main import app as anyvar_restapi
+from anyvar.storage.base_storage import Storage
+from anyvar.translate.translate import _Translator
 from anyvar.utils.funcs import build_vrs_variant_from_dict
 
 pytest_plugins = ("celery.contrib.pytest",)
@@ -45,8 +47,12 @@ def storage():
 
 
 @pytest.fixture(scope="session")
-def client(storage):
-    translator = create_translator()
+def translator():
+    return create_translator()
+
+
+@pytest.fixture(scope="session")
+def client(storage: Storage, translator: _Translator):
     anyvar_restapi.state.anyvar = AnyVar(object_store=storage, translator=translator)
     return TestClient(app=anyvar_restapi)
 

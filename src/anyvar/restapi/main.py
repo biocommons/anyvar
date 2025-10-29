@@ -381,7 +381,8 @@ def register_variation(
 
     liftover_messages = liftover_utils.add_liftover_mapping(
         variation=translated_variation,
-        anyvar=av,
+        storage=av.object_store,
+        dataproxy=av.translator.dp,
     )
     if liftover_messages:
         messages += liftover_messages
