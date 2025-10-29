@@ -1,6 +1,6 @@
 """Check basic functions of general endpoint(s)"""
 
-# from http import HTTPStatus
+import re
 from pathlib import Path
 
 import jsonschema
@@ -22,3 +22,15 @@ def test_service_info(client: TestClient, test_data_dir: Path):
     resolver = jsonschema.RefResolver.from_schema(spec)
     data = response.json()
     jsonschema.validate(instance=data, schema=resp_schema, resolver=resolver)
+
+    # test extra metadata
+    assert re.match(r"^2\.\d+\.\d+.?$", data["spec_metadata"]["vrs_version"]), (
+        "VRS version is 2.x"
+    )
+    assert re.match(r"^2\.\d+\.\d+.?$", data["impl_metadata"]["vrs_python_version"]), (
+        "VRS-Python version is 2.x"
+    )
+    assert sorted(data["capabilities_metadata"]["liftover_assemblies"]) == [
+        "GRCh37",
+        "GRCh38",
+    ]
