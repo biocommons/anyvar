@@ -87,7 +87,6 @@ def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) 
     :param converter: An AGCT Converter instance.
     :param chromosome: The chromosome number where the coordinate is found. Must be a string consisting of a) the prefix "chr", and b) a number OR "X" or "Y" -> i.e. "chr10".
     :param coordinate: A single start or end coordinate. MUST be an `int`.
-
     :return: A converted coordinate value as an `int`
     :raises: A `CoordinateConversionFailureError` if the conversion returns no results.
     :raises: A `AmbiguousCoordinateConversionError` if the conversion returns more than one result.
@@ -143,7 +142,6 @@ def get_liftover_variant(input_variant: VrsVariation) -> VrsVariation:
     If liftover is unsuccessful, raise an Exception.
 
     :param input_variant: A `VrsVariation`.
-    :param anyvar: An `AnyVar` instance.
     :return: The converted variant as a `VrsVariation`.
     :raises:
         - `MalformedInputError`:  If the `input_variant` is empty or otherwise falsy
@@ -235,6 +233,7 @@ def add_liftover_mapping(
 
     :param variation: variation to attempt liftover upon
     :param storage: Storage instance
+    :param dataproxy: SeqRepo DataProxy instance, for normalizing lifted-over alleles
     :return: list of messages describing warnings or failures, or ``None`` if completely successful
     """
     input_vrs_id: str = variation.id  # type: ignore

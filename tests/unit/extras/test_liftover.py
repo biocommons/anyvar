@@ -146,6 +146,7 @@ NO_LIFTOVER_CASES = ["empty_variation_object", "invalid_variant"]
 ## Tests for src/anyvar/utils/liftover_utils.py > 'get_liftover_variant' function ##
 ####################################################################################
 @pytest.mark.parametrize("variant_fixture_name", SUCCESS_CASES)
+@pytest.mark.ci_ok
 def test_liftover_success(request: pytest.FixtureRequest, variant_fixture_name: str):
     fixture = request.getfixturevalue(variant_fixture_name)
     grch37 = fixture["grch37"]
@@ -161,6 +162,7 @@ def test_liftover_success(request: pytest.FixtureRequest, variant_fixture_name: 
 
 
 @pytest.mark.parametrize("variant_fixture_name", FAILURE_CASES)
+@pytest.mark.ci_ok
 def test_liftover_failure(request, variant_fixture_name):
     fixture = request.getfixturevalue(variant_fixture_name)
     variant_input = fixture["variant"]
