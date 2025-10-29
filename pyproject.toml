@@ -21,7 +21,7 @@ dependencies = [
     "ga4gh.vrs[extras]~=2.1.2",
     "sqlalchemy~=2.0.0",
     "pyyaml",
-    "agct",
+    "agct >= 0.2.0rc1",
     "pysam",
     "python-dotenv",
     "anyio",
