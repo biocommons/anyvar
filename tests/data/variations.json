@@ -84,8 +84,7 @@
             "refgetAccession": "SQ.cQvw4UsHHRRlogxbWCB8W-mKD4AraM9y"
           },
           "start": 1799,
-          "end": 1800,
-          "sequence": null
+          "end": 1800
         },
         "state": {
           "type": "LiteralSequenceExpression",

@@ -188,9 +188,7 @@ class AnyVar:
         :return: A list of Annotations
         """
         try:
-            return self.object_store.get_annotations_by_object_and_type(
-                object_id, annotation_type
-            )
+            return self.object_store.get_annotations(object_id, annotation_type)
         except Exception as e:
             _logger.exception(
                 "Failed to retrieve annotations for object: %s", object_id
