@@ -112,7 +112,6 @@ class AnyVar:
         except Exception as e:
             _logger.exception("Failed to add object: %s", variation_objects)
             raise e  # noqa: TRY201
-        return
 
     def get_object(
         self, object_id: str, object_type: StoredObjectType | None = None
