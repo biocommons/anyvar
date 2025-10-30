@@ -34,13 +34,13 @@ from anyvar.translate.translate import TranslatorConnectionError
 
 try:
     import aiofiles  # noqa: I001
-    import anyvar.queueing.celery_worker
+    from anyvar.queueing import celery_worker
     from billiard.exceptions import TimeLimitExceeded
     from celery.exceptions import WorkerLostError
     from celery.result import AsyncResult
 except ImportError:
     aiofiles = None
-    anyvar.queueing.celery_worker = None
+    celery_worker = None
     TimeLimitExceeded = None
     WorkerLostError = None
     AsyncResult = None
@@ -61,7 +61,12 @@ async def _annotate_vcf_async(
 ) -> RunStatusResponse | ErrorResponse:
     """Annotate with VRS IDs asynchronously.  See `annotate_vcf()` for parameter definitions."""
     # if run_id is provided, validate it does not already exist
-    if not anyvar.anyvar.has_queueing_enabled() or not AsyncResult or not aiofiles:
+    if (
+        not anyvar.anyvar.has_queueing_enabled()
+        or not AsyncResult
+        or not aiofiles
+        or not celery_worker
+    ):
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ErrorResponse(
             error="Required modules and/or configurations for asynchronous VCF annotation are missing"
@@ -95,7 +100,7 @@ async def _annotate_vcf_async(
     _logger.debug("vcf site count of async vcf is %s", vcf_site_count)
 
     # submit async job
-    task_result = anyvar.queueing.celery_worker.annotate_vcf.apply_async(
+    task_result = celery_worker.annotate_vcf.apply_async(
         kwargs={
             "input_file_path": str(input_file_path),
             "assembly": assembly,
