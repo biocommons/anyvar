@@ -29,6 +29,45 @@ jobs:
 
       - name: Check style
         run: uv run ruff check && uv run ruff format --check
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --extra test --extra queueing
+
+      - name: Run tests
+        run: uv run pytest -vv -m "ci_ok"
+        env:
+          ANYVAR_TEST_STORAGE_URI: postgresql://postgres:postgres@localhost:5432/postgres
+
   precommit_hooks:
     runs-on: ubuntu-latest
     strategy:

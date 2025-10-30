@@ -442,7 +442,7 @@ def register_vrs_object(
     )
 
     return RegisterVariationResponse(
-        object=variation_object,  # type: ignore
+        object=variation_object,
         object_id=v_id,
         messages=liftover_messages or [],
     )

@@ -79,6 +79,12 @@ class ImplMetadata(BaseModel):
     vrs_python_version: str = vrs_python_version
 
 
+class CapabilitiesMetadata(BaseModel):
+    """Define substructure for reporting metadata about service capabilities"""
+
+    liftover_assemblies: list[str] = ["GRCh38", "GRCh37"]
+
+
 class ServiceInfo(BaseModel):
     """Define response structure for GA4GH /service_info endpoint."""
 
@@ -120,6 +126,7 @@ class ServiceInfo(BaseModel):
     version: str = __version__
     spec_metadata: SpecMetadata = SpecMetadata()
     impl_metadata: ImplMetadata = ImplMetadata()
+    capabilities_metadata: CapabilitiesMetadata = CapabilitiesMetadata()
 
 
 class GetSequenceLocationResponse(BaseModel):

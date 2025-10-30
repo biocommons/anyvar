@@ -197,8 +197,8 @@ def get_liftover_variant(input_variant: VrsVariation) -> VrsVariation:
         type="SequenceLocation",
         sequenceReference=models.SequenceReference(
             type="SequenceReference", refgetAccession=converted_refget_accession
-        ),  # type: ignore (missing parameters are fine, all absent params will default to `None`)
-    )  # type: ignore (missing parameters are fine, all absent params will default to `None`)
+        ),
+    )
     ga4gh_identify(converted_variant_location, in_place="always")
 
     # Build the liftover variant object

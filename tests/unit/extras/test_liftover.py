@@ -1,6 +1,7 @@
 import pytest
 from ga4gh.vrs import models
 
+from anyvar.anyvar import AnyVar
 from anyvar.storage.base_storage import Storage, StoredObjectType
 from anyvar.translate.translate import _Translator
 from anyvar.utils import liftover_utils
@@ -218,6 +219,7 @@ def test_liftover_mapping_success(
 def test_liftover_mapping_failure(
     request,
     variant_fixture_name,
+    anyvar_instance: AnyVar,
     storage: Storage,
     translator: _Translator,
 ):
@@ -226,7 +228,7 @@ def test_liftover_mapping_failure(
     expected_error = fixture["error"]
 
     # ensure input is present in DB
-    storage.add_objects([variant_input])
+    anyvar_instance.object_store.add_objects([variant_input])
 
     assert liftover_utils.add_liftover_mapping(
         variant_input, storage, translator.dp
