@@ -40,7 +40,7 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Unit test / coverage reports
+# Testing stuff and coverage reports
 htmlcov/
 .tox/
 .coverage
@@ -52,7 +52,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 anyvar-test.duckdb
-tmp_async_work_dir
+tests/tmp_async_work_dir
 
 # Translations
 *.mo

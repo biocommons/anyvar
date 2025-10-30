@@ -85,6 +85,9 @@ build-backend = "setuptools.build_meta"
 addopts = "--cov=anyvar --cov-report term-missing"
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+    "ci_ok: tests safe to run in CI",
+]
 
 [tool.coverage.run]
 branch = true
@@ -178,8 +181,8 @@ ignore = [
 "src/anyvar/queueing/celery_worker.py" = ["PLW0602", "PLW0603"]
 "src/anyvar/storage/no_db.py" = ["ARG002"]
 "tests/*" = ["ANN001", "ANN2", "ANN102", "S101", "B011", "INP001", "D", "C400", "PLR2004"]
-"tests/storage/*" = ["S608"]
-"tests/storage/sqlalchemy_mocks.py" = ["ARG002", "A002", "TRY002"]
+"tests/unit/storage/*" = ["S608"]
+"tests/unit/storage/test_no_db.py" = ["ARG002", "A002", "TRY002"]
 "demo/*" = ["T201"]
 
 [tool.ruff.format]

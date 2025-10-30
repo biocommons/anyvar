@@ -1,16 +1,11 @@
 """Test ingestion of VCF that already contains VRS annotations."""
 
 import io
-import shutil
 import time
 from http import HTTPStatus
 
 import pytest
-from celery.contrib.testing.worker import start_worker
-from celery.result import AsyncResult
 from fastapi.testclient import TestClient
-
-from anyvar.queueing.celery_worker import celery_app
 
 
 @pytest.fixture
@@ -142,16 +137,19 @@ chr1	10330	.	CCCCTAACCCTAACCCTAACCCTACCCTAACCCTAACCCTAACCCTAACCCTAA	C	.	PASS	QUA
 
 
 def test_registration_sync(
-    monkeypatch, client: TestClient, basic_vcf: io.BytesIO, vcf_incorrect_id: io.BytesIO
+    monkeypatch,
+    restapi_client: TestClient,
+    basic_vcf: io.BytesIO,
+    vcf_incorrect_id: io.BytesIO,
 ):
     """Test basic file registration, synchronous + no validation"""
     recorded = []
     monkeypatch.setattr(
-        client.app.state.anyvar,
+        restapi_client.app.state.anyvar,
         "put_objects",
-        lambda allele_list: recorded.extend(allele_list),
+        lambda allele: recorded.append(allele),
     )
-    resp = client.put("/annotated_vcf", files={"vcf": ("test.vcf", basic_vcf)})
+    resp = restapi_client.put("/annotated_vcf", files={"vcf": ("test.vcf", basic_vcf)})
 
     assert resp.status_code == HTTPStatus.OK
     assert recorded, "put_objects was never called"
@@ -159,7 +157,9 @@ def test_registration_sync(
     assert recorded[1].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
 
     # ignore wrong IDs
-    resp = client.put("/annotated_vcf", files={"vcf": ("test.vcf", vcf_incorrect_id)})
+    resp = restapi_client.put(
+        "/annotated_vcf", files={"vcf": ("test.vcf", vcf_incorrect_id)}
+    )
 
     assert resp.status_code == HTTPStatus.OK
     assert recorded, "put_objects was never called"
@@ -169,18 +169,18 @@ def test_registration_sync(
 
 def test_registration_sync_validate(
     monkeypatch,
-    client: TestClient,
+    restapi_client: TestClient,
     basic_vcf: io.BytesIO,
     vcf_incorrect_id: io.BytesIO,
 ):
     """Test basic file registration, synchronous + validation"""
     recorded = []
     monkeypatch.setattr(
-        client.app.state.anyvar,
+        restapi_client.app.state.anyvar,
         "put_objects",
-        lambda allele_list: recorded.extend(allele_list),
+        lambda allele: recorded.append(allele),
     )
-    resp = client.put(
+    resp = restapi_client.put(
         "/annotated_vcf",
         files={"vcf": ("test.vcf", basic_vcf)},
         params={"require_validation": True},
@@ -193,7 +193,7 @@ def test_registration_sync_validate(
     assert resp.content.count(b"\n") == 1  # just header
 
     # handle wrong ID
-    resp = client.put(
+    resp = restapi_client.put(
         "/annotated_vcf",
         files={"vcf": ("test.vcf", vcf_incorrect_id)},
         params={"require_validation": True},
@@ -209,162 +209,125 @@ def test_registration_sync_validate(
 
 
 def test_registration_async(
-    monkeypatch,
-    client: TestClient,
+    restapi_client: TestClient,
     basic_vcf: io.BytesIO,
     vcf_incorrect_id: io.BytesIO,
+    celery_context,  # noqa: ARG001
+    vcf_run_id: str,
 ):
     """Test async file registration"""
+    resp = restapi_client.put(
+        "/annotated_vcf",
+        files={"vcf": ("test.vcf", basic_vcf)},
+        params={"run_async": True, "run_id": vcf_run_id},
+    )
+    assert resp.status_code == HTTPStatus.ACCEPTED
+    assert "status_message" in resp.json()
+    assert (
+        resp.json()["status_message"]
+        == f"Run submitted. Check status at /vcf/{vcf_run_id}"
+    )
+    assert "status" in resp.json()
+    assert resp.json()["status"] == "PENDING"
+    assert "run_id" in resp.json()
+    assert resp.json()["run_id"] == vcf_run_id
 
-    monkeypatch.setenv("ANYVAR_VCF_ASYNC_WORK_DIR", "tests/tmp_async_work_dir")
-    with start_worker(
-        celery_app,
-        pool="solo",
-        loglevel="info",
-        perform_ping_check=False,
-        shutdown_timeout=30,
-    ):
-        run_id = 12345
+    time.sleep(5)
 
-        # Ensure there are no other tasks currently running with this ID
-        celery_app.control.purge()
-        AsyncResult(f"{run_id}").forget()
+    resp = restapi_client.get(f"/vcf/{vcf_run_id}")
+    assert resp.status_code == HTTPStatus.OK
+    assert resp.json()["status"] == "SUCCESS"
 
-        resp = client.put(
-            "/annotated_vcf",
-            files={"vcf": ("test.vcf", basic_vcf)},
-            params={"run_async": True, "run_id": run_id},
-        )
-        assert resp.status_code == HTTPStatus.ACCEPTED
-        assert "status_message" in resp.json()
-        assert (
-            resp.json()["status_message"]
-            == f"Run submitted. Check status at /vcf/{run_id}"
-        )
-        assert "status" in resp.json()
-        assert resp.json()["status"] == "PENDING"
-        assert "run_id" in resp.json()
-        assert resp.json()["run_id"] == f"{run_id}"
+    resp = restapi_client.put(
+        "/annotated_vcf",
+        files={"vcf": ("test.vcf", vcf_incorrect_id)},
+        params={"run_async": True, "run_id": vcf_run_id},
+    )
 
-        time.sleep(5)
+    assert resp.status_code == HTTPStatus.ACCEPTED
+    assert "status_message" in resp.json()
+    assert (
+        resp.json()["status_message"]
+        == f"Run submitted. Check status at /vcf/{vcf_run_id}"
+    )
+    assert "status" in resp.json()
+    assert resp.json()["status"] == "PENDING"
+    assert "run_id" in resp.json()
+    assert resp.json()["run_id"] == vcf_run_id
 
-        resp = client.get(f"/vcf/{run_id}")
-        assert resp.status_code == HTTPStatus.OK
-        assert resp.json()["status"] == "SUCCESS"
+    time.sleep(5)
 
-        resp = client.put(
-            "/annotated_vcf",
-            files={"vcf": ("test.vcf", vcf_incorrect_id)},
-            params={"run_async": True, "run_id": run_id},
-        )
-
-        assert resp.status_code == HTTPStatus.ACCEPTED
-        assert "status_message" in resp.json()
-        assert (
-            resp.json()["status_message"]
-            == f"Run submitted. Check status at /vcf/{run_id}"
-        )
-        assert "status" in resp.json()
-        assert resp.json()["status"] == "PENDING"
-        assert "run_id" in resp.json()
-        assert resp.json()["run_id"] == f"{run_id}"
-
-        time.sleep(5)
-
-        resp = client.get(f"/vcf/{run_id}")
-        assert resp.status_code == HTTPStatus.OK
-        assert resp.json()["status"] == "SUCCESS"
-
-        shutil.rmtree("tests/tmp_async_work_dir")
+    resp = restapi_client.get(f"/vcf/{vcf_run_id}")
+    assert resp.status_code == HTTPStatus.OK
+    assert resp.json()["status"] == "SUCCESS"
 
 
 def test_registration_async_validate(
-    monkeypatch,
-    client: TestClient,
+    restapi_client: TestClient,
     basic_vcf: io.BytesIO,
+    celery_context,  # noqa: ARG001
+    vcf_run_id: str,
 ):
     """Test file registration, asynchronous + validation"""
-    monkeypatch.setenv("ANYVAR_VCF_ASYNC_WORK_DIR", "tests/tmp_async_work_dir")
+    resp = restapi_client.put(
+        "/annotated_vcf",
+        files={"vcf": ("test.vcf", basic_vcf)},
+        params={"require_validation": True, "run_async": True, "run_id": vcf_run_id},
+    )
+    assert resp.status_code == HTTPStatus.ACCEPTED
+    assert "status_message" in resp.json()
+    assert (
+        resp.json()["status_message"]
+        == f"Run submitted. Check status at /vcf/{vcf_run_id}"
+    )
+    assert "status" in resp.json()
+    assert resp.json()["status"] == "PENDING"
+    assert "run_id" in resp.json()
+    assert resp.json()["run_id"] == vcf_run_id
 
-    with start_worker(
-        celery_app,
-        pool="solo",
-        loglevel="info",
-        perform_ping_check=False,
-        shutdown_timeout=30,
-    ):
-        run_id = 12345
-        resp = client.put(
-            "/annotated_vcf",
-            files={"vcf": ("test.vcf", basic_vcf)},
-            params={"require_validation": True, "run_async": True, "run_id": run_id},
-        )
-        assert resp.status_code == HTTPStatus.ACCEPTED
-        assert "status_message" in resp.json()
-        assert (
-            resp.json()["status_message"]
-            == f"Run submitted. Check status at /vcf/{run_id}"
-        )
-        assert "status" in resp.json()
-        assert resp.json()["status"] == "PENDING"
-        assert "run_id" in resp.json()
-        assert resp.json()["run_id"] == f"{run_id}"
+    time.sleep(5)
 
-        time.sleep(5)
-
-        resp = client.get(f"/vcf/{run_id}")
-        assert resp.status_code == HTTPStatus.OK
-        assert resp.content.count(b"\n") == 1  # just header
-
-        shutil.rmtree("tests/tmp_async_work_dir")
+    resp = restapi_client.get(f"/vcf/{vcf_run_id}")
+    assert resp.status_code == HTTPStatus.OK
+    assert resp.content.count(b"\n") == 1  # just header
 
 
 def test_registration_async_validate_wrongid(
     vcf_incorrect_id: io.BytesIO,
-    client: TestClient,
-    monkeypatch,
+    restapi_client: TestClient,
+    celery_context,  # noqa: ARG001
+    vcf_run_id: str,
 ):
     """Test file registration, asynchronous + validation of a file with a wrong ID"""
-    monkeypatch.setenv("ANYVAR_VCF_ASYNC_WORK_DIR", "tests/tmp_async_work_dir")
+    resp = restapi_client.put(
+        "/annotated_vcf",
+        files={"vcf": ("test.vcf", vcf_incorrect_id)},
+        params={"require_validation": True, "run_async": True, "run_id": vcf_run_id},
+    )
 
-    with start_worker(
-        celery_app,
-        pool="solo",
-        loglevel="info",
-        perform_ping_check=False,
-        shutdown_timeout=30,
-    ):
-        run_id = 12345
-        resp = client.put(
-            "/annotated_vcf",
-            files={"vcf": ("test.vcf", vcf_incorrect_id)},
-            params={"require_validation": True, "run_async": True, "run_id": run_id},
-        )
+    assert resp.status_code == HTTPStatus.ACCEPTED
+    assert "status_message" in resp.json()
+    assert (
+        resp.json()["status_message"]
+        == f"Run submitted. Check status at /vcf/{vcf_run_id}"
+    )
+    assert "status" in resp.json()
+    assert resp.json()["status"] == "PENDING"
+    assert "run_id" in resp.json()
+    assert resp.json()["run_id"] == vcf_run_id
 
-        assert resp.status_code == HTTPStatus.ACCEPTED
-        assert "status_message" in resp.json()
-        assert (
-            resp.json()["status_message"] == "Run submitted. Check status at /vcf/12345"
-        )
-        assert "status" in resp.json()
-        assert resp.json()["status"] == "PENDING"
-        assert "run_id" in resp.json()
-        assert resp.json()["run_id"] == "12345"
+    time.sleep(5)
 
-        time.sleep(5)
-
-        resp = client.get("/vcf/12345")
-        assert resp.status_code == HTTPStatus.OK
-        assert b"ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6z" in resp.content
-
-        shutil.rmtree("tests/tmp_async_work_dir")
+    resp = restapi_client.get(f"/vcf/{vcf_run_id}")
+    assert resp.status_code == HTTPStatus.OK
+    assert b"ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6z" in resp.content
 
 
 def test_handle_incomplete_annotation(
-    client: TestClient, vcf_incomplete_annotations: io.BytesIO
+    restapi_client: TestClient, vcf_incomplete_annotations: io.BytesIO
 ):
     """Test that client gracefully handles an incompletely-annotated VCF"""
-    resp = client.put(
+    resp = restapi_client.put(
         "/annotated_vcf", files={"vcf": ("test.vcf", vcf_incomplete_annotations)}
     )
 
