@@ -3,19 +3,14 @@
 import io
 import os
 import pathlib
-import shutil
 import time
 from http import HTTPStatus
 
 import pytest
 from billiard.exceptions import TimeLimitExceeded
-from celery.contrib.testing.worker import start_worker
 from celery.exceptions import WorkerLostError
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
-
-import anyvar.anyvar
-from anyvar.queueing.celery_worker import celery_app
 
 
 @pytest.fixture
@@ -169,44 +164,36 @@ def test_vcf_registration_invalid_assembly(
 
 
 def test_vcf_registration_async(
-    restapi_client: TestClient, sample_vcf_grch38: io.BytesIO, mocker: MockerFixture
+    restapi_client: TestClient,
+    sample_vcf_grch38: io.BytesIO,
+    celery_context,  # noqa: ARG001
+    vcf_run_id: str,
 ):
     """Test the async VCF annotation process using a real Celery worker and background task"""
-    mocker.patch.dict(
-        os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "tests/tmp_async_work_dir"}
+    resp = restapi_client.put(
+        "/vcf",
+        params={"assembly": "GRCh38", "run_id": vcf_run_id, "run_async": True},
+        files={"vcf": ("test.vcf", sample_vcf_grch38)},
     )
-    assert anyvar.anyvar.has_queueing_enabled(), "async vcf queueing is not enabled"
-    with start_worker(
-        celery_app,
-        pool="solo",
-        loglevel="info",
-        perform_ping_check=False,
-        shutdown_timeout=30,
-    ):
-        resp = restapi_client.put(
-            "/vcf",
-            params={"assembly": "GRCh38", "run_id": "12345", "run_async": True},
-            files={"vcf": ("test.vcf", sample_vcf_grch38)},
-        )
-        assert resp.status_code == HTTPStatus.ACCEPTED, resp.text
-        assert "status_message" in resp.json()
-        assert (
-            resp.json()["status_message"] == "Run submitted. Check status at /vcf/12345"
-        )
-        assert "status" in resp.json()
-        assert resp.json()["status"] == "PENDING"
-        assert "run_id" in resp.json()
-        assert resp.json()["run_id"] == "12345"
+    assert resp.status_code == HTTPStatus.ACCEPTED, resp.text
+    assert "status_message" in resp.json()
+    assert (
+        resp.json()["status_message"]
+        == f"Run submitted. Check status at /vcf/{vcf_run_id}"
+    )
+    assert "status" in resp.json()
+    assert resp.json()["status"] == "PENDING"
+    assert "run_id" in resp.json()
+    assert resp.json()["run_id"] == vcf_run_id
 
-        time.sleep(5)
+    time.sleep(5)
 
-        resp = restapi_client.get("/vcf/12345")
-        assert resp.status_code == HTTPStatus.OK
-        assert (
-            b"VRS_Allele_IDs=ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe,ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
-            in resp.content
-        )
-        shutil.rmtree("tests/tmp_async_work_dir")
+    resp = restapi_client.get(f"/vcf/{vcf_run_id}")
+    assert resp.status_code == HTTPStatus.OK
+    assert (
+        b"VRS_Allele_IDs=ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe,ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
+        in resp.content
+    )
 
 
 def test_vcf_submit_no_async(
