@@ -31,7 +31,6 @@ def create_storage(uri: str | None = None) -> Storage:
 
     The URI format is as follows:
 
-    * PostgreSQL
     `postgresql://[username]:[password]@[domain]/[database]`
 
     For no database (for testing or non-persistent use cases), use an empty string.

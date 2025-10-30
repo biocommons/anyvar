@@ -157,9 +157,10 @@ class Storage(ABC):
     def add_annotation(self, annotation: types.Annotation) -> None:
         """Adds an annotation to the database.
 
+        Adding the same annotation repeatedly creates redundant records.
+
         :param annotation: The annotation to add
-        :raise MissingVariationReferenceError: if no object corresponding to the annotation's
-            object ID is present in DB
+        :raise MissingVariationReferenceError: if no object corresponding to the annotation's object ID is present in DB
         """
 
     @abstractmethod

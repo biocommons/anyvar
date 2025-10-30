@@ -348,23 +348,19 @@ def test_annotations_crud(
 
     # get annotations back
     result = postgres_storage.get_annotations(focus_alleles[0].id, "classification")
-    assert result[0].object_id == ann1.object_id
-    assert result[0].annotation_type == ann1.annotation_type
-    assert result[0].annotation_value == ann1.annotation_value
+    assert result == [ann1]
 
     result = postgres_storage.get_annotations(focus_alleles[2].id, "reference")
-    assert result[0].object_id == ann4.object_id
-    assert result[0].annotation_type == ann4.annotation_type
-    assert result[0].annotation_value == ann4.annotation_value
+    assert result == [ann4]
 
     result = postgres_storage.get_annotations(focus_alleles[2].id)
     sorted(result, key=lambda i: (i.annotation_type, i.annotation_value))
-    assert result[0].object_id == ann3.object_id
-    assert result[0].annotation_type == ann3.annotation_type
-    assert result[0].annotation_value == ann3.annotation_value
-    assert result[1].object_id == ann4.object_id
-    assert result[1].annotation_type == ann4.annotation_type
-    assert result[1].annotation_value == ann4.annotation_value
+    assert result == [ann3, ann4]
+
+    # adding the same annotation multiple times creates redundant rows
+    postgres_storage.add_annotation(ann4)
+    result = postgres_storage.get_annotations(focus_alleles[2].id, "reference")
+    assert result == [ann4, ann4]
 
     # test optional type
     assert postgres_storage.get_annotations(
