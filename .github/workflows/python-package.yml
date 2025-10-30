@@ -64,7 +64,7 @@ jobs:
         run: uv sync --extra test --extra queueing
 
       - name: Run tests
-        run: uv run pytest -m "ci_ok"
+        run: uv run pytest -vv -m "ci_ok"
         env:
           ANYVAR_TEST_STORAGE_URI: postgresql://postgres:postgres@localhost:5432/postgres
 
