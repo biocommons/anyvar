@@ -34,13 +34,13 @@ from anyvar.translate.translate import TranslatorConnectionError
 
 try:
     import aiofiles  # noqa: I001
-    import anyvar.queueing.celery_worker
+    from anyvar.queueing import celery_worker
     from billiard.exceptions import TimeLimitExceeded
     from celery.exceptions import WorkerLostError
     from celery.result import AsyncResult
 except ImportError:
     aiofiles = None
-    anyvar.queueing.celery_worker = None
+    celery_worker = None
     TimeLimitExceeded = None
     WorkerLostError = None
     AsyncResult = None
@@ -105,7 +105,7 @@ async def _annotate_vcf_async(
     _logger.debug("vcf site count of async run %s vcf is %s", run_id, vcf_site_count)
 
     # submit async job
-    task_result = anyvar.queueing.celery_worker.annotate_vcf.apply_async(
+    task_result = celery_worker.annotate_vcf.apply_async(
         kwargs={
             "input_file_path": str(input_file_path),
             "assembly": assembly,
@@ -378,7 +378,7 @@ async def _ingest_annotated_vcf_async(
     _logger.debug("wrote working file for async vcf to %s", input_file_path)
     _logger.debug("vcf site count of async vcf is %s", vcf_site_count)
 
-    task_result = anyvar.queueing.celery_worker.ingest_annotated_vcf.apply_async(
+    task_result = celery_worker.ingest_annotated_vcf.apply_async(
         kwargs={
             "input_file_path": str(input_file_path),
             "assembly": assembly,
