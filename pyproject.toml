@@ -177,6 +177,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "E402"]
+"src/anyvar/extras/vcf.py" = ["ARG002"]
 "src/anyvar/restapi/main.py" = ["B008"]
 "src/anyvar/queueing/celery_worker.py" = ["PLW0602", "PLW0603"]
 "src/anyvar/storage/no_db.py" = ["ARG002"]

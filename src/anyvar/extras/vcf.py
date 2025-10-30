@@ -17,38 +17,62 @@ from anyvar.utils.types import VrsObject
 _logger = logging.getLogger(__name__)
 
 
+class VrsObjectRegistrationBatcher:
+    """Handles bulk registration of a large number of VrsObjects in batches"""
+
+    BATCH_SIZE = 10000
+    batch_collection: list[VrsObject]
+    anyvar_instance: AnyVar
+
+    def __init__(self, anyvar_instance: AnyVar) -> None:
+        """Initialize batch collection list and AnyVar instance to use for registration
+
+        :param anyvar_instance: The AnyVar instance to use for registration
+        :return: None
+        """
+        self.batch_collection = []
+        self.anyvar_instance: AnyVar = anyvar_instance
+
+    def add_to_batch(self, vrs_object: VrsObject) -> None:
+        """Adds a VRS Object to the current batch. If batch size limit is now met, register the whole batch.
+
+        :param vrs_object: The VrsObject to add to the batch
+        :return: None
+        """
+        self.batch_collection.append(vrs_object)
+        if len(self.batch_collection) >= self.BATCH_SIZE:
+            self.register_batch()
+
+    def register_batch(self) -> None:
+        """Registers a batch of vrs objects and resets the collection list to prepare for the next batch"""
+        if self.batch_collection:
+            self.anyvar_instance.put_objects(self.batch_collection)
+            self.batch_collection = []
+
+
 class VcfRegistrar(VcfAnnotator):
     """Custom implementation of annotator class from VRS-Python. Rewrite some methods
     and values in order to enable use of existing AnyVar translator.
     """
 
-    BATCH_SIZE = 10000
-    vrs_object_batch_collection: list[VrsObject]
+    vrs_object_registration_batcher: VrsObjectRegistrationBatcher
 
     def __init__(self, data_proxy: _DataProxy, **kwargs) -> None:  # noqa: D107
         av: AnyVar | None = kwargs.get("av")
         if av is None:
             raise ValueError  # TODO more specific
         self.av: AnyVar = av
-        # self.collect_alleles = True
-        self.vrs_object_batch_collection = []
+        self.vrs_object_registration_batcher = VrsObjectRegistrationBatcher(self.av)
         super().__init__(data_proxy)
 
     def on_vrs_object(
         self,
-        vcf_coords: str,  # noqa: ARG002
+        vcf_coords: str,
         vrs_allele: vrs_models.Allele,
-        **kwargs,  # noqa: ARG002
+        **kwargs,
     ) -> vrs_models.Allele | None:
-        """Adds the VRS object to the current batch collection list.
-        If the collection now exceeds the BATCH_SIZE limit, adds the whole collection to the database,
-        then truncates the collection list to prepare for the next batch.
-        """
-        self.vrs_object_batch_collection.append(vrs_allele)
-        if len(self.vrs_object_batch_collection) >= self.BATCH_SIZE:
-            self.av.put_objects(self.vrs_object_batch_collection)
-            self.vrs_object_batch_collection = []
-
+        """Adds the VRS object to the batcher, which handles bulk registration"""
+        self.vrs_object_registration_batcher.add_to_batch(vrs_allele)
         return vrs_allele
 
     def on_vrs_object_collection(  # noqa: D102
@@ -56,8 +80,6 @@ class VcfRegistrar(VcfAnnotator):
         vrs_alleles_collection: list[vrs_models.Allele] | None,
         **kwargs,
     ) -> None:
-        # if vrs_alleles_collection:
-        #     self.av.put_objects(vrs_alleles_collection)  # type: ignore
         pass
 
     def raise_for_output_args(self, output_vcf_path: Path | None, **kwargs) -> None:  # noqa: D102
@@ -83,9 +105,9 @@ class VcfRegistrar(VcfAnnotator):
             require_validation,
             **kwargs,
         )
-        if self.vrs_object_batch_collection:
-            self.av.put_objects(self.vrs_object_batch_collection)
-            self.vrs_object_batch_collection = []
+
+        # register the final batch of vrs objects (since the last batch will likely be smaller than the batch size limit)
+        self.vrs_object_registration_batcher.register_batch()
 
 
 class RequiredAnnotationsError(Exception):
@@ -120,8 +142,7 @@ def register_existing_annotations(
     :return:  Path to ID conflict file, if requested, or None otherwise
     :raise: ValueError if input VCF lacks required annotations
     """
-    # batch_size = 10000
-    variants: list[VrsObject] = []
+    vrs_object_registration_batcher = VrsObjectRegistrationBatcher(av)
 
     _logger.info("Registering existing annotations from VCF at %s", file_path)
     variantfile = pysam.VariantFile(filename=str(file_path), mode="r")
@@ -193,12 +214,9 @@ def register_existing_annotations(
                     conflict_logfile.write(
                         f"{vrs_id},{assembly},{record.chrom},{record.pos},{start},{end},{true_state},{new_vrs_id}\n"
                     )
+                vrs_object_registration_batcher.add_to_batch(allele)
 
-                variants.append(allele)
-                # if len(variants) == batch_size:
-                #     av.put_objects(variants)
-
-            # if len(variants) > 0:
-            av.put_objects(variants)
+            # register the final batch of alleles (since the last batch will likely be smaller than the batch size limit)
+            vrs_object_registration_batcher.register_batch()
 
     return conflict_logfile_path
