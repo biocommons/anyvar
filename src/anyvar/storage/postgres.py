@@ -1,5 +1,6 @@
 """Provide PostgreSQL-based storage implementation."""
 
+import json
 import logging
 from collections.abc import Iterable
 
@@ -364,7 +365,10 @@ class PostgresObjectStore(Storage):
             delete(orm.Annotation)
             .where(orm.Annotation.object_id == annotation.object_id)
             .where(orm.Annotation.annotation_type == annotation.annotation_type)
-            .where(orm.Annotation.annotation_value == annotation.annotation_value)
+            .where(
+                orm.Annotation.annotation_value
+                == json.dumps(annotation.annotation_value)
+            )
         )
         with self.session_factory() as session, session.begin():
             session.execute(stmt)
