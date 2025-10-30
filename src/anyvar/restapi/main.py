@@ -438,7 +438,7 @@ def register_vrs_object(
     v_id = av.put_object(variation_object)
 
     liftover_messages = liftover_utils.add_liftover_mapping(
-        variation=variation, anyvar=av
+        variation, av.object_store, av.translator.dp
     )
 
     return RegisterVariationResponse(
