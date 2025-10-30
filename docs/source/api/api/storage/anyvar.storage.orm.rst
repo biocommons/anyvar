@@ -1,7 +1,7 @@
-﻿anyvar.storage.sql_storage
-==========================
+﻿anyvar.storage.orm
+==================
 
-.. automodule:: anyvar.storage.sql_storage
+.. automodule:: anyvar.storage.orm
    :members:
    :undoc-members:
    :special-members: __init__
