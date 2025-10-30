@@ -324,19 +324,19 @@ def test_annotations_crud(
     ann1 = types.Annotation(
         object_id=focus_alleles[0].id,
         annotation_type="classification",
-        annotation_value={"value": "pathogenic"},
+        annotation_value="pathogenic",
     )
     postgres_storage.add_annotation(ann1)
     ann2 = types.Annotation(
         object_id=focus_alleles[1].id,
         annotation_type="sample_count",
-        annotation_value={"count": 5},
+        annotation_value=5,
     )
     postgres_storage.add_annotation(ann2)
     ann3 = types.Annotation(
         object_id=focus_alleles[2].id,
         annotation_type="classification",
-        annotation_value={"value": "likely_benign"},
+        annotation_value="likely_benign",
     )
     postgres_storage.add_annotation(ann3)
     ann4 = types.Annotation(
