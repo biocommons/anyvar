@@ -147,7 +147,7 @@ def test_registration_sync(
     monkeypatch.setattr(
         restapi_client.app.state.anyvar,
         "put_objects",
-        lambda allele: recorded.append(allele),
+        lambda allele: recorded.extend(allele),
     )
     resp = restapi_client.put("/annotated_vcf", files={"vcf": ("test.vcf", basic_vcf)})
 
@@ -178,7 +178,7 @@ def test_registration_sync_validate(
     monkeypatch.setattr(
         restapi_client.app.state.anyvar,
         "put_objects",
-        lambda allele: recorded.append(allele),
+        lambda allele: recorded.extend(allele),
     )
     resp = restapi_client.put(
         "/annotated_vcf",
