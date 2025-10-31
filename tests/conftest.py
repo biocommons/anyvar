@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from anyvar.anyvar import AnyVar, create_storage, create_translator
 from anyvar.restapi.main import app as anyvar_restapi
 from anyvar.storage.base_storage import Storage
+from anyvar.translate.translate import _Translator
 
 pytest_plugins = ("celery.contrib.pytest",)
 
@@ -85,10 +86,14 @@ def storage():
     return storage
 
 
+@pytest.fixture(scope="session")
+def translator():
+    return create_translator()
+
+
 @pytest.fixture(scope="module")
-def anyvar_instance(storage: Storage):
+def anyvar_instance(storage: Storage, translator: _Translator):
     """Provide a test AnyVar instance"""
-    translator = create_translator()
     return AnyVar(object_store=storage, translator=translator)
 
 
