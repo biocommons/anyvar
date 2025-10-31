@@ -35,7 +35,9 @@ celery_app.conf.update(
     timezone=os.environ.get("CELERY_TIMEZONE", "UTC"),
     result_expires=int(os.environ.get("CELERY_RESULT_EXPIRES", "7200")),
     broker_transport_options={
-        "visibility_timeout": 28800  # 8 hours (8 * 60 * 60 seconds)
+        int(
+            os.environ.get("CELERY_BROKER_TRANSPORT_OPTIONS_VISIBILITY_TIMEOUT", "7200")
+        )
     },
     # task settings
     task_ignore_result=False,
