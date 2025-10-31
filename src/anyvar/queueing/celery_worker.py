@@ -35,7 +35,7 @@ celery_app.conf.update(
     timezone=os.environ.get("CELERY_TIMEZONE", "UTC"),
     result_expires=int(os.environ.get("CELERY_RESULT_EXPIRES", "7200")),
     broker_transport_options={
-        int(
+        "visibility_timeout": int(
             os.environ.get("CELERY_BROKER_TRANSPORT_OPTIONS_VISIBILITY_TIMEOUT", "7200")
         )
     },
