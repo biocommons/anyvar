@@ -40,6 +40,15 @@ Use the [Python API](https://anyvar.readthedocs.io/en/latest/api/api/anyvar.anyv
 Allele(id='ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', type='Allele', name=None, description=None, aliases=None, extensions=None, digest='K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', expressions=None, location=SequenceLocation(id='ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8', type='SequenceLocation', name=None, description=None, aliases=None, extensions=None, digest='aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8', sequenceReference=SequenceReference(id=None, type='SequenceReference', name=None, description=None, aliases=None, extensions=None, refgetAccession='SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB', residueAlphabet=None, circular=None, sequence=None, moleculeType=None), start=87894076, end=87894077, sequence=None), state=LiteralSequenceExpression(id=None, type='LiteralSequenceExpression', name=None, description=None, aliases=None, extensions=None, sequence=sequenceString(root='T')))
 ```
 
+Or issue a request against a live HTTP endpoint:
+
+```pycon
+>>> import requests
+>>> response = requests.put("http://localhost:8000/variation", json={"definition": "NC_000010.11:g.87894077C>T"})
+>>> response.json()
+{'messages': [], 'object': {'id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', 'type': 'Allele', 'digest': 'K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', 'location': {'id': 'ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy', 'type': 'SequenceLocation', 'digest': '01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy', 'sequenceReference': {'type': 'SequenceReference', 'refgetAccession': 'SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB'}, 'start': 87894076, 'end': 87894077}, 'state': {'type': 'LiteralSequenceExpression', 'sequence': 'T'}}, 'object_id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU'}
+```
+
 ## Feedback and contributing
 
 We welcome [bug reports](https://github.com/biocommons/anyvar/issues/new?template=bug-report.md), [feature requests](https://github.com/biocommons/anyvar/issues/new?template=feature-request.md), and code contributions from users and interested collaborators. The [documentation](https://anyvar.readthedocs.io/en/latest/contributing.html) contains guidance for submitting feedback and contributing new code.
