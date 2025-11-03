@@ -4,12 +4,19 @@ import logging
 from enum import Enum
 from typing import TypeVar
 
-from agct import Converter, Strand
-from bioutils.accessions import chr22XY
+from agct import (
+    Assembly,
+    Converter,
+    Strand,
+    get_converter,
+    get_refget_id_from_seqinfo,
+    get_seqinfo_from_refget_id,
+)
 from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import models, normalize
+from ga4gh.vrs.dataproxy import _DataProxy
 
-from anyvar.anyvar import AnyVar
+from anyvar.storage.base_storage import Storage
 from anyvar.utils.types import VariationMapping, VariationMappingType, VrsVariation
 
 _logger = logging.getLogger(__name__)
@@ -80,13 +87,12 @@ def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) 
     :param converter: An AGCT Converter instance.
     :param chromosome: The chromosome number where the coordinate is found. Must be a string consisting of a) the prefix "chr", and b) a number OR "X" or "Y" -> i.e. "chr10".
     :param coordinate: A single start or end coordinate. MUST be an `int`.
-
     :return: A converted coordinate value as an `int`
     :raises: A `CoordinateConversionFailureError` if the conversion returns no results.
     :raises: A `AmbiguousCoordinateConversionError` if the conversion returns more than one result.
     """
     converted_positions = converter.convert_coordinate(
-        chromosome, coordinate, Strand.POSITIVE
+        chromosome, coordinate, coordinate, Strand.POSITIVE
     )  # returns a list of tuples with a) the coordinate's chromosome number, b) the converted coordinate position, and c) the strand (Strand.POSITIVE or Strand.NEGATIVE)
 
     if len(converted_positions) > 1:
@@ -94,10 +100,10 @@ def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) 
 
     if (
         len(converted_positions) == 1
-        and converted_positions[0][2]
+        and converted_positions[0].strand
         == Strand.POSITIVE  # TODO: Handle cases where coordinate converts to the negative strand. See Issue #197.
     ):
-        return converted_positions[0][1]
+        return converted_positions[0].start
 
     raise CoordinateConversionFailureError
 
@@ -131,12 +137,11 @@ def convert_position(
     return models.Range([lower_bound, upper_bound])
 
 
-def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVariation:
+def get_liftover_variant(input_variant: VrsVariation) -> VrsVariation:
     """Liftover a variant from GRCh37 or GRCH38 into the opposite assembly, and return the converted variant as a VrsVariation.
     If liftover is unsuccessful, raise an Exception.
 
     :param input_variant: A `VrsVariation`.
-    :param anyvar: An `AnyVar` instance.
     :return: The converted variant as a `VrsVariation`.
     :raises:
         - `MalformedInputError`:  If the `input_variant` is empty or otherwise falsy
@@ -161,34 +166,14 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
     except AttributeError as err:
         raise UnsupportedVariantLocationTypeError from err
 
-    # Determine which assembly we're converting from/to
-    prefixed_accession = f"ga4gh:{refget_accession}"
-    seqrepo_dataproxy = anyvar.translator.dp
-    if accession_aliases := seqrepo_dataproxy.translate_sequence_identifier(
-        prefixed_accession, ReferenceAssembly.GRCH38.value
-    ):
-        from_assembly, to_assembly = (
-            ReferenceAssembly.GRCH38.value,
-            ReferenceAssembly.GRCH37.value,
-        )
-    elif accession_aliases := seqrepo_dataproxy.translate_sequence_identifier(
-        prefixed_accession, ReferenceAssembly.GRCH37.value
-    ):
-        from_assembly, to_assembly = (
-            ReferenceAssembly.GRCH37.value,
-            ReferenceAssembly.GRCH38.value,
-        )
-    else:
-        msg = f"Unable to get reference sequence ID for {prefixed_accession}"
+    seqinfo = get_seqinfo_from_refget_id(refget_accession)
+    if not seqinfo:
+        msg = f"Unable to get reference sequence ID for {refget_accession}"
         _logger.error(msg)
         raise UnsupportedReferenceAssemblyError(msg)
-
-    # Get the Converter that will liftover the variant's coordinates
-    converter_key = f"{from_assembly}_to_{to_assembly}"
-    converter = anyvar.liftover_converters.get(converter_key)
-
-    # Determine which chromosome we're on
-    chromosome = chr22XY(accession_aliases[0].split(":")[1])
+    assembly, chromosome = seqinfo
+    to_assembly = Assembly.HG19 if assembly == Assembly.HG38 else Assembly.HG38
+    converter = get_converter(assembly, to_assembly)
 
     # Get converted start/end positions. `convert_position` will raise a `CoordinateConversionError` if unsuccessful
     converted_start = convert_position(converter, chromosome, start_position)  # type: ignore (`converter` and `start_position` will always be valid)
@@ -196,10 +181,9 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
 
     # Get converted refget_accession (without 'ga4gh:' prefix)
     new_alias = f"{to_assembly}:{chromosome}"
-    converted_refget_accession = seqrepo_dataproxy.translate_sequence_identifier(
-        new_alias, "ga4gh"
-    )[0].split("ga4gh:")[1]
+    converted_refget_accession = get_refget_id_from_seqinfo(to_assembly, chromosome)
     if not converted_refget_accession:
+        # should be impossible
         _logger.error(
             "Unable to convert constructed sequence ID `%s` into refgetAccession",
             new_alias,
@@ -231,7 +215,9 @@ def get_liftover_variant(input_variant: VrsVariation, anyvar: AnyVar) -> VrsVari
     return converted_variant
 
 
-def add_liftover_mapping(variation: VrsVariation, anyvar: AnyVar) -> list[str] | None:
+def add_liftover_mapping(
+    variation: VrsVariation, storage: Storage, dataproxy: _DataProxy
+) -> list[str] | None:
     """Perform liftover between GRCh37 <-> GRCh38. Store mappings between the original and lifted-over variants.
 
     Don't register lifted-over variant or mappings if
@@ -246,18 +232,14 @@ def add_liftover_mapping(variation: VrsVariation, anyvar: AnyVar) -> list[str] |
     about when to register objects and mappings.
 
     :param variation: variation to attempt liftover upon
-    :param anyvar: An `AnyVar` instance
+    :param storage: Storage instance
+    :param dataproxy: SeqRepo DataProxy instance, for normalizing lifted-over alleles
     :return: list of messages describing warnings or failures, or ``None`` if completely successful
     """
     input_vrs_id: str = variation.id  # type: ignore
     try:
-        lifted_over_variant = get_liftover_variant(
-            input_variant=variation,
-            anyvar=anyvar,
-        )
-        reverse_liftover_variant = get_liftover_variant(
-            input_variant=lifted_over_variant, anyvar=anyvar
-        )
+        lifted_over_variant = get_liftover_variant(variation)
+        reverse_liftover_variant = get_liftover_variant(lifted_over_variant)
     except LiftoverError as e:
         _logger.exception(
             "Encountered error during liftover of variation `%s`",
@@ -271,18 +253,18 @@ def add_liftover_mapping(variation: VrsVariation, anyvar: AnyVar) -> list[str] |
         ]
 
     normalized_lifted_over_variant = normalize(
-        lifted_over_variant, data_proxy=anyvar.translator.dp
+        lifted_over_variant, data_proxy=dataproxy
     )
     normalized_lifted_over_variant_id: str = normalized_lifted_over_variant.id  # type: ignore
-    anyvar.put_objects([normalized_lifted_over_variant])
-    anyvar.object_store.add_mapping(
+    storage.add_objects([normalized_lifted_over_variant])
+    storage.add_mapping(
         VariationMapping(
             source_id=input_vrs_id,
             dest_id=normalized_lifted_over_variant_id,
             mapping_type=VariationMappingType.LIFTOVER,
         )
     )
-    anyvar.object_store.add_mapping(
+    storage.add_mapping(
         VariationMapping(
             source_id=normalized_lifted_over_variant_id,
             dest_id=input_vrs_id,

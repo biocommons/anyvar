@@ -382,7 +382,8 @@ def register_variation(
 
     liftover_messages = liftover_utils.add_liftover_mapping(
         variation=translated_variation,
-        anyvar=av,
+        storage=av.object_store,
+        dataproxy=av.translator.dp,
     )
     if liftover_messages:
         messages += liftover_messages
@@ -438,7 +439,7 @@ def register_vrs_object(
     av.put_objects([variation_object])
 
     liftover_messages = liftover_utils.add_liftover_mapping(
-        variation=variation, anyvar=av
+        variation, av.object_store, av.translator.dp
     )
 
     return RegisterVariationResponse(
