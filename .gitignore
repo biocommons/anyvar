@@ -119,6 +119,5 @@ archive
 
 docker/data*
 
-
 # logging configs
 logging.yaml
