@@ -4,51 +4,14 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from ga4gh.vrs import models
+from pydantic import BaseModel
 
 from anyvar.anyvar import AnyVar, create_storage, create_translator
 from anyvar.restapi.main import app as anyvar_restapi
-from anyvar.utils.funcs import build_vrs_variant_from_dict
+from anyvar.storage.base_storage import Storage
 
 pytest_plugins = ("celery.contrib.pytest",)
-
-
-def pytest_collection_modifyitems(items):
-    """Modify test items in place to ensure test modules run in a given order."""
-    module_order = [
-        "test_lifespan",
-        "test_variation",
-        "test_general",
-        "test_location",
-        "test_search",
-        "test_annotate_vcf",
-        "test_ingest_vcf",
-        "test_storage_implementation",
-        "test_no_db",
-        "test_liftover",
-    ]
-    # remember to add new test modules to the order constant:
-    assert len(module_order) == len(list(Path(__file__).parent.rglob("test_*.py")))
-    items.sort(key=lambda i: module_order.index(i.module.__name__))
-
-
-@pytest.fixture(scope="session", autouse=True)
-def storage():
-    """Provide API client instance as test fixture"""
-    if "ANYVAR_TEST_STORAGE_URI" in os.environ:
-        storage_uri = os.environ["ANYVAR_TEST_STORAGE_URI"]
-    else:
-        storage_uri = "postgresql://postgres:postgres@localhost:5432/anyvar_test"
-
-    storage = create_storage(uri=storage_uri)
-    storage.wipe_db()
-    return storage
-
-
-@pytest.fixture(scope="session")
-def client(storage):
-    translator = create_translator()
-    anyvar_restapi.state.anyvar = AnyVar(object_store=storage, translator=translator)
-    return TestClient(app=anyvar_restapi)
 
 
 @pytest.fixture(scope="session")
@@ -58,22 +21,39 @@ def test_data_dir() -> Path:
 
 
 @pytest.fixture(scope="session")
-def alleles(test_data_dir) -> dict:
-    """Provide allele fixture object."""
+def alleles(test_data_dir: Path):
+    class _AlleleFixture(BaseModel):
+        """Validate data structure in variations.json"""
+
+        variation: models.Allele
+        comment: str | None = None
+        register_params: dict[str, str | int] | None = None
+
     with (test_data_dir / "variations.json").open() as f:
-        return json.load(f)["alleles"]
+        data = json.load(f)
+        alleles = data["alleles"]
+        for allele in alleles.values():
+            assert _AlleleFixture(**allele), f"Not a valid allele fixture: {allele}"
+        return alleles
 
 
 @pytest.fixture(scope="session")
-def preloaded_alleles(storage, alleles):
-    """Preload alleles into the database for tests that need them."""
-    storage.add_objects(
-        [
-            build_vrs_variant_from_dict(a["allele_response"]["object"])
-            for a in alleles.values()
-        ]
-    )
-    return alleles
+def copy_number_variations(test_data_dir: Path):
+    class _CopyNumberFixture(BaseModel):
+        """Validate data structure in variations.json"""
+
+        variation: models.CopyNumberChange | models.CopyNumberCount
+        comment: str | None = None
+        register_params: dict[str, str | int] | None = None
+
+    with (test_data_dir / "variations.json").open() as f:
+        data = json.load(f)
+        cns = data["copy_numbers"]
+        for cn in cns.values():
+            assert _CopyNumberFixture(**cn), (
+                f"Not a valid copy number variation fixture: {cn}"
+            )
+        return cns
 
 
 @pytest.fixture(scope="session")
@@ -87,3 +67,32 @@ def celery_config():
         "result_serializer": "json",
         "accept_content": ["application/json"],
     }
+
+
+@pytest.fixture(scope="module")
+def storage():
+    """Provide live storage instance from factory.
+
+    Configures from env var ``ANYVAR_TEST_STORAGE_URI``. Defaults to a Postgres DB
+    named ``anyvar_test``
+    """
+    storage_uri = os.environ.get(
+        "ANYVAR_TEST_STORAGE_URI",
+        "postgresql://postgres:postgres@localhost:5432/anyvar_test",
+    )
+    storage = create_storage(uri=storage_uri)
+    storage.wipe_db()
+    return storage
+
+
+@pytest.fixture(scope="module")
+def anyvar_instance(storage: Storage):
+    """Provide a test AnyVar instance"""
+    translator = create_translator()
+    return AnyVar(object_store=storage, translator=translator)
+
+
+@pytest.fixture(scope="module")
+def restapi_client(anyvar_instance: AnyVar):
+    anyvar_restapi.state.anyvar = anyvar_instance
+    return TestClient(app=anyvar_restapi)
