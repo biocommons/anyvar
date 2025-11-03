@@ -4,7 +4,7 @@ _AnyVar_ provides Python and REST interfaces to validate, normalize, register, a
 
 ## Information
 
-[![rtd](https://img.shields.io/badge/docs-readthedocs-green.svg)](http://anyvar.readthedocs.io/) [![changelog](https://img.shields.io/badge/docs-changelog-green.svg)](https://anyvar.readthedocs.io/en/stable/changelog/) [![GitHub license](https://img.shields.io/github/license/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar/blob/main/LICENSE)
+[![rtd](https://img.shields.io/badge/docs-readthedocs-green.svg)](http://anyvar.readthedocs.io/) [![changelog](https://img.shields.io/badge/docs-changelog-green.svg)](https://anyvar.readthedocs.io/en/latest/changelog.html) [![GitHub license](https://img.shields.io/github/license/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar/blob/main/LICENSE)
 
 ## Latest Release
 
@@ -28,10 +28,16 @@ see docs for more
 
 ## Examples
 
-TODO
+Use the [Python API](https://anyvar.readthedocs.io/en/latest/api/api/anyvar.anyvar.html) to directly instantiate and query a local AnyVar instance:
 
 ```pycon
->>> from anyvar import Anyvar
+>>> from anyvar.anyvar import AnyVar, create_storage, create_translator
+>>> av = AnyVar(translator=create_translator(), object_store=create_storage())
+>>> allele = Allele(**{"id": "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU", "digest": "K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU", "location": {"id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8", "digest": "aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8", "end": 87894077, "start": 87894076, "sequenceReference": {"refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB"}}, "state": {"sequence": "T", "type": "LiteralSequenceExpression"}})
+>>> av.put_object(allele)
+'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU'
+>>> av.get_object("ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU")
+Allele(id='ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', type='Allele', name=None, description=None, aliases=None, extensions=None, digest='K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', expressions=None, location=SequenceLocation(id='ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8', type='SequenceLocation', name=None, description=None, aliases=None, extensions=None, digest='aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8', sequenceReference=SequenceReference(id=None, type='SequenceReference', name=None, description=None, aliases=None, extensions=None, refgetAccession='SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB', residueAlphabet=None, circular=None, sequence=None, moleculeType=None), start=87894076, end=87894077, sequence=None), state=LiteralSequenceExpression(id=None, type='LiteralSequenceExpression', name=None, description=None, aliases=None, extensions=None, sequence=sequenceString(root='T')))
 ```
 
 ## Feedback and contributing
