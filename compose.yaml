@@ -49,7 +49,7 @@ services:
     image: postgres:17
     volumes:
       - anyvar_vol:/var/lib/postgresql/data
-      - ./src/anyvar/storage/postgres_init.sql:/docker-entrypoint-initdb.d/postgres_init.sql:ro
+      - ./src/anyvar/storage/init_sql/postgres_init.sql:/docker-entrypoint-initdb.d/postgres_init.sql:ro
     ports:
       - 127.0.0.1:5434:5432
     environment:
