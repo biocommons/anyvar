@@ -15,16 +15,24 @@ _AnyVar_ provides Python and REST interfaces to validate, normalize, register, a
 [![action status](https://github.com/biocommons/anyvar/actions/workflows/python-package.yml/badge.svg)](https://github.com/biocommons/anyvar/actions/workflows/python-cqa.yml) [![issues](https://img.shields.io/github/issues-raw/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar/issues)
 [![GitHub Open Pull Requests](https://img.shields.io/github/issues-pr/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar/pull/) [![GitHub Contributors](https://img.shields.io/github/contributors/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar/graphs/contributors/) [![GitHub stars](https://img.shields.io/github/stars/biocommons/anyvar.svg?style=social&label=Stars)](https://github.com/biocommons/anyvar/stargazers) [![GitHub forks](https://img.shields.io/github/forks/biocommons/anyvar.svg?style=social&label=Forks)](https://github.com/biocommons/anyvar/forks)
 
-## Features
+## Overview
 
-* TODO
-* TODO
+The Biocommons AnyVar project enables **registration**, **lookup**, and **search** of genetic variants across a distributed genomic resource network. Its goals are to:
+
+* Provide an open source, off-the-shelf solution that lowers the technical barriers for genomic data resources to comprehensively describe and search genomic variants
+* Support a broad range of query modes, including VRS ID lookups, HGVS expressions, gene-based searches, and genomic ranges
+* Translate community nomenclatures and conventions into a universal model for variant representation
+* Provide a community-driven, extensible platform for shared conventions and policy to realize the above goals
 
 ## Installation
 
-available on pypi
+Currently, AnyVar can be installed from GitHub:
 
-see docs for more
+```
+pip install git+https://github.com/biocommons/anyvar
+```
+
+See the [documentation](https://anyvar.readthedocs.io) for additional setup options and detailed instructions for initializing data dependencies.
 
 ## Examples
 
