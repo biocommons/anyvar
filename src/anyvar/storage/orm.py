@@ -151,14 +151,13 @@ def session_factory(db_url: str) -> sessionmaker:
     is managed externally using context managers.
 
     Example usage:
-        sf = session_factory(db_url)
-        with sf() as session:
-            with session.begin():
-                # Perform database operations
-                session.add(some_object)
-                session.execute(some_query)
-            # Transaction from session.begin() automatically commits if no exceptions occur
-        # Session automatically closes
+    >>> sf = session_factory(db_url)
+    >>> with sf() as session:
+    >>>     with session.begin(): # Perform database operations
+    >>>         session.add(some_object)
+    >>>         session.execute(some_query)
+    >>> # Transaction from session.begin() automatically commits if no exceptions occur
+    >>> # Session automatically closes
 
     See: https://docs.sqlalchemy.org/en/20/orm/session_basics.html#using-a-sessionmaker
 
