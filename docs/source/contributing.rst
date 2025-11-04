@@ -21,29 +21,13 @@ Installing for development
 Testing
 =======
 
-Run tests:
+As initial AnyVar development is ongoing, running all tests requires a small amount of upfront configuration.
 
-1. Set up a database for testing. The default is a postgres database, which you can set up by following the instructions found :ref:`here <postgresql-setup>`.
+* ``Configure test database`` - most unit and integration tests will set up a storage instance using the connection string defined by the environment variable ``ANYVAR_TEST_STORAGE_URI``, which defaults to ``"postgresql://postgres:postgres@localhost:5432/anyvar_test"``. Ensure that the database and role defined in this string are initialized.
+* ``Configure Celery worker database`` - when testing the Celery workers employed by the asynchronous request-response task framework, it's less simple to inject a storage class instance, so these tests will use the connection string defined by the main application environment variable ``ANYVAR_STORAGE_URI``, which defaults to ``"postgresql://postgres@localhost:5432/anyvar"``.
+* ``Install test dependencies`` - in your AnyVar environment, ensure that the ``test`` dependency group is available by running ``make testready`` in the root directory.
 
-2. Follow the :ref:`quickstart guide <quick-start>` to get AnyVar running
-
-3. If you haven't run ``make devready`` before, open a new terminal and do so now. Then, source your venv by running: ``source venv/3.11/bin/activate``. Otherwise, you can skip straight to sourcing your venv: ``source venv/3.11/bin/activate``
-
-4. Within your venv, run ``make testready`` if you've never done so before. Otherwise, skip this step.
-
-5. Ensure the following environment variables are set in your ``.env`` file:
-
-* ``SEQREPO_DATAPROXY_URI`` - See the quickstart guide above.
-* ``ANYVAR_STORAGE_URI`` - See the quickstart guide above.
-* ``ANYVAR_TEST_STORAGE_URI`` - This specifies the database to use for tests. If you set up a postgres database by following the PostgreSQL setup guide suggested in step 1, then you can just copy/paste the example ``ANYVAR_TEST_STORAGE_URI`` found below.
-
-For example:
-
-.. code-block::
-
-   ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_test
-   ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@localhost:5432/anyvar
-   SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/latest
+Note that
 
 6. Finally, run tests with the following command:
 
