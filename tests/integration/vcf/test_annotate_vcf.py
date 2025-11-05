@@ -186,10 +186,15 @@ def test_vcf_registration_async(
     assert "run_id" in resp.json()
     assert resp.json()["run_id"] == vcf_run_id
 
-    time.sleep(5)
+    while True:
+        resp = restapi_client.get(f"/vcf/{vcf_run_id}")
+        if resp.status_code == HTTPStatus.ACCEPTED:
+            time.sleep(1)
+        elif resp.status_code == HTTPStatus.OK:
+            break
+        else:
+            raise AssertionError(f"Unexpected HTTP response: {resp.status_code}")
 
-    resp = restapi_client.get(f"/vcf/{vcf_run_id}")
-    assert resp.status_code == HTTPStatus.OK
     assert (
         b"VRS_Allele_IDs=ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe,ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
         in resp.content
