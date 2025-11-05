@@ -232,10 +232,14 @@ def test_registration_async(
     assert "run_id" in resp.json()
     assert resp.json()["run_id"] == vcf_run_id
 
-    time.sleep(5)
-
-    resp = restapi_client.get(f"/vcf/{vcf_run_id}")
-    assert resp.status_code == HTTPStatus.OK
+    while True:
+        resp = restapi_client.get(f"/vcf/{vcf_run_id}")
+        if resp.status_code == HTTPStatus.ACCEPTED:
+            time.sleep(1)
+        elif resp.status_code == HTTPStatus.OK:
+            break
+        else:
+            raise AssertionError(f"Unexpected HTTP response: {resp.status_code}")
     assert resp.json()["status"] == "SUCCESS"
 
     resp = restapi_client.put(

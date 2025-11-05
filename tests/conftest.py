@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 import pytest
+from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from ga4gh.vrs import models
 from pydantic import BaseModel
@@ -13,6 +14,15 @@ from anyvar.storage.base_storage import Storage
 from anyvar.translate.translate import _Translator
 
 pytest_plugins = ("celery.contrib.pytest",)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def load_env():
+    """Load `.env` file.
+
+    Must set `autouse=True` to run before other fixtures or test cases.
+    """
+    load_dotenv()
 
 
 @pytest.fixture(scope="session")
@@ -70,17 +80,25 @@ def celery_config():
     }
 
 
+@pytest.fixture(scope="session")
+def storage_uri() -> str:
+    """Define test storage URI to employ for all storage instance fixtures
+
+    Uses `ANYVAR_TEST_STORAGE_URI` env var
+    """
+    return os.environ.get(
+        "ANYVAR_TEST_STORAGE_URI",
+        "postgresql://postgres:postgres@localhost:5432/anyvar_test",
+    )
+
+
 @pytest.fixture(scope="module")
-def storage():
+def storage(storage_uri: str):
     """Provide live storage instance from factory.
 
     Configures from env var ``ANYVAR_TEST_STORAGE_URI``. Defaults to a Postgres DB
     named ``anyvar_test``
     """
-    storage_uri = os.environ.get(
-        "ANYVAR_TEST_STORAGE_URI",
-        "postgresql://postgres:postgres@localhost:5432/anyvar_test",
-    )
     storage = create_storage(uri=storage_uri)
     storage.wipe_db()
     return storage
