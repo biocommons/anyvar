@@ -20,10 +20,21 @@ Variant Translation
 * SPDI
 * GNOMAD VCF
 
+.. _annotations:
+
 Object Annotations
 ==================
 
-.. maybe embed annotation class here?
+Registered variants can be associated with **annotations**. Annotations consist of a **type**, of type ``str``, and a **value**,
+
+.. autoclass:: anyvar.utils.types.Annotation
+   :no-index:
+   :members:
+   :undoc-members:
+   :special-members: __init__
+   :exclude-members: model_fields, model_config
+
+.. _mappings:
 
 Variant Mappings
 ================
