@@ -45,7 +45,7 @@ venv/%:
 #=> develop: install package in develop mode
 .PHONY: develop
 develop:
-	pip install -e .[dev,test]
+	pip install -e .[postgres,queueing,test,dev,docs]
 
 #=> devready: create venv, install prerequisites, install pkg in develop mode
 .PHONY: devready
