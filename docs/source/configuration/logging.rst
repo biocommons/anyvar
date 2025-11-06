@@ -1,18 +1,7 @@
 Logging Configuration
 !!!!!!!!!!!!!!!!!!!!!
 
-AnyVar utilizes Python's built-in logging framework to provide detailed and configurable logging capabilities, which are essential for monitoring, debugging, and auditing application activities.
-
-Importance of Logging
-=====================
-
-Logging helps:
-
-* Diagnose issues efficiently.
-* Monitor application behavior.
-* Audit and maintain records of significant events.
-
-Default Logging Behavior
+Default Behavior
 ========================
 
 By default, AnyVar logs at the ``INFO`` level to standard output, providing sufficient details for general usage. The default format includes timestamps, log levels, and messages.
@@ -20,12 +9,19 @@ By default, AnyVar logs at the ``INFO`` level to standard output, providing suff
 Customizing Logging Configuration
 =================================
 
-Logging can be customized extensively using YAML configuration files. To enable customized logging:
+AnyVar can load a configuration dictionary from a YAML file for more granular control over logging behavior. To enable customized logging:
 
 1. Create a YAML configuration file (e.g., ``logging.yaml``).
 2. Set the environment variable ``ANYVAR_LOGGING_CONFIG`` to point to this file in your ``.env`` file: ::
 
     ANYVAR_LOGGING_CONFIG="/path/to/logging.yaml"
+
+See the official Python documentation on `configuration dictionary schema <https://docs.python.org/3/library/logging.config.html#configuration-dictionary-schema>`_ for more details.
+
+Applying Logging Configuration
+==============================
+
+Note that a service environment (e.g. a Python console, ``uvicorn`` server instance, or Celery worker) must be restarted for configuration changes to take effect.
 
 Example YAML Configuration
 ==========================
@@ -64,40 +60,10 @@ Here's a comprehensive logging configuration example: ::
         handlers: [console, file]
         propagate: no
 
-      anyvar.storage.sql_storage:
+      anyvar.storage
         level: DEBUG
         handlers: [console, file]
         propagate: no
-
-Configuration Breakdown
-=======================
-
-* **Formatters:** Define the log message structure.
-* **Handlers:** Define where logs are sent (console, file, etc.) and their severity.
-* **Root Logger:** Applies settings globally.
-* **Specific Loggers:** Allow specific module-level control of logging.
-
-Applying Logging Configuration
-==============================
-
-After defining your configuration file and setting the environment variable, restart AnyVar: ::
-
-    uvicorn anyvar.restapi.main:app --reload
-
-Logging changes take effect immediately upon application restart.
-
-Verifying Logging
-=================
-
-* Inspect the ``anyvar.log`` file (if file handler is configured).
-* Monitor console output.
-
-Troubleshooting Logging
-=======================
-
-* **No Logs Generated:** Verify file permissions and paths.
-* **Incorrect Log Levels:** Check handler and logger configurations.
-* **Environment Variable Issues:** Ensure ``ANYVAR_LOGGING_CONFIG`` correctly points to your YAML file.
 
 Cheat Sheet: Environment Variables
 ==================================

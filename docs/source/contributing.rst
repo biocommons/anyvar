@@ -1,13 +1,10 @@
 Contributing to AnyVar
 !!!!!!!!!!!!!!!!!!!!!!
 
-Prerequisites
-=============
-
-* Python >= 3.11
-
 Installing for development
 ==========================
+
+Clone and enter the repo, use the `devready` Makefile target to set up a virtual environment, then activate it and install pre-commit hooks:
 
 .. code-block:: shell
 
@@ -19,6 +16,8 @@ Installing for development
 
 Testing
 =======
+
+.. TODO test DB setup commands?
 
 As initial AnyVar development is ongoing, running all tests requires a small amount of upfront configuration.
 
