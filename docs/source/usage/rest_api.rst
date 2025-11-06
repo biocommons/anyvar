@@ -50,3 +50,9 @@ Variant registration also registered contained VRS objects, like SequenceLocatio
     .. code-block:: pycon
 
        >>>
+
+VCF Annotation and Ingestion
+============================
+
+Variant Search
+==============
