@@ -174,6 +174,9 @@ ignore = [
     "RET504",
 ]
 
+[tool.ruff.lint.flake8-unused-arguments]
+ignore-variadic-names = true
+
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "E402"]
 "src/anyvar/restapi/main.py" = ["B008"]
