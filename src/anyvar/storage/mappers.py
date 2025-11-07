@@ -80,7 +80,14 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, orm.Locatio
         )
 
     def to_db_entity(self, anyvar_entity: vrs_models.SequenceLocation) -> orm.Location:
-        """Convert VRS SequenceLocation to DB orm.Location."""
+        """Convert VRS SequenceLocation to DB orm.Location.
+
+        :raise AttributeError: if `.id` field is missing
+        """
+        if not anyvar_entity.id:
+            msg = "`.id` property is required for storing in DB"
+            raise AttributeError(msg)
+
         # Convert VRS int/Range coordinates to DB fields
         start_simple, start_outer, start_inner = self._resolve_coordinate_to_db(
             anyvar_entity.start
@@ -150,23 +157,27 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, orm.Allele]):
         )
 
     def to_db_entity(self, anyvar_entity: vrs_models.Allele) -> orm.Allele:
-        """Convert VRS orm.Allele to DB orm.Allele."""
+        """Convert VRS orm.Allele to DB orm.Allele.
+
+        :raise AttributeError: if `.id` or `.digest` field is missing, or uses
+            IRI references in place of full SequenceLocation/SequenceReference
+        """
         if not anyvar_entity.id:
             msg = "`.id` property is required for storing in DB"
             raise AttributeError(msg)
-
-        # Validate required nested objects
-        if not anyvar_entity.location or not anyvar_entity.location.sequenceReference:
-            raise ValueError("orm.Allele requires valid location and sequenceReference")
+        if not anyvar_entity.digest:
+            msg = "`.digest` property is required for storing in DB"
+            raise AttributeError(msg)
 
         # Serialize state
         state_dict = anyvar_entity.state.model_dump(exclude_none=True)
 
+        # purposely trip attribute/type errors below
         return orm.Allele(
             id=anyvar_entity.id,
             digest=anyvar_entity.digest,
-            location_id=anyvar_entity.location.id,
-            location=self.location_mapper.to_db_entity(anyvar_entity.location),
+            location_id=anyvar_entity.location.id,  # type: ignore[reportAttributeAccessIssue]
+            location=self.location_mapper.to_db_entity(anyvar_entity.location),  # type: ignore[reportArgumentType]
             state=state_dict,
         )
 
