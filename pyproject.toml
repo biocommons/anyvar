@@ -84,6 +84,7 @@ build-backend = "setuptools.build_meta"
 [tool.pytest.ini_options]
 addopts = "--cov=anyvar --cov-report term-missing"
 testpaths = ["tests"]
+pythonpath = ["src"]
 markers = [
     "ci_ok: tests safe to run in CI",
 ]
@@ -174,8 +175,12 @@ ignore = [
     "RET504",
 ]
 
+[tool.ruff.lint.flake8-unused-arguments]
+ignore-variadic-names = true
+
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "E402"]
+"src/anyvar/extras/vcf.py" = ["ARG002"]
 "src/anyvar/restapi/main.py" = ["B008"]
 "src/anyvar/queueing/celery_worker.py" = ["PLW0602", "PLW0603"]
 "src/anyvar/storage/no_db.py" = ["ARG002"]

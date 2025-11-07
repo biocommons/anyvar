@@ -179,21 +179,28 @@ class RegisterVariationResponse(BaseModel):
                 {
                     "messages": [],
                     "object": {
-                        "_id": "ga4gh:VA.ZDdoQdURgO2Daj2NxLj4pcDnjiiAsfbO",
+                        "id": "ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb",
                         "type": "Allele",
+                        "digest": "d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb",
                         "location": {
-                            "_id": "ga4gh:VSL.2cHIgn7iLKk4x9z3zLkSTTFMV0e48DR4",
+                            "id": "ga4gh:SL.JOFKL4nL5mRUlO_xLwQ8VOD1v7mxhs3I",
                             "type": "SequenceLocation",
-                            "sequence_id": "ga4gh:SQ.cQvw4UsHHRRlogxbWCB8W-mKD4AraM9y",
-                            "interval": {
-                                "type": "SequenceInterval",
-                                "start": {"type": "Number", "value": 599},
-                                "end": {"type": "Number", "value": 600},
+                            "digest": "JOFKL4nL5mRUlO_xLwQ8VOD1v7mxhs3I",
+                            "sequenceReference": {
+                                "type": "SequenceReference",
+                                "refgetAccession": "SQ.IW78mgV5Cqf6M24hy52hPjyyo5tCCd86",
                             },
+                            "start": 36561661,
+                            "end": 36561663,
                         },
-                        "state": {"type": "LiteralSequenceExpression", "sequence": "E"},
+                        "state": {
+                            "type": "ReferenceLengthExpression",
+                            "length": 0,
+                            "sequence": "",
+                            "repeatSubunitLength": 2,
+                        },
                     },
-                    "object_id": "ga4gh:VA.ZDdoQdURgO2Daj2NxLj4pcDnjiiAsfbO",
+                    "object_id": "ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb",
                 }
             ]
         }
