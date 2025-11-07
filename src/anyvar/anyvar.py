@@ -89,7 +89,6 @@ class AnyVar:
 
         :param translator: Translator instance
         :param object_store: Object storage instance
-        :param annotation_store: (Optional) Annotation storage instance
         """
         self.object_store = object_store
         self.translator = translator
