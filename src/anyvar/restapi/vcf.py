@@ -102,8 +102,7 @@ async def _annotate_vcf_async(
     vcf_site_count = 0
     async with aiofiles.open(input_file_path, mode="wb") as fd:
         while buffer := await vcf.read(1024 * 1024):
-            if ord("\n") in buffer:
-                vcf_site_count = vcf_site_count + 1
+            vcf_site_count += buffer.count(b"\n")
             await fd.write(buffer)
     _logger.debug("wrote working file for async vcf to %s", input_file_path)
     _logger.debug("vcf site count of async vcf is %s", vcf_site_count)
@@ -114,8 +113,8 @@ async def _annotate_vcf_async(
             "input_file_path": str(input_file_path),
             "assembly": assembly,
             "for_ref": for_ref,
-            "add_vrs_attributes": add_vrs_attributes,
             "allow_async_write": allow_async_write,
+            "add_vrs_attributes": add_vrs_attributes,
         },
         task_id=run_id,
     )
@@ -354,8 +353,7 @@ async def _ingest_annotated_vcf_async(
     vcf_site_count = 0
     async with aiofiles.open(input_file_path, mode="wb") as fd:
         while buffer := await vcf.read(1024 * 1024):
-            if ord("\n") in buffer:
-                vcf_site_count = vcf_site_count + 1
+            vcf_site_count += buffer.count(b"\n")
             await fd.write(buffer)
     _logger.debug("wrote working file for async vcf to %s", input_file_path)
     _logger.debug("vcf site count of async vcf is %s", vcf_site_count)

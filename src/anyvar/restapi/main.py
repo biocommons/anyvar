@@ -377,7 +377,8 @@ def register_variation(
             messages=[f"Translation of {definition} failed."]
         )
     messages: list[str] = []
-    v_id: str = av.put_object(translated_variation)  # type: ignore
+
+    av.put_objects([translated_variation])  # type: ignore
 
     liftover_messages = liftover_utils.add_liftover_mapping(
         variation=translated_variation,
@@ -389,7 +390,7 @@ def register_variation(
 
     return RegisterVariationResponse(
         object=translated_variation,  # type: ignore
-        object_id=v_id,
+        object_id=translated_variation.id,
         messages=messages,
     )
 
@@ -435,15 +436,15 @@ def register_vrs_object(
         )
 
     variation_object = variation_class_map[variation_type](**variation.model_dump())
-    v_id = av.put_object(variation_object)
+    av.put_objects([variation_object])
 
     liftover_messages = liftover_utils.add_liftover_mapping(
         variation, av.object_store, av.translator.dp
     )
 
     return RegisterVariationResponse(
-        object=variation_object,
-        object_id=v_id,
+        object=variation_object,  # type: ignore
+        object_id=variation_object.id,
         messages=liftover_messages or [],
     )
 
