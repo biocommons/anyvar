@@ -25,7 +25,7 @@ Variant Translation
 Object Annotations
 ==================
 
-Registered variants can be associated with **annotations**. Annotations consist of a **type**, of type ``str``, and a **value**,
+Registered variants can be associated with **annotations**. Annotations consist of a **type**, of type ``str``, and a **value**, which can be any JSON-serializable object or value. Annotations may be used to link to external references, indicate variant classifications, or otherwise adjoin genomic knowledge to a variation.
 
 .. autoclass:: anyvar.utils.types.Annotation
    :no-index:

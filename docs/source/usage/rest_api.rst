@@ -49,8 +49,24 @@ TODO -- not supported yet
 Working With Annotations
 ========================
 
+To add a new :ref:`annotation<annotations>` to a registered variation, send a ``POST`` request to ``/variation/<vrs_id>/annotations`` with a payload containing the annotation type and value:
 
-TODO -- not supported yet
+.. code-block:: pycon
+
+   >>> payload = {
+   ...     "annotation_type": "clinvar_somatic_classification",
+   ...     "annotation_value": "Oncogenic",
+   ... }
+   >>> braf_v600e_id = "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU"
+   >>> response = requests.post(f"http://localhost:8000/variation/{braf_v600e_id}/annotations", json=payload)
+
+Annotations can be retrieved via a GET request for the VRS ID and annotation type:
+
+.. code-block:: pycon
+
+   >>> resp = requests.get(f"http://localhost:8000/variation/{braf_v600e_id}/annotations/clinvar_somatic_classification")
+   >>> response.json()
+   {'annotations': [{'object_id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', 'annotation_type': 'clinvar_somatic_classification', 'annotation_value': 'Oncogenic', 'id': 9}]}
 
 VCF Annotation and Ingestion
 ============================
