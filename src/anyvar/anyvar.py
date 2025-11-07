@@ -95,18 +95,17 @@ class AnyVar:
         self.object_store = object_store
         self.translator = translator
 
-    def put_object(self, variation_object: VrsObject) -> str | None:
+    def put_objects(self, variation_objects: list[VrsObject]) -> None:
         """Attempt to register variation.
 
         :param variation_object: complete VRS object
-        :return: Object digest if successful, None otherwise
+        :return: None
         """
         try:
-            self.object_store.add_objects([variation_object])
+            self.object_store.add_objects(variation_objects)
         except Exception as e:
-            _logger.exception("Failed to add object: %s", variation_object)
+            _logger.exception("Failed to add object: %s", variation_objects)
             raise e  # noqa: TRY201
-        return variation_object.id
 
     def get_object(
         self, object_id: str, object_type: StoredObjectType | None = None
