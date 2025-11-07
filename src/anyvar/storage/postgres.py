@@ -32,7 +32,7 @@ class PostgresObjectStore(Storage):
     with object mapping to convert between VRS models and database entities.
     """
 
-    def __init__(self, db_url: str, *args, **kwargs) -> None:  # noqa: ARG002
+    def __init__(self, db_url: str, *args, **kwargs) -> None:
         """Initialize PostgreSQL storage.
 
         :param db_url: Database connection URL (e.g., postgresql://user:pass@host:port/db)
