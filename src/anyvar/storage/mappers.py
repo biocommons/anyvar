@@ -21,18 +21,18 @@ class BaseMapper(Generic[A, D], ABC):
 
     @abstractmethod
     def to_db_entity(self, anyvar_entity: A) -> D:
-        """Convert VRS model to DB entity."""
+        """Convert AnyVar entity to DB entity."""
 
 
 class SequenceReferenceMapper(
     BaseMapper[vrs_models.SequenceReference, orm.SequenceReference]
 ):
-    """Maps between orm.SequenceReference entities."""
+    """Maps between SequenceReference entities."""
 
     def from_db_entity(
         self, db_entity: orm.SequenceReference
     ) -> vrs_models.SequenceReference:
-        """Convert DB orm.SequenceReference to VRS orm.SequenceReference."""
+        """Convert DB SequenceReference to VRS SequenceReference."""
         return vrs_models.SequenceReference(
             type="SequenceReference",
             refgetAccession=db_entity.id,
@@ -42,7 +42,7 @@ class SequenceReferenceMapper(
     def to_db_entity(
         self, anyvar_entity: vrs_models.SequenceReference
     ) -> orm.SequenceReference:
-        """Convert VRS orm.SequenceReference to DB orm.SequenceReference."""
+        """Convert VRS SequenceReference to DB SequenceReference."""
         return orm.SequenceReference(
             id=anyvar_entity.refgetAccession,  # Use refgetAccession as primary key
             molecule_type=anyvar_entity.moleculeType,
@@ -57,7 +57,7 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, orm.Locatio
         self.seq_ref_mapper = SequenceReferenceMapper()
 
     def from_db_entity(self, db_entity: orm.Location) -> vrs_models.SequenceLocation:
-        """Convert DB orm.Location to VRS SequenceLocation."""
+        """Convert DB Location to VRS SequenceLocation."""
         # Handle range vs simple coordinates
         start = self._resolve_coordinate_from_db(
             simple=db_entity.start,
@@ -80,7 +80,7 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, orm.Locatio
         )
 
     def to_db_entity(self, anyvar_entity: vrs_models.SequenceLocation) -> orm.Location:
-        """Convert VRS SequenceLocation to DB orm.Location.
+        """Convert VRS SequenceLocation to DB Location.
 
         :raise AttributeError: if `.id` field is missing
         """
@@ -136,14 +136,14 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, orm.Locatio
 
 
 class AlleleMapper(BaseMapper[vrs_models.Allele, orm.Allele]):
-    """Maps between orm.Allele entities."""
+    """Maps between Allele entities."""
 
     def __init__(self) -> None:
         """Initialize AlleleMapper."""
         self.location_mapper = SequenceLocationMapper()
 
     def from_db_entity(self, db_entity: orm.Allele) -> vrs_models.Allele:
-        """Convert DB orm.Allele to VRS orm.Allele."""
+        """Convert DB Allele to VRS Allele."""
         # Reconstruct state from JSONB
         state = self._reconstruct_state(db_entity.state)
 
@@ -157,7 +157,7 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, orm.Allele]):
         )
 
     def to_db_entity(self, anyvar_entity: vrs_models.Allele) -> orm.Allele:
-        """Convert VRS orm.Allele to DB orm.Allele.
+        """Convert VRS Allele to DB Allele.
 
         :raise AttributeError: if `.id` or `.digest` field is missing, or uses
             IRI references in place of full SequenceLocation/SequenceReference
@@ -227,10 +227,10 @@ class AnnotationMapper(BaseMapper[types.Annotation, orm.Annotation]):
     """Maps between Annotations entities."""
 
     def from_db_entity(self, db_entity: orm.Annotation) -> types.Annotation:
-        """Convert DB orm.SequenceReference to VRS orm.SequenceReference.
+        """Convert DB Annotation to AnyVar Annotation.
 
-        :param db_entity: An ORM model orm.Annotation instance
-        :return: An Anyvar orm.Annotation instance
+        :param db_entity: An ORM Annotation instance
+        :return: An Anyvar Annotation instance
         """
         return types.Annotation(
             object_id=db_entity.object_id,
@@ -239,9 +239,9 @@ class AnnotationMapper(BaseMapper[types.Annotation, orm.Annotation]):
         )
 
     def to_db_entity(self, anyvar_entity: types.Annotation) -> orm.Annotation:
-        """Convert VRS orm.SequenceReference to DB orm.SequenceReference.
+        """Convert AnyVar Annotation into DB Annotation.
 
-        :param anyvar_entity: An Anyvar orm.Annotation instance
-        :return: An ORM model orm.Annotation instance
+        :param anyvar_entity: An Anyvar Annotation instance
+        :return: An ORM model Annotation instance
         """
         return orm.Annotation(**anyvar_entity.model_dump())
