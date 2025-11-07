@@ -125,7 +125,7 @@ def exit_task() -> None:
 
 
 @celery.signals.worker_shutting_down.connect
-def on_worker_shutting_down(**kwargs) -> None:  # noqa: ARG001
+def on_worker_shutting_down(**kwargs) -> None:
     """On the `worker_shutting_down` signal, set the cleanup flag and attempt tear down.
     This signal is dispatched in both the prefork and threads pool types on the main process.
     """
@@ -139,7 +139,7 @@ def on_worker_shutting_down(**kwargs) -> None:  # noqa: ARG001
 
 
 @celery.signals.worker_process_shutdown.connect
-def on_worker_process_shutdown(**kwargs) -> None:  # noqa: ARG001
+def on_worker_process_shutdown(**kwargs) -> None:
     """On the `worker_process_shutdown` signal, set the cleanup flag and attempt tear down.
     This signal is dispatched in the forked worker processes in the prefork pool.
     """
@@ -153,7 +153,7 @@ def on_worker_process_shutdown(**kwargs) -> None:  # noqa: ARG001
 
 
 @celery.signals.worker_shutdown.connect
-def on_worker_shutdown(**kwargs) -> None:  # noqa: ARG001
+def on_worker_shutdown(**kwargs) -> None:
     """On the `worker_shutdown` signal, set the cleanup flag and attempt tear down.
     This signal is dispatched in both the prefork and threads pool types on the main process.
     """
@@ -299,7 +299,7 @@ def ingest_annotated_vcf(
 
 
 @celery.signals.after_task_publish.connect
-def update_sent_state(sender: str | None, headers: dict | None, **kwargs) -> None:  # noqa: ARG001
+def update_sent_state(sender: str | None, headers: dict | None, **kwargs) -> None:
     """On the `after_task_publish` signal, set the task status to SENT.  This enables
     the application to differentiate between task ids that are not complete and those
     that do not exist.
