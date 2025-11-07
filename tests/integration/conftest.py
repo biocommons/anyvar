@@ -1,3 +1,4 @@
+import contextlib
 import os
 import shutil
 
@@ -29,11 +30,19 @@ def vcf_run_id() -> str:
 
 
 @pytest.fixture
-def celery_context(mocker: MockerFixture, vcf_run_id: str):
-    """Provide setup/teardown for test cases that use celery workers for VCF operations"""
+def celery_context(mocker: MockerFixture, vcf_run_id: str, storage_uri: str):
+    """Provide setup/teardown for test cases that use celery workers for VCF operations
+
+    Because the Celery worker doesn't currently take an injectable storage class instance,
+    we have to mock the `ANYVAR_STORAGE_URI` connection string to use the test database
+    """
     assert anyvar.anyvar.has_queueing_enabled(), "async VCF queueing is not enabled"
     mocker.patch.dict(
-        os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "tests/tmp_async_work_dir"}
+        os.environ,
+        {
+            "ANYVAR_STORAGE_URI": storage_uri,
+            "ANYVAR_VCF_ASYNC_WORK_DIR": "tests/tmp_async_work_dir",
+        },
     )
     context_manager = start_worker(
         celery_app,
@@ -49,4 +58,6 @@ def celery_context(mocker: MockerFixture, vcf_run_id: str):
     yield
 
     context_manager.__exit__(None, None, None)
-    shutil.rmtree("tests/tmp_async_work_dir")
+    with contextlib.suppress(FileNotFoundError):
+        # a test probably failed early
+        shutil.rmtree("tests/tmp_async_work_dir")
