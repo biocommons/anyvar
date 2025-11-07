@@ -118,3 +118,6 @@ uv.lock
 archive
 
 docker/data*
+
+# logging configs
+logging.yaml
