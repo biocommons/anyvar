@@ -1,10 +1,9 @@
 """Provide helpful type definitions and references."""
 
 from enum import StrEnum
-from typing import Any
 
 from ga4gh.vrs import models
-from pydantic import BaseModel
+from pydantic import BaseModel, JsonValue
 
 # should include all supported VRS Python variation types
 VrsVariation = models.Allele | models.CopyNumberChange | models.CopyNumberCount
@@ -57,4 +56,4 @@ class Annotation(BaseModel):
 
     object_id: str
     annotation_type: str
-    annotation_value: Any
+    annotation_value: JsonValue
