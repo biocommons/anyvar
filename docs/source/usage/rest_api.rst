@@ -41,18 +41,21 @@ Variant registration also registered contained VRS objects, like SequenceLocatio
    >>> response.json()["data"]
    {'id': 'ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy', 'type': 'SequenceLocation', 'digest': '01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy', 'sequenceReference': {'type': 'SequenceReference', 'refgetAccession': 'SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB'}, 'start': 87894076, 'end': 87894077}
 
-..
-    Other Operations
-    ================
+Working With Mappings
+=====================
 
-    `Annotations<annotations>`_ can similarly be added for a registered variant:
+TODO -- not supported yet
 
-    .. code-block:: pycon
+Working With Annotations
+========================
 
-       >>>
+
+TODO -- not supported yet
 
 VCF Annotation and Ingestion
 ============================
+
+
 
 Variant Search
 ==============
