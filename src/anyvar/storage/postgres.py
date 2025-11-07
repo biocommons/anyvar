@@ -85,7 +85,6 @@ class PostgresObjectStore(Storage):
         :raise IncompleteVrsObjectError: if object is missing required properties or if
             required properties aren't fully dereferenced
         """
-        # TODO -- raise incomplete error for missing id, location, etc
         objects_list = list(objects)
         if not objects_list:
             return
@@ -223,7 +222,6 @@ class PostgresObjectStore(Storage):
         :raise DataIntegrityError: if attempting to delete an object which is
             depended upon by another object
         """
-        # TODO catch/raise data integry error
         object_ids_list = list(object_ids)
 
         with self.session_factory() as session, session.begin():
