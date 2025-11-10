@@ -29,7 +29,6 @@ def create_storage(uri: str | None = None) -> Storage:
 
     The URI format is as follows:
 
-    * PostgreSQL
     `postgresql://[username]:[password]@[domain]/[database]`
 
     For no database (for testing or non-persistent use cases), use an empty string.
@@ -182,9 +181,7 @@ class AnyVar:
         :return: A list of Annotations
         """
         try:
-            return self.object_store.get_annotations_by_object_and_type(
-                object_id, annotation_type
-            )
+            return self.object_store.get_annotations(object_id, annotation_type)
         except Exception as e:
             _logger.exception(
                 "Failed to retrieve annotations for object: %s", object_id

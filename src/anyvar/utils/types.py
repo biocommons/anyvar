@@ -1,10 +1,9 @@
 """Provide helpful type definitions and references."""
 
 from enum import StrEnum
-from typing import Any
 
 from ga4gh.vrs import models
-from pydantic import BaseModel
+from pydantic import BaseModel, JsonValue
 
 # should include all supported VRS Python variation types
 VrsVariation = models.Allele | models.CopyNumberChange | models.CopyNumberCount
@@ -16,6 +15,7 @@ VrsObject = (
     | models.CopyNumberChange
     | models.CopyNumberCount
     | models.SequenceLocation
+    | models.SequenceReference
 )
 
 
@@ -44,13 +44,8 @@ class VariationMappingType(StrEnum):
 
 
 class VariationMapping(BaseModel):
-    """Describe a mapping between two variations.
+    """Describe a mapping between two variations."""
 
-    The ``.id`` property may be unavailable, depending on whether the instance is
-    supposed to correspond to a mapping that may be retained in storage.
-    """
-
-    id: int | None = None
     source_id: str
     dest_id: str
     mapping_type: VariationMappingType
@@ -61,5 +56,4 @@ class Annotation(BaseModel):
 
     object_id: str
     annotation_type: str
-    annotation_value: Any
-    id: int | None = None  # ID of the annotation itself
+    annotation_value: JsonValue
