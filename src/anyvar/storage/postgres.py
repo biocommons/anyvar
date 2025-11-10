@@ -199,7 +199,12 @@ class PostgresObjectStore(Storage):
         """Add a mapping between two objects.
 
         :param mapping: mapping object
+        :raises ValueError: If source_id equals dest_id
         """
+        if mapping.source_id == mapping.dest_id:
+            msg = f"source_id cannot equal dest_id: {mapping.source_id}"
+            raise ValueError(msg)
+
         stmt = (
             insert(orm.VariationMapping)
             .values(
