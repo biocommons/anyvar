@@ -67,6 +67,14 @@ async def _annotate_vcf_async(
         or not aiofiles
         or not celery_worker
     ):
+        _logger.warning(
+            "Async VCF annotation requested but not enabled (has_queueing_enabled=%s, AsyncResult=%s, aiofiles=%s, celery_worker=%s)",
+            anyvar.anyvar.has_queueing_enabled(),
+            AsyncResult,
+            aiofiles,
+            celery_worker,
+            stack_info=True,
+        )
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ErrorResponse(
             error="Required modules and/or configurations for asynchronous VCF annotation are missing"
@@ -94,8 +102,7 @@ async def _annotate_vcf_async(
     vcf_site_count = 0
     async with aiofiles.open(input_file_path, mode="wb") as fd:
         while buffer := await vcf.read(1024 * 1024):
-            if ord("\n") in buffer:
-                vcf_site_count = vcf_site_count + 1
+            vcf_site_count += buffer.count(b"\n")
             await fd.write(buffer)
     _logger.debug("wrote working file for async vcf to %s", input_file_path)
     _logger.debug("vcf site count of async vcf is %s", vcf_site_count)
@@ -106,8 +113,8 @@ async def _annotate_vcf_async(
             "input_file_path": str(input_file_path),
             "assembly": assembly,
             "for_ref": for_ref,
-            "add_vrs_attributes": add_vrs_attributes,
             "allow_async_write": allow_async_write,
+            "add_vrs_attributes": add_vrs_attributes,
         },
         task_id=run_id,
     )
@@ -242,7 +249,12 @@ async def annotate_vcf(
     """
     # If async requested but not enabled, return an error
     if run_async and not anyvar.anyvar.has_queueing_enabled():
-        _logger.warning("Async VCF annotation requested but not enabled")
+        _logger.warning(
+            "Async VCF annotation requested but not enabled (run_async=%s, has_queueing_enabled=%s)",
+            run_async,
+            anyvar.anyvar.has_queueing_enabled(),
+            stack_info=True,
+        )
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ErrorResponse(
             error="Required modules and/or configurations for asynchronous VCF annotation are missing"
@@ -317,6 +329,12 @@ async def _ingest_annotated_vcf_async(
 ) -> RunStatusResponse | ErrorResponse:
     """Ingest annotated VCF asynchronously.  See `annotated_vcf()` for parameter definitions."""
     if not anyvar.anyvar.has_queueing_enabled() or not aiofiles:
+        _logger.warning(
+            "Async VCF annotation requested but not enabled (has_queueing_enabled=%s, aiofiles=%s)",
+            anyvar.anyvar.has_queueing_enabled(),
+            aiofiles,
+            stack_info=True,
+        )
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ErrorResponse(
             error="Required modules and/or configurations for asynchronous VCF annotation are missing"
@@ -335,8 +353,7 @@ async def _ingest_annotated_vcf_async(
     vcf_site_count = 0
     async with aiofiles.open(input_file_path, mode="wb") as fd:
         while buffer := await vcf.read(1024 * 1024):
-            if ord("\n") in buffer:
-                vcf_site_count = vcf_site_count + 1
+            vcf_site_count += buffer.count(b"\n")
             await fd.write(buffer)
     _logger.debug("wrote working file for async vcf to %s", input_file_path)
     _logger.debug("vcf site count of async vcf is %s", vcf_site_count)
@@ -435,6 +452,12 @@ async def annotated_vcf(
     """
     # If async requested but not enabled, return an error
     if (run_async and not anyvar.anyvar.has_queueing_enabled()) or not AsyncResult:
+        _logger.warning(
+            "Async VCF annotation requested but not enabled (run_async=%s, has_queueing_enabled=%s)",
+            run_async,
+            anyvar.anyvar.has_queueing_enabled(),
+            stack_info=True,
+        )
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ErrorResponse(
             error="Required modules and/or configurations for asynchronous VCF ingest are missing"
@@ -510,6 +533,14 @@ async def get_vcf_run_status(
         or not TimeLimitExceeded
         or not WorkerLostError
     ):
+        _logger.warning(
+            "Async VCF annotation requested but not enabled (has_queueing_enabled=%s, AsyncResult=%s, TimeLimitExceeded=%s, WorkerLostError=%s)",
+            anyvar.anyvar.has_queueing_enabled(),
+            AsyncResult,
+            TimeLimitExceeded,
+            WorkerLostError,
+            stack_info=True,
+        )
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ErrorResponse(
             error="Required modules and/or configurations for asynchronous VCF annotation are missing"

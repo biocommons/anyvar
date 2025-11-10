@@ -146,13 +146,13 @@ def test_registration_sync(
     recorded = []
     monkeypatch.setattr(
         restapi_client.app.state.anyvar,
-        "put_object",
-        lambda allele: recorded.append(allele),
+        "put_objects",
+        lambda allele: recorded.extend(allele),
     )
     resp = restapi_client.put("/annotated_vcf", files={"vcf": ("test.vcf", basic_vcf)})
 
     assert resp.status_code == HTTPStatus.OK
-    assert recorded, "put_object was never called"
+    assert recorded, "put_objects was never called"
     assert recorded[0].id == "ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe"
     assert recorded[1].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
 
@@ -162,7 +162,7 @@ def test_registration_sync(
     )
 
     assert resp.status_code == HTTPStatus.OK
-    assert recorded, "put_object was never called"
+    assert recorded, "put_objects was never called"
     assert recorded[2].id == "ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe"
     assert recorded[3].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
 
@@ -177,8 +177,8 @@ def test_registration_sync_validate(
     recorded = []
     monkeypatch.setattr(
         restapi_client.app.state.anyvar,
-        "put_object",
-        lambda allele: recorded.append(allele),
+        "put_objects",
+        lambda allele: recorded.extend(allele),
     )
     resp = restapi_client.put(
         "/annotated_vcf",
@@ -187,7 +187,7 @@ def test_registration_sync_validate(
     )
 
     assert resp.status_code == HTTPStatus.OK
-    assert recorded, "put_object was never called"
+    assert recorded, "put_objects was never called"
     assert recorded[0].id == "ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe"
     assert recorded[1].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
     assert resp.content.count(b"\n") == 1  # just header
@@ -200,7 +200,7 @@ def test_registration_sync_validate(
     )
 
     assert resp.status_code == HTTPStatus.OK
-    assert recorded, "put_object was never called"
+    assert recorded, "put_objects was never called"
     assert recorded[0].id == "ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe"
     # use correct ID (it's wrong in the input)
     assert recorded[1].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
@@ -232,10 +232,14 @@ def test_registration_async(
     assert "run_id" in resp.json()
     assert resp.json()["run_id"] == vcf_run_id
 
-    time.sleep(5)
-
-    resp = restapi_client.get(f"/vcf/{vcf_run_id}")
-    assert resp.status_code == HTTPStatus.OK
+    while True:
+        resp = restapi_client.get(f"/vcf/{vcf_run_id}")
+        if resp.status_code == HTTPStatus.ACCEPTED:
+            time.sleep(1)
+        elif resp.status_code == HTTPStatus.OK:
+            break
+        else:
+            raise AssertionError(f"Unexpected HTTP response: {resp.status_code}")
     assert resp.json()["status"] == "SUCCESS"
 
     resp = restapi_client.put(
