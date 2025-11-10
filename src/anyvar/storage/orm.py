@@ -151,6 +151,7 @@ def session_factory(db_url: str) -> sessionmaker:
     is managed externally using context managers.
 
     Example usage:
+
     >>> sf = session_factory(db_url)
     >>> with sf() as session:
     >>>     with session.begin(): # Perform database operations
