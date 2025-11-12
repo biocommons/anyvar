@@ -55,7 +55,7 @@ load_dotenv()
 _logger = logging.getLogger(__name__)
 
 
-async def _get_vrs_variation(av: AnyVar, vrs_variation_id: str) -> VrsObject:
+def _get_vrs_variation(av: AnyVar, vrs_variation_id: str) -> VrsObject:
     """Get VRS variation given VRS ID
 
     :param av: AnyVar instance
@@ -319,9 +319,9 @@ async def add_variation_mapping(
     :return: source and destination vrs variation and mapping type, if found
     """
     av: AnyVar = request.app.state.anyvar
-    source_vrs_obj: VrsObject = await _get_vrs_variation(av, vrs_id)
+    source_vrs_obj: VrsObject = _get_vrs_variation(av, vrs_id)
     dest_vrs_id = mapping_request.dest_id
-    dest_vrs_obj: VrsObject = await _get_vrs_variation(av, dest_vrs_id)
+    dest_vrs_obj: VrsObject = _get_vrs_variation(av, dest_vrs_id)
 
     # Add the mapping to the database
     mapping: types.VariationMapping | None = None
