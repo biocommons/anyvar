@@ -2,14 +2,14 @@
 
 from .translate import (
     TranslationError,
+    Translator,
     TranslatorConnectionError,
     TranslatorSetupError,
-    _Translator,
 )
 
 __all__ = [
     "TranslationError",
+    "Translator",
     "TranslatorConnectionError",
     "TranslatorSetupError",
-    "_Translator",
 ]

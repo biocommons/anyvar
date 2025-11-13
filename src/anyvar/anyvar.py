@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 
 from anyvar.storage import DEFAULT_STORAGE_URI
 from anyvar.storage.base_storage import Storage, StoredObjectType
-from anyvar.translate.translate import _Translator
+from anyvar.translate.translate import Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
 from anyvar.utils import types
 from anyvar.utils.types import VrsObject
@@ -55,7 +55,7 @@ def create_storage(uri: str | None = None) -> Storage:
     return storage
 
 
-def create_translator() -> _Translator:
+def create_translator() -> Translator:
     """Create variation translator middleware.
 
     Try to build the VRS-Python wrapper class with default args. In the future, could
@@ -82,7 +82,7 @@ class AnyVar:
     def __init__(
         self,
         /,
-        translator: _Translator,
+        translator: Translator,
         object_store: Storage,
     ) -> None:
         """Initialize anyvar instance. It's easiest to use factory methods to create
