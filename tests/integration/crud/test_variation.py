@@ -4,6 +4,11 @@ from http import HTTPStatus
 
 from fastapi.testclient import TestClient
 
+from anyvar.restapi.main import (
+    PUT_VARIATION_EXAMPLE_PAYLOAD,
+    PUT_VRS_VARIATION_EXAMPLE_PAYLOAD,
+)
+
 
 def test_put_allele(restapi_client: TestClient, alleles: dict):
     for allele_id, allele in alleles.items():
@@ -29,11 +34,21 @@ def test_put_allele(restapi_client: TestClient, alleles: dict):
     assert "object_id" not in resp_json
 
 
+def test_put_variation_example(restapi_client: TestClient):
+    resp = restapi_client.put("/variation", json=PUT_VARIATION_EXAMPLE_PAYLOAD)
+    assert resp.status_code == HTTPStatus.OK
+
+
 def test_put_vrs_variation_allele(restapi_client: TestClient, alleles: dict):
     for allele_id, allele_fixture in alleles.items():
         resp = restapi_client.put("/vrs_variation", json=allele_fixture["variation"])
         assert resp.status_code == HTTPStatus.OK
         assert resp.json()["object_id"] == allele_id
+
+
+def test_put_vrs_variation_example(restapi_client: TestClient):
+    resp = restapi_client.put("/vrs_variation", json=PUT_VRS_VARIATION_EXAMPLE_PAYLOAD)
+    assert resp.status_code == HTTPStatus.OK
 
 
 def test_get_allele(restapi_client: TestClient, preloaded_alleles):

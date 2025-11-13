@@ -332,6 +332,14 @@ async def add_registration_annotations(
     return new_response
 
 
+PUT_VARIATION_EXAMPLE_PAYLOAD = {
+    "definition": "NC_000007.13:g.36561662_36561663del",
+    "input_type": "Allele",
+    "copies": 0,
+    "copy_change": "complete genomic loss",
+}
+
+
 @app.put(
     "/variation",
     response_model_exclude_none=True,
@@ -345,14 +353,7 @@ def register_variation(
         RegisterVariationRequest,
         Body(
             description="Variation description, including (at minimum) a definition property. Can provide optional input_type if the expected output representation is known. If representing copy number, provide copies or copy_change.",
-            examples=[
-                {
-                    "definition": "NC_000007.13:g.36561662_36561663del",
-                    "input_type": "Allele",
-                    "copies": 0,
-                    "copy_change": "complete genomic loss",
-                }
-            ],
+            examples=[PUT_VARIATION_EXAMPLE_PAYLOAD],
         ),
     ],
 ) -> RegisterVariationResponse:
@@ -395,6 +396,22 @@ def register_variation(
     )
 
 
+PUT_VRS_VARIATION_EXAMPLE_PAYLOAD = {
+    "location": {
+        "id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8",
+        "end": 87894077,
+        "start": 87894076,
+        "sequenceReference": {
+            "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
+            "type": "SequenceReference",
+        },
+        "type": "SequenceLocation",
+    },
+    "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
+    "type": "Allele",
+}
+
+
 @app.put(
     "/vrs_variation",
     summary="Register a VRS variation",
@@ -408,22 +425,7 @@ def register_vrs_object(
         VrsVariation,
         Body(
             description="Valid VRS object.",
-            examples=[
-                {
-                    "location": {
-                        "id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8",
-                        "end": 87894077,
-                        "start": 87894076,
-                        "sequenceReference": {
-                            "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
-                            "type": "SequenceReference",
-                        },
-                        "type": "SequenceLocation",
-                    },
-                    "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
-                    "type": "Allele",
-                }
-            ],
+            examples=[PUT_VRS_VARIATION_EXAMPLE_PAYLOAD],
         ),
     ],
 ) -> RegisterVariationResponse:
