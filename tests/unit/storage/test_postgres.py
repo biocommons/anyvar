@@ -12,7 +12,7 @@ from anyvar.storage.base_storage import (
 )
 from anyvar.storage.postgres import PostgresObjectStore
 from anyvar.utils import types
-from anyvar.utils.funcs import build_vrs_object_from_dict
+from anyvar.utils.vrs_object_utils import build_vrs_object_from_dict
 
 
 @pytest.fixture(scope="session")

@@ -434,7 +434,13 @@ def register_vrs_object(
         )
 
     av: AnyVar = request.app.state.anyvar
-    av.put_objects([variation])
+    try:
+        av.put_objects([variation])
+    except Exception as e:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail="Variation could not be registered",
+        ) from e
 
     liftover_messages = liftover_utils.add_liftover_mapping(
         variation, av.object_store, av.translator.dp

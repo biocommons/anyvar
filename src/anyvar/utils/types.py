@@ -6,9 +6,7 @@ from typing import get_args
 from ga4gh.vrs import models
 from pydantic import BaseModel, JsonValue
 
-#########################################################################
-## ALL supported VRS Objects (including but not limited to variations) ##
-#########################################################################
+from anyvar.utils.funcs import camel_case_to_snake_case
 
 VrsObject = (
     models.Allele
@@ -18,23 +16,31 @@ VrsObject = (
     | models.SequenceReference
 )
 
-##############################
-## Supported VRS Variations ##
-##############################
 
 VrsVariation = models.Allele | models.CopyNumberChange | models.CopyNumberCount
 
 
 class SupportedVariationType(StrEnum):
-    """Define constraints for supported variation types"""
+    """Supported variation types for API input. Enum is dynamically built from the models in the `VrsVariation` type union.
 
-    ALLELE = "Allele"
-    COPY_NUMBER_COUNT = "CopyNumberCount"
-    COPY_NUMBER_CHANGE = "CopyNumberChange"
+    Example:
+    >>> SupportedVariationType.COPY_NUMBER_CHANGE = "CopyNumberChange"
+
+    """
+
+    locals().update(
+        {
+            camel_case_to_snake_case(cls.__name__): cls.__name__
+            for cls in get_args(VrsObject)
+        }
+    )
 
 
-# Builds a dict in the form of `"ModelName": models.ModelName` for every class listed in the `VrsObject` type union
-# For example: `vrs_object_class_map["Allele"] = models.Allele`
+"""
+Builds a dict in the form of `"ModelName": models.ModelName` for every class listed in the `VrsObject` type union
+For example:
+>>> vrs_object_class_map["Allele"] = models.Allele
+"""
 vrs_object_class_map: dict[str, type[VrsObject]] = {
     cls.__name__: cls for cls in get_args(VrsObject)
 }

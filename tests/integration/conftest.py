@@ -10,7 +10,7 @@ from pytest_mock import MockerFixture
 import anyvar.anyvar
 from anyvar.queueing.celery_worker import celery_app
 from anyvar.storage.base_storage import Storage
-from anyvar.utils.funcs import build_vrs_object_from_dict
+from anyvar.utils.vrs_object_utils import build_vrs_object_from_dict
 
 
 @pytest.fixture
