@@ -15,8 +15,8 @@ Core Functions and Utilities
    anyvar.queueing.celery_worker
    anyvar.extras.vcf
 
-Storage
-=======
+Object Storage
+==============
 
 .. autosummary::
    :nosignatures:
@@ -30,8 +30,8 @@ Storage
    anyvar.storage.orm
    anyvar.storage.no_db
 
-Translate
-=========
+Variant Translation
+===================
 
 .. autosummary::
    :nosignatures:
