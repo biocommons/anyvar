@@ -6,7 +6,7 @@ import logging
 import logging.config
 import os
 import pathlib
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from contextlib import asynccontextmanager
 from http import HTTPStatus
 from typing import Annotated, cast
@@ -32,8 +32,11 @@ from anyvar.anyvar import AnyVar
 from anyvar.restapi.schema import (
     AddAnnotationRequest,
     AddAnnotationResponse,
+    AddMappingRequest,
+    AddMappingResponse,
     EndpointTag,
     GetAnnotationResponse,
+    GetMappingResponse,
     GetSequenceLocationResponse,
     GetVariationResponse,
     RegisterVariationRequest,
@@ -50,6 +53,23 @@ from anyvar.utils.types import VrsObject, VrsVariation
 
 load_dotenv()
 _logger = logging.getLogger(__name__)
+
+
+def _get_vrs_variation(av: AnyVar, vrs_variation_id: str) -> VrsObject:
+    """Get VRS variation given VRS ID
+
+    :param av: AnyVar instance
+    :param vrs_variation_id: VRS Variation ID to retrieve
+    :raises HTTPException: If no VRS Variation ID found
+    :return: VrsObject
+    """
+    try:
+        return av.get_object(vrs_variation_id)
+    except KeyError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"Variation {vrs_variation_id} not found",
+        ) from e
 
 
 async def parse_and_rebuild_response(
@@ -218,13 +238,7 @@ def add_variation_annotation(
     """
     # Look up the variation from the AnyVar store
     av: AnyVar = request.app.state.anyvar
-    variation: VrsObject | None = None
-    try:
-        variation = av.get_object(vrs_id)
-    except KeyError as e:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail=f"Variation {vrs_id} not found"
-        ) from e
+    variation: VrsObject = _get_vrs_variation(av, vrs_id)
 
     # Add the annotation to the database
     annotation_id: int | None = None
@@ -279,6 +293,90 @@ def get_variation_annotation(
         vrs_id, annotation_type
     )
     return GetAnnotationResponse(annotations=annotations)
+
+
+@app.put(
+    "/variation/{vrs_id}/mappings",
+    response_model_exclude_none=True,
+    summary="Add mapping to a variation",
+    description="Provide a mapping to associate with a Variation object. The source and dest Variation must be registered with AnyVar before adding mappings.",
+    tags=[EndpointTag.VARIATIONS],
+)
+async def add_variation_mapping(
+    request: Request,
+    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID")],
+    mapping_request: Annotated[
+        AddMappingRequest, Body(description="Mapping to associate with the variation")
+    ],
+) -> AddMappingResponse:
+    """Store a mapping for a variation
+
+    :param request: FastAPI request object
+    :param vrs_id: The VRS ID of the variation to add mapping to
+    :param mapping_request: The mapping to store
+    :raises HTTPException: If unable to store a mapping, or source or dest variation
+        not registered
+    :return: source and destination vrs variation and mapping type, if found
+    """
+    av: AnyVar = request.app.state.anyvar
+    source_vrs_obj: VrsObject = _get_vrs_variation(av, vrs_id)
+    dest_vrs_id = mapping_request.dest_id
+    dest_vrs_obj: VrsObject = _get_vrs_variation(av, dest_vrs_id)
+
+    # Add the mapping to the database
+    mapping: types.VariationMapping | None = None
+    mapping_type = mapping_request.mapping_type
+    try:
+        mapping = types.VariationMapping(
+            source_id=vrs_id, dest_id=dest_vrs_id, mapping_type=mapping_type
+        )
+        av.put_mapping(mapping)
+    except ValueError as e:
+        _logger.exception(
+            "Failed to add mapping `%s` on variation `%s`",
+            mapping_request,
+            vrs_id,
+        )
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            detail=f"Failed to add annotation: {mapping_request}. {e}",
+        ) from e
+
+    return AddMappingResponse(
+        source_object=source_vrs_obj,
+        source_object_id=vrs_id,
+        dest_object=dest_vrs_obj,
+        dest_object_id=dest_vrs_id,
+        mapping_type=mapping_type,
+    )
+
+
+@app.get(
+    "/variation/{vrs_id}/mappings/{mapping_type}",
+    response_model_exclude_none=True,
+    summary="Retrieve mappings for a variation",
+    description="Retrieve mappings for a variation by VRS ID and mapping type",
+    tags=[EndpointTag.VARIATIONS],
+)
+def get_variation_mapping(
+    request: Request,
+    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
+    mapping_type: Annotated[
+        types.VariationMappingType, Path(..., description="Mapping type")
+    ],
+) -> GetMappingResponse:
+    """Retrieve mappings for a variation.
+
+    :param request: FastAPI request object
+    :param vrs_id: VRS ID for variation
+    :param mapping_type: type of mapping to retrieve
+    :return: response object containing list of mappings for the variation
+    """
+    av: AnyVar = request.app.state.anyvar
+    mappings: Iterable[types.VariationMapping] = av.get_object_mappings(
+        vrs_id, mapping_type
+    )
+    return GetMappingResponse(mappings=mappings)
 
 
 @app.middleware("http")
