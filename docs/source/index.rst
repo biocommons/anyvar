@@ -1,7 +1,7 @@
 AnyVar
 !!!!!!
 
-AnyVar enables **registration**, **lookup**, and **search** of genetic variants across a distributed genomic resource network. Its goals are to:
+AnyVar enables **registration**, **lookup**, and **search** of genetic variants, as a standalone service or an individual node within a distributed genomic resource network. Its goals are to:
 
 * Provide an open source, off-the-shelf solution that lowers the technical barriers for genomic data resources to comprehensively describe and search genomic variants
 * Support a broad range of query modes, including VRS ID lookups, HGVS expressions, gene-based searches, and genomic ranges

@@ -41,6 +41,29 @@ Variant registration also registered contained VRS objects, like SequenceLocatio
    >>> response.json()["data"]
    {'id': 'ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy', 'type': 'SequenceLocation', 'digest': '01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy', 'sequenceReference': {'type': 'SequenceReference', 'refgetAccession': 'SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB'}, 'start': 87894076, 'end': 87894077}
 
+Searching Variants
+==================
+
+The ``/search`` endpoint enables retrieval of all variants that overlap a provided interval:
+
+.. code-block:: pycon
+
+   >>> sequence_accession_id = "ga4gh:SQ.8_liLu1aycC0tPQPFmUaGXJLDs5SbPZ5"
+   >>> start, end = 2781631, 2783993
+   >>> response = requests.get(f"http://localhost:8000/search?accession={sequence_accession_id}&start={start}&end={end}")
+   >>> response.json()["variations"][0]
+   {'id': 'ga4gh:VA.YL9lyrf_GqBKJuZ2fkbonTSjdGexxim7',
+    'type': 'Allele',
+    'digest': 'YL9lyrf_GqBKJuZ2fkbonTSjdGexxim7',
+    'location': {'id': 'ga4gh:SL.OwQPYW5PvD5oxE-4M4EoshiRlw1g31fP',
+     'type': 'SequenceLocation',
+     'digest': 'OwQPYW5PvD5oxE-4M4EoshiRlw1g31fP',
+     'sequenceReference': {'type': 'SequenceReference',
+      'refgetAccession': 'SQ.8_liLu1aycC0tPQPFmUaGXJLDs5SbPZ5'},
+     'start': 2781631,
+     'end': 2781632},
+    'state': {'type': 'LiteralSequenceExpression', 'sequence': 'G'}}
+
 Working With Mappings
 =====================
 
@@ -71,7 +94,36 @@ Annotations can be retrieved via a GET request for the VRS ID and annotation typ
 VCF Annotation and Ingestion
 ============================
 
+AnyVar can perform bulk variant ingest operations on Variant Call Format (VCF) files.
 
+Files submitted to the ``/vcf`` endpoint will be parsed for variants, which will be translated into VRS objects and stored, and a copy of the file with added VRS ID annotations is returned.
 
-Variant Search
-==============
+.. code-block:: pycon
+
+   >>> with open("my_vcf.vcf", "rb") as f:
+   ...     files = {"vcf": ("my_vcf.vcf", f, "text/plain")}
+   ...     response = requests.put("http://localhost:8000/vcf", files=files)
+   >>> response.raise_for_status()
+   >>> "VRS_Allele_IDs" in response.text
+   True
+
+For larger files, a nontrivial amount of processing time may be required before the annotated file is ready to return. Users are advised to use the ``run_async`` parameter, which employs an `asynchronous request-response pattern <https://learn.microsoft.com/en-us/azure/architecture/patterns/async-request-reply>`_ to support multiple long-running tasks. In this model, when run requests are submitted, a run ID is returned. This ID can then be used to poll the server for the status of the task, responding with ``202 ACCEPTED`` if the task was submitted successfully, but is still in progress, and then returning the annotated file when it's ready.
+
+.. code-block:: pycon
+
+   >>> with open("big_vcf.vcf", "rb") as f:
+   ...     files = {"vcf": ("big_vcf.vcf", f, "text/plain")}
+   ...     response = requests.put("http://localhost:8000/vcf?enable_async=true", files=files)
+   >>> print(response.json()["status_message"])
+   'Run submitted. Check status at /vcf/05385087-78e2-44d4-8ecc-3ca74563c4b1'
+   >>> run_id = response.json()["run_id"]
+   >>> response = requests.get(f"http://localhost:8000/vcf/{run_id}")
+   >>> response.status_code
+   202
+   >>> # keep requesting until `200 OK`
+   >>> response = requests.get(f"http://localhost:8000/vcf/{run_id}")
+   >>> response.status_code
+   200
+   >>> # this indicates the task is complete and the request includes the finished file
+   >>> "VRS_Allele_IDs" in response.text
+   True
