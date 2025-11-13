@@ -1,7 +1,6 @@
 """SQLAlchemy ORM models for AnyVar database schema."""
 
 import os
-import re
 
 from sqlalchemy import (
     ForeignKey,
@@ -22,6 +21,7 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.orm.decl_api import declared_attr
 
+from anyvar.utils.funcs import camel_case_to_snake_case
 from anyvar.utils.types import VariationMappingType
 
 
@@ -31,8 +31,9 @@ class Base(DeclarativeBase):
     @declared_attr.directive
     def __tablename__(cls) -> str:  # noqa: N805 (param name here should be 'cls', not 'self')
         # Default table name = class name, transformed from PascalCase into snake_case and pluralized.
+        # Example: The table name created by the "VrsObject" ORM class is `vrs_objects`
         # NOTE: Classes/tables that require a different pluralization scheme should override this function.
-        default_name: str = re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower() + "s"
+        default_name: str = camel_case_to_snake_case(cls.__name__, False) + "s"
 
         # Environment variable name is the class name transformed into UPPER_SNAKE_CASE, pluralized, and prefixed by 'ANYVAR_' + suffixed with "_TABLE_NAME".
         # e.g., the environment variable to override the table name created by the "VrsObject" ORM class is `ANYVAR_VRS_OBJECTS_TABLE_NAME`
