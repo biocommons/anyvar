@@ -252,9 +252,14 @@ class PostgresObjectStore(Storage):
         * Implement insert constraint/MissingVariationReferenceError in #286
 
         :param mapping: mapping object
+        :raises ValueError: If source_id equals dest_id
         :raise MissingVariationReferenceError: if source or destination IDs aren't present in DB
 
         """
+        if mapping.source_id == mapping.dest_id:
+            msg = f"source_id cannot equal dest_id: {mapping.source_id}"
+            raise ValueError(msg)
+
         stmt = (
             insert(orm.VariationMapping)
             .values(

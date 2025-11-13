@@ -7,6 +7,7 @@ import importlib.util
 import logging
 import os
 import warnings
+from collections.abc import Iterable
 from urllib.parse import urlparse
 
 from anyvar.storage import DEFAULT_STORAGE_URI
@@ -187,3 +188,33 @@ class AnyVar:
                 "Failed to retrieve annotations for object: %s", object_id
             )
             raise e  # noqa: TRY201
+
+    def put_mapping(self, mapping: types.VariationMapping) -> None:
+        """Attempt to store a mapping between two objects
+
+        :param mapping: a Mapping object
+        """
+        try:
+            return self.object_store.add_mapping(mapping)
+        except Exception:
+            _logger.exception("Failed to add mapping: %s", mapping)
+            raise
+
+    def get_object_mappings(
+        self, source_object_id: str, mapping_type: types.VariationMappingType
+    ) -> Iterable[types.VariationMapping]:
+        """Get all variation mappings given source object ID and mapping type
+
+        :param source_object_id: ID of the source object
+        :param mapping_type: kind of mapping to retrieve
+        :return: iterable collection of mapping objects
+        """
+        try:
+            return self.object_store.get_mappings(source_object_id, mapping_type)
+        except Exception:
+            _logger.exception(
+                "Failed to retrieve mappings for source_object_id: %s and mapping_type: %s",
+                source_object_id,
+                mapping_type,
+            )
+            raise

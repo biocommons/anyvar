@@ -1,5 +1,6 @@
 """Provide response definitions to REST API endpoint."""
 
+from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
 from typing import Any
@@ -168,6 +169,33 @@ class GetAnnotationResponse(BaseModel):
     """Response for the GET /variation/{vrs_id}/annotations/{annotation_type} endpoint"""
 
     annotations: list[types.Annotation]
+
+
+class AddMappingResponse(BaseModel):
+    """Response for POST /variation/{vrs_id}/mappings endpoint"""
+
+    model_config = ConfigDict(use_enum_values=True)
+
+    source_object: VrsObject | None
+    source_object_id: str
+    dest_object: VrsObject | None
+    dest_object_id: str
+    mapping_type: types.VariationMappingType
+
+
+class AddMappingRequest(BaseModel):
+    """Request for the POST /variation/{vrs_id}/mappings endpoint"""
+
+    model_config = ConfigDict(use_enum_values=True)
+
+    dest_id: str
+    mapping_type: types.VariationMappingType
+
+
+class GetMappingResponse(BaseModel):
+    """Request for the GET /variation/{vrs_id}/mappings endpoint"""
+
+    mappings: Iterable[types.VariationMapping]
 
 
 class RegisterVariationResponse(BaseModel):
