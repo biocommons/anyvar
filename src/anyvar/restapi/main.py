@@ -46,7 +46,7 @@ from anyvar.translate.translate import (
     TranslationError,
 )
 from anyvar.utils import liftover_utils, types
-from anyvar.utils.types import VrsObject, VrsVariation, variation_class_map
+from anyvar.utils.types import VrsObject, VrsVariation
 
 load_dotenv()
 _logger = logging.getLogger(__name__)
@@ -428,23 +428,21 @@ def register_vrs_object(
     ],
 ) -> RegisterVariationResponse:
     """Register a complete VRS object. No additional normalization is performed."""
-    av: AnyVar = request.app.state.anyvar
-    variation_type = variation.type
-    if variation_type not in variation_class_map:
+    if not isinstance(variation, VrsVariation):
         return RegisterVariationResponse(
-            messages=[f"Registration for {variation_type} not currently supported."]
+            messages=[f"Registration for {variation.type} not currently supported."]
         )
 
-    variation_object = variation_class_map[variation_type](**variation.model_dump())
-    av.put_objects([variation_object])
+    av: AnyVar = request.app.state.anyvar
+    av.put_objects([variation])
 
     liftover_messages = liftover_utils.add_liftover_mapping(
         variation, av.object_store, av.translator.dp
     )
 
     return RegisterVariationResponse(
-        object=variation_object,  # type: ignore
-        object_id=variation_object.id,
+        object=variation,
+        object_id=variation.id,
         messages=liftover_messages or [],
     )
 

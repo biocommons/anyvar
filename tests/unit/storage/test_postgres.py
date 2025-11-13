@@ -12,7 +12,7 @@ from anyvar.storage.base_storage import (
 )
 from anyvar.storage.postgres import PostgresObjectStore
 from anyvar.utils import types
-from anyvar.utils.funcs import build_vrs_variant_from_dict
+from anyvar.utils.funcs import build_vrs_object_from_dict
 
 
 @pytest.fixture(scope="session")
@@ -31,7 +31,7 @@ def focus_alleles(alleles: dict):
     This is a tuple because many checks assume a specific order of these objects
     """
     return tuple(
-        build_vrs_variant_from_dict(a["variation"])
+        build_vrs_object_from_dict(a["variation"])
         for a in (
             alleles["ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU"],
             alleles["ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf"],
@@ -43,7 +43,7 @@ def focus_alleles(alleles: dict):
 @pytest.fixture
 def validated_vrs_alleles(alleles: dict):
     """All allele fixtures, transformed into VRS Pydantic models w/ other test metadata removed"""
-    return {k: build_vrs_variant_from_dict(v["variation"]) for k, v in alleles.items()}
+    return {k: build_vrs_object_from_dict(v["variation"]) for k, v in alleles.items()}
 
 
 @pytest.fixture

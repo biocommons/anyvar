@@ -1,6 +1,7 @@
 """Provide helpful type definitions and references."""
 
 from enum import StrEnum
+from typing import get_args
 
 from ga4gh.vrs import models
 from pydantic import BaseModel, JsonValue
@@ -32,11 +33,10 @@ class SupportedVariationType(StrEnum):
     COPY_NUMBER_CHANGE = "CopyNumberChange"
 
 
-# variation type: VRS-Python model
-variation_class_map: dict[str, type[VrsVariation]] = {
-    "Allele": models.Allele,
-    "CopyNumberCount": models.CopyNumberCount,
-    "CopyNumberChange": models.CopyNumberChange,
+# Builds a dict in the form of `"ModelName": models.ModelName` for every class listed in the `VrsObject` type union
+# For example: `vrs_object_class_map["Allele"] = models.Allele`
+vrs_object_class_map: dict[str, type[VrsObject]] = {
+    cls.__name__: cls for cls in get_args(VrsObject)
 }
 
 
