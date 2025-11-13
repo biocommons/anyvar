@@ -16,7 +16,6 @@ from anyvar.storage.base_storage import (
     IncompleteVrsObjectError,
     InvalidSearchParamsError,
     Storage,
-    StoredObjectType,
 )
 from anyvar.storage.mapper_registry import mapper_registry
 from anyvar.storage.orm import create_tables
@@ -148,7 +147,7 @@ class PostgresObjectStore(Storage):
                 session.execute(stmt, allele_dicts)
 
     def get_objects(
-        self, object_type: StoredObjectType, object_ids: Iterable[str]
+        self, object_type: type[types.VrsObject], object_ids: Iterable[str]
     ) -> Iterable[types.VrsObject]:
         """Retrieve multiple VRS objects from storage by their IDs.
 
@@ -162,7 +161,7 @@ class PostgresObjectStore(Storage):
         results = []
 
         with self.session_factory() as session:
-            if object_type == StoredObjectType.ALLELE:
+            if object_type is vrs_models.Allele:
                 # Get alleles with eager loading
                 stmt = (
                     select(orm.Allele)
@@ -174,7 +173,7 @@ class PostgresObjectStore(Storage):
                     .where(orm.Allele.id.in_(object_ids_list))
                 )
                 db_objects = session.scalars(stmt).all()
-            elif object_type == StoredObjectType.SEQUENCE_LOCATION:
+            elif object_type is vrs_models.SequenceLocation:
                 # Get locations with eager loading
                 stmt = (
                     select(orm.Location)
@@ -182,7 +181,7 @@ class PostgresObjectStore(Storage):
                     .where(orm.Location.id.in_(object_ids_list))
                 )
                 db_objects = session.scalars(stmt).all()
-            elif object_type == StoredObjectType.SEQUENCE_REFERENCE:
+            elif object_type is vrs_models.SequenceReference:
                 # Get sequence references
                 stmt = select(orm.SequenceReference).where(
                     orm.SequenceReference.id.in_(object_ids_list)
@@ -210,7 +209,7 @@ class PostgresObjectStore(Storage):
             return allele_ids
 
     def delete_objects(
-        self, object_type: StoredObjectType, object_ids: Iterable[str]
+        self, object_type: type[types.VrsObject], object_ids: Iterable[str]
     ) -> None:
         """Delete all objects of a specific type from storage.
 
@@ -225,11 +224,11 @@ class PostgresObjectStore(Storage):
         object_ids_list = list(object_ids)
 
         with self.session_factory() as session, session.begin():
-            if object_type == StoredObjectType.ALLELE:
+            if object_type is vrs_models.Allele:
                 stmt = delete(orm.Allele).where(orm.Allele.id.in_(object_ids_list))
-            elif object_type == StoredObjectType.SEQUENCE_LOCATION:
+            elif object_type is vrs_models.SequenceLocation:
                 stmt = delete(orm.Location).where(orm.Location.id.in_(object_ids_list))
-            elif object_type == StoredObjectType.SEQUENCE_REFERENCE:
+            elif object_type is vrs_models.SequenceReference:
                 stmt = delete(orm.SequenceReference).where(
                     orm.SequenceReference.id.in_(object_ids_list)
                 )

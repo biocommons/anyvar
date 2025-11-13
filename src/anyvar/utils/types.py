@@ -5,11 +5,10 @@ from enum import StrEnum
 from ga4gh.vrs import models
 from pydantic import BaseModel, JsonValue
 
-# should include all supported VRS Python variation types
-VrsVariation = models.Allele | models.CopyNumberChange | models.CopyNumberCount
+#########################################################################
+## ALL supported VRS Objects (including but not limited to variations) ##
+#########################################################################
 
-
-# should include all supported VRS Python variation types + location types
 VrsObject = (
     models.Allele
     | models.CopyNumberChange
@@ -18,13 +17,11 @@ VrsObject = (
     | models.SequenceReference
 )
 
+##############################
+## Supported VRS Variations ##
+##############################
 
-# variation type: VRS-Python model
-variation_class_map: dict[str, type[VrsVariation]] = {
-    "Allele": models.Allele,
-    "CopyNumberCount": models.CopyNumberCount,
-    "CopyNumberChange": models.CopyNumberChange,
-}
+VrsVariation = models.Allele | models.CopyNumberChange | models.CopyNumberCount
 
 
 class SupportedVariationType(StrEnum):
@@ -33,6 +30,14 @@ class SupportedVariationType(StrEnum):
     ALLELE = "Allele"
     COPY_NUMBER_COUNT = "CopyNumberCount"
     COPY_NUMBER_CHANGE = "CopyNumberChange"
+
+
+# variation type: VRS-Python model
+variation_class_map: dict[str, type[VrsVariation]] = {
+    "Allele": models.Allele,
+    "CopyNumberCount": models.CopyNumberCount,
+    "CopyNumberChange": models.CopyNumberChange,
+}
 
 
 class VariationMappingType(StrEnum):

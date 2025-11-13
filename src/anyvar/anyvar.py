@@ -9,8 +9,10 @@ import os
 import warnings
 from urllib.parse import urlparse
 
+from ga4gh.vrs import models as vrs_models
+
 from anyvar.storage import DEFAULT_STORAGE_URI
-from anyvar.storage.base_storage import Storage, StoredObjectType
+from anyvar.storage.base_storage import Storage
 from anyvar.translate.translate import _Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
 from anyvar.utils import types
@@ -107,7 +109,7 @@ class AnyVar:
             raise e  # noqa: TRY201
 
     def get_object(
-        self, object_id: str, object_type: StoredObjectType | None = None
+        self, object_id: str, object_type: type[types.VrsObject] | None = None
     ) -> VrsObject:
         """Retrieve registered variation.
 
@@ -139,9 +141,9 @@ class AnyVar:
         """
         # Try each object type. Primary key lookups should be fast.
         object_types_to_try = [
-            StoredObjectType.ALLELE,
-            StoredObjectType.SEQUENCE_LOCATION,
-            StoredObjectType.SEQUENCE_REFERENCE,
+            vrs_models.Allele,
+            vrs_models.SequenceLocation,
+            vrs_models.SequenceReference,
         ]
         for object_type in object_types_to_try:
             try:
