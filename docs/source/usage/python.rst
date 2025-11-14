@@ -1,6 +1,13 @@
 Using the Python API
 !!!!!!!!!!!!!!!!!!!!
 
+This page demonstrates basic usage of the AnyVar Python interface. See the :ref:`Python API reference <API_Reference>` for a more exhaustive description of public functions and classes.
+
+
+.. note::
+
+   For brevity, some code samples assume variables or setup defined earlier on the page.
+
 Instantiating An AnyVar Instance
 ================================
 
@@ -100,7 +107,7 @@ AnyVar can add basic mappings between objects with :py:meth:`AnyVar.put_mapping(
    ... )
    >>> av.put_mapping(mapping)
 
-They can be retrieved with :py:meth:`AnyVar.get_object_mappings <anyvar.anyvar.AnyVar.get_object_mappings>`.
+They can be retrieved with :py:meth:`AnyVar.get_object_mappings() <anyvar.anyvar.AnyVar.get_object_mappings>`.
 
 .. code-block:: pycon
 
