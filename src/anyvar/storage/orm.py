@@ -134,8 +134,6 @@ mapping_type_enum = PgEnum(
 class VariationMapping(Base):
     """AnyVar ORM model for variation-to-variation mapping"""
 
-    __tablename__ = "variation_mappings"
-
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     source_id: Mapped[str] = mapped_column(String)
     dest_id: Mapped[str] = mapped_column(String)
