@@ -64,17 +64,3 @@ Here's a comprehensive logging configuration example: ::
         level: DEBUG
         handlers: [console, file]
         propagate: no
-
-Cheat Sheet: Environment Variables
-==================================
-
-.. list-table::
-   :widths: 20 40 40
-   :header-rows: 1
-
-   * - Variable
-     - Description
-     - Example
-   * - ``ANYVAR_LOGGING_CONFIG``
-     - Path to custom logging configuration YAML file
-     - ``/path/to/logging.yaml``

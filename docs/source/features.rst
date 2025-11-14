@@ -52,11 +52,9 @@ Registered variation objects can be associated with **annotations**. Annotations
 Variant Mappings
 ================
 
-**Mappings** can be used to define predefined relationships between variations. The :py:class:`VariationMappingType<anyvar.utils.types.VariationMappingType>` enum provides the supported kinds of relationships:
+**Mappings** can be used to register specific modes of relationship between variations, such as reference assembly liftover. The :py:class:`VariationMappingType<anyvar.utils.types.VariationMappingType>` enum provides the supported kinds of relationships:
 
 .. autoclass:: anyvar.utils.types.VariationMappingType
    :no-index:
    :members:
    :undoc-members:
-
-.. maybe embed mapping class here?

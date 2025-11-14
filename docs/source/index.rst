@@ -17,6 +17,7 @@ AnyVar enables **registration**, **lookup**, and **search** of genetic variants,
    Usage<usage/index>
    Configuration<configuration/index>
    API Reference<api/index>
+   Getting Help<help>
    Changelog<changelog>
    Contributing<contributing>
    License<license>

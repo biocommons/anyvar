@@ -4,7 +4,6 @@ Usage
 .. toctree::
     :maxdepth: 2
 
-    Python API<python>
-    REST Service<rest_service>
-    REST API<rest_api>
-    Examples<examples>
+    Using the Python API<python>
+    Using the REST API<rest_api>
+    Running REST Service<rest_service>

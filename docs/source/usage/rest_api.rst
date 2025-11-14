@@ -1,12 +1,12 @@
-REST API Usage
-!!!!!!!!!!!!!!
+Using the REST API
+!!!!!!!!!!!!!!!!!!
 
 AnyVar can be interacted with via HTTP requests.
 
 Swagger UI Docs
 ===============
 
-An AnyVar server hosts Swagger UI documentation at the server root address (e.g. `http://localhost:8000 <http://localhost:8000>`_ by default in the context of local service). This page lists all API routes, includes schemas describing valid request and response structures, and an easy-to-use interface to test out API calls.
+An AnyVar server hosts Swagger UI documentation at the server root address (e.g. `http://localhost:8000 <http://localhost:8000>`_ by default in the context of local service). This shows all API routes, includes schemas describing valid request and response structures, and an easy-to-use interface to test out API calls.
 
 Basic Variant Operations
 ========================
