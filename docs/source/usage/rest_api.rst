@@ -67,7 +67,50 @@ The ``/search`` endpoint enables retrieval of all variants that overlap a provid
 Working With Mappings
 =====================
 
-TODO -- not supported yet
+To add a :ref:`mapping <mappings>` between previously-registered variation objects issue a ``PUT`` request to ``/variations/<vrs_id>/mappings``, where ``vrs_id`` is the ``source_id`` of the mapping object:
+
+.. code-block:: pycon
+
+   >>> payload = {"definition": "NC_000007.14:g.140753336A>T"}
+   >>> response = requests.put("http://localhost:8000/variation", json=payload)
+   >>> genomic_id = response.json()["object"]["id"]
+   >>> payload = {"definition": "NM_004333.6:c.1799T>A"}
+   >>> response = requests.put("http://localhost:8000/variation", json=payload)
+   >>> tx_id = response.json()["object"]["id"]
+   >>> payload = {"dest_id": tx_id, "mapping_type": "transcription"}
+   >>> requests.put(
+   ...     f"http://localhost:8000/variation/{genomic_id}/mappings",
+   ...     json=payload
+   ... )
+
+Mappings from an object can be retrieved via ``GET /variations/<vrs_id>/mappings/<mapping_type>``:
+
+.. code-block:: pycon
+
+   >>> response = requests.get(
+   ...     f"http://localhost:8000/variation/{genomic_id}/mappings/transcription"
+   ... )
+   >>> response.json()
+   {'mappings': [{'source_id': 'ga4gh:VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe',
+      'dest_id': 'ga4gh:VA.W6xsV-aFm9yT2Bic5cFAV2j0rll6KK5R',
+      'mapping_type': 'transcription'}]}
+
+
+By default, when a GRCh37 or GRCh38 variant is registered, the lifted-over equivalent is also registered, and mappings between them are stored.
+
+.. code-block:: pycon
+
+   >>> payload = {"definition": "NC_000010.11:g.87894077C>T"}
+   >>> response = requests.put("http://localhost:8000/variation", json=payload)
+   >>> registered_allele_id = response.json()["object_id"]
+   >>> response = requests.get(
+   ...     f"http://localhost:8000/variation/{registered_allele_id}/mappings/liftover"
+   ... )
+   >>> response.json()
+   {'mappings': [{'source_id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU',
+   'dest_id': 'ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf',
+   'mapping_type': 'liftover'}]}
+
 
 Working With Annotations
 ========================
