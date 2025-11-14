@@ -2,6 +2,7 @@
 
 import os
 import re
+from collections.abc import Iterator
 
 from sqlalchemy import (
     ForeignKey,
@@ -46,11 +47,15 @@ class Base(DeclarativeBase):
             column.name: getattr(self, column.name) for column in self.__table__.columns
         }
 
+    def disassemble(self) -> Iterator:
+        """Recursively disassemble into constituent ORM objects, if applicable. Will simply return self if object contains no other entities"""
+        yield self
+
 
 class VrsObject(Base):
     """AnyVar ORM model for vrs_objects table."""
 
-    vrs_id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True)
     vrs_object: Mapped[dict] = mapped_column(JSONB)
 
 
@@ -62,6 +67,11 @@ class Allele(Base):
     location_id: Mapped[str] = mapped_column(String, ForeignKey("locations.id"))
     location: Mapped["Location"] = relationship()
     state: Mapped[dict] = mapped_column(JSONB)
+
+    def disassemble(self) -> Iterator:
+        """Recursively disassemble to yield self + constituent `Location` and `SequenceReference` objects"""
+        yield from self.location.disassemble()
+        yield self
 
 
 class Location(Base):
@@ -79,6 +89,11 @@ class Location(Base):
     start_inner: Mapped[int | None]
     end_outer: Mapped[int | None]
     end_inner: Mapped[int | None]
+
+    def disassemble(self) -> Iterator:
+        """Recursively disassemble to yield self + constituent `SequenceReference` object"""
+        yield self.sequence_reference
+        yield self
 
 
 class SequenceReference(Base):
