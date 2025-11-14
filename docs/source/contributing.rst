@@ -25,7 +25,7 @@ As initial AnyVar development is ongoing, running all tests requires a small amo
 * ``Configure test database`` - unit and integration tests will set up a storage instance using the connection string defined by the environment variable ``ANYVAR_TEST_STORAGE_URI``, which defaults to ``"postgresql://postgres:postgres@localhost:5432/anyvar_test"``.
 * ``Ensure Celery backend and broker are available, and that Celery workers are NOT running`` - the task queueing tests create and manage their own Celery workers, but they do require access to a broker/backend for message transport and result storage. See `async task queuing setup instructions <todo>`_ for more. If an existing AnyVar Celery worker is running, they may not function properly.
 
-Tests are invoked with the `pytest` command. The project Makefile includes an easy shortcut:
+Tests are invoked with the ``pytest`` command. The project Makefile includes an easy shortcut:
 
 .. code-block:: shell
 
