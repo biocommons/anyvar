@@ -70,8 +70,8 @@ class Allele(Base):
 
     def disassemble(self) -> Iterator:
         """Recursively disassemble to yield self + constituent `Location` and `SequenceReference` objects"""
-        yield from self.location.disassemble()
         yield self
+        yield from self.location.disassemble()
 
 
 class Location(Base):
@@ -92,8 +92,8 @@ class Location(Base):
 
     def disassemble(self) -> Iterator:
         """Recursively disassemble to yield self + constituent `SequenceReference` object"""
-        yield self.sequence_reference
         yield self
+        yield self.sequence_reference
 
 
 class SequenceReference(Base):
