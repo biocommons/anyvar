@@ -116,7 +116,7 @@ class PostgresObjectStore(Storage):
             orm.Allele.__name__,
         ]
         sorted_vrs_objects: dict[str, dict[str, orm.Base]] = {
-            key: vrs_objects[key] for key in insert_order
+            key: vrs_objects[key] for key in insert_order if key in vrs_objects
         }
 
         with self.session_factory() as session, session.begin():
