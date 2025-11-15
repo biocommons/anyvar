@@ -58,3 +58,10 @@ Variant Mappings
    :no-index:
    :members:
    :undoc-members:
+
+.. _stateless_mode:
+
+Stateless Mode
+==============
+
+Optionally, an AnyVar server can be configured as `stateless`, to provide its variant translation and bulk file annotation functions without any persistent object registration backend. This utilizes the :py:class:`NoObjectStore <anyvar.storage.no_db.NoObjectStore>` class in place of a relational data backend.

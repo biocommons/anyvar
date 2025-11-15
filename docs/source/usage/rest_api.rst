@@ -170,3 +170,16 @@ For larger files, a nontrivial amount of processing time may be required before 
    >>> # this indicates the task is complete and the request includes the finished file
    >>> "VRS_Allele_IDs" in response.text
    True
+
+Get Service Info
+================
+
+AnyVar implements the `GA4GH Service Info specification <https://www.ga4gh.org/product/service-info/>`_. Get information about the AnyVar instance and the data standards it employs at ``GET /service-info``:
+
+.. code-block:: pycon
+
+   >>> response = requests.get("http://localhost:8000/service-info")
+   >>> response.json()["name"]
+   'AnyVar'
+   >>> response.json()["spec_metadata"]
+   {'vrs_version': '2.0.1'}

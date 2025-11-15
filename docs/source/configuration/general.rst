@@ -1,4 +1,4 @@
 General Configuration
 !!!!!!!!!!!!!!!!!!!!!
 
-* embed example .env
+.. literalinclude:: ../../../.env.example
