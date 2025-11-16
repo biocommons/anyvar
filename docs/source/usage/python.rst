@@ -1,3 +1,5 @@
+.. _python_usage:
+
 Using the Python API
 !!!!!!!!!!!!!!!!!!!!
 

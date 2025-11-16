@@ -1,3 +1,5 @@
+.. _rest_service_usage:
+
 Running REST Service
 !!!!!!!!!!!!!!!!!!!!
 
@@ -17,6 +19,11 @@ Once the server is running, most endpoints work immediately. However, operations
 .. code-block:: console
 
    % python -m celery -A anyvar.queueing.celery_worker:celery_app worker
+
+Storing Environment Variables
+=============================
+
+The AnyVar FastAPI app uses `python-dotenv <https://saurabh-kumar.com/python-dotenv/>`_ to load environment variables from a ``.env`` file when launched. See :doc:`the example file <dotenv_example>` for a starting point.
 
 Stateless Annotation and Translation
 ====================================

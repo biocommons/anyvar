@@ -33,6 +33,13 @@ AnyVar implements a :py:mod:`Translator <anyvar.translate.translate>` abstractio
    * - gnomAD/VCF
      - ``7-140753335-A-T``
 
+.. _vcf_ingest:
+
+VCF Ingestion and Annotation
+============================
+
+AnyVar can ingest and register all variants (and reference alleles) contained within a Variant Call Format (VCF) file, and return a file copy with variation IDs included as INFO field properties.
+
 .. _annotations:
 
 Object Annotations

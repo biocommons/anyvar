@@ -1,3 +1,5 @@
+.. _rest_api_usage:
+
 Using the REST API
 !!!!!!!!!!!!!!!!!!
 
@@ -170,6 +172,8 @@ For larger files, a nontrivial amount of processing time may be required before 
    >>> # this indicates the task is complete and the request includes the finished file
    >>> "VRS_Allele_IDs" in response.text
    True
+
+.. _get_service_info:
 
 Get Service Info
 ================
