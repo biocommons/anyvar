@@ -10,7 +10,7 @@ AnyVar uses `FastAPI <https://fastapi.tiangolo.com/>`_ to provide a REST-style H
 
    % python -m uvicorn anyvar.restapi.main:app
 
-See the `uvicorn documentation <https://uvicorn.dev/settings/#configuration-methods>`_ or run `uvicorn --help` for additional options.
+See the `uvicorn documentation <https://uvicorn.dev/settings/#configuration-methods>`_ or run ``uvicorn --help`` for additional options.
 
 Once the server is running, most endpoints work immediately. However, operations that require asynchronous background processing—such as handling VCF input—also need a running `Celery <https://docs.celeryq.dev/en/v5.5.3/index.html>`_ worker:
 
