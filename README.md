@@ -1,4 +1,4 @@
-# *AnyVar* - lightweight, portal variation storage and retrieval
+# *AnyVar* - lightweight, portable variation storage and retrieval
 
 AnyVar enables **registration**, **lookup**, and **search** of genetic variants across a distributed genomic resource network. Its goals are to:
 
