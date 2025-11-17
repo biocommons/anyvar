@@ -48,3 +48,5 @@ To build documentation, use the ``docs`` Makefile target from the project root d
    make docs
 
 HTML output is built in the subdirectory ``docs/build/html/``.
+
+The docs use `Sphinx GitHub Changelog <https://github.com/ewjoachim/sphinx-github-changelog>`_ to automatically generate the :doc:`changelog <changelog>` page. A GitHub API token must be provided for the Sphinx build process to fetch GitHub release history and generate this page. If not provided, an error will be logged during the build and the page will be blank.
