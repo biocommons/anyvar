@@ -23,7 +23,7 @@ Once the server is running, most endpoints work immediately. However, operations
 Storing Environment Variables
 =============================
 
-The AnyVar FastAPI app uses `python-dotenv <https://saurabh-kumar.com/python-dotenv/>`_ to load environment variables from a ``.env`` file when launched. See :doc:`the example file <dotenv_example>` for a starting point.
+The AnyVar FastAPI app uses `python-dotenv <https://saurabh-kumar.com/python-dotenv/>`_ to load environment variables from a ``.env`` file when launched. See :doc:`the example file <../configuration/dotenv_example>` for a starting point.
 
 Stateless Annotation and Translation
 ====================================

@@ -11,8 +11,9 @@ AnyVar enables **registration**, **lookup**, and **search** of genetic variants,
 .. toctree::
    :maxdepth: 2
    :caption: Contents
+   :hidden:
 
-   Getting Started<getting_started>
+   Getting Started<getting_started/index>
    Features<features>
    Usage<usage/index>
    Configuration<configuration/index>

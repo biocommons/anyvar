@@ -1,11 +1,10 @@
 GA4GH Service-Info Configuration
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+The :ref:`service-info API endpoint <get_service_info>` values can be defined via an external YAML file referenced through an environment variable. If this variable is not set, AnyVar falls back to its built-in defaults.
 
-See more here :ref:`service-info API endpoint <get_service_info>`
-
-Set with
-
+It is strongly recommended to provide explicit service-info metadata in
+production environments.
 
 .. list-table::
    :widths: 30 70
@@ -19,6 +18,6 @@ Set with
 Example service-info YAML file
 ==============================
 
-This demonstrates required and optional parameters for the service info definition file:
+The following example shows the required and optional fields that may appear in a service-info definition file:
 
 .. literalinclude:: ../../../.service_info_example.yaml
