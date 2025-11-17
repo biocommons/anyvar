@@ -32,7 +32,7 @@ See the [documentation](https://anyvar.readthedocs.io) for additional setup opti
 
 ## Examples
 
-Use the [Python API](https://anyvar.readthedocs.io/en/latest/api/api/anyvar.anyvar.html) to directly instantiate and query a local AnyVar instance:
+Use the Python API to directly instantiate and query a local AnyVar instance:
 
 ```pycon
 >>> from anyvar.anyvar import AnyVar, create_storage, create_translator
