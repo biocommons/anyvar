@@ -78,13 +78,7 @@ class Base(DeclarativeBase):
         )
         >>> disassembled_allele = allele.disassemble()
         >>> print(disassembled_allele)
-        >>> ---
-        >>> output:
-        >>> {
-                "Allele":  <Allele object>,
-                "Location": <Location object>,
-                "SequenceReference": <SequenceReference object>
-        >>> }
+        {'Allele': <anyvar.storage.orm.Allele object at 0x108dfa780>, 'Location': <anyvar.storage.orm.Location object at 0x101416db0>, 'SequenceReference': <anyvar.storage.orm.SequenceReference object at 0x100af5250>}
 
         """
         objects: dict[str, Base] = {}
