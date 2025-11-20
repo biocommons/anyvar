@@ -89,7 +89,7 @@ AnyVar employs the `agct <https://github.com/GenomicMedLab/agct/>`_ library to l
    (87894076, 87894077)
    >>> lifted_variant = get_liftover_variant(allele)
    >>> (lifted_variant.location.start, lifted_variant.location.end)
-   (lifted_variant.location.start, lifted_variant.location.end)
+   (89653833, 89653834)
 
 Object Mappings
 ===============
