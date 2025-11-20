@@ -48,6 +48,7 @@ def test_get_annotation_nonexistent_var(restapi_client: TestClient):
         "/variation/vrs_id_that_doesnt_exist/annotations/doesnt_matter"
     )
     assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json() == {"detail": "Variation vrs_id_that_doesnt_exist not found"}
 
 
 def test_post_annotation_nonexistent_var(
