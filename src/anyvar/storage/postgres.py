@@ -96,7 +96,7 @@ class PostgresObjectStore(Storage):
         # Process all objects and extract their components
         for vrs_object in objects_list:
             try:
-                db_entity: orm.Base = mapper_registry.to_db_entity(vrs_object)
+                db_entity = mapper_registry.to_db_entity(vrs_object)
             except AttributeError as e:
                 raise IncompleteVrsObjectError from e
 
