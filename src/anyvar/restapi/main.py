@@ -6,7 +6,7 @@ import logging
 import logging.config
 import os
 import pathlib
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from http import HTTPStatus
 from typing import Annotated, cast
@@ -28,7 +28,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import StrictStr
 
 import anyvar
-from anyvar.anyvar import AnyVar
+from anyvar.anyvar import AnyVar, ObjectNotFoundError
 from anyvar.restapi.schema import (
     AddAnnotationRequest,
     AddAnnotationResponse,
@@ -281,17 +281,15 @@ def get_variation_annotation(
     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
     annotation_type: Annotated[StrictStr, Path(..., description="Annotation type")],
 ) -> GetAnnotationResponse:
-    """Retrieve annotations for a variation.
-
-    :param request: FastAPI request object
-    :param vrs_id: VRS ID for variation
-    :param annotation_type: type of annotation to retrieve
-    :return: response object containing list of annotations for the variation
-    """
+    """Retrieve annotations for a variation."""
     av: AnyVar = request.app.state.anyvar
-    annotations: list[types.Annotation] = av.get_object_annotations(
-        vrs_id, annotation_type
-    )
+    try:
+        annotations = av.get_object_annotations(vrs_id, annotation_type)
+    except ObjectNotFoundError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"Variation {vrs_id} not found",
+        ) from e
     return GetAnnotationResponse(annotations=annotations)
 
 
@@ -365,17 +363,16 @@ def get_variation_mapping(
         types.VariationMappingType, Path(..., description="Mapping type")
     ],
 ) -> GetMappingResponse:
-    """Retrieve mappings for a variation.
-
-    :param request: FastAPI request object
-    :param vrs_id: VRS ID for variation
-    :param mapping_type: type of mapping to retrieve
-    :return: response object containing list of mappings for the variation
-    """
+    """Retrieve mappings for a variation."""
     av: AnyVar = request.app.state.anyvar
-    mappings: Iterable[types.VariationMapping] = av.get_object_mappings(
-        vrs_id, mapping_type
-    )
+    try:
+        mappings = av.get_object_mappings(vrs_id, mapping_type)
+    except ObjectNotFoundError as e:
+        raise HTTPException(
+            HTTPStatus.NOT_FOUND,
+            detail=f"Variation {vrs_id} not found",
+        ) from e
+
     return GetMappingResponse(mappings=mappings)
 
 
