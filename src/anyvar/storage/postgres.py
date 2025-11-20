@@ -33,6 +33,12 @@ class PostgresObjectStore(Storage):
     with object mapping to convert between VRS models and database entities.
     """
 
+    _VRS_OBJECT_INSERT_ORDER: list[str] = [  # noqa: RUF012
+        orm.SequenceReference.__name__,
+        orm.Location.__name__,
+        orm.Allele.__name__,
+    ]
+
     def __init__(self, db_url: str, *args, **kwargs) -> None:
         """Initialize PostgreSQL storage.
 
@@ -91,7 +97,7 @@ class PostgresObjectStore(Storage):
             return
 
         # Collect unique entities by ID to avoid duplicates
-        vrs_objects = defaultdict(dict)
+        vrs_objects = defaultdict(dict[str, orm.Base])
 
         # Process all objects and extract their components
         for vrs_object in objects_list:
@@ -104,26 +110,18 @@ class PostgresObjectStore(Storage):
             for entity_type, entity in object_parts.items():
                 vrs_objects[entity_type][entity.id] = entity
 
-        # Sort objects so that we insert in dependency order: sequence_references -> locations -> alleles
-        insert_order: list[str] = [
-            orm.SequenceReference.__name__,
-            orm.Location.__name__,
-            orm.Allele.__name__,
-        ]
-        sorted_vrs_objects: dict[str, dict[str, orm.Base]] = {
-            key: vrs_objects[key] for key in insert_order if key in vrs_objects
-        }
-
         with self.session_factory() as session, session.begin():
             # Use ON CONFLICT DO NOTHING to handle duplicates gracefully
             # We should have already de-duplicated by ID above, but duplicates
             # may already exist in the database.
 
-            for vrs_object_type, objects_by_id in sorted_vrs_objects.items():
-                dicts = [entity.to_dict() for entity in objects_by_id.values()]
-                orm_model = getattr(orm, vrs_object_type)
-                stmt = insert(orm_model).on_conflict_do_nothing()
-                session.execute(stmt, dicts)
+            for vrs_object_type in self._VRS_OBJECT_INSERT_ORDER:
+                objects_by_id = vrs_objects[vrs_object_type]
+                if objects_by_id:
+                    dicts = [entity.to_dict() for entity in objects_by_id.values()]
+                    orm_model = getattr(orm, vrs_object_type)
+                    stmt = insert(orm_model).on_conflict_do_nothing()
+                    session.execute(stmt, dicts)
 
     def get_objects(
         self, object_type: StoredObjectType, object_ids: Iterable[str]
