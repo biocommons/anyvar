@@ -3,7 +3,7 @@
 import json
 import logging
 from collections import defaultdict
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
 from sqlalchemy import create_engine, delete, select
@@ -86,7 +86,7 @@ class PostgresObjectStore(Storage):
         :raise IncompleteVrsObjectError: if object is missing required properties or if
             required properties aren't fully dereferenced
         """
-        objects_list = list(objects)
+        objects_list: list[types.VrsObject] = list(objects)
         if not objects_list:
             return
 
@@ -96,18 +96,13 @@ class PostgresObjectStore(Storage):
         # Process all objects and extract their components
         for vrs_object in objects_list:
             try:
-                db_entity = mapper_registry.to_db_entity(vrs_object)
+                db_entity: orm.Base = mapper_registry.to_db_entity(vrs_object)
             except AttributeError as e:
                 raise IncompleteVrsObjectError from e
 
-            db_entity_disassembler: Iterator = db_entity.disassemble()
-            while True:
-                try:
-                    entity: orm.Base = next(db_entity_disassembler)
-                    entity_type: str = entity.__class__.__name__
-                    vrs_objects[entity_type][entity.id] = entity  # type: ignore (all children of orm.Base have an `id` property)
-                except StopIteration:
-                    break
+            object_parts = db_entity.disassemble()
+            for entity_type, entity in object_parts.items():
+                vrs_objects[entity_type][entity.id] = entity
 
         # Sort objects so that we insert in dependency order: sequence_references -> locations -> alleles
         insert_order: list[str] = [
