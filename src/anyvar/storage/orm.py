@@ -82,14 +82,9 @@ class Base(DeclarativeBase):
 
         """
         objects: dict[str, Base] = {}
-        db_entity_disassembler: Iterator = self.get_disassembler()
-        while True:
-            try:
-                entity: Base = next(db_entity_disassembler)
-                entity_type: str = entity.__class__.__name__
-                objects[entity_type] = entity  # type: ignore (all children of orm.Base have an `id` property)
-            except StopIteration:
-                break
+        for entity in self.get_disassembler():
+            entity_type: str = entity.__class__.__name__
+            objects[entity_type] = entity  # type: ignore (all children of orm.Base have an `id` property)
 
         return objects
 
