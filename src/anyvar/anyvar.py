@@ -77,7 +77,7 @@ def has_queueing_enabled() -> bool:
 
 
 class ObjectNotFoundError(Exception):
-    """Raise for cases where no object with the provided ID can be found within storage"""
+    """Raised when a related object is requested for a primary entity that does not exist."""
 
 
 class AnyVar:
