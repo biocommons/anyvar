@@ -47,7 +47,7 @@ class Base(DeclarativeBase):
             column.name: getattr(self, column.name) for column in self.__table__.columns
         }
 
-    def get_disassembler(self) -> Iterator:
+    def get_disassembler(self) -> Iterator["Base"]:
         """Yields an Iterator that recursively disassembles this entity into itself + its constituent ORM objects.
         Will simply yield self if object contains no other entities.
 
@@ -55,7 +55,7 @@ class Base(DeclarativeBase):
         """
         yield self
 
-    def disassemble(self) -> dict:
+    def disassemble(self) -> dict[str, "Base"]:
         """Returns a dict containing this entity + all of its constituent ORM objects, keyed by type.
         If there are no constituent ORM objects, dict will just contain a single entry referring to this entity.
 
@@ -105,7 +105,7 @@ class Allele(Base):
     location: Mapped["Location"] = relationship()
     state: Mapped[dict] = mapped_column(JSONB)
 
-    def get_disassembler(self) -> Iterator:
+    def get_disassembler(self) -> Iterator[Base]:
         """Recursively disassemble to yield self + constituent `Location` and `SequenceReference` objects"""
         yield self
         yield from self.location.get_disassembler()
@@ -127,7 +127,7 @@ class Location(Base):
     end_outer: Mapped[int | None]
     end_inner: Mapped[int | None]
 
-    def get_disassembler(self) -> Iterator:
+    def get_disassembler(self) -> Iterator[Base]:
         """Recursively disassemble to yield self + constituent `SequenceReference` object"""
         yield self
         yield self.sequence_reference

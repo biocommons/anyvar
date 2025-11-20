@@ -108,7 +108,7 @@ class PostgresObjectStore(Storage):
 
             object_parts = db_entity.disassemble()
             for entity_type, entity in object_parts.items():
-                vrs_objects[entity_type][entity.id] = entity
+                vrs_objects[entity_type][entity.id] = entity  # type: ignore (all children of orm.Base have an `id`)
 
         with self.session_factory() as session, session.begin():
             # Use ON CONFLICT DO NOTHING to handle duplicates gracefully
