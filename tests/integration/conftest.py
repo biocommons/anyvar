@@ -6,11 +6,11 @@ import pytest
 from celery.contrib.testing.worker import start_worker
 from celery.result import AsyncResult
 from pytest_mock import MockerFixture
+from test_utils import build_vrs_variant_from_dict
 
 import anyvar.anyvar
 from anyvar.queueing.celery_worker import celery_app
 from anyvar.storage.base_storage import Storage
-from anyvar.utils.vrs_object_utils import build_vrs_object_from_dict
 
 
 @pytest.fixture
@@ -18,7 +18,7 @@ def preloaded_alleles(storage: Storage, alleles: dict):
     """Provide alleles that have been loaded into the storage instance for this scope"""
     storage.wipe_db()
     storage.add_objects(
-        [build_vrs_object_from_dict(a["variation"]) for a in alleles.values()]
+        [build_vrs_variant_from_dict(a["variation"]) for a in alleles.values()]
     )
     return alleles
 
