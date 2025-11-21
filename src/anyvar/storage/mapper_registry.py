@@ -51,7 +51,7 @@ class MapperRegistry:
         mapper = self.get_mapper(type(db_entity))
         return mapper.from_db_entity(db_entity)
 
-    def to_db_entity(self, anyvar_entity):  # noqa: ANN201, ANN001
+    def to_db_entity(self, anyvar_entity) -> orm.Base:  # noqa: ANN001
         """Convert any VRS model to its corresponding DB entity."""
         # Map VRS model types to DB entity types
 
