@@ -195,7 +195,7 @@ class AnyVar:
             raise e  # noqa: TRY201
         if not annotations:
             try:
-                self.get_object(object_id)
+                _ = self.get_object(object_id)
             except KeyError as e:
                 raise ObjectNotFoundError(object_id) from e
         return annotations
