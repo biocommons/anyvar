@@ -289,6 +289,61 @@ def test_sequencelocations_crud(
 
 
 @pytest.mark.ci_ok
+def test_sequencereferences_crud(
+    postgres_storage: PostgresObjectStore,
+    focus_alleles: tuple[models.Allele, models.Allele, models.Allele],
+    validated_vrs_alleles: dict[str, models.Allele],
+):
+    sequence_references_to_add: list[models.SequenceReference] = [
+        models.SequenceReference.model_validate(
+            a.location.sequenceReference  # type: ignore
+        )
+        for a in focus_alleles
+    ]
+    postgres_storage.add_objects(sequence_references_to_add)
+
+    # get SequenceReferences, including one with the wrong type/ID
+    result = postgres_storage.get_objects(
+        StoredObjectType.SEQUENCE_REFERENCE,
+        [
+            "ga4gh:VA.1FzYrqG-7jB3Wr46eIL_L5BWElQZEB7i",
+            sequence_references_to_add[0].id,  # type: ignore
+        ],
+    )
+    assert result == [sequence_references_to_add[0]]
+
+    # delete objects, other objects still persist
+    postgres_storage.delete_objects(
+        StoredObjectType.SEQUENCE_REFERENCE,
+        [sequence_references_to_add[2].id],  # type: ignore
+    )
+    result = postgres_storage.get_objects(
+        StoredObjectType.SEQUENCE_REFERENCE,
+        [sequence_references_to_add[2].id],  # type: ignore
+    )
+    assert result == []
+
+    result = list(
+        postgres_storage.get_objects(
+            StoredObjectType.SEQUENCE_REFERENCE,
+            [sequence_references_to_add[1].id, sequence_references_to_add[0].id],  # type: ignore
+        )
+    )
+    assert len(result) == 2
+    assert sequence_references_to_add[0] in result
+    assert sequence_references_to_add[1] in result
+
+    # test that all SequenceReferences fixtures load w/o issue
+    all_sequence_references = [
+        models.SequenceReference.model_validate(
+            a.location.sequenceReference  # type: ignore
+        )
+        for a in validated_vrs_alleles.values()
+    ]
+    postgres_storage.add_objects(all_sequence_references)
+
+
+@pytest.mark.ci_ok
 def test_get_all_ids(
     postgres_storage: PostgresObjectStore,
     focus_alleles: tuple[models.Allele, models.Allele, models.Allele],
