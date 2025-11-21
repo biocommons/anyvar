@@ -567,13 +567,7 @@ def get_variation_by_id(
     :raise HTTPException: if no variation matches provided ID
     """
     av: AnyVar = request.app.state.anyvar
-    try:
-        variation = av.get_object(variation_id)
-    except KeyError as e:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail=f"Variation {variation_id} not found",
-        ) from e
+    variation = _get_vrs_variation(av, variation_id)
 
     return GetVariationResponse(messages=[], data=variation)
 

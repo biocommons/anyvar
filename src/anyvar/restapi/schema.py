@@ -273,6 +273,34 @@ class GetVariationResponse(BaseModel):
     data: VrsObject
 
 
+class GetLocationResponse(BaseModel):
+    """Describe response for the GET /location/{location_id} endpoint"""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "messages": [],
+                    "data": {
+                        "digest": "01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
+                        "id": "ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
+                        "start": 87894076,
+                        "end": 87894077,
+                        "sequenceReference": {
+                            "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
+                            "type": "SequenceReference",
+                        },
+                        "type": "SequenceLocation",
+                    },
+                }
+            ]
+        }
+    )
+
+    messages: list[StrictStr]
+    data: models.SequenceLocation
+
+
 class SearchResponse(BaseModel):
     """Describe response for the GET /search endpoint"""
 
