@@ -79,4 +79,10 @@ Task queueing for operations on large VCFs requires the availability of a backen
 Verifying Installation
 ======================
 
-:doc:`Launch the REST API server <../usage/rest_api>`, and direct your web browser to `http://127.0.0.1 <http://127.0.0.1>`. You should see the Swagger UI documentation demonstrating AnyVar REST API endpoints.
+Launch the REST API server:
+
+.. code-block:: console
+
+   % python -m uvicorn anyvar.restapi.main:app
+
+...and direct your web browser to `http://127.0.0.1 <http://127.0.0.1>`. You should see the Swagger UI documentation demonstrating AnyVar REST API endpoints.

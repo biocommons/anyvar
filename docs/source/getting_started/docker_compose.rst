@@ -22,7 +22,7 @@ Then, launch the application:
 
 .. code-block:: console
 
-   % docker-compose up
+   % docker compose up
 
 This will:
 
@@ -33,4 +33,4 @@ This will:
 
 Once the containers are running, visit `http://127.0.0.1:8010/docs <http://127.0.0.1:8010/docs>`_ to view the interactive Swagger UI and confirm the service is responding.
 
-See :doc:`REST API usage <../usage/rest_api>` for supported server functions and endpoints, and :doc:`Configuring Docker Compose <docker_compose>` for more configuration information.
+See :doc:`REST API usage <../usage/rest_api>` for supported server functions and endpoints, and :doc:`Configuring Docker Compose <../configuration/docker_compose>` for more configuration information.
