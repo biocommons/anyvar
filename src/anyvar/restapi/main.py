@@ -563,7 +563,7 @@ def get_location_by_id(
     """
     av: AnyVar = request.app.state.anyvar
     location: models.SequenceLocation = models.SequenceLocation.model_validate(
-        _get_vrs_object(av, location_id, StoredObjectType.LOCATION)
+        _get_vrs_object(av, location_id, StoredObjectType.SEQUENCE_LOCATION)
     )
     return GetSequenceLocationResponse(location=location)
 
