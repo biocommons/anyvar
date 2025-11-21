@@ -22,6 +22,7 @@ VrsVariation = models.Allele | models.CopyNumberChange | models.CopyNumberCount
 
 class SupportedVariationType(StrEnum):
     """Supported variation types for API input. Enum is dynamically built from the models in the `VrsVariation` type union.
+    This should only be used to parse HTTP input in the `src/anyvar/restapi/schema.py` models, not within application logic.
 
     Example:
     >>> SupportedVariationType.COPY_NUMBER_CHANGE = "CopyNumberChange"
