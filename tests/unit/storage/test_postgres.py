@@ -3,8 +3,8 @@
 import os
 
 import pytest
+from conftest import build_vrs_variant_from_dict
 from ga4gh.vrs import models
-from test_utils import build_vrs_variant_from_dict
 
 from anyvar.storage.base_storage import (
     DataIntegrityError,
