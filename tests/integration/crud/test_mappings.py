@@ -113,7 +113,7 @@ def test_put_mapping_invalid_source(restapi_client, preloaded_allele_pairs):
         json={"dest_id": source_vrs_id, "mapping_type": DEFAULT_MAPPING_TYPE},
     )
     assert resp.status_code == HTTPStatus.NOT_FOUND
-    assert resp.json() == {"detail": "Variation ga4gh:VA.invalidsource not found"}
+    assert resp.json() == {"detail": "VRS Object ga4gh:VA.invalidsource not found"}
 
 
 def test_put_mapping_invalid_dest(restapi_client, preloaded_allele_pairs):
@@ -126,7 +126,7 @@ def test_put_mapping_invalid_dest(restapi_client, preloaded_allele_pairs):
         json={"dest_id": "ga4gh:VA.invaliddest", "mapping_type": DEFAULT_MAPPING_TYPE},
     )
     assert resp.status_code == HTTPStatus.NOT_FOUND
-    assert resp.json() == {"detail": "Variation ga4gh:VA.invaliddest not found"}
+    assert resp.json() == {"detail": "VRS Object ga4gh:VA.invaliddest not found"}
 
 
 def test_put_mapping_invalid_mapping(restapi_client, preloaded_allele_pairs):
