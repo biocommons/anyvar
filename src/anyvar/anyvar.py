@@ -110,7 +110,7 @@ class AnyVar:
     def get_object(
         self, object_id: str, object_type: StoredObjectType | None = None
     ) -> VrsObject:
-        """Retrieve registered variation.
+        """Retrieve registered VRS Object.
 
         :param object_id: object identifier
         :param object_type: specific object type to search (optional - if not provided, searches all types)

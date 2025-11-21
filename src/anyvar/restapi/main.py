@@ -12,7 +12,6 @@ from http import HTTPStatus
 from typing import Annotated, cast
 
 import anyio
-import ga4gh.vrs
 import yaml
 from dotenv import load_dotenv
 from fastapi import (
@@ -25,6 +24,7 @@ from fastapi import (
     Response,
 )
 from fastapi.responses import JSONResponse, StreamingResponse
+from ga4gh.vrs import models
 from pydantic import StrictStr
 
 import anyvar
@@ -38,6 +38,7 @@ from anyvar.restapi.schema import (
     GetAnnotationResponse,
     GetMappingResponse,
     GetSequenceLocationResponse,
+    GetSequenceReferenceResponse,
     GetVariationResponse,
     RegisterVariationRequest,
     RegisterVariationResponse,
@@ -45,6 +46,7 @@ from anyvar.restapi.schema import (
     ServiceInfo,
 )
 from anyvar.restapi.vcf import router as vcf_router
+from anyvar.storage.base_storage import StoredObjectType
 from anyvar.translate.translate import (
     TranslationError,
 )
@@ -55,20 +57,23 @@ load_dotenv()
 _logger = logging.getLogger(__name__)
 
 
-def _get_vrs_variation(av: AnyVar, vrs_variation_id: str) -> VrsObject:
+def _get_vrs_object(
+    av: AnyVar, vrs_object_id: str, object_type: StoredObjectType | None = None
+) -> VrsObject:
     """Get VRS variation given VRS ID
 
     :param av: AnyVar instance
-    :param vrs_variation_id: VRS Variation ID to retrieve
-    :raises HTTPException: If no VRS Variation ID found
+    :param vrs_object_id: VRS Variation ID to retrieve
+    :param object_type: (Optional) The type of object to retrieve
+    :raises HTTPException: If no VRS object ID found
     :return: VrsObject
     """
     try:
-        return av.get_object(vrs_variation_id)
+        return av.get_object(vrs_object_id, object_type)
     except KeyError as e:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
-            detail=f"Variation {vrs_variation_id} not found",
+            detail=f"VRS Object {vrs_object_id} not found",
         ) from e
 
 
@@ -178,39 +183,6 @@ def service_info(
     return ServiceInfo(**service_info)
 
 
-@app.get(
-    "/locations/{location_id}",
-    response_model_exclude_none=True,
-    summary="Retrieve sequence location",
-    description="Retrieve registered sequence location by ID",
-    tags=[EndpointTag.LOCATIONS],
-)
-def get_location_by_id(
-    request: Request,
-    location_id: Annotated[StrictStr, Path(..., description="Location VRS ID")],
-) -> GetSequenceLocationResponse:
-    """Retrieve stored location object by ID.
-
-    :param request: FastAPI request object
-    :param location_id: VRS location identifier
-    :return: complete location object if successful
-    :raise HTTPException: if requested location isn't found
-    """
-    av: AnyVar = request.app.state.anyvar
-    try:
-        location: ga4gh.vrs.models.SequenceLocation = av.get_object(location_id)  # type: ignore[reportAssignmentType]
-    except KeyError as e:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail=f"Location {location_id} not found"
-        ) from e
-
-    if location:
-        return GetSequenceLocationResponse(location=location)
-    raise HTTPException(
-        status_code=HTTPStatus.NOT_FOUND, detail=f"Location {location_id} not found"
-    )
-
-
 @app.post(
     "/variation/{vrs_id}/annotations",
     response_model_exclude_none=True,
@@ -238,7 +210,7 @@ def add_variation_annotation(
     """
     # Look up the variation from the AnyVar store
     av: AnyVar = request.app.state.anyvar
-    variation: VrsObject = _get_vrs_variation(av, vrs_id)
+    variation: VrsObject = _get_vrs_object(av, vrs_id)
 
     # Add the annotation to the database
     annotation_id: int | None = None
@@ -319,9 +291,9 @@ async def add_variation_mapping(
     :return: source and destination vrs variation and mapping type, if found
     """
     av: AnyVar = request.app.state.anyvar
-    source_vrs_obj: VrsObject = _get_vrs_variation(av, vrs_id)
+    source_vrs_obj: VrsObject = _get_vrs_object(av, vrs_id)
     dest_vrs_id = mapping_request.dest_id
-    dest_vrs_obj: VrsObject = _get_vrs_variation(av, dest_vrs_id)
+    dest_vrs_obj: VrsObject = _get_vrs_object(av, dest_vrs_id)
 
     # Add the mapping to the database
     mapping: types.VariationMapping | None = None
@@ -567,9 +539,65 @@ def get_variation_by_id(
     :raise HTTPException: if no variation matches provided ID
     """
     av: AnyVar = request.app.state.anyvar
-    variation = _get_vrs_variation(av, variation_id)
-
+    variation = _get_vrs_object(av, variation_id, StoredObjectType.ALLELE)
     return GetVariationResponse(messages=[], data=variation)
+
+
+@app.get(
+    "/locations/{location_id}",
+    response_model_exclude_none=True,
+    summary="Retrieve sequence location",
+    description="Retrieve registered sequence location by ID",
+    tags=[EndpointTag.LOCATIONS],
+)
+def get_location_by_id(
+    request: Request,
+    location_id: Annotated[StrictStr, Path(..., description="Location VRS ID")],
+) -> GetSequenceLocationResponse:
+    """Retrieve stored location object by ID.
+
+    :param request: FastAPI request object
+    :param location_id: VRS location identifier
+    :return: VRS location object if successful
+    :raise HTTPException: if requested location isn't found
+    """
+    av: AnyVar = request.app.state.anyvar
+    location: models.SequenceLocation = models.SequenceLocation.model_validate(
+        _get_vrs_object(av, location_id, StoredObjectType.LOCATION)
+    )
+    return GetSequenceLocationResponse(location=location)
+
+
+@app.get(
+    "/sequence_reference/{sequence_reference_id}",
+    response_model_exclude_none=True,
+    operation_id="getSequenceReference",
+    summary="Retrieve a sequence reference object",
+    description="Gets a sequence reference instance by ID.",
+    tags=[EndpointTag.SEQUENCES],
+)
+def get_sequence_reference_by_id(
+    request: Request,
+    sequence_reference_id: Annotated[
+        StrictStr, Path(..., description="Sequence reference VRS ID")
+    ],
+) -> GetSequenceReferenceResponse:
+    """Get registered sequence reference given VRS ID.
+
+    :param request: FastAPI request object
+    :param variation_id: ID to look up
+    :return: VRS sequence reference object if successful
+    :raise HTTPException: if no sequence reference matches provided ID
+    """
+    av: AnyVar = request.app.state.anyvar
+    sequence_reference: models.SequenceReference = (
+        models.SequenceReference.model_validate(
+            _get_vrs_object(
+                av, sequence_reference_id, StoredObjectType.SEQUENCE_REFERENCE
+            )
+        )
+    )
+    return GetSequenceReferenceResponse(sequence_reference=sequence_reference)
 
 
 @app.get(

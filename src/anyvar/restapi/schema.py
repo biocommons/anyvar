@@ -131,9 +131,15 @@ class ServiceInfo(BaseModel):
 
 
 class GetSequenceLocationResponse(BaseModel):
-    """Describe response for the GET /locations/ endpoint"""
+    """Describe response for the GET /locations/{location_id} endpoint"""
 
     location: models.SequenceLocation | None
+
+
+class GetSequenceReferenceResponse(BaseModel):
+    """Describe response for the GET /sequence_reference/{sequence_reference_id} endpoint"""
+
+    sequence_reference: models.SequenceReference | None
 
 
 class RegisterVariationRequest(BaseModel):
@@ -271,34 +277,6 @@ class GetVariationResponse(BaseModel):
 
     messages: list[StrictStr]
     data: VrsObject
-
-
-class GetLocationResponse(BaseModel):
-    """Describe response for the GET /location/{location_id} endpoint"""
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "messages": [],
-                    "data": {
-                        "digest": "01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
-                        "id": "ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
-                        "start": 87894076,
-                        "end": 87894077,
-                        "sequenceReference": {
-                            "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
-                            "type": "SequenceReference",
-                        },
-                        "type": "SequenceLocation",
-                    },
-                }
-            ]
-        }
-    )
-
-    messages: list[StrictStr]
-    data: models.SequenceLocation
 
 
 class SearchResponse(BaseModel):
