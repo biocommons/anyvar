@@ -2,6 +2,7 @@
 
 import os
 import re
+from collections.abc import Iterator
 
 from sqlalchemy import (
     ForeignKey,
@@ -46,11 +47,52 @@ class Base(DeclarativeBase):
             column.name: getattr(self, column.name) for column in self.__table__.columns
         }
 
+    def get_disassembler(self) -> Iterator["Base"]:
+        """Yields an Iterator that recursively disassembles this entity into itself + its constituent ORM objects.
+        Will simply yield self if object contains no other entities.
+
+        :return: An Iterator yielding this entity + its constituent ORM objects
+        """
+        yield self
+
+    def disassemble(self) -> dict[str, "Base"]:
+        """Returns a dict containing this entity + all of its constituent ORM objects, keyed by type.
+        If there are no constituent ORM objects, dict will just contain a single entry referring to this entity.
+
+        Example:
+        >>> sequence_reference = orm.SequenceReference(
+            id="SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
+            # etc...
+        )
+        >>> location = orm.Location(
+            id="ga4gh:SL.U8b3eMCw6QjGA9cnDx_KYxqbol0UrEKx",
+            sequence_reference_id=sequence_reference.id,
+            sequence_reference=sequence_reference
+            # etc...
+        )
+        >>> allele = orm.Allele(
+            id="ga4gh:VA.uR23Z7AAFaLHhPUymUEYNG4o2CCE560T",
+            location_id=location.id,
+            location=location
+            # etc...
+        )
+        >>> disassembled_allele = allele.disassemble()
+        >>> print(disassembled_allele)
+        {'Allele': <anyvar.storage.orm.Allele object at 0x108dfa780>, 'Location': <anyvar.storage.orm.Location object at 0x101416db0>, 'SequenceReference': <anyvar.storage.orm.SequenceReference object at 0x100af5250>}
+
+        """
+        objects: dict[str, Base] = {}
+        for entity in self.get_disassembler():
+            entity_type: str = entity.__class__.__name__
+            objects[entity_type] = entity  # type: ignore (all children of orm.Base have an `id` property)
+
+        return objects
+
 
 class VrsObject(Base):
     """AnyVar ORM model for vrs_objects table."""
 
-    vrs_id: Mapped[str] = mapped_column(String, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True)
     vrs_object: Mapped[dict] = mapped_column(JSONB)
 
 
@@ -62,6 +104,11 @@ class Allele(Base):
     location_id: Mapped[str] = mapped_column(String, ForeignKey("locations.id"))
     location: Mapped["Location"] = relationship()
     state: Mapped[dict] = mapped_column(JSONB)
+
+    def get_disassembler(self) -> Iterator[Base]:
+        """Recursively disassemble to yield self + constituent `Location` and `SequenceReference` objects"""
+        yield self
+        yield from self.location.get_disassembler()
 
 
 class Location(Base):
@@ -79,6 +126,11 @@ class Location(Base):
     start_inner: Mapped[int | None]
     end_outer: Mapped[int | None]
     end_inner: Mapped[int | None]
+
+    def get_disassembler(self) -> Iterator[Base]:
+        """Recursively disassemble to yield self + constituent `SequenceReference` object"""
+        yield self
+        yield self.sequence_reference
 
 
 class SequenceReference(Base):
@@ -118,8 +170,6 @@ mapping_type_enum = PgEnum(
 
 class VariationMapping(Base):
     """AnyVar ORM model for variation-to-variation mapping"""
-
-    __tablename__ = "variation_mappings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     source_id: Mapped[str] = mapped_column(String)
