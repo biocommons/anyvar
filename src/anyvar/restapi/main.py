@@ -45,11 +45,17 @@ from anyvar.restapi.schema import (
     ServiceInfo,
 )
 from anyvar.restapi.vcf import router as vcf_router
+from anyvar.storage.base_storage import IncompleteVrsObjectError
 from anyvar.translate.translate import (
     TranslationError,
 )
 from anyvar.utils import liftover_utils, types
-from anyvar.utils.types import VrsObject, VrsVariation, variation_class_map
+from anyvar.utils.types import (
+    VrsObject,
+    VrsVariation,
+    recursive_identify,
+    variation_class_map,
+)
 
 load_dotenv()
 _logger = logging.getLogger(__name__)
@@ -535,10 +541,14 @@ def register_vrs_object(
         )
 
     variation_object = variation_class_map[variation_type](**variation.model_dump())
-    av.put_objects([variation_object])
+    try:
+        av.put_objects([variation_object])
+    except IncompleteVrsObjectError:
+        variation_object = recursive_identify(variation_object)
+        av.put_objects([variation_object])
 
     liftover_messages = liftover_utils.add_liftover_mapping(
-        variation, av.object_store, av.translator.dp
+        variation_object, av.object_store, av.translator.dp
     )
 
     return RegisterVariationResponse(
