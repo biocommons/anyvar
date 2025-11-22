@@ -67,15 +67,6 @@ For setup options, see the SeqRepo documentation and Docker image:
 * **Docker image** — a containerized SeqRepo dataset suitable for use with AnyVar and other tools:
   https://hub.docker.com/r/biocommons/seqrepo
 
-Queueing Backend/Broker: Redis
-==============================
-
-Task queueing for operations on large VCFs requires the availability of a backend and broker for Celery. Most users are recommended to use `Redis <https://redis.io/docs/latest/>`. For example, to launch a Redis docker container:
-
-.. code-block:: console
-
-   % docker run -d --name redis -p 6379:6379 redis:latest
-
 Verifying Installation
 ======================
 
@@ -86,3 +77,30 @@ Launch the REST API server:
    % python -m uvicorn anyvar.restapi.main:app
 
 ...and direct your web browser to `http://127.0.0.1 <http://127.0.0.1>`. You should see the Swagger UI documentation demonstrating AnyVar REST API endpoints.
+
+Optional: Queueing Configuration
+================================
+
+Optionally, additional setup may be performed to enable asynchronous processing of large files, using `Celery <https://docs.celeryq.dev/en/stable/index.html>`_.
+
+Backend/Broker
+--------------
+
+First, Celery requires a backend and broker for task queueing. Most users are recommended to use `Redis <https://redis.io/docs/latest/>`. For example, to launch a Redis docker container:
+
+.. code-block:: console
+
+   % docker run -d --name redis -p 6379:6379 redis:latest
+
+See :ref:`here <async_broker_config>` for details on configuring the broker and backend connections.
+
+Shared Working Directory
+------------------------
+
+A path to a working directory accessible by an AnyVar server and Celery workers must be explicitly declared with the environment variable ``ANYVAR_VCF_ASYNC_WORK_DIR``.
+
+.. code-block:: console
+
+   % export ANYVAR_VCF_ASYNC_WORK_DIR=path/to/shared/worker/volume
+
+See :ref:`here <async_work_dir_config>` for more information.

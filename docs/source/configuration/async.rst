@@ -1,6 +1,28 @@
 Asynchronous Processing Configuration
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+.. _async_work_dir_config:
+
+Required: Work Directory Path
+=============================
+
+Designate the directory where AnyVar shares files for asynchronous data processing with ``ANYVAR_VCF_ASYNC_WORK_DIR``. This path **must refer to a shared filesystem** that is accessible to both the web API processes (which write the VCF data) and the Celery worker processes (which read and process it). It is the deployer’s responsibility to provision and mount this shared storage (e.g., via a persistent volume, NFS mount, or network filesystem) into all participating containers.
+
+.. important::
+
+    This value *must* be set for asynchronous processing to function. Note that it also must be set for both central AnyVar processes as well as workers.
+
+.. list-table::
+   :widths: 30 70
+   :header-rows: 1
+
+   * - Environment Variable
+     - Default Value
+   * - ``ANYVAR_VCF_ASYNC_WORK_DIR``
+     - n/a
+
+.. _async_broker_config:
+
 Broker/Backend Connection
 =========================
 
@@ -22,6 +44,10 @@ Celery Task Settings
 
 These variables control how the Celery worker behaves at runtime, including task routing, timeouts, and result handling. See the `Celery configuration documentation <https://docs.celeryq.dev/en/latest/userguide/configuration.html>`_ for details on each setting.
 
+.. note::
+
+   ``CELERY_TASK_TIME_LIMIT`` and ``CELERY_SOFT_TIME_LIMIT`` designate how long a single task is permitted to run. This value should be revised upward in cases where long processing times are anticipated.
+
 .. list-table::
    :widths: 30 70
    :header-rows: 1
@@ -35,13 +61,15 @@ These variables control how the Celery worker behaves at runtime, including task
    * - ``CELERY_TIMEZONE``
      - ``"UTC"``
    * - ``CELERY_RESULT_EXPIRES``
-     - ``7200``
+     - ``"7200"``
+   * - ``CELERY_BROKER_TRANSPORT_OPTIONS_VISIBILITY_TIMEOUT``
+     - ``"7200"``
    * - ``CELERY_TASK_ACKS_LATE``
      - ``true``
    * - ``CELERY_TASK_REJECT_ON_WORKER_LOST``
      - ``false``
    * - ``CELERY_WORKER_PREFETCH_MULTIPLIER``
-     - ``3900``
+     - ``"1"``
    * - ``CELERY_TASK_TIME_LIMIT``
      - ``3900``
    * - ``CELERY_SOFT_TIME_LIMIT``
