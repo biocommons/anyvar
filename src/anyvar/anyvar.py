@@ -8,10 +8,18 @@ import logging
 import os
 import warnings
 from collections.abc import Iterable
+from typing import TypeVar
 from urllib.parse import urlparse
 
+from ga4gh.core import ga4gh_identify
+from ga4gh.vrs import vrs_deref, vrs_enref
+
 from anyvar.storage import DEFAULT_STORAGE_URI
-from anyvar.storage.base_storage import Storage, StoredObjectType
+from anyvar.storage.base_storage import (
+    IncompleteVrsObjectError,
+    Storage,
+    StoredObjectType,
+)
 from anyvar.translate.translate import _Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
 from anyvar.utils import types
@@ -76,6 +84,30 @@ def has_queueing_enabled() -> bool:
     )
 
 
+Type_VrsObject = TypeVar("Type_VrsObject", bound=VrsObject)
+
+
+def _recursive_identify(vrs_object: Type_VrsObject) -> Type_VrsObject:
+    """Add GA4GH IDs to an object and all GA4GH-identifiable objects contained within.
+
+    ***This is a very hack-y solution and should not be relied upon any more than it is.
+    It appears that enref/deref() will add IDs within objects, but don't produce a
+    correct ID, and ga4gh_identify() won't add IDs to contained objects, so this function
+    runs both in succession.
+
+    There is probably an upstream fix in VRS-Python that needs to happen.
+
+    :param vrs_object: AnyVar-supported variation object
+    :return: same object, with any missing ID fields filled in
+    """
+    storage = {}
+    enreffed = vrs_enref(vrs_object, storage)
+    dereffed = vrs_deref(enreffed, storage)
+    dereffed.id = None  # type: ignore[reportAttributeAccessIssue]
+    ga4gh_identify(dereffed, in_place="always")
+    return dereffed  # type: ignore[reportReturnType]
+
+
 class AnyVar:
     """Define core AnyVar class."""
 
@@ -96,13 +128,26 @@ class AnyVar:
         self.translator = translator
 
     def put_objects(self, variation_objects: list[VrsObject]) -> None:
-        """Attempt to register variation.
+        """Attempt to register variation objects
 
-        :param variation_object: complete VRS object
-        :return: None
+        The provided list may contain any supported variation object -- i.e. not just
+        Alleles or molecular variations -- and is not required to contain only one
+        kind of object.
+
+        This method also recalculates and affixes correct GA4GH IDs to all objects,
+        overwriting or adding them if they are not included.
+
+        :param variation_objects: list of complete variation objects (i.e. VRS-Python models)
         """
         try:
             self.object_store.add_objects(variation_objects)
+        except IncompleteVrsObjectError:
+            _logger.debug(
+                "Encountered IncompleteVrsObjectError; re-attempting after manual identification"
+            )
+            self.object_store.add_objects(
+                [_recursive_identify(obj) for obj in variation_objects]
+            )
         except Exception as e:
             _logger.exception("Failed to add object: %s", variation_objects)
             raise e  # noqa: TRY201

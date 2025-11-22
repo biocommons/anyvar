@@ -496,7 +496,6 @@ def register_variation(
 
 PUT_VRS_VARIATION_EXAMPLE_PAYLOAD = {
     "location": {
-        "id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8",
         "end": 87894077,
         "start": 87894076,
         "sequenceReference": {
