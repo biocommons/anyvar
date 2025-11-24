@@ -7,7 +7,7 @@ from ga4gh.vrs.dataproxy import _DataProxy, create_dataproxy
 from ga4gh.vrs.extras.translator import AlleleTranslator, CnvTranslator
 
 from anyvar.translate.translate import TranslationError
-from anyvar.utils.types import SupportedVariationType
+from anyvar.utils import types
 
 from . import _Translator
 
@@ -41,14 +41,12 @@ class VrsPythonTranslator(_Translator):
         self.allele_tlr = AlleleTranslator(data_proxy=self.dp)
         self.cnv_tlr = CnvTranslator(data_proxy=self.dp)
 
-    def translate_variation(
-        self, var: str, **kwargs
-    ) -> models.Allele | models.CopyNumberCount | models.CopyNumberChange | None:
+    def translate_variation(self, var: str, **kwargs) -> types.VrsVariation | None:
         """Translate provided variation text into a VRS Variation object.
 
         :param var: user-provided string describing or referencing a variation.
         :param input_type: The type of variation for `var`.
-        :keyword SupportedVariationType input_type: The type of variation for `var`. If
+        :keyword types.VrsVariation input_type: The type of variation for `var`. If
             not provided, will first try to translate to allele and then copy number
         :keyword int copies: The number of copies for VRS Copy Number Count
         :keyword models.CopyChange copy_change: The EFO code for VRS COpy Number Change
@@ -59,12 +57,9 @@ class VrsPythonTranslator(_Translator):
         """
         variation = None
         input_type = kwargs.get("input_type")
-        if input_type == SupportedVariationType.ALLELE:
+        if input_type is models.Allele:
             variation = self.translate_allele(var)
-        elif input_type in {
-            SupportedVariationType.COPY_NUMBER_CHANGE,
-            SupportedVariationType.COPY_NUMBER_COUNT,
-        }:
+        elif input_type in (models.CopyNumberChange, models.CopyNumberCount):
             variation = self.translate_cnv(var, **kwargs)
         else:
             # Try allele then copy number
