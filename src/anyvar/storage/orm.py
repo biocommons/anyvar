@@ -3,7 +3,9 @@
 import os
 from collections.abc import Iterator
 
+from ga4gh.vrs.models import MoleculeType
 from sqlalchemy import (
+    Enum,
     ForeignKey,
     Index,
     Integer,
@@ -138,7 +140,13 @@ class SequenceReference(Base):
     """AnyVar ORM model for SequenceReferences"""
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    molecule_type: Mapped[str | None]
+    molecule_type: Mapped[MoleculeType | None] = mapped_column(
+        Enum(
+            MoleculeType,
+            native_enum=True,
+            values_callable=lambda mt_enum: [mt.value for mt in mt_enum],
+        )
+    )
 
 
 class Annotation(Base):
