@@ -2,7 +2,7 @@ import pytest
 from ga4gh.vrs import models
 
 from anyvar.anyvar import AnyVar
-from anyvar.storage.base_storage import Storage, StoredObjectType
+from anyvar.storage.base_storage import Storage
 from anyvar.translate.translate import _Translator
 from anyvar.utils import liftover_utils
 from anyvar.utils.types import VariationMappingType
@@ -208,7 +208,7 @@ def test_liftover_mapping_success(
     assert len(mappings) == 1
     assert mappings[0].dest_id == dst.id
 
-    result = list(storage.get_objects(StoredObjectType.ALLELE, [dst.id]))
+    result = list(storage.get_objects(models.Allele, [dst.id]))
     assert len(result) == 1
 
 
