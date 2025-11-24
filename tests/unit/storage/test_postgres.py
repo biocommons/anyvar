@@ -307,7 +307,7 @@ def test_sequencereferences_crud(
         StoredObjectType.SEQUENCE_REFERENCE,
         [
             "ga4gh:VA.1FzYrqG-7jB3Wr46eIL_L5BWElQZEB7i",
-            sequence_references_to_add[0].id,  # type: ignore
+            sequence_references_to_add[0].refgetAccession,
         ],
     )
     assert result == [sequence_references_to_add[0]]
@@ -315,18 +315,21 @@ def test_sequencereferences_crud(
     # delete objects, other objects still persist
     postgres_storage.delete_objects(
         StoredObjectType.SEQUENCE_REFERENCE,
-        [sequence_references_to_add[2].id],  # type: ignore
+        [sequence_references_to_add[2].refgetAccession],  # type: ignore
     )
     result = postgres_storage.get_objects(
         StoredObjectType.SEQUENCE_REFERENCE,
-        [sequence_references_to_add[2].id],  # type: ignore
+        [sequence_references_to_add[2].refgetAccession],  # type: ignore
     )
     assert result == []
 
     result = list(
         postgres_storage.get_objects(
             StoredObjectType.SEQUENCE_REFERENCE,
-            [sequence_references_to_add[1].id, sequence_references_to_add[0].id],  # type: ignore
+            [
+                sequence_references_to_add[1].refgetAccession,
+                sequence_references_to_add[0].refgetAccession,
+            ],  # type: ignore
         )
     )
     assert len(result) == 2
