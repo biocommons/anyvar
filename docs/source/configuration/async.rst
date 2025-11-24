@@ -46,7 +46,9 @@ These variables control how the Celery worker behaves at runtime, including task
 
 .. note::
 
-   ``CELERY_TASK_TIME_LIMIT`` and ``CELERY_SOFT_TIME_LIMIT`` designate how long a single task is permitted to run. This value should be revised upward in cases where long processing times are anticipated.
+   ``CELERY_TASK_TIME_LIMIT`` and ``CELERY_SOFT_TIME_LIMIT`` designate how long a single task is permitted to run, and ``CELERY_BROKER_TRANSPORT_OPTIONS_VISIBILITY_TIMEOUT`` defines how long the task queue waits for a worker to signal that it's finished before reassigning it to another worker. These values should be revised upward in cases where long processing times are anticipated.
+
+   Similarly, ``CELERY_RESULT_EXPIRES`` defines how long a completed task remains in the queue as acknowledged before being erased. For long-running tasks with irregular polling, this value may need to be increased as well.
 
 .. list-table::
    :widths: 30 70
