@@ -2,6 +2,7 @@
 
 from http import HTTPStatus
 
+import pytest
 from fastapi.testclient import TestClient
 
 
@@ -82,3 +83,49 @@ def test_get_allele(restapi_client: TestClient, preloaded_alleles):
 #         resp = restapi_client.put("/vrs_variation", json=params)
 #         assert resp.status_code == HTTPStatus.OK
 #         assert resp.json()["object_id"] == copy_number_id
+
+
+def test_post_variation_registered(restapi_client: TestClient, preloaded_alleles):
+    """Test POST method when variation has already been registered"""
+    for allele_fixture in preloaded_alleles.values():
+        if "register_params" not in allele_fixture:
+            continue
+
+        resp = restapi_client.post("/variation", json=allele_fixture["register_params"])
+        assert resp.status_code == HTTPStatus.OK
+        assert resp.json() == {"data": allele_fixture["variation"], "messages": []}
+
+
+def test_post_variation_not_registered(storage, restapi_client: TestClient, alleles):
+    """Test POST method when variation has not been registered"""
+    storage.wipe_db()
+    for allele_id, allele_fixture in alleles.items():
+        if "register_params" not in allele_fixture:
+            continue
+
+        resp = restapi_client.post("/variation", json=allele_fixture["register_params"])
+        assert resp.status_code == HTTPStatus.NOT_FOUND
+        assert resp.json() == {"detail": f"Variation {allele_id} not found"}
+
+
+@pytest.mark.parametrize(
+    ("definition", "err_msg"),
+    [
+        (
+            "GRCh38/hg38 7p22.3-q36.3(chr7:54185-159282390)x1",
+            "Unable to translate 'GRCh38/hg38 7p22.3-q36.3(chr7:54185-159282390)x1'",
+        ),
+        (
+            "NC_000007.13:g.36561662_36561663deletion",
+            "Unsupported HGVS 'NC_000007.13:g.36561662_36561663deletion'",
+        ),
+        ("19-44908822-A-T", "Invalid definition '19-44908822-A-T'"),
+    ],
+)
+def test_post_variation_invalid_request(
+    restapi_client: TestClient, definition, err_msg
+):
+    """Test POST method with invalid requests"""
+    resp = restapi_client.post("/variation", json={"definition": definition})
+    assert resp.status_code == HTTPStatus.OK
+    assert resp.json() == {"messages": [err_msg]}

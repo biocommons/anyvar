@@ -136,8 +136,8 @@ class GetSequenceLocationResponse(BaseModel):
     location: models.SequenceLocation | None
 
 
-class RegisterVariationRequest(BaseModel):
-    """Describe request structure for the PUT /variation endpoint"""
+class VariationRequest(BaseModel):
+    """Describe request structure for the PUT and POST /variation endpoints"""
 
     definition: StrictStr
     input_type: SupportedVariationType | None = None
@@ -270,7 +270,7 @@ class GetVariationResponse(BaseModel):
     )
 
     messages: list[StrictStr]
-    data: VrsObject
+    data: VrsObject | None = None
 
 
 class SearchResponse(BaseModel):
