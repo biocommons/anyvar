@@ -2,7 +2,6 @@
 
 from abc import ABC, abstractmethod
 
-from ga4gh.vrs import models
 from ga4gh.vrs.dataproxy import _DataProxy
 
 from anyvar.utils.types import VrsVariation
@@ -28,15 +27,13 @@ class _Translator(ABC):
     dp: _DataProxy
 
     @abstractmethod
-    def translate_variation(
-        self, var: str, **kwargs
-    ) -> models.Allele | models.CopyNumberCount | models.CopyNumberChange | None:
+    def translate_variation(self, var: str, **kwargs) -> VrsVariation | None:
         """Translate provided variation text into a VRS Variation object.
 
         :param var: user-provided string describing or referencing a variation.
         :param input_type: The type of variation for `var`.
         :kwargs:
-            input_type (SupportedVariationType): The type of variation for `var`.
+            input_type (types.VrsVariation): The type of variation for `var`.
                 If not provided, will first try to translate to allele and then
                 copy number
             copies (int) - The number of copies for VRS Copy Number Count
