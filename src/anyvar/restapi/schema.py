@@ -235,7 +235,7 @@ class RegisterVariationResponse(BaseModel):
     )
 
     messages: list[str] = []
-    object: models.Variation | None = None
+    object: types.VrsVariation | None = None
     object_id: str | None = None
 
 

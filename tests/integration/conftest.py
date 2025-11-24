@@ -6,11 +6,11 @@ import pytest
 from celery.contrib.testing.worker import start_worker
 from celery.result import AsyncResult
 from pytest_mock import MockerFixture
+from tests.conftest import build_vrs_variant_from_dict
 
 import anyvar.anyvar
 from anyvar.queueing.celery_worker import celery_app
 from anyvar.storage.base_storage import Storage
-from anyvar.utils.funcs import build_vrs_variant_from_dict
 
 
 @pytest.fixture

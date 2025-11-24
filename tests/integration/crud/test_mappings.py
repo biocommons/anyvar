@@ -181,8 +181,8 @@ def test_get_mapping_invalid_source(restapi_client):
     resp = restapi_client.get(
         f"/variation/ga4gh.VA:invalidsource/mappings/{DEFAULT_MAPPING_TYPE}"
     )
-    assert resp.status_code == HTTPStatus.OK
-    assert resp.json() == {"mappings": []}
+    assert resp.status_code == HTTPStatus.NOT_FOUND
+    assert resp.json() == {"detail": "Variation ga4gh.VA:invalidsource not found"}
 
 
 def test_get_mapping_invalid_mapping(restapi_client, stored_variation_mappings):

@@ -6,7 +6,7 @@ import logging
 import logging.config
 import os
 import pathlib
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from http import HTTPStatus
 from typing import Annotated, cast
@@ -30,7 +30,7 @@ from hgvs.exceptions import HGVSParseError
 from pydantic import StrictStr
 
 import anyvar
-from anyvar.anyvar import AnyVar
+from anyvar.anyvar import AnyVar, ObjectNotFoundError
 from anyvar.restapi.schema import (
     AddAnnotationRequest,
     AddAnnotationResponse,
@@ -51,7 +51,7 @@ from anyvar.translate.translate import (
     TranslationError,
 )
 from anyvar.utils import liftover_utils, types
-from anyvar.utils.types import VrsObject, VrsVariation, variation_class_map
+from anyvar.utils.types import VrsObject, VrsVariation
 
 load_dotenv()
 _logger = logging.getLogger(__name__)
@@ -283,17 +283,15 @@ def get_variation_annotation(
     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
     annotation_type: Annotated[StrictStr, Path(..., description="Annotation type")],
 ) -> GetAnnotationResponse:
-    """Retrieve annotations for a variation.
-
-    :param request: FastAPI request object
-    :param vrs_id: VRS ID for variation
-    :param annotation_type: type of annotation to retrieve
-    :return: response object containing list of annotations for the variation
-    """
+    """Retrieve annotations for a variation."""
     av: AnyVar = request.app.state.anyvar
-    annotations: list[types.Annotation] = av.get_object_annotations(
-        vrs_id, annotation_type
-    )
+    try:
+        annotations = av.get_object_annotations(vrs_id, annotation_type)
+    except ObjectNotFoundError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"Variation {vrs_id} not found",
+        ) from e
     return GetAnnotationResponse(annotations=annotations)
 
 
@@ -367,17 +365,16 @@ def get_variation_mapping(
         types.VariationMappingType, Path(..., description="Mapping type")
     ],
 ) -> GetMappingResponse:
-    """Retrieve mappings for a variation.
-
-    :param request: FastAPI request object
-    :param vrs_id: VRS ID for variation
-    :param mapping_type: type of mapping to retrieve
-    :return: response object containing list of mappings for the variation
-    """
+    """Retrieve mappings for a variation."""
     av: AnyVar = request.app.state.anyvar
-    mappings: Iterable[types.VariationMapping] = av.get_object_mappings(
-        vrs_id, mapping_type
-    )
+    try:
+        mappings = av.get_object_mappings(vrs_id, mapping_type)
+    except ObjectNotFoundError as e:
+        raise HTTPException(
+            HTTPStatus.NOT_FOUND,
+            detail=f"Variation {vrs_id} not found",
+        ) from e
+
     return GetMappingResponse(mappings=mappings)
 
 
@@ -574,23 +571,27 @@ def register_vrs_object(
     ],
 ) -> RegisterVariationResponse:
     """Register a complete VRS object. No additional normalization is performed."""
-    av: AnyVar = request.app.state.anyvar
-    variation_type = variation.type
-    if variation_type not in variation_class_map:
+    if not isinstance(variation, VrsVariation):
         return RegisterVariationResponse(
-            messages=[f"Registration for {variation_type} not currently supported."]
+            messages=[f"Registration for {variation.type} not currently supported."]
         )
 
-    variation_object = variation_class_map[variation_type](**variation.model_dump())
-    av.put_objects([variation_object])
+    av: AnyVar = request.app.state.anyvar
+    try:
+        av.put_objects([variation])
+    except Exception as e:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail="Variation could not be registered",
+        ) from e
 
     liftover_messages = liftover_utils.add_liftover_mapping(
         variation, av.object_store, av.translator.dp
     )
 
     return RegisterVariationResponse(
-        object=variation_object,  # type: ignore
-        object_id=variation_object.id,
+        object=variation,
+        object_id=variation.id,
         messages=liftover_messages or [],
     )
 

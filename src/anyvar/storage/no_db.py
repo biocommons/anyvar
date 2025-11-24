@@ -8,7 +8,7 @@ from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
 
-from anyvar.storage.base_storage import Storage, StoredObjectType
+from anyvar.storage.base_storage import Storage
 from anyvar.utils import types
 
 
@@ -32,7 +32,7 @@ class NoObjectStore(Storage):
 
     def get_objects(
         self,
-        object_type: StoredObjectType,
+        object_type: type[types.VrsObject],
         object_ids: Iterable[str],
     ) -> Iterable[types.VrsObject]:
         """(No-op) Retrieve multiple VRS objects from storage by their IDs."""
@@ -43,7 +43,7 @@ class NoObjectStore(Storage):
         return []
 
     def delete_objects(
-        self, object_type: StoredObjectType, object_ids: Iterable[str]
+        self, object_type: type[types.VrsObject], object_ids: Iterable[str]
     ) -> None:
         """(No-op) Delete all objects of a specific type from storage."""
 
