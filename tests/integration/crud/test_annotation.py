@@ -58,4 +58,4 @@ def test_post_annotation_nonexistent_var(
         "/variation/not_a_real_vrs_id/annotations", json=braf_annotation_payload
     )
     assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json() == {"detail": "Variation not_a_real_vrs_id not found"}
+    assert response.json() == {"detail": "VRS Object not_a_real_vrs_id not found"}

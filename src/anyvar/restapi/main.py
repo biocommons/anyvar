@@ -46,7 +46,6 @@ from anyvar.restapi.schema import (
     ServiceInfo,
 )
 from anyvar.restapi.vcf import router as vcf_router
-from anyvar.storage.base_storage import StoredObjectType
 from anyvar.translate.translate import (
     TranslationError,
 )
@@ -58,7 +57,7 @@ _logger = logging.getLogger(__name__)
 
 
 def _get_vrs_object(
-    av: AnyVar, vrs_object_id: str, object_type: StoredObjectType | None = None
+    av: AnyVar, vrs_object_id: str, object_type: type[types.VrsObject] | None = None
 ) -> VrsObject:
     """Get VRS variation given VRS ID
 
@@ -540,7 +539,7 @@ def get_variation_by_id(
     :raise HTTPException: if no variation matches provided ID
     """
     av: AnyVar = request.app.state.anyvar
-    variation = _get_vrs_object(av, variation_id, StoredObjectType.ALLELE)
+    variation = _get_vrs_object(av, variation_id, models.Allele)
     return GetVariationResponse(messages=[], data=variation)
 
 
@@ -564,7 +563,7 @@ def get_location_by_id(
     """
     av: AnyVar = request.app.state.anyvar
     location: models.SequenceLocation = models.SequenceLocation.model_validate(
-        _get_vrs_object(av, location_id, StoredObjectType.SEQUENCE_LOCATION)
+        _get_vrs_object(av, location_id, models.SequenceLocation)
     )
     return GetSequenceLocationResponse(location=location)
 
@@ -593,9 +592,7 @@ def get_sequence_reference_by_id(
     av: AnyVar = request.app.state.anyvar
     sequence_reference: models.SequenceReference = (
         models.SequenceReference.model_validate(
-            _get_vrs_object(
-                av, sequence_reference_id, StoredObjectType.SEQUENCE_REFERENCE
-            )
+            _get_vrs_object(av, sequence_reference_id, models.SequenceReference)
         )
     )
     return GetSequenceReferenceResponse(sequence_reference=sequence_reference)
