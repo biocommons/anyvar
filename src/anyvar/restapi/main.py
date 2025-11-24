@@ -478,12 +478,7 @@ def get_variation(
         return GetVariationResponse(messages=[f"Translation of {definition} failed."])
 
     vrs_id = translated_variation.id
-    try:
-        variation = av.get_object(vrs_id)
-    except KeyError as e:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail=f"Variation {vrs_id} not found"
-        ) from e
+    _get_vrs_variation(av, vrs_id)
 
     return GetVariationResponse(messages=[], data=translated_variation)
 
