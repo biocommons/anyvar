@@ -12,6 +12,7 @@ from anyvar.anyvar import AnyVar, create_storage, create_translator
 from anyvar.restapi.main import app as anyvar_restapi
 from anyvar.storage.base_storage import Storage
 from anyvar.translate.translate import Translator
+from anyvar.utils.types import VrsVariation
 
 pytest_plugins = ("celery.contrib.pytest",)
 
@@ -119,3 +120,21 @@ def anyvar_instance(storage: Storage, translator: Translator):
 def restapi_client(anyvar_instance: AnyVar):
     anyvar_restapi.state.anyvar = anyvar_instance
     return TestClient(app=anyvar_restapi)
+
+
+# variation type: VRS-Python model
+variation_class_map: dict[str, type[VrsVariation]] = {
+    "Allele": models.Allele,
+    "CopyNumberCount": models.CopyNumberCount,
+    "CopyNumberChange": models.CopyNumberChange,
+}
+
+
+def build_vrs_variant_from_dict(variant_dict: dict) -> VrsVariation:
+    """Construct a `VrsVariation` class instance from a dictionary representation of one
+
+    :param variant_dict: a dictionary representation of a `VrsVariation` object
+    :return: a `VrsVariation` object
+    """
+    variant_type = variant_dict.get("type", "")
+    return variation_class_map[variant_type](**variant_dict)

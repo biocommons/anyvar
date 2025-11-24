@@ -3,17 +3,16 @@
 import os
 
 import pytest
+from conftest import build_vrs_variant_from_dict
 from ga4gh.vrs import models
 
 from anyvar.storage.base_storage import (
     DataIntegrityError,
     IncompleteVrsObjectError,
     InvalidSearchParamsError,
-    StoredObjectType,
 )
 from anyvar.storage.postgres import PostgresObjectStore
 from anyvar.utils import types
-from anyvar.utils.funcs import build_vrs_variant_from_dict
 
 
 @pytest.fixture(scope="session")
@@ -26,13 +25,13 @@ def postgres_uri():
 
 
 @pytest.fixture
-def focus_alleles(alleles: dict):
+def focus_alleles(alleles: dict) -> tuple[models.Allele, ...]:
     """A small subset of test alleles to use in more focused tests
 
     This is a tuple because many checks assume a specific order of these objects
     """
     return tuple(
-        build_vrs_variant_from_dict(a["variation"])
+        models.Allele.model_validate(build_vrs_variant_from_dict(a["variation"]))
         for a in (
             alleles["ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU"],
             alleles["ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf"],
@@ -82,7 +81,7 @@ def test_db_lifecycle(
     # wipe_db removes objects
     storage.wipe_db()
     result = storage.get_objects(
-        StoredObjectType.SEQUENCE_REFERENCE,
+        models.SequenceReference,
         [allele_38.location.sequenceReference.refgetAccession],
     )
     assert result == []
@@ -98,14 +97,12 @@ def test_alleles_crud(
     postgres_storage.add_objects(focus_alleles)
 
     # get 1 allele
-    result = postgres_storage.get_objects(
-        StoredObjectType.ALLELE, [focus_alleles[0].id]
-    )
+    result = postgres_storage.get_objects(models.Allele, [focus_alleles[0].id])
     assert result == [focus_alleles[0]]
 
     # get multiple alleles
     result = postgres_storage.get_objects(
-        StoredObjectType.ALLELE, [focus_alleles[1].id, focus_alleles[2].id]
+        models.Allele, [focus_alleles[1].id, focus_alleles[2].id]
     )
     assert len(list(result)) == 2
     assert focus_alleles[1] in list(result)
@@ -113,12 +110,10 @@ def test_alleles_crud(
 
     # get alleles, including some that don't exist
     result = postgres_storage.get_objects(
-        StoredObjectType.ALLELE, ["ga4gh:VA.not_real", focus_alleles[0].id]
+        models.Allele, ["ga4gh:VA.not_real", focus_alleles[0].id]
     )
     assert result == [focus_alleles[0]]
-    result = postgres_storage.get_objects(
-        StoredObjectType.ALLELE, ["ga4gh:VA.sdfljsdflk"]
-    )
+    result = postgres_storage.get_objects(models.Allele, ["ga4gh:VA.sdfljsdflk"])
     assert result == []
 
     # add empty allele
@@ -126,31 +121,23 @@ def test_alleles_crud(
 
     # get contained objects
     result = postgres_storage.get_objects(
-        StoredObjectType.SEQUENCE_LOCATION, [focus_alleles[0].location.id]
+        models.SequenceLocation, [focus_alleles[0].location.id]
     )
     assert result == [focus_alleles[0].location]
 
     # delete objects
     postgres_storage.delete_objects(
-        StoredObjectType.ALLELE, [focus_alleles[1].id, focus_alleles[2].id]
+        models.Allele, [focus_alleles[1].id, focus_alleles[2].id]
     )
-    assert (
-        postgres_storage.get_objects(StoredObjectType.ALLELE, [focus_alleles[1].id])
-        == []
-    )
-    result = postgres_storage.get_objects(
-        StoredObjectType.ALLELE, [focus_alleles[0].id]
-    )
+    assert postgres_storage.get_objects(models.Allele, [focus_alleles[1].id]) == []
+    result = postgres_storage.get_objects(models.Allele, [focus_alleles[0].id])
     assert result == [focus_alleles[0]]
-    postgres_storage.delete_objects(StoredObjectType.ALLELE, [focus_alleles[0].id])
-    assert (
-        postgres_storage.get_objects(StoredObjectType.ALLELE, [focus_alleles[0].id])
-        == []
-    )
+    postgres_storage.delete_objects(models.Allele, [focus_alleles[0].id])
+    assert postgres_storage.get_objects(models.Allele, [focus_alleles[0].id]) == []
 
     # contained objects persist
     result = postgres_storage.get_objects(
-        StoredObjectType.SEQUENCE_LOCATION, [focus_alleles[0].location.id]
+        models.SequenceLocation, [focus_alleles[0].location.id]
     )
     assert result == [focus_alleles[0].location]
 
@@ -244,7 +231,7 @@ def test_objects_raises_integrityerror(
     postgres_storage.add_objects(focus_alleles)
     with pytest.raises(DataIntegrityError):
         postgres_storage.delete_objects(
-            StoredObjectType.SEQUENCE_REFERENCE,
+            models.SequenceReference,
             [focus_alleles[0].location.sequenceReference.refgetAccession],
         )
 
@@ -255,12 +242,14 @@ def test_sequencelocations_crud(
     focus_alleles: tuple[models.Allele, models.Allele, models.Allele],
     validated_vrs_alleles: dict[str, models.Allele],
 ):
-    sls_to_add = [a.location for a in focus_alleles]
+    sls_to_add = [
+        models.SequenceLocation.model_validate(a.location) for a in focus_alleles
+    ]
     postgres_storage.add_objects(sls_to_add)
 
     # get SLs, including one with the wrong type/ID
     result = postgres_storage.get_objects(
-        StoredObjectType.SEQUENCE_LOCATION,
+        models.SequenceLocation,
         [
             "ga4gh:VA.1FzYrqG-7jB3Wr46eIL_L5BWElQZEB7i",
             sls_to_add[0].id,
@@ -269,15 +258,11 @@ def test_sequencelocations_crud(
     assert result == [sls_to_add[0]]
 
     # delete objects, other objects still persist
-    postgres_storage.delete_objects(
-        StoredObjectType.SEQUENCE_LOCATION, [sls_to_add[2].id]
-    )
-    result = postgres_storage.get_objects(
-        StoredObjectType.SEQUENCE_LOCATION, [sls_to_add[2].id]
-    )
+    postgres_storage.delete_objects(models.SequenceLocation, [sls_to_add[2].id])
+    result = postgres_storage.get_objects(models.SequenceLocation, [sls_to_add[2].id])
     assert result == []
     result = postgres_storage.get_objects(
-        StoredObjectType.SEQUENCE_LOCATION, [sls_to_add[1].id, sls_to_add[0].id]
+        models.SequenceLocation, [sls_to_add[1].id, sls_to_add[0].id]
     )
     assert len(result) == 2
     assert sls_to_add[0] in result
