@@ -13,7 +13,6 @@ from sqlalchemy import (
     UniqueConstraint,
     create_engine,
 )
-from sqlalchemy.dialects.postgresql import ENUM as PgEnum  # noqa: N811
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -143,8 +142,10 @@ class SequenceReference(Base):
     molecule_type: Mapped[MoleculeType | None] = mapped_column(
         Enum(
             MoleculeType,
+            name="molecule_type",
             native_enum=True,
             values_callable=lambda mt_enum: [mt.value for mt in mt_enum],
+            validate_strings=True,
         )
     )
 
@@ -168,9 +169,10 @@ class Annotation(Base):
     )
 
 
-mapping_type_enum = PgEnum(
+mapping_type_enum = Enum(
     VariationMappingType,
     name="mapping_type",
+    native_enum=True,
     metadata=Base.metadata,
     create_type=True,
     validate_strings=True,
