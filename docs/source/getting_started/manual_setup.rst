@@ -76,7 +76,7 @@ Launch the REST API server:
 
    % python -m uvicorn anyvar.restapi.main:app
 
-...and direct your web browser to `http://127.0.0.1 <http://127.0.0.1>`. You should see the Swagger UI documentation demonstrating AnyVar REST API endpoints.
+...and direct your web browser to `http://127.0.0.1 <http://127.0.0.1>`_. You should see the Swagger UI documentation demonstrating AnyVar REST API endpoints.
 
 Optional: Queueing Configuration
 ================================
@@ -86,7 +86,7 @@ Optionally, additional setup may be performed to enable asynchronous processing 
 Backend/Broker
 --------------
 
-First, Celery requires a backend and broker for task queueing. Most users are recommended to use `Redis <https://redis.io/docs/latest/>`. For example, to launch a Redis docker container:
+First, Celery requires a backend and broker for task queueing. Most users are recommended to use `Redis <https://redis.io/docs/latest/>`_. For example, to launch a Redis docker container:
 
 .. code-block:: console
 
