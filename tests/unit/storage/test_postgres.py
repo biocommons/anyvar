@@ -26,13 +26,13 @@ def postgres_uri():
 
 
 @pytest.fixture
-def focus_alleles(alleles: dict):
+def focus_alleles(alleles: dict) -> tuple[models.Allele, ...]:
     """A small subset of test alleles to use in more focused tests
 
     This is a tuple because many checks assume a specific order of these objects
     """
     return tuple(
-        build_vrs_variant_from_dict(a["variation"])
+        models.Allele.model_validate(build_vrs_variant_from_dict(a["variation"]))
         for a in (
             alleles["ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU"],
             alleles["ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf"],
@@ -255,7 +255,9 @@ def test_sequencelocations_crud(
     focus_alleles: tuple[models.Allele, models.Allele, models.Allele],
     validated_vrs_alleles: dict[str, models.Allele],
 ):
-    sls_to_add = [a.location for a in focus_alleles]
+    sls_to_add = [
+        models.SequenceLocation.model_validate(a.location) for a in focus_alleles
+    ]
     postgres_storage.add_objects(sls_to_add)
 
     # get SLs, including one with the wrong type/ID
