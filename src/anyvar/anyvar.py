@@ -10,11 +10,10 @@ import warnings
 from collections.abc import Iterable
 from urllib.parse import urlparse
 
+from ga4gh.vrs import models as vrs_models
+
 from anyvar.storage import DEFAULT_STORAGE_URI
-from anyvar.storage.base_storage import (
-    Storage,
-    StoredObjectType,
-)
+from anyvar.storage.base_storage import Storage
 from anyvar.translate.translate import _Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
 from anyvar.utils import types
@@ -79,6 +78,10 @@ def has_queueing_enabled() -> bool:
     )
 
 
+class ObjectNotFoundError(Exception):
+    """Raised when a related object is requested for a primary entity that does not exist."""
+
+
 class AnyVar:
     """Define core AnyVar class."""
 
@@ -114,7 +117,7 @@ class AnyVar:
             raise e  # noqa: TRY201
 
     def get_object(
-        self, object_id: str, object_type: StoredObjectType | None = None
+        self, object_id: str, object_type: type[types.VrsObject] | None = None
     ) -> VrsObject:
         """Retrieve registered variation.
 
@@ -146,9 +149,9 @@ class AnyVar:
         """
         # Try each object type. Primary key lookups should be fast.
         object_types_to_try = [
-            StoredObjectType.ALLELE,
-            StoredObjectType.SEQUENCE_LOCATION,
-            StoredObjectType.SEQUENCE_REFERENCE,
+            vrs_models.Allele,
+            vrs_models.SequenceLocation,
+            vrs_models.SequenceReference,
         ]
         for object_type in object_types_to_try:
             try:
@@ -186,14 +189,21 @@ class AnyVar:
         :param object_id: The ID of the object to retrieve annotations for
         :param annotation_type: The type of annotation to retrieve (defaults to `None` to retrieve all annotations for the object)
         :return: A list of Annotations
+        :raise ObjectNotFoundError: if ``object_id`` can't be found in DB
         """
         try:
-            return self.object_store.get_annotations(object_id, annotation_type)
+            annotations = self.object_store.get_annotations(object_id, annotation_type)
         except Exception as e:
             _logger.exception(
                 "Failed to retrieve annotations for object: %s", object_id
             )
             raise e  # noqa: TRY201
+        if not annotations:
+            try:
+                _ = self.get_object(object_id)
+            except KeyError as e:
+                raise ObjectNotFoundError(object_id) from e
+        return annotations
 
     def put_mapping(self, mapping: types.VariationMapping) -> None:
         """Attempt to store a mapping between two objects
@@ -214,9 +224,10 @@ class AnyVar:
         :param source_object_id: ID of the source object
         :param mapping_type: kind of mapping to retrieve
         :return: iterable collection of mapping objects
+        :raise ObjectNotFoundError: if ``source_object_id`` can't be found in DB
         """
         try:
-            return self.object_store.get_mappings(source_object_id, mapping_type)
+            mappings = self.object_store.get_mappings(source_object_id, mapping_type)
         except Exception:
             _logger.exception(
                 "Failed to retrieve mappings for source_object_id: %s and mapping_type: %s",
@@ -224,3 +235,9 @@ class AnyVar:
                 mapping_type,
             )
             raise
+        if not mappings:
+            try:
+                _ = self.get_object(source_object_id)
+            except KeyError as e:
+                raise ObjectNotFoundError(source_object_id) from e
+        return mappings

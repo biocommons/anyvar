@@ -1,23 +1,11 @@
 """Provide PostgreSQL-based storage implementation."""
 
-import enum
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
 
 from anyvar.utils import types
-
-
-class StoredObjectType(enum.StrEnum):
-    """Supported object types for AnyVar storage."""
-
-    ALLELE = "Allele"
-    LOCATION = "Location"
-    COPY_NUMBER_COUNT = "CopyNumberCount"
-    COPY_NUMBER_CHANGE = "CopyNumberChange"
-    SEQUENCE_LOCATION = "SequenceLocation"
-    SEQUENCE_REFERENCE = "SequenceReference"
 
 
 class StorageError(Exception):
@@ -82,7 +70,7 @@ class Storage(ABC):
 
     @abstractmethod
     def get_objects(
-        self, object_type: StoredObjectType, object_ids: Iterable[str]
+        self, object_type: type[types.VrsObject], object_ids: Iterable[str]
     ) -> Iterable[types.VrsObject]:
         """Retrieve multiple VRS objects from storage by their IDs.
 
@@ -102,7 +90,7 @@ class Storage(ABC):
 
     @abstractmethod
     def delete_objects(
-        self, object_type: StoredObjectType, object_ids: Iterable[str]
+        self, object_type: type[types.VrsObject], object_ids: Iterable[str]
     ) -> None:
         """Delete all objects of a specific type from storage.
 
