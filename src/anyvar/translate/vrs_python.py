@@ -55,9 +55,12 @@ class VrsPythonTranslator(Translator):
         """
         variation = None
         input_type = kwargs.get("input_type")
-        if input_type is models.Allele:
+        if input_type == types.SupportedVariationType.ALLELE:
             variation = self.translate_allele(var)
-        elif input_type in (models.CopyNumberChange, models.CopyNumberCount):
+        elif input_type in (
+            types.SupportedVariationType.COPY_NUMBER_CHANGE,
+            types.SupportedVariationType.COPY_NUMBER_COUNT,
+        ):
             variation = self.translate_cnv(var, **kwargs)
         else:
             # Try allele then copy number
