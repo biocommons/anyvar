@@ -20,6 +20,7 @@ def test_put_allele(restapi_client: TestClient, alleles: dict):
             continue
 
         assert_put_ok(restapi_client, register_params, allele_id)
+
         if register_params.get("assembly_name") == ReferenceAssembly.GRCH38.value:
             register_params.pop("assembly_name")
             assert_put_ok(restapi_client, register_params, allele_id)
@@ -27,9 +28,9 @@ def test_put_allele(restapi_client: TestClient, alleles: dict):
     # confirm idempotency
     test_allele_id = "ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf"
     test_allele_fixture = alleles[test_allele_id]
-    resp = restapi_client.put("/variation", json=test_allele_fixture["register_params"])
-    assert resp.status_code == HTTPStatus.OK
-    assert resp.json()["object"]["id"] == test_allele_id
+    assert_put_ok(
+        restapi_client, test_allele_fixture["register_params"], test_allele_id
+    )
 
     # try unsupported variation type
     resp = restapi_client.put("/variation", json={"definition": "BRAF amplification"})
