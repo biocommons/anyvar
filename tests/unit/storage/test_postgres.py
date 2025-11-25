@@ -88,6 +88,18 @@ def test_db_lifecycle(
 
 
 @pytest.mark.ci_ok
+def test_db_batch_size(monkeypatch, postgres_storage, focus_alleles):
+    """Test that batch size works correctly"""
+    postgres_storage.add_objects(focus_alleles)
+    result = list(postgres_storage.get_all_object_ids())
+    assert len(result) > 1
+
+    monkeypatch.setattr(type(postgres_storage), "BATCH_SIZE", 1)
+    result = list(postgres_storage.get_all_object_ids())
+    assert len(result) == 1
+
+
+@pytest.mark.ci_ok
 def test_alleles_crud(
     postgres_storage: PostgresObjectStore,
     focus_alleles: tuple[models.Allele, models.Allele, models.Allele],
