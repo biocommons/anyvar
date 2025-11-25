@@ -38,6 +38,11 @@ class _Translator(ABC):
                 copy number
             copies (int) - The number of copies for VRS Copy Number Count
             copy_change (models.CopyChange) - The EFO code for VRS COpy Number Change
+            assembly_name(str) -> Assembly name for ``var``.
+                Only used when ``var`` uses gnomad format.
+                Defaults to "GRCh38". Must be "GRCh38" or "GRCh7"
+                VRS-Python sets a default, but we should set a default just in case
+                VRS-Python ever changes the default.
         :returns: VRS variation object if able to translate
         :raises TranslationError: if translation is unsuccessful, either because
             the submitted variation is malformed, or because VRS-Python doesn't support
