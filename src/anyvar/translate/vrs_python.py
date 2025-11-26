@@ -6,13 +6,11 @@ from ga4gh.vrs import models
 from ga4gh.vrs.dataproxy import _DataProxy, create_dataproxy
 from ga4gh.vrs.extras.translator import AlleleTranslator, CnvTranslator
 
-from anyvar.translate.translate import TranslationError
+from anyvar.translate.translate import TranslationError, Translator
 from anyvar.utils import types
 
-from . import _Translator
 
-
-class VrsPythonTranslator(_Translator):
+class VrsPythonTranslator(Translator):
     """Translator layer using VRS-Python Translator class."""
 
     def __init__(self, seqrepo_proxy: _DataProxy | None = None) -> None:

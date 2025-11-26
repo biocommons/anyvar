@@ -21,7 +21,7 @@ class TranslationError(Exception):
     """Indicates failure to translate provided term into known variation structure."""
 
 
-class _Translator(ABC):
+class Translator(ABC):
     """Base Translator class."""
 
     dp: _DataProxy
