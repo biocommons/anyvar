@@ -438,6 +438,7 @@ variation_request_body = (
                 "input_type": "Allele",
                 "copies": 0,
                 "copy_change": "complete genomic loss",
+                "assembly_name": None,
             }
         ],
     ),
@@ -461,7 +462,7 @@ def get_variation(
 
     try:
         translated_variation = av.translator.translate_variation(
-            definition, **variation.model_dump()
+            definition, **variation.model_dump(mode="json")
         )
     except TranslationError:
         return GetVariationResponse(messages=[f"Unable to translate '{definition}'"])
@@ -500,7 +501,7 @@ def register_variation(
 
     try:
         translated_variation = av.translator.translate_variation(
-            definition, **variation.model_dump()
+            definition, **variation.model_dump(mode="json")
         )
     except TranslationError:
         return RegisterVariationResponse(
