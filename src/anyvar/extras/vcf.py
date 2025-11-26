@@ -60,7 +60,7 @@ class VcfRegistrar(VcfAnnotator):
     def __init__(self, data_proxy: _DataProxy, **kwargs) -> None:  # noqa: D107
         av: AnyVar | None = kwargs.get("av")
         if av is None:
-            raise ValueError  # TODO more specific
+            raise ValueError
         self.av: AnyVar = av
         self.vrs_object_registration_batcher = VrsObjectRegistrationBatcher(self.av)
         super().__init__(data_proxy)

@@ -52,10 +52,6 @@ class PostgresObjectStore(Storage):
 
     def close(self) -> None:
         """Close the storage backend."""
-        # TODO unclear if engine.dispose is desirable.
-        # It does not wait for active connections.
-        # https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.Engine.dispose
-        # self.engine.dispose()
 
     def wait_for_writes(self) -> None:
         """Wait for all background writes to complete.
@@ -75,8 +71,6 @@ class PostgresObjectStore(Storage):
             session.execute(delete(orm.VrsObject))
             session.execute(delete(orm.Annotation))
 
-    # TODO also store vrs_objects table in addition to
-    # the tables per type.
     def add_objects(self, objects: Iterable[types.VrsObject]) -> None:
         """Add multiple VRS objects to storage using bulk inserts.
 
@@ -184,8 +178,6 @@ class PostgresObjectStore(Storage):
         :return: all stored VRS object IDs
         """
         with self.session_factory() as session:
-            # TODO This only handles Alleles for now
-            # TODO This seems like it could be a lot of data
             stmt = select(orm.Allele.id).limit(self.BATCH_SIZE)
             allele_ids = session.execute(stmt).scalars().all()
             return allele_ids
@@ -377,7 +369,7 @@ class PostgresObjectStore(Storage):
 
         Currently, any variation which overlaps the queried region is returned.
 
-        Todo:
+        Todo (see Issue #338):
         * define alternate match modes (partial/full overlap/contained/etc)
         * define behavior for LSE indels and for alternative types of state (RLEs)
 
@@ -394,10 +386,10 @@ class PostgresObjectStore(Storage):
         """
         if start < 0 or stop < 0 or start > stop:
             raise InvalidSearchParamsError
-        # TODO may load a lot of data
+
         with self.session_factory() as session:
             # Query alleles with overlapping locations
-            # TODO this is any overlap, not containment.
+            # NOTE: this is any overlap, not containment.
             stmt = (
                 select(orm.Allele)
                 .options(

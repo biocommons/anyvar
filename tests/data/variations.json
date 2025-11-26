@@ -360,6 +360,62 @@
         }
       },
       "comment": "large insertion, VCV003663959.1"
+    },
+    "ga4gh:VA.lHm5O2TRaxF1tYvxutOofpC40WTjGHea": {
+      "register_params": {
+        "definition": "1-35227334-G-A",
+        "input_type": "Allele",
+        "assembly_name": "GRCh37"
+      },
+      "variation": {
+        "id": "ga4gh:VA.lHm5O2TRaxF1tYvxutOofpC40WTjGHea",
+        "type": "Allele",
+        "digest": "lHm5O2TRaxF1tYvxutOofpC40WTjGHea",
+        "location": {
+          "id": "ga4gh:SL.grR1FA0VKgb6X4AAs2iZDo1sSsvMyydy",
+          "type": "SequenceLocation",
+          "digest": "grR1FA0VKgb6X4AAs2iZDo1sSsvMyydy",
+          "sequenceReference": {
+            "type": "SequenceReference",
+            "refgetAccession": "SQ.S_KjnFVz-FE7M0W6yoaUDgYxLPc1jyWU"
+          },
+          "start": 35227333,
+          "end": 35227334
+        },
+        "state": {
+          "type": "LiteralSequenceExpression",
+          "sequence": "A"
+        }
+      },
+      "comment": "gnomad grch37"
+    },
+    "ga4gh:VA.aqLIhSpwt8_SFJ7_9RKK8XVuc-UuzE_h": {
+      "register_params": {
+        "definition": "1-35227334-G-A",
+        "input_type": "Allele",
+        "assembly_name": "GRCh38"
+      },
+      "variation": {
+        "id": "ga4gh:VA.aqLIhSpwt8_SFJ7_9RKK8XVuc-UuzE_h",
+        "type": "Allele",
+        "digest": "aqLIhSpwt8_SFJ7_9RKK8XVuc-UuzE_h",
+        "location": {
+          "id": "ga4gh:SL.D8x7nueIepA27pLaWblEvtzhl-FGf1_P",
+          "type": "SequenceLocation",
+          "digest": "D8x7nueIepA27pLaWblEvtzhl-FGf1_P",
+          "sequenceReference": {
+            "type": "SequenceReference",
+            "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO"
+          },
+          "start": 35227333,
+          "end": 35227334
+        },
+        "state": {
+          "type": "LiteralSequenceExpression",
+          "sequence": "A"
+        }
+      },
+      "comment": "gnomad grch38"
     }
   },
   "copy_numbers": {

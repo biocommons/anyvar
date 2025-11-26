@@ -3,7 +3,7 @@ from ga4gh.vrs import models
 
 from anyvar.anyvar import AnyVar
 from anyvar.storage.base_storage import Storage
-from anyvar.translate.translate import _Translator
+from anyvar.translate.translate import Translator
 from anyvar.utils import liftover_utils
 from anyvar.utils.types import VariationMappingType
 
@@ -126,7 +126,6 @@ def invalid_variant():
 
 # Cases where liftover should be successful
 SUCCESS_CASES = [
-    # "copynumber_ranged_positive_grch37_variant",  # TODO restore upon support for copy number variants
     "allele_int_rle_grch37_variant",
     "allele_int_negative_grch38_variant",
     "allele_int_unknown_grch38_variant",
@@ -193,7 +192,7 @@ def test_liftover_mapping_success(
     src_key: str,
     dst_key: str,
     storage: Storage,
-    translator: _Translator,
+    translator: Translator,
 ):
     fixture = request.getfixturevalue(variant_fixture_name)
     src = fixture[src_key]
@@ -221,7 +220,7 @@ def test_liftover_mapping_failure(
     variant_fixture_name,
     anyvar_instance: AnyVar,
     storage: Storage,
-    translator: _Translator,
+    translator: Translator,
 ):
     fixture = request.getfixturevalue(variant_fixture_name)
     variant_input = fixture["variant"]

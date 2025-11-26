@@ -25,6 +25,8 @@ from fastapi import (
     Response,
 )
 from fastapi.responses import JSONResponse, StreamingResponse
+from ga4gh.vrs.dataproxy import DataProxyValidationError
+from hgvs.exceptions import HGVSParseError
 from pydantic import StrictStr
 
 import anyvar
@@ -39,10 +41,10 @@ from anyvar.restapi.schema import (
     GetMappingResponse,
     GetSequenceLocationResponse,
     GetVariationResponse,
-    RegisterVariationRequest,
     RegisterVariationResponse,
     SearchResponse,
     ServiceInfo,
+    VariationRequest,
 )
 from anyvar.restapi.vcf import router as vcf_router
 from anyvar.translate.translate import (
@@ -427,6 +429,61 @@ async def add_registration_annotations(
     return new_response
 
 
+variation_request_body = (
+    Body(
+        description="Variation description, including (at minimum) a definition property. Can provide optional input_type if the expected output representation is known. If representing copy number, provide copies or copy_change.",
+        examples=[
+            {
+                "definition": "NC_000007.13:g.36561662_36561663del",
+                "input_type": "Allele",
+                "copies": 0,
+                "copy_change": "complete genomic loss",
+                "assembly_name": None,
+            }
+        ],
+    ),
+)
+
+
+@app.post(
+    "/variation",
+    response_model_exclude_none=True,
+    summary="Retrieve a registered allele or copy number variation",
+    description="Provide a variation definition to be normalized and searched for in AnyVar",
+    tags=[EndpointTag.VARIATIONS],
+)
+def get_variation(
+    request: Request,
+    variation: Annotated[VariationRequest, variation_request_body],
+) -> GetVariationResponse:
+    """Search for registered variation"""
+    av: AnyVar = request.app.state.anyvar
+    definition = variation.definition
+
+    try:
+        translated_variation = av.translator.translate_variation(
+            definition, **variation.model_dump(mode="json")
+        )
+    except TranslationError:
+        return GetVariationResponse(messages=[f"Unable to translate '{definition}'"])
+    except NotImplementedError:
+        return GetVariationResponse(
+            messages=[f"Variation class for {definition} is currently unsupported."]
+        )
+    except HGVSParseError:
+        return GetVariationResponse(messages=[f"Unsupported HGVS '{definition}'"])
+    except DataProxyValidationError:
+        return GetVariationResponse(messages=[f"Invalid definition '{definition}'"])
+
+    if not translated_variation:
+        return GetVariationResponse(messages=[f"Translation of {definition} failed."])
+
+    vrs_id = translated_variation.id
+    _get_vrs_variation(av, vrs_id)
+
+    return GetVariationResponse(messages=[], data=translated_variation)
+
+
 @app.put(
     "/variation",
     response_model_exclude_none=True,
@@ -436,20 +493,7 @@ async def add_registration_annotations(
 )
 def register_variation(
     request: Request,
-    variation: Annotated[
-        RegisterVariationRequest,
-        Body(
-            description="Variation description, including (at minimum) a definition property. Can provide optional input_type if the expected output representation is known. If representing copy number, provide copies or copy_change.",
-            examples=[
-                {
-                    "definition": "NC_000007.13:g.36561662_36561663del",
-                    "input_type": "Allele",
-                    "copies": 0,
-                    "copy_change": "complete genomic loss",
-                }
-            ],
-        ),
-    ],
+    variation: Annotated[VariationRequest, variation_request_body],
 ) -> RegisterVariationResponse:
     """Register a variation based on a provided description or reference."""
     av: AnyVar = request.app.state.anyvar
@@ -457,7 +501,7 @@ def register_variation(
 
     try:
         translated_variation = av.translator.translate_variation(
-            definition, **variation.model_dump()
+            definition, **variation.model_dump(mode="json")
         )
     except TranslationError:
         return RegisterVariationResponse(
