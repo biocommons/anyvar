@@ -553,7 +553,6 @@ async def get_vcf_run_status(
     # completed successfully
     if async_result.status == "SUCCESS":
         response.status_code = status.HTTP_200_OK
-        # TODO provide logic to handle different return based on task type
         output_file_path = async_result.result
         async_result.forget()
         if output_file_path:

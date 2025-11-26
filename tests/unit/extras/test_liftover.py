@@ -126,7 +126,6 @@ def invalid_variant():
 
 # Cases where liftover should be successful
 SUCCESS_CASES = [
-    # "copynumber_ranged_positive_grch37_variant",  # TODO restore upon support for copy number variants
     "allele_int_rle_grch37_variant",
     "allele_int_negative_grch38_variant",
     "allele_int_unknown_grch38_variant",
