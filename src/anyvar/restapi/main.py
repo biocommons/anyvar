@@ -36,7 +36,7 @@ from anyvar.restapi.schema import (
     EndpointTag,
     GetAnnotationResponse,
     GetMappingResponse,
-    GetVariationResponse,
+    GetObjectResponse,
     RegisterVariationRequest,
     RegisterVariationResponse,
     SearchResponse,
@@ -311,7 +311,7 @@ def register_vrs_object(
 def get_object_by_id(
     request: Request,
     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for object")],
-) -> GetVariationResponse:
+) -> GetObjectResponse:
     """Get registered VRS object given its VRS ID.
 
     :param request: FastAPI request object
@@ -321,7 +321,7 @@ def get_object_by_id(
     """
     av: AnyVar = request.app.state.anyvar
     vrs_object: VrsObject = _get_vrs_object(av, vrs_id)
-    return GetVariationResponse(messages=[], data=vrs_object)
+    return GetObjectResponse(messages=[], data=vrs_object)
 
 
 @app.post(

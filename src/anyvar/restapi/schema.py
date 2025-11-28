@@ -129,18 +129,6 @@ class ServiceInfo(BaseModel):
     capabilities_metadata: CapabilitiesMetadata = CapabilitiesMetadata()
 
 
-class GetSequenceLocationResponse(BaseModel):
-    """Describe response for the GET /locations/{location_id} endpoint"""
-
-    location: models.SequenceLocation | None
-
-
-class GetSequenceReferenceResponse(BaseModel):
-    """Describe response for the GET /sequence_reference/{sequence_reference_id} endpoint"""
-
-    sequence_reference: models.SequenceReference | None
-
-
 class RegisterVariationRequest(BaseModel):
     """Describe request structure for the PUT /variation endpoint"""
 
@@ -244,7 +232,7 @@ class RegisterVariationResponse(BaseModel):
     object_id: str | None = None
 
 
-class GetVariationResponse(BaseModel):
+class GetObjectResponse(BaseModel):
     """Describe response for the GET /variation endpoint"""
 
     model_config = ConfigDict(
