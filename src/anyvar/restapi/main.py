@@ -62,7 +62,7 @@ def _get_vrs_object(
     """Get VRS variation given VRS ID
 
     :param av: AnyVar instance
-    :param vrs_object_id: VRS Variation ID to retrieve
+    :param vrs_object_id: VRS Object ID to retrieve
     :param object_type: (Optional) The type of object to retrieve
     :raises HTTPException: If no VRS object ID found
     :return: VrsObject
@@ -569,7 +569,7 @@ def get_location_by_id(
 
 
 @app.get(
-    "/sequence_reference/{sequence_reference_id}",
+    "/sequence_reference/{refget_accession_id}",
     response_model_exclude_none=True,
     operation_id="getSequenceReference",
     summary="Retrieve a sequence reference object",
@@ -578,7 +578,7 @@ def get_location_by_id(
 )
 def get_sequence_reference_by_id(
     request: Request,
-    sequence_reference_id: Annotated[
+    refget_accession_id: Annotated[
         StrictStr, Path(..., description="Sequence reference VRS ID")
     ],
 ) -> GetSequenceReferenceResponse:
@@ -592,7 +592,7 @@ def get_sequence_reference_by_id(
     av: AnyVar = request.app.state.anyvar
     sequence_reference: models.SequenceReference = (
         models.SequenceReference.model_validate(
-            _get_vrs_object(av, sequence_reference_id, models.SequenceReference)
+            _get_vrs_object(av, refget_accession_id, models.SequenceReference)
         )
     )
     return GetSequenceReferenceResponse(sequence_reference=sequence_reference)
