@@ -38,13 +38,11 @@ def test_put_vrs_variation_allele(restapi_client: TestClient, alleles: dict):
 
 def test_get_allele(restapi_client: TestClient, preloaded_alleles):
     for allele_id, allele_fixture in preloaded_alleles.items():
-        resp = restapi_client.get(f"/variation/{allele_id}")
+        resp = restapi_client.get(f"/object/{allele_id}")
         assert resp.status_code == HTTPStatus.OK
         assert resp.json()["data"] == allele_fixture["variation"]
 
-    bad_resp = restapi_client.get(
-        "/variation/ga4gh:VA.invalid7DSM9KE3Z0LntAukLqm0K2ENn"
-    )
+    bad_resp = restapi_client.get("/object/ga4gh:VA.invalid7DSM9KE3Z0LntAukLqm0K2ENn")
     assert bad_resp.status_code == HTTPStatus.NOT_FOUND
 
 
@@ -56,7 +54,7 @@ def test_get_allele(restapi_client: TestClient, preloaded_alleles):
 
 # def test_get_copy_numbers(restapi_client, copy_numbers):
 #     for copy_number_id, copy_number in copy_numbers.items():
-#         resp = restapi_client.get(f"/variation/{copy_number_id}")
+#         resp = restapi_client.get(f"/object/{copy_number_id}")
 #         assert resp.status_code == HTTPStatus.OK
 #         assert resp.json()["data"] == copy_number["copy_number_response"]["object"]
 
@@ -65,12 +63,12 @@ def test_get_allele(restapi_client: TestClient, preloaded_alleles):
 
 # def test_put_copy_number(restapi_client, copy_numbers):
 #     for copy_number_id, copy_number in copy_numbers.items():
-#         resp = restapi_client.put("/variation", json=copy_number["params"])
+#         resp = restapi_client.put("/object", json=copy_number["params"])
 #         assert resp.status_code == HTTPStatus.OK
 #         assert resp.json()["object"]["id"] == copy_number_id
 
 #     # try unsupported variation type
-#     resp = restapi_client.put("/variation", json={"definition": "BRAF amplification"})
+#     resp = restapi_client.put("/object", json={"definition": "BRAF amplification"})
 #     assert resp.status_code == HTTPStatus.OK
 #     resp_json = resp.json()
 #     assert resp_json["messages"] == ['Unable to translate "BRAF amplification"']

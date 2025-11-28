@@ -520,27 +520,27 @@ def register_vrs_object(
 
 
 @app.get(
-    "/variation/{variation_id}",
+    "/object/{vrs_id}",
     response_model_exclude_none=True,
     operation_id="getVariation",
-    summary="Retrieve a variation object",
-    description="Gets a variation instance by ID. May return any supported type of variation.",
+    summary="Retrieve a VRS object",
+    description="Gets a VRS object by ID. May return any supported type of VRS Object.",
     tags=[EndpointTag.VRS_OBJECTS],
 )
 def get_variation_by_id(
     request: Request,
-    variation_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
+    object_id: Annotated[StrictStr, Path(..., description="VRS ID for object")],
 ) -> GetVariationResponse:
-    """Get registered variation given VRS ID.
+    """Get registered VRS object given its VRS ID.
 
     :param request: FastAPI request object
-    :param variation_id: ID to look up
-    :return: VRS variation if successful
+    :param object_id: ID to look up
+    :return: VRS Object if successful
     :raise HTTPException: if no variation matches provided ID
     """
     av: AnyVar = request.app.state.anyvar
-    variation = _get_vrs_object(av, variation_id, models.Allele)
-    return GetVariationResponse(messages=[], data=variation)
+    vrs_object: VrsObject = _get_vrs_object(av, object_id)
+    return GetVariationResponse(messages=[], data=vrs_object)
 
 
 @app.get(
