@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
 from anyvar import __version__
 from anyvar.utils import types
+from anyvar.utils.liftover_utils import ReferenceAssembly
 from anyvar.utils.types import (
     SupportedVariationType,
     VrsObject,
@@ -129,13 +130,16 @@ class ServiceInfo(BaseModel):
     capabilities_metadata: CapabilitiesMetadata = CapabilitiesMetadata()
 
 
-class RegisterVariationRequest(BaseModel):
-    """Describe request structure for the PUT /variation endpoint"""
+class VariationRequest(BaseModel):
+    """Describe request structure for the PUT and POST /variation endpoints"""
+
+    model_config = ConfigDict(use_enum_values=True)
 
     definition: StrictStr
     input_type: SupportedVariationType | None = None
     copies: int | None = None
     copy_change: models.CopyChange | None = None
+    assembly_name: ReferenceAssembly | None = ReferenceAssembly.GRCH38
 
 
 class AddAnnotationResponse(BaseModel):
@@ -263,7 +267,7 @@ class GetObjectResponse(BaseModel):
     )
 
     messages: list[StrictStr]
-    data: VrsObject
+    data: VrsObject | None = None
 
 
 class SearchResponse(BaseModel):

@@ -6,8 +6,6 @@ Quick Start
 Installation and Service Initialization
 =======================================
 
-.. TODO this should obviously just be about installing from pypi
-
 Clone the AnyVar repository
 ---------------------------
 
@@ -15,8 +13,6 @@ Clone the AnyVar repository
 
    git clone https://github.com/biocommons/anyvar
    cd anyvar
-
-.. TODO presumably something about virtual env/installation? use the makefile?
 
 Set Environment Variables
 -------------------------

@@ -3,7 +3,9 @@
 import os
 from collections.abc import Iterator
 
+from ga4gh.vrs.models import MoleculeType
 from sqlalchemy import (
+    Enum,
     ForeignKey,
     Index,
     Integer,
@@ -11,7 +13,6 @@ from sqlalchemy import (
     UniqueConstraint,
     create_engine,
 )
-from sqlalchemy.dialects.postgresql import ENUM as PgEnum  # noqa: N811
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -138,7 +139,15 @@ class SequenceReference(Base):
     """AnyVar ORM model for SequenceReferences"""
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    molecule_type: Mapped[str | None]
+    molecule_type: Mapped[MoleculeType | None] = mapped_column(
+        Enum(
+            MoleculeType,
+            name="molecule_type",
+            native_enum=True,
+            values_callable=lambda mt_enum: [mt.value for mt in mt_enum],
+            validate_strings=True,
+        )
+    )
 
 
 class Annotation(Base):
@@ -150,7 +159,6 @@ class Annotation(Base):
     annotation_value: Mapped[JSONB] = mapped_column(JSONB)
 
     # https://docs.sqlalchemy.org/en/20/core/constraints.html#indexes
-    # TODO is this needed because of the primary key?
     __table_args__ = (
         Index(
             "idx_annotations_object_id_annotation_type",
@@ -160,9 +168,10 @@ class Annotation(Base):
     )
 
 
-mapping_type_enum = PgEnum(
+mapping_type_enum = Enum(
     VariationMappingType,
     name="mapping_type",
+    native_enum=True,
     metadata=Base.metadata,
     create_type=True,
     validate_strings=True,

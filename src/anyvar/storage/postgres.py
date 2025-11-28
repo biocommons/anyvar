@@ -32,6 +32,8 @@ class PostgresObjectStore(Storage):
     with object mapping to convert between VRS models and database entities.
     """
 
+    BATCH_SIZE = 100
+
     _VRS_OBJECT_INSERT_ORDER: list[str] = [  # noqa: RUF012
         orm.SequenceReference.__name__,
         orm.Location.__name__,
@@ -50,10 +52,6 @@ class PostgresObjectStore(Storage):
 
     def close(self) -> None:
         """Close the storage backend."""
-        # TODO unclear if engine.dispose is desirable.
-        # It does not wait for active connections.
-        # https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.Engine.dispose
-        # self.engine.dispose()
 
     def wait_for_writes(self) -> None:
         """Wait for all background writes to complete.
@@ -73,8 +71,6 @@ class PostgresObjectStore(Storage):
             session.execute(delete(orm.VrsObject))
             session.execute(delete(orm.Annotation))
 
-    # TODO also store vrs_objects table in addition to
-    # the tables per type.
     def add_objects(self, objects: Iterable[types.VrsObject]) -> None:
         """Add multiple VRS objects to storage using bulk inserts.
 
@@ -147,6 +143,7 @@ class PostgresObjectStore(Storage):
                         )
                     )
                     .where(orm.Allele.id.in_(object_ids_list))
+                    .limit(self.BATCH_SIZE)
                 )
                 db_objects = session.scalars(stmt).all()
             elif object_type is vrs_models.SequenceLocation:
@@ -155,12 +152,15 @@ class PostgresObjectStore(Storage):
                     select(orm.Location)
                     .options(joinedload(orm.Location.sequence_reference))
                     .where(orm.Location.id.in_(object_ids_list))
+                    .limit(self.BATCH_SIZE)
                 )
                 db_objects = session.scalars(stmt).all()
             elif object_type is vrs_models.SequenceReference:
                 # Get sequence references
-                stmt = select(orm.SequenceReference).where(
-                    orm.SequenceReference.id.in_(object_ids_list)
+                stmt = (
+                    select(orm.SequenceReference)
+                    .where(orm.SequenceReference.id.in_(object_ids_list))
+                    .limit(self.BATCH_SIZE)
                 )
                 db_objects = session.scalars(stmt).all()
             else:
@@ -178,9 +178,7 @@ class PostgresObjectStore(Storage):
         :return: all stored VRS object IDs
         """
         with self.session_factory() as session:
-            # TODO This only handles Alleles for now
-            # TODO This seems like it could be a lot of data
-            stmt = select(orm.Allele.id)
+            stmt = select(orm.Allele.id).limit(self.BATCH_SIZE)
             allele_ids = session.execute(stmt).scalars().all()
             return allele_ids
 
@@ -285,8 +283,10 @@ class PostgresObjectStore(Storage):
             retrieve all mappings for the source ID)
         :return: iterable collection of mapping descriptors (empty if no matching mappings exist)
         """
-        stmt = select(orm.VariationMapping).where(
-            orm.VariationMapping.source_id == source_object_id
+        stmt = (
+            select(orm.VariationMapping)
+            .where(orm.VariationMapping.source_id == source_object_id)
+            .limit(self.BATCH_SIZE)
         )
         if mapping_type:
             stmt = stmt.where(orm.VariationMapping.mapping_type == mapping_type)
@@ -321,8 +321,12 @@ class PostgresObjectStore(Storage):
         :return: A list of annotations
         """
         stmt = select(orm.Annotation).where(orm.Annotation.object_id == object_id)
+
         if annotation_type:
             stmt = stmt.where(orm.Annotation.annotation_type == annotation_type)
+
+        stmt = stmt.limit(self.BATCH_SIZE)
+
         with self.session_factory() as session, session.begin():
             db_annotations = session.execute(stmt).scalars().all()
 
@@ -365,7 +369,7 @@ class PostgresObjectStore(Storage):
 
         Currently, any variation which overlaps the queried region is returned.
 
-        Todo:
+        Todo (see Issue #338):
         * define alternate match modes (partial/full overlap/contained/etc)
         * define behavior for LSE indels and for alternative types of state (RLEs)
 
@@ -382,10 +386,10 @@ class PostgresObjectStore(Storage):
         """
         if start < 0 or stop < 0 or start > stop:
             raise InvalidSearchParamsError
-        # TODO may load a lot of data
+
         with self.session_factory() as session:
             # Query alleles with overlapping locations
-            # TODO this is any overlap, not containment.
+            # NOTE: this is any overlap, not containment.
             stmt = (
                 select(orm.Allele)
                 .options(
@@ -400,6 +404,7 @@ class PostgresObjectStore(Storage):
                     orm.Location.start <= stop,
                     orm.Location.end >= start,
                 )
+                .limit(self.BATCH_SIZE)
             )
             db_alleles = session.scalars(stmt).all()
 
