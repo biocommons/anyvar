@@ -527,9 +527,9 @@ def register_vrs_object(
     description="Gets a VRS object by ID. May return any supported type of VRS Object.",
     tags=[EndpointTag.VRS_OBJECTS],
 )
-def get_variation_by_id(
+def get_object_by_id(
     request: Request,
-    object_id: Annotated[StrictStr, Path(..., description="VRS ID for object")],
+    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for object")],
 ) -> GetVariationResponse:
     """Get registered VRS object given its VRS ID.
 
@@ -539,7 +539,7 @@ def get_variation_by_id(
     :raise HTTPException: if no variation matches provided ID
     """
     av: AnyVar = request.app.state.anyvar
-    vrs_object: VrsObject = _get_vrs_object(av, object_id)
+    vrs_object: VrsObject = _get_vrs_object(av, vrs_id)
     return GetVariationResponse(messages=[], data=vrs_object)
 
 
