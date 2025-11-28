@@ -50,7 +50,7 @@ def test_put_mapping_valid_request(
         dest_vrs_id = dest_vrs_object["id"]
 
         resp = restapi_client.put(
-            f"/variation/{source_vrs_id}/mappings",
+            f"/object/{source_vrs_id}/mappings",
             json={"dest_id": dest_vrs_id, "mapping_type": mapping_type},
         )
         assert resp.status_code == HTTPStatus.OK
@@ -71,16 +71,12 @@ def test_put_mapping_idempotency(restapi_client, preloaded_allele_pairs):
     payload = {"dest_id": dest_vrs_id, "mapping_type": DEFAULT_MAPPING_TYPE}
 
     # First request
-    first_resp = restapi_client.put(
-        f"/variation/{source_vrs_id}/mappings", json=payload
-    )
+    first_resp = restapi_client.put(f"/object/{source_vrs_id}/mappings", json=payload)
     assert first_resp.status_code == HTTPStatus.OK
     first_data = first_resp.json()
 
     # Second identical request
-    second_resp = restapi_client.put(
-        f"/variation/{source_vrs_id}/mappings", json=payload
-    )
+    second_resp = restapi_client.put(f"/object/{source_vrs_id}/mappings", json=payload)
     assert second_resp.status_code == HTTPStatus.OK
     second_data = second_resp.json()
 
@@ -93,7 +89,7 @@ def test_put_mapping_same_source_and_dest(restapi_client, preloaded_allele_pairs
     source_vrs_id = source_vrs_object["id"]
 
     resp = restapi_client.put(
-        f"/variation/{source_vrs_id}/mappings",
+        f"/object/{source_vrs_id}/mappings",
         json={"dest_id": source_vrs_id, "mapping_type": DEFAULT_MAPPING_TYPE},
     )
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
@@ -109,7 +105,7 @@ def test_put_mapping_invalid_source(restapi_client, preloaded_allele_pairs):
     source_vrs_id = source_vrs_object["id"]
 
     resp = restapi_client.put(
-        "/variation/ga4gh:VA.invalidsource/mappings",
+        "/object/ga4gh:VA.invalidsource/mappings",
         json={"dest_id": source_vrs_id, "mapping_type": DEFAULT_MAPPING_TYPE},
     )
     assert resp.status_code == HTTPStatus.NOT_FOUND
@@ -122,7 +118,7 @@ def test_put_mapping_invalid_dest(restapi_client, preloaded_allele_pairs):
     source_vrs_id = source_vrs_object["id"]
 
     resp = restapi_client.put(
-        f"/variation/{source_vrs_id}/mappings",
+        f"/object/{source_vrs_id}/mappings",
         json={"dest_id": "ga4gh:VA.invaliddest", "mapping_type": DEFAULT_MAPPING_TYPE},
     )
     assert resp.status_code == HTTPStatus.NOT_FOUND
@@ -136,7 +132,7 @@ def test_put_mapping_invalid_mapping(restapi_client, preloaded_allele_pairs):
     dest_vrs_id = dest_vrs_object["id"]
 
     resp = restapi_client.put(
-        f"/variation/{source_vrs_id}/mappings",
+        f"/object/{source_vrs_id}/mappings",
         json={"dest_id": dest_vrs_id, "mapping_type": "invalid_mapping_type"},
     )
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
@@ -152,7 +148,7 @@ def test_get_mapping_valid_request_found(restapi_client, stored_variation_mappin
     source_vrs_id = source_vrs_obj["id"]
 
     resp = restapi_client.get(
-        f"/variation/{source_vrs_id}/mappings/{DEFAULT_MAPPING_TYPE}"
+        f"/object/{source_vrs_id}/mappings/{DEFAULT_MAPPING_TYPE}"
     )
     assert resp.status_code == HTTPStatus.OK
     assert resp.json() == {
@@ -171,7 +167,7 @@ def test_get_mapping_valid_request_not_found(restapi_client, stored_variation_ma
     source_vrs_obj, _ = stored_variation_mappings[0]
     source_vrs_id = source_vrs_obj["id"]
 
-    resp = restapi_client.get(f"/variation/{source_vrs_id}/mappings/transcription")
+    resp = restapi_client.get(f"/object/{source_vrs_id}/mappings/transcription")
     assert resp.status_code == HTTPStatus.OK
     assert resp.json() == {"mappings": []}
 
@@ -179,10 +175,10 @@ def test_get_mapping_valid_request_not_found(restapi_client, stored_variation_ma
 def test_get_mapping_invalid_source(restapi_client):
     """Test when an invalid source VRS ID is provided for GET method"""
     resp = restapi_client.get(
-        f"/variation/ga4gh.VA:invalidsource/mappings/{DEFAULT_MAPPING_TYPE}"
+        f"/object/ga4gh.VA:invalidsource/mappings/{DEFAULT_MAPPING_TYPE}"
     )
     assert resp.status_code == HTTPStatus.NOT_FOUND
-    assert resp.json() == {"detail": "Variation ga4gh.VA:invalidsource not found"}
+    assert resp.json() == {"detail": "VRS Object ga4gh.VA:invalidsource not found"}
 
 
 def test_get_mapping_invalid_mapping(restapi_client, stored_variation_mappings):
@@ -190,9 +186,7 @@ def test_get_mapping_invalid_mapping(restapi_client, stored_variation_mappings):
     source_vrs_obj, _ = stored_variation_mappings[0]
     source_vrs_id = source_vrs_obj["id"]
 
-    resp = restapi_client.get(
-        f"/variation/{source_vrs_id}/mappings/invalid_mapping_type"
-    )
+    resp = restapi_client.get(f"/object/{source_vrs_id}/mappings/invalid_mapping_type")
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     assert (
         resp.json()["detail"][0]["msg"]
