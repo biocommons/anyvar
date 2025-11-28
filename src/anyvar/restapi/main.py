@@ -24,7 +24,6 @@ from fastapi import (
     Response,
 )
 from fastapi.responses import JSONResponse, StreamingResponse
-from ga4gh.vrs import models
 from pydantic import StrictStr
 
 import anyvar
@@ -37,8 +36,6 @@ from anyvar.restapi.schema import (
     EndpointTag,
     GetAnnotationResponse,
     GetMappingResponse,
-    GetSequenceLocationResponse,
-    GetSequenceReferenceResponse,
     GetVariationResponse,
     RegisterVariationRequest,
     RegisterVariationResponse,
@@ -541,61 +538,6 @@ def get_object_by_id(
     av: AnyVar = request.app.state.anyvar
     vrs_object: VrsObject = _get_vrs_object(av, vrs_id)
     return GetVariationResponse(messages=[], data=vrs_object)
-
-
-@app.get(
-    "/locations/{location_id}",
-    response_model_exclude_none=True,
-    summary="Retrieve sequence location",
-    description="Retrieve registered sequence location by ID",
-    tags=[EndpointTag.VRS_OBJECTS],
-)
-def get_location_by_id(
-    request: Request,
-    location_id: Annotated[StrictStr, Path(..., description="Location VRS ID")],
-) -> GetSequenceLocationResponse:
-    """Retrieve stored location object by ID.
-
-    :param request: FastAPI request object
-    :param location_id: VRS location identifier
-    :return: VRS location object if successful
-    :raise HTTPException: if requested location isn't found
-    """
-    av: AnyVar = request.app.state.anyvar
-    location: models.SequenceLocation = models.SequenceLocation.model_validate(
-        _get_vrs_object(av, location_id, models.SequenceLocation)
-    )
-    return GetSequenceLocationResponse(location=location)
-
-
-@app.get(
-    "/sequence_reference/{refget_accession_id}",
-    response_model_exclude_none=True,
-    operation_id="getSequenceReference",
-    summary="Retrieve a sequence reference object",
-    description="Gets a sequence reference instance by ID.",
-    tags=[EndpointTag.VRS_OBJECTS],
-)
-def get_sequence_reference_by_id(
-    request: Request,
-    refget_accession_id: Annotated[
-        StrictStr, Path(..., description="Sequence reference VRS ID")
-    ],
-) -> GetSequenceReferenceResponse:
-    """Get registered sequence reference given VRS ID.
-
-    :param request: FastAPI request object
-    :param variation_id: ID to look up
-    :return: VRS sequence reference object if successful
-    :raise HTTPException: if no sequence reference matches provided ID
-    """
-    av: AnyVar = request.app.state.anyvar
-    sequence_reference: models.SequenceReference = (
-        models.SequenceReference.model_validate(
-            _get_vrs_object(av, refget_accession_id, models.SequenceReference)
-        )
-    )
-    return GetSequenceReferenceResponse(sequence_reference=sequence_reference)
 
 
 @app.get(
