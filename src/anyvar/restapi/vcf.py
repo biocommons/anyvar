@@ -189,7 +189,7 @@ async def _annotate_vcf_sync(
     "/vcf",
     summary="Register alleles from a VCF",
     description="Provide a valid VCF. All reference and alternate alleles will be registered with AnyVar. The file is annotated with VRS IDs and returned.",
-    tags=[EndpointTag.VRS_OBJECTS],
+    tags=[EndpointTag.VCF],
     response_model=None,
 )
 async def annotate_vcf(
@@ -391,7 +391,7 @@ async def _ingest_annotated_vcf_async(
     "/annotated_vcf",
     summary="Register alleles from a VCF that has already been annotated with VRS objects.",
     description="Provide a VCF that already has VRS position and state annotations. Ingest the objects into AnyVar.",
-    tags=[EndpointTag.VRS_OBJECTS],
+    tags=[EndpointTag.VCF],
     response_model=None,
 )
 async def annotated_vcf(
@@ -509,7 +509,7 @@ async def annotated_vcf(
     "/vcf/{run_id}",
     summary="Poll for status and/or result for asynchronous VCF ingestion",
     description="Provide a valid run id to get the status and/or result of a VCF ingestion run",
-    tags=[EndpointTag.VRS_OBJECTS],
+    tags=[EndpointTag.VCF],
     response_model=None,
 )
 async def get_vcf_run_status(
