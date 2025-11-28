@@ -47,11 +47,16 @@ from anyvar.restapi.schema import (
     VariationRequest,
 )
 from anyvar.restapi.vcf import router as vcf_router
+from anyvar.storage.base_storage import IncompleteVrsObjectError
 from anyvar.translate.translate import (
     TranslationError,
 )
 from anyvar.utils import liftover_utils, types
-from anyvar.utils.types import VrsObject, VrsVariation
+from anyvar.utils.types import (
+    VrsObject,
+    VrsVariation,
+    recursive_identify,
+)
 
 load_dotenv()
 _logger = logging.getLogger(__name__)
@@ -429,19 +434,18 @@ async def add_registration_annotations(
     return new_response
 
 
-variation_request_body = (
-    Body(
-        description="Variation description, including (at minimum) a definition property. Can provide optional input_type if the expected output representation is known. If representing copy number, provide copies or copy_change.",
-        examples=[
-            {
-                "definition": "NC_000007.13:g.36561662_36561663del",
-                "input_type": "Allele",
-                "copies": 0,
-                "copy_change": "complete genomic loss",
-                "assembly_name": None,
-            }
-        ],
-    ),
+VARIATION_EXAMPLE_PAYLOAD = {
+    "definition": "NC_000007.13:g.36561662_36561663del",
+    "input_type": "Allele",
+    "copies": 0,
+    "copy_change": "complete genomic loss",
+    "assembly_name": None,
+}
+
+
+_variation_request_body = Body(
+    description="Variation description, including (at minimum) a definition property. Can provide optional input_type if the expected output representation is known. If representing copy number, provide copies or copy_change.",
+    examples=[VARIATION_EXAMPLE_PAYLOAD],
 )
 
 
@@ -454,7 +458,7 @@ variation_request_body = (
 )
 def get_variation(
     request: Request,
-    variation: Annotated[VariationRequest, variation_request_body],
+    variation: Annotated[VariationRequest, _variation_request_body],
 ) -> GetVariationResponse:
     """Search for registered variation"""
     av: AnyVar = request.app.state.anyvar
@@ -493,7 +497,7 @@ def get_variation(
 )
 def register_variation(
     request: Request,
-    variation: Annotated[VariationRequest, variation_request_body],
+    variation: Annotated[VariationRequest, _variation_request_body],
 ) -> RegisterVariationResponse:
     """Register a variation based on a provided description or reference."""
     av: AnyVar = request.app.state.anyvar
@@ -534,6 +538,21 @@ def register_variation(
     )
 
 
+PUT_VRS_VARIATION_EXAMPLE_PAYLOAD = {
+    "location": {
+        "end": 87894077,
+        "start": 87894076,
+        "sequenceReference": {
+            "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
+            "type": "SequenceReference",
+        },
+        "type": "SequenceLocation",
+    },
+    "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
+    "type": "Allele",
+}
+
+
 @app.put(
     "/vrs_variation",
     summary="Register a VRS variation",
@@ -547,22 +566,7 @@ def register_vrs_object(
         VrsVariation,
         Body(
             description="Valid VRS object.",
-            examples=[
-                {
-                    "location": {
-                        "id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8",
-                        "end": 87894077,
-                        "start": 87894076,
-                        "sequenceReference": {
-                            "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
-                            "type": "SequenceReference",
-                        },
-                        "type": "SequenceLocation",
-                    },
-                    "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
-                    "type": "Allele",
-                }
-            ],
+            examples=[PUT_VRS_VARIATION_EXAMPLE_PAYLOAD],
         ),
     ],
 ) -> RegisterVariationResponse:
@@ -574,6 +578,9 @@ def register_vrs_object(
 
     av: AnyVar = request.app.state.anyvar
     try:
+        av.put_objects([variation])
+    except IncompleteVrsObjectError:
+        variation = recursive_identify(variation)
         av.put_objects([variation])
     except Exception as e:
         raise HTTPException(

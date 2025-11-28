@@ -101,10 +101,13 @@ class AnyVar:
         self.translator = translator
 
     def put_objects(self, variation_objects: list[VrsObject]) -> None:
-        """Attempt to register variation.
+        """Attempt to register variation objects
 
-        :param variation_object: complete VRS object
-        :return: None
+        The provided list may contain any supported variation object -- i.e. not just
+        Alleles or molecular variations -- and is not required to contain only one
+        kind of object.
+
+        :param variation_objects: list of complete variation objects (i.e. VRS-Python models)
         """
         try:
             self.object_store.add_objects(variation_objects)

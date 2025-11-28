@@ -5,6 +5,10 @@ from http import HTTPStatus
 import pytest
 from fastapi.testclient import TestClient
 
+from anyvar.restapi.main import (
+    PUT_VRS_VARIATION_EXAMPLE_PAYLOAD,
+    VARIATION_EXAMPLE_PAYLOAD,
+)
 from anyvar.utils.liftover_utils import ReferenceAssembly
 
 
@@ -42,11 +46,28 @@ def test_put_allele(restapi_client: TestClient, alleles: dict):
     assert "object_id" not in resp_json
 
 
+def test_put_variation_example(restapi_client: TestClient, alleles: dict):
+    resp = restapi_client.put("/variation", json=VARIATION_EXAMPLE_PAYLOAD)
+    assert resp.status_code == HTTPStatus.OK
+    expected_id = "ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb"
+    assert resp.json()["object_id"] == expected_id
+    assert resp.json()["object"] == alleles[expected_id]["variation"]
+    assert resp.json()["messages"] == []
+
+
 def test_put_vrs_variation_allele(restapi_client: TestClient, alleles: dict):
     for allele_id, allele_fixture in alleles.items():
         resp = restapi_client.put("/vrs_variation", json=allele_fixture["variation"])
         assert resp.status_code == HTTPStatus.OK
         assert resp.json()["object_id"] == allele_id
+
+
+def test_put_vrs_variation_example(restapi_client: TestClient, alleles: dict):
+    resp = restapi_client.put("/vrs_variation", json=PUT_VRS_VARIATION_EXAMPLE_PAYLOAD)
+    assert resp.status_code == HTTPStatus.OK
+    expected_id = "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU"
+    assert resp.json()["object"] == alleles[expected_id]["variation"]
+    assert resp.json()["messages"] == []
 
 
 def test_get_allele(restapi_client: TestClient, preloaded_alleles):
