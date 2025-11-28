@@ -181,222 +181,6 @@ def service_info(
     return ServiceInfo(**service_info)
 
 
-# @app.post(
-#     "/object/{vrs_id}/annotations",
-#     response_model_exclude_none=True,
-#     summary="Add annotation to a variation",
-#     description="Provide an annotation to associate with a Variation object. The Variation must be registered with AnyVar before adding annotations.",
-#     tags=[EndpointTag.VRS_OBJECTS],
-# )
-# def add_object_annotation(
-#     request: Request,
-#     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
-#     annotation_request: Annotated[
-#         AddAnnotationRequest,
-#         Body(
-#             description="Annotation to associate with the variation",
-#         ),
-#     ],
-# ) -> AddAnnotationResponse:
-#     """Store an annotation for a variation.
-
-#     :param request: FastAPI request object
-#     :param vrs_id: the VRS ID of the variation to annotate
-#     :param annotation: the annotation to store
-#     :return: the variation and annotations if stored
-#     :raise HTTPException: if requested location isn't found
-#     """
-#     # Look up the variation from the AnyVar store
-#     av: AnyVar = request.app.state.anyvar
-#     variation: VrsObject = _get_vrs_object(av, vrs_id)
-
-#     # Add the annotation to the database
-#     annotation_id: int | None = None
-#     try:
-#         annotation = types.Annotation(
-#             object_id=variation.id,  # pyright: ignore[reportArgumentType] - variations from the DB will never NOT have an ID
-#             annotation_type=annotation_request.annotation_type,
-#             annotation_value=annotation_request.annotation_value,
-#         )
-#         annotation_id = av.put_annotation(annotation)
-#     except ValueError as e:
-#         _logger.exception(
-#             "Failed to add annotation `%s` on variation `%s`",
-#             annotation_request,
-#             vrs_id,
-#         )
-#         raise HTTPException(
-#             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-#             detail=f"Failed to add annotation: {annotation_request}",
-#         ) from e
-
-#     return AddAnnotationResponse(
-#         object=variation,
-#         object_id=vrs_id,
-#         annotation_type=annotation_request.annotation_type,
-#         annotation_value=annotation_request.annotation_value,
-#         annotation_id=annotation_id,
-#     )
-
-
-# @app.get(
-#     "/variation/{vrs_id}/annotations/{annotation_type}",
-#     response_model_exclude_none=True,
-#     summary="Retrieve annotations for a variation",
-#     description="Retrieve annotations for a variation by VRS ID and annotation type",
-#     tags=[EndpointTag.VRS_OBJECTS],
-# )
-# def get_variation_annotation(
-#     request: Request,
-#     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
-#     annotation_type: Annotated[StrictStr, Path(..., description="Annotation type")],
-# ) -> GetAnnotationResponse:
-#     """Retrieve annotations for a variation."""
-#     av: AnyVar = request.app.state.anyvar
-#     try:
-#         annotations = av.get_object_annotations(vrs_id, annotation_type)
-#     except ObjectNotFoundError as e:
-#         raise HTTPException(
-#             status_code=HTTPStatus.NOT_FOUND,
-#             detail=f"Variation {vrs_id} not found",
-#         ) from e
-#     return GetAnnotationResponse(annotations=annotations)
-
-
-# @app.put(
-#     "/variation/{vrs_id}/mappings",
-#     response_model_exclude_none=True,
-#     summary="Add mapping to a variation",
-#     description="Provide a mapping to associate with a Variation object. The source and dest Variation must be registered with AnyVar before adding mappings.",
-#     tags=[EndpointTag.VRS_OBJECTS],
-# )
-# async def add_variation_mapping(
-#     request: Request,
-#     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID")],
-#     mapping_request: Annotated[
-#         AddMappingRequest, Body(description="Mapping to associate with the variation")
-#     ],
-# ) -> AddMappingResponse:
-#     """Store a mapping for a variation
-
-#     :param request: FastAPI request object
-#     :param vrs_id: The VRS ID of the variation to add mapping to
-#     :param mapping_request: The mapping to store
-#     :raises HTTPException: If unable to store a mapping, or source or dest variation
-#         not registered
-#     :return: source and destination vrs variation and mapping type, if found
-#     """
-#     av: AnyVar = request.app.state.anyvar
-#     source_vrs_obj: VrsObject = _get_vrs_object(av, vrs_id)
-#     dest_vrs_id = mapping_request.dest_id
-#     dest_vrs_obj: VrsObject = _get_vrs_object(av, dest_vrs_id)
-
-#     # Add the mapping to the database
-#     mapping: types.VariationMapping | None = None
-#     mapping_type = mapping_request.mapping_type
-#     try:
-#         mapping = types.VariationMapping(
-#             source_id=vrs_id, dest_id=dest_vrs_id, mapping_type=mapping_type
-#         )
-#         av.put_mapping(mapping)
-#     except ValueError as e:
-#         _logger.exception(
-#             "Failed to add mapping `%s` on variation `%s`",
-#             mapping_request,
-#             vrs_id,
-#         )
-#         raise HTTPException(
-#             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-#             detail=f"Failed to add annotation: {mapping_request}. {e}",
-#         ) from e
-
-#     return AddMappingResponse(
-#         source_object=source_vrs_obj,
-#         source_object_id=vrs_id,
-#         dest_object=dest_vrs_obj,
-#         dest_object_id=dest_vrs_id,
-#         mapping_type=mapping_type,
-#     )
-
-
-# @app.get(
-#     "/variation/{vrs_id}/mappings/{mapping_type}",
-#     response_model_exclude_none=True,
-#     summary="Retrieve mappings for a variation",
-#     description="Retrieve mappings for a variation by VRS ID and mapping type",
-#     tags=[EndpointTag.VRS_OBJECTS],
-# )
-# def get_variation_mapping(
-#     request: Request,
-#     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
-#     mapping_type: Annotated[
-#         types.VariationMappingType, Path(..., description="Mapping type")
-#     ],
-# ) -> GetMappingResponse:
-#     """Retrieve mappings for a variation."""
-#     av: AnyVar = request.app.state.anyvar
-#     try:
-#         mappings = av.get_object_mappings(vrs_id, mapping_type)
-#     except ObjectNotFoundError as e:
-#         raise HTTPException(
-#             HTTPStatus.NOT_FOUND,
-#             detail=f"Variation {vrs_id} not found",
-#         ) from e
-
-#     return GetMappingResponse(mappings=mappings)
-
-
-# @app.middleware("http")
-# async def add_registration_annotations(
-#     request: Request, call_next: Callable
-# ) -> Response:
-#     """Add all required annotations ("creation_timestamp") for newly-registered variants
-
-#     :param request: FastAPI `Request` object
-#     :param call_next: A FastAPI function that receives the `request` as a parameter, passes it to the corresponding path operation, and returns the generated `response`
-#     :return: FastAPI`Response` object
-#     """
-#     # Do nothing on request. Pass downstream.
-#     response = await call_next(request)
-
-#     # Make sure we're only targeting the registration endpoints
-#     registration_endpoints = [
-#         "/variation",
-#         "/vrs_variation",
-#     ]
-
-#     if request.url.path not in registration_endpoints:
-#         return response
-
-#     response_json, new_response = await parse_and_rebuild_response(
-#         response
-#     )  # We'll need to return the `new_response` object since we have now exhausted the original response body iterator
-
-#     input_vrs_id, input_variant = (
-#         response_json.get("object_id"),
-#         response_json.get("object"),
-#     )
-#     if (
-#         (not input_vrs_id) or (not input_variant)
-#     ):  # If there's no input_vrs_id/input variant, registration was unsuccessful. Do not attempt any further operations.
-#         return new_response
-
-#     # Add annotations
-#     av: AnyVar = request.app.state.anyvar
-#     timestamp_annotations: list[types.Annotation] = av.get_object_annotations(
-#         input_vrs_id, "creation_timestamp"
-#     )
-#     if not timestamp_annotations:
-#         av.put_annotation(
-#             types.Annotation(
-#                 object_id=input_vrs_id,
-#                 annotation_type="creation_timestamp",
-#                 annotation_value=datetime.datetime.now(tz=datetime.UTC).isoformat(),
-#             )
-#         )
-#     return new_response
-
-
 variation_request_body = (
     Body(
         description="Variation description, including (at minimum) a definition property. Can provide optional input_type if the expected output representation is known. If representing copy number, provide copies or copy_change.",
@@ -411,45 +195,6 @@ variation_request_body = (
         ],
     ),
 )
-
-
-@app.post(
-    "/variation",
-    response_model_exclude_none=True,
-    summary="Retrieve a registered allele or copy number variation",
-    description="Provide a variation definition to be normalized and searched for in AnyVar",
-    tags=[EndpointTag.VRS_OBJECTS],
-)
-def get_variation(
-    request: Request,
-    variation: Annotated[VariationRequest, variation_request_body],
-) -> GetObjectResponse:
-    """Search for registered variation"""
-    av: AnyVar = request.app.state.anyvar
-    definition = variation.definition
-
-    try:
-        translated_variation = av.translator.translate_variation(
-            definition, **variation.model_dump(mode="json")
-        )
-    except TranslationError:
-        return GetObjectResponse(messages=[f"Unable to translate '{definition}'"])
-    except NotImplementedError:
-        return GetObjectResponse(
-            messages=[f"Variation class for {definition} is currently unsupported."]
-        )
-    except HGVSParseError:
-        return GetObjectResponse(messages=[f"Unsupported HGVS '{definition}'"])
-    except DataProxyValidationError:
-        return GetObjectResponse(messages=[f"Invalid definition '{definition}'"])
-
-    if not translated_variation:
-        return GetObjectResponse(messages=[f"Translation of {definition} failed."])
-
-    vrs_id = translated_variation.id
-    _get_vrs_object(av, vrs_id)
-
-    return GetObjectResponse(messages=[], data=translated_variation)
 
 
 @app.put(
@@ -558,6 +303,45 @@ def register_vrs_object(
         object_id=variation.id,
         messages=liftover_messages or [],
     )
+
+
+@app.post(
+    "/variation",
+    response_model_exclude_none=True,
+    summary="Retrieve a registered allele or copy number variation",
+    description="Provide a variation definition to be normalized and searched for in AnyVar",
+    tags=[EndpointTag.VRS_OBJECTS],
+)
+def get_variation(
+    request: Request,
+    variation: Annotated[VariationRequest, variation_request_body],
+) -> GetObjectResponse:
+    """Search for registered variation"""
+    av: AnyVar = request.app.state.anyvar
+    definition = variation.definition
+
+    try:
+        translated_variation = av.translator.translate_variation(
+            definition, **variation.model_dump(mode="json")
+        )
+    except TranslationError:
+        return GetObjectResponse(messages=[f"Unable to translate '{definition}'"])
+    except NotImplementedError:
+        return GetObjectResponse(
+            messages=[f"Variation class for {definition} is currently unsupported."]
+        )
+    except HGVSParseError:
+        return GetObjectResponse(messages=[f"Unsupported HGVS '{definition}'"])
+    except DataProxyValidationError:
+        return GetObjectResponse(messages=[f"Invalid definition '{definition}'"])
+
+    if not translated_variation:
+        return GetObjectResponse(messages=[f"Translation of {definition} failed."])
+
+    vrs_id = translated_variation.id
+    _get_vrs_object(av, vrs_id)
+
+    return GetObjectResponse(messages=[], data=translated_variation)
 
 
 @app.get(
