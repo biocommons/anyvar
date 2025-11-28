@@ -183,13 +183,13 @@ def service_info(
 
 
 @app.post(
-    "/variation/{vrs_id}/annotations",
+    "/object/{vrs_id}/annotations",
     response_model_exclude_none=True,
-    summary="Add annotation to a variation",
-    description="Provide an annotation to associate with a Variation object. The Variation must be registered with AnyVar before adding annotations.",
-    tags=[EndpointTag.VARIATIONS],
+    summary="Add annotation to a VRS Object",
+    description="Provide an annotation to associate with a VRS object. The object must be registered with AnyVar before adding annotations.",
+    tags=[EndpointTag.VRS_OBJECTS],
 )
-def add_variation_annotation(
+def add_object_annotation(
     request: Request,
     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
     annotation_request: Annotated[
@@ -209,20 +209,20 @@ def add_variation_annotation(
     """
     # Look up the variation from the AnyVar store
     av: AnyVar = request.app.state.anyvar
-    variation: VrsObject = _get_vrs_object(av, vrs_id)
+    vrs_object: VrsObject = _get_vrs_object(av, vrs_id)
 
     # Add the annotation to the database
     annotation_id: int | None = None
     try:
         annotation = types.Annotation(
-            object_id=variation.id,  # pyright: ignore[reportArgumentType] - variations from the DB will never NOT have an ID
+            object_id=vrs_object.id,  # pyright: ignore[reportArgumentType] - variations from the DB will never NOT have an ID
             annotation_type=annotation_request.annotation_type,
             annotation_value=annotation_request.annotation_value,
         )
         annotation_id = av.put_annotation(annotation)
     except ValueError as e:
         _logger.exception(
-            "Failed to add annotation `%s` on variation `%s`",
+            "Failed to add annotation `%s` on VRS Object `%s`",
             annotation_request,
             vrs_id,
         )
@@ -232,7 +232,7 @@ def add_variation_annotation(
         ) from e
 
     return AddAnnotationResponse(
-        object=variation,
+        object=vrs_object,
         object_id=vrs_id,
         annotation_type=annotation_request.annotation_type,
         annotation_value=annotation_request.annotation_value,
@@ -241,15 +241,15 @@ def add_variation_annotation(
 
 
 @app.get(
-    "/variation/{vrs_id}/annotations/{annotation_type}",
+    "/object/{vrs_id}/annotations/{annotation_type}",
     response_model_exclude_none=True,
-    summary="Retrieve annotations for a variation",
-    description="Retrieve annotations for a variation by VRS ID and annotation type",
-    tags=[EndpointTag.VARIATIONS],
+    summary="Retrieve annotations for a VRS Object",
+    description="Retrieve annotations for a VRS Object by VRS ID and annotation type",
+    tags=[EndpointTag.VRS_OBJECTS],
 )
-def get_variation_annotation(
+def get_object_annotations(
     request: Request,
-    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
+    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for VRS Object")],
     annotation_type: Annotated[StrictStr, Path(..., description="Annotation type")],
 ) -> GetAnnotationResponse:
     """Retrieve annotations for a variation."""
@@ -259,7 +259,7 @@ def get_variation_annotation(
     except ObjectNotFoundError as e:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
-            detail=f"Variation {vrs_id} not found",
+            detail=f"VRS Object {vrs_id} not found",
         ) from e
     return GetAnnotationResponse(annotations=annotations)
 
@@ -269,7 +269,7 @@ def get_variation_annotation(
     response_model_exclude_none=True,
     summary="Add mapping to a variation",
     description="Provide a mapping to associate with a Variation object. The source and dest Variation must be registered with AnyVar before adding mappings.",
-    tags=[EndpointTag.VARIATIONS],
+    tags=[EndpointTag.VRS_OBJECTS],
 )
 async def add_variation_mapping(
     request: Request,
@@ -325,7 +325,7 @@ async def add_variation_mapping(
     response_model_exclude_none=True,
     summary="Retrieve mappings for a variation",
     description="Retrieve mappings for a variation by VRS ID and mapping type",
-    tags=[EndpointTag.VARIATIONS],
+    tags=[EndpointTag.VRS_OBJECTS],
 )
 def get_variation_mapping(
     request: Request,
@@ -403,7 +403,7 @@ async def add_registration_annotations(
     response_model_exclude_none=True,
     summary="Register a new allele or copy number object",
     description="Provide a variation definition to be normalized and registered with AnyVar. A complete VRS Allele or Copy Number object and digest is returned for later reference.",
-    tags=[EndpointTag.VARIATIONS],
+    tags=[EndpointTag.VRS_OBJECTS],
 )
 def register_variation(
     request: Request,
@@ -466,7 +466,7 @@ def register_variation(
     summary="Register a VRS variation",
     description="Provide a valid VRS variation object to be registered with AnyVar. A digest is returned for later reference.",
     response_model_exclude_none=True,
-    tags=[EndpointTag.VARIATIONS],
+    tags=[EndpointTag.VRS_OBJECTS],
 )
 def register_vrs_object(
     request: Request,
@@ -525,7 +525,7 @@ def register_vrs_object(
     operation_id="getVariation",
     summary="Retrieve a variation object",
     description="Gets a variation instance by ID. May return any supported type of variation.",
-    tags=[EndpointTag.VARIATIONS],
+    tags=[EndpointTag.VRS_OBJECTS],
 )
 def get_variation_by_id(
     request: Request,
@@ -548,7 +548,7 @@ def get_variation_by_id(
     response_model_exclude_none=True,
     summary="Retrieve sequence location",
     description="Retrieve registered sequence location by ID",
-    tags=[EndpointTag.LOCATIONS],
+    tags=[EndpointTag.VRS_OBJECTS],
 )
 def get_location_by_id(
     request: Request,
@@ -574,7 +574,7 @@ def get_location_by_id(
     operation_id="getSequenceReference",
     summary="Retrieve a sequence reference object",
     description="Gets a sequence reference instance by ID.",
-    tags=[EndpointTag.SEQUENCES],
+    tags=[EndpointTag.VRS_OBJECTS],
 )
 def get_sequence_reference_by_id(
     request: Request,

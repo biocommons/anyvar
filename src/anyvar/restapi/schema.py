@@ -26,9 +26,7 @@ class EndpointTag(str, Enum):
     """Denote endpoint group membership"""
 
     GENERAL = "General"
-    SEQUENCES = "Sequences"
-    LOCATIONS = "Locations"
-    VARIATIONS = "Variations"
+    VRS_OBJECTS = "VRS Objects"
     SEARCH = "Search"
 
 
