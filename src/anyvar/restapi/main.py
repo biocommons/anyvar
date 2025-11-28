@@ -179,6 +179,151 @@ def service_info(
     return ServiceInfo(**service_info)
 
 
+@app.put(
+    "/variation",
+    response_model_exclude_none=True,
+    summary="Register a new allele or copy number object",
+    description="Provide a variation definition to be normalized and registered with AnyVar. A complete VRS Allele or Copy Number object and digest is returned for later reference.",
+    tags=[EndpointTag.VRS_OBJECTS],
+)
+def register_variation(
+    request: Request,
+    variation: Annotated[
+        RegisterVariationRequest,
+        Body(
+            description="Variation description, including (at minimum) a definition property. Can provide optional input_type if the expected output representation is known. If representing copy number, provide copies or copy_change.",
+            examples=[
+                {
+                    "definition": "NC_000007.13:g.36561662_36561663del",
+                    "input_type": "Allele",
+                    "copies": 0,
+                    "copy_change": "complete genomic loss",
+                }
+            ],
+        ),
+    ],
+) -> RegisterVariationResponse:
+    """Register a variation based on a provided description or reference."""
+    av: AnyVar = request.app.state.anyvar
+    definition = variation.definition
+
+    try:
+        translated_variation = av.translator.translate_variation(
+            definition, **variation.model_dump()
+        )
+    except TranslationError:
+        return RegisterVariationResponse(
+            messages=[f'Unable to translate "{definition}"']
+        )
+    except NotImplementedError:
+        return RegisterVariationResponse(
+            messages=[f"Variation class for {definition} is currently unsupported."]
+        )
+    if not translated_variation:
+        return RegisterVariationResponse(
+            messages=[f"Translation of {definition} failed."]
+        )
+    messages: list[str] = []
+
+    av.put_objects([translated_variation])  # type: ignore
+
+    liftover_messages = liftover_utils.add_liftover_mapping(
+        variation=translated_variation,
+        storage=av.object_store,
+        dataproxy=av.translator.dp,
+    )
+    if liftover_messages:
+        messages += liftover_messages
+
+    return RegisterVariationResponse(
+        object=translated_variation,  # type: ignore
+        object_id=translated_variation.id,
+        messages=messages,
+    )
+
+
+@app.put(
+    "/vrs_variation",
+    summary="Register a VRS variation",
+    description="Provide a valid VRS variation object to be registered with AnyVar. A digest is returned for later reference.",
+    response_model_exclude_none=True,
+    tags=[EndpointTag.VRS_OBJECTS],
+)
+def register_vrs_object(
+    request: Request,
+    variation: Annotated[
+        VrsVariation,
+        Body(
+            description="Valid VRS object.",
+            examples=[
+                {
+                    "location": {
+                        "id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8",
+                        "end": 87894077,
+                        "start": 87894076,
+                        "sequenceReference": {
+                            "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
+                            "type": "SequenceReference",
+                        },
+                        "type": "SequenceLocation",
+                    },
+                    "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
+                    "type": "Allele",
+                }
+            ],
+        ),
+    ],
+) -> RegisterVariationResponse:
+    """Register a complete VRS object. No additional normalization is performed."""
+    if not isinstance(variation, VrsVariation):
+        return RegisterVariationResponse(
+            messages=[f"Registration for {variation.type} not currently supported."]
+        )
+
+    av: AnyVar = request.app.state.anyvar
+    try:
+        av.put_objects([variation])
+    except Exception as e:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail="Variation could not be registered",
+        ) from e
+
+    liftover_messages = liftover_utils.add_liftover_mapping(
+        variation, av.object_store, av.translator.dp
+    )
+
+    return RegisterVariationResponse(
+        object=variation,
+        object_id=variation.id,
+        messages=liftover_messages or [],
+    )
+
+
+@app.get(
+    "/object/{vrs_id}",
+    response_model_exclude_none=True,
+    operation_id="getVariation",
+    summary="Retrieve a VRS object",
+    description="Gets a VRS object by ID. May return any supported type of VRS Object.",
+    tags=[EndpointTag.VRS_OBJECTS],
+)
+def get_object_by_id(
+    request: Request,
+    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for object")],
+) -> GetVariationResponse:
+    """Get registered VRS object given its VRS ID.
+
+    :param request: FastAPI request object
+    :param object_id: ID to look up
+    :return: VRS Object if successful
+    :raise HTTPException: if no variation matches provided ID
+    """
+    av: AnyVar = request.app.state.anyvar
+    vrs_object: VrsObject = _get_vrs_object(av, vrs_id)
+    return GetVariationResponse(messages=[], data=vrs_object)
+
+
 @app.post(
     "/object/{vrs_id}/annotations",
     response_model_exclude_none=True,
@@ -393,151 +538,6 @@ async def add_registration_annotations(
             )
         )
     return new_response
-
-
-@app.put(
-    "/variation",
-    response_model_exclude_none=True,
-    summary="Register a new allele or copy number object",
-    description="Provide a variation definition to be normalized and registered with AnyVar. A complete VRS Allele or Copy Number object and digest is returned for later reference.",
-    tags=[EndpointTag.VRS_OBJECTS],
-)
-def register_variation(
-    request: Request,
-    variation: Annotated[
-        RegisterVariationRequest,
-        Body(
-            description="Variation description, including (at minimum) a definition property. Can provide optional input_type if the expected output representation is known. If representing copy number, provide copies or copy_change.",
-            examples=[
-                {
-                    "definition": "NC_000007.13:g.36561662_36561663del",
-                    "input_type": "Allele",
-                    "copies": 0,
-                    "copy_change": "complete genomic loss",
-                }
-            ],
-        ),
-    ],
-) -> RegisterVariationResponse:
-    """Register a variation based on a provided description or reference."""
-    av: AnyVar = request.app.state.anyvar
-    definition = variation.definition
-
-    try:
-        translated_variation = av.translator.translate_variation(
-            definition, **variation.model_dump()
-        )
-    except TranslationError:
-        return RegisterVariationResponse(
-            messages=[f'Unable to translate "{definition}"']
-        )
-    except NotImplementedError:
-        return RegisterVariationResponse(
-            messages=[f"Variation class for {definition} is currently unsupported."]
-        )
-    if not translated_variation:
-        return RegisterVariationResponse(
-            messages=[f"Translation of {definition} failed."]
-        )
-    messages: list[str] = []
-
-    av.put_objects([translated_variation])  # type: ignore
-
-    liftover_messages = liftover_utils.add_liftover_mapping(
-        variation=translated_variation,
-        storage=av.object_store,
-        dataproxy=av.translator.dp,
-    )
-    if liftover_messages:
-        messages += liftover_messages
-
-    return RegisterVariationResponse(
-        object=translated_variation,  # type: ignore
-        object_id=translated_variation.id,
-        messages=messages,
-    )
-
-
-@app.put(
-    "/vrs_variation",
-    summary="Register a VRS variation",
-    description="Provide a valid VRS variation object to be registered with AnyVar. A digest is returned for later reference.",
-    response_model_exclude_none=True,
-    tags=[EndpointTag.VRS_OBJECTS],
-)
-def register_vrs_object(
-    request: Request,
-    variation: Annotated[
-        VrsVariation,
-        Body(
-            description="Valid VRS object.",
-            examples=[
-                {
-                    "location": {
-                        "id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8",
-                        "end": 87894077,
-                        "start": 87894076,
-                        "sequenceReference": {
-                            "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
-                            "type": "SequenceReference",
-                        },
-                        "type": "SequenceLocation",
-                    },
-                    "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
-                    "type": "Allele",
-                }
-            ],
-        ),
-    ],
-) -> RegisterVariationResponse:
-    """Register a complete VRS object. No additional normalization is performed."""
-    if not isinstance(variation, VrsVariation):
-        return RegisterVariationResponse(
-            messages=[f"Registration for {variation.type} not currently supported."]
-        )
-
-    av: AnyVar = request.app.state.anyvar
-    try:
-        av.put_objects([variation])
-    except Exception as e:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail="Variation could not be registered",
-        ) from e
-
-    liftover_messages = liftover_utils.add_liftover_mapping(
-        variation, av.object_store, av.translator.dp
-    )
-
-    return RegisterVariationResponse(
-        object=variation,
-        object_id=variation.id,
-        messages=liftover_messages or [],
-    )
-
-
-@app.get(
-    "/object/{vrs_id}",
-    response_model_exclude_none=True,
-    operation_id="getVariation",
-    summary="Retrieve a VRS object",
-    description="Gets a VRS object by ID. May return any supported type of VRS Object.",
-    tags=[EndpointTag.VRS_OBJECTS],
-)
-def get_object_by_id(
-    request: Request,
-    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for object")],
-) -> GetVariationResponse:
-    """Get registered VRS object given its VRS ID.
-
-    :param request: FastAPI request object
-    :param object_id: ID to look up
-    :return: VRS Object if successful
-    :raise HTTPException: if no variation matches provided ID
-    """
-    av: AnyVar = request.app.state.anyvar
-    vrs_object: VrsObject = _get_vrs_object(av, vrs_id)
-    return GetVariationResponse(messages=[], data=vrs_object)
 
 
 @app.get(
