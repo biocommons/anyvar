@@ -117,6 +117,9 @@ uv.lock
 *.orig
 archive
 
+# local dev tooling
+.justfile
+
 docker/data*
 
 # logging configs

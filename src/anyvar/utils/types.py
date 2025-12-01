@@ -1,9 +1,10 @@
-"""Provide helpful type definitions and references."""
+"""Provide helpful type definitions, references, and type-based operations."""
 
 from enum import StrEnum
-from typing import get_args
+from typing import TypeVar, get_args
 
-from ga4gh.vrs import models
+from ga4gh.core import ga4gh_identify
+from ga4gh.vrs import models, vrs_deref, vrs_enref
 from pydantic import BaseModel, JsonValue
 
 from anyvar.utils.funcs import camel_case_to_snake_case
@@ -69,3 +70,28 @@ class Annotation(BaseModel):
     object_id: str
     annotation_type: str
     annotation_value: JsonValue
+
+
+Type_VrsObject = TypeVar("Type_VrsObject", bound=VrsObject)
+
+
+def recursive_identify(vrs_object: Type_VrsObject) -> Type_VrsObject:
+    """Add GA4GH IDs to an object and all GA4GH-identifiable objects contained within.
+
+    ***This is a very hack-y solution and should not be relied upon any more than it is.
+    It appears that enref/deref() will add IDs within objects, but don't produce a
+    correct ID, and ga4gh_identify() won't add IDs to contained objects, so this function
+    runs both in succession.
+
+    There is probably an upstream fix in VRS-Python that needs to happen.
+
+    :param vrs_object: AnyVar-supported variation object
+    :return: same object, with any missing ID fields filled in
+    """
+    storage = {}
+    enreffed = vrs_enref(vrs_object, storage)
+    dereffed = vrs_deref(enreffed, storage)
+    dereffed.id = None  # type: ignore[reportAttributeAccessIssue]
+    dereffed.digest = None  # type: ignore[reportAttributeAccessIssue]
+    ga4gh_identify(dereffed, in_place="always")
+    return dereffed  # type: ignore[reportReturnType]

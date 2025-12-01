@@ -1,151 +1,61 @@
-# AnyVar
+# *AnyVar* - lightweight and portable variation storage and retrieval
 
-_AnyVar_ provides Python and REST interfaces to validate, normalize, generate
-identifiers, and register biological sequence variation according to the
-[GA4GH Variation Representation Specification (VRS)](https://github.com/ga4gh/vrs).
+AnyVar enables **registration**, **lookup**, and **search** of genetic variants across a distributed genomic resource network. Its goals are to:
+
+* Provide an open source, off-the-shelf solution that lowers the technical barriers for genomic data resources to comprehensively describe and search genomic variants
+* Support a broad range of query modes, including VRS ID lookups, HGVS expressions, gene-based searches, and genomic ranges
+* Translate community nomenclatures and conventions into a universal model for variant representation
+* Provide a community-driven, extensible platform for shared conventions and policy to realize the above goals
 
 ## Information
 
-[![license](https://img.shields.io/badge/license-Apache-green)](https://github.com/biocommons/anyvar/blob/main/LICENSE)
+[![rtd](https://img.shields.io/badge/docs-readthedocs-green.svg)](http://anyvar.readthedocs.io/) [![changelog](https://img.shields.io/badge/docs-changelog-green.svg)](https://anyvar.readthedocs.io/en/latest/changelog.html) [![GitHub license](https://img.shields.io/github/license/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar/blob/main/LICENSE)
+
+## Latest Release
+
+[![GitHub tag](https://img.shields.io/github/tag/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar) [![pypi_rel](https://img.shields.io/pypi/v/anyvar.svg)](https://pypi.org/project/anyvar/)
 
 ## Development
 
-[![issues](https://img.shields.io/github/issues-raw/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar/issues)
+[![action status](https://github.com/biocommons/anyvar/actions/workflows/python-package.yml/badge.svg)](https://github.com/biocommons/anyvar/actions/workflows/python-cqa.yml) [![issues](https://img.shields.io/github/issues-raw/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar/issues)
 [![GitHub Open Pull Requests](https://img.shields.io/github/issues-pr/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar/pull/) [![GitHub Contributors](https://img.shields.io/github/contributors/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar/graphs/contributors/) [![GitHub stars](https://img.shields.io/github/stars/biocommons/anyvar.svg?style=social&label=Stars)](https://github.com/biocommons/anyvar/stargazers) [![GitHub forks](https://img.shields.io/github/forks/biocommons/anyvar.svg?style=social&label=Forks)](https://github.com/biocommons/anyvar/forks)
 
-## Known Issues
+## Installation
 
-**You are encouraged to** [browse issues](https://github.com/biocommons/anyvar/issues). All known issues are listed there. Please report any issues you find.
+Currently, AnyVar can be installed from GitHub:
 
-## Quick Start
-
-1. **Clone the AnyVar repository:**
-
-	```shell
-	git clone https://github.com/biocommons/anyvar
-	cd anyvar
-	```
-
-
-2. **Set Environment Variables**
-
-    Create a new file in the root directory of the repo called `.env`. In the next two steps, you will populate this file. You may want to see `.env.example` for reference.
-
-
-3. If desired, create/start a database for AnyVar to use. See [Optional Dependencies - Databases](#optional-dependencies---databases) for detailed instructions on how to set up a database. Otherwise, set the `ANYVAR_STORAGE_URI` environment variable to an empty string (`""`) in your `.env` file to use AnyVar without a database.
-
-4. **Configure required dependencies:**
-
-	AnyVar has several required dependencies and a few optional ones. See [Setting up Dependencies](#setting-up-dependencies) for detailed instructions. Remember to set any environment variables in your `.env` file as directed.
-
-
-5. **Start the AnyVar server:**
-
-	```shell
-	uvicorn anyvar.restapi.main:app --reload
-	```
-
-6. Visit [`http://localhost:8000`](http://localhost:8000) to verify the REST API is running.
-
-## Setting up Dependencies
-
-### Required Dependencies
-
-#### SeqRepo
-
-SeqRepo stores biological sequence data and can be accessed locally or via REST API. [Read how to set up SeqRepo locally or through Docker.](docs/seqrepo.md)
-
-#### UTA
-
-UTA (Universal Transcript Archive) stores transcripts aligned to sequence references. [Read how to set up UTA locally or via Docker.](docs/uta.md)
-
-### Optional Dependencies - Databases
-
-AnyVar optionally supports several storage types. For general information about AnyVar's SQL storage options, see [the SQL Storage documentation](docss/sql.md). See below for more specific details on the various storage implementation options.
-
-
-It is also possible to run AnyVar with no database. This is primarily useful for bulk annotations, such as annotating a VCF, where there is no real need to reuse previously computed VRS IDs. To run AnyVar with no database, set the `ANYVAR_STORAGE_URI` environment variable to an empty string (`""`) in your `.env` file.
-
-#### PostgreSQL (Optional)
-
-AnyVar supports PostgreSQL databases. [Configure PostgreSQL for AnyVar.](docs/postgres.md)
-
-## Asynchronous Operations
-
-AnyVar supports asynchronous VCF annotation for improved scalability. [See asynchronous operations README.](docs/async.md)
-
-## Developers
-
-This section is intended for developers who contribute to AnyVar.
-
-### Prerequisites
-
-- Python >= 3.11
-  - \_Note: Python 3.11 is required for developers contributing to AnyVar
-- [Docker](https://docs.docker.com/engine/install/)
-
-### Installing for development
-
-```shell
-git clone https://github.com/biocommons/anyvar.git
-cd anyvar
-make devready
-source venv/3.11/bin/activate
-pre-commit install
+```
+pip install git+https://github.com/biocommons/anyvar
 ```
 
-## Testing
+See the [documentation](https://anyvar.readthedocs.io) for additional setup options and detailed instructions for initializing data dependencies.
 
-Run tests:
+## Examples
 
-1. Set up a database for testing. The default is a postgres database, which you can set up by following the instructions found here: `src/docs/postgres.md`.
+Use the Python API to directly instantiate and query a local AnyVar instance:
 
-2. Follow the [quickstart guide](#quick-start) to get AnyVar running
-
-3. If you haven't run `make devready` before, open a new terminal and do so now. Then, source your venv by running: `source venv/3.11/bin/activate`
-
-   Otherwise, you can skip straight to sourcing your venv: `source venv/3.11/bin/activate`
-
-4. Within your venv, run `make testready` if you've never done so before. Otherwise, skip this step.
-
-5. Ensure the following environment variables are set in your `.env` file:
-
-   - `SEQREPO_DATAPROXY_URI` - See the quickstart guide above.
-   - `ANYVAR_STORAGE_URI` - See the quickstart guide above.
-   - `ANYVAR_TEST_STORAGE_URI` - This specifies the database to use for tests. If you set up a postgres database by following the README-pg guide suggested in step 1, then you can just copy/paste the example `ANYVAR_TEST_STORAGE_URI` found below.
-
-   For example:
-
-   ```shell
-   ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_test
-   ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@localhost:5432/anyvar
-   SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/latest
-   ```
-
-6. Finally, run tests with the following command:
-
-   ```shell
-   make test
-   ```
-
-### Notes
-
-Currently, there is some interdependency between test modules -- namely, tests that rely
-on reading data from storage assume that the data from `test_variation` has been
-uploaded. A pytest hook ensures correct test order, but some test modules may not be
-able to pass when run in isolation. By default, the tests will use a Postgres database
-installation.
-
-For the `tests/test_vcf::test_vcf_registration_async` unit test to pass, a real broker and backend
-are required for Celery to interact with. Set the `CELERY_BROKER_URL` and `CELERY_BACKEND_URL`
-environment variables. The simplest solution is to run Redis locally and use that for both
-the broker and the backend, eg:
-
-```shell
-% export CELERY_BROKER_URL="redis://"
-% export CELERY_BACKEND_URL="redis://"
+```pycon
+>>> from anyvar.anyvar import AnyVar, create_storage, create_translator
+>>> av = AnyVar(translator=create_translator(), object_store=create_storage())
+>>> allele = Allele(**{"id": "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU", "digest": "K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU", "location": {"id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8", "digest": "aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8", "end": 87894077, "start": 87894076, "sequenceReference": {"refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB"}}, "state": {"sequence": "T", "type": "LiteralSequenceExpression"}})
+>>> av.put_object(allele)
+'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU'
+>>> av.get_object("ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU")
+Allele(id='ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', type='Allele', name=None, description=None, aliases=None, extensions=None, digest='K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', expressions=None, location=SequenceLocation(id='ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8', type='SequenceLocation', name=None, description=None, aliases=None, extensions=None, digest='aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8', sequenceReference=SequenceReference(id=None, type='SequenceReference', name=None, description=None, aliases=None, extensions=None, refgetAccession='SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB', residueAlphabet=None, circular=None, sequence=None, moleculeType=None), start=87894076, end=87894077, sequence=None), state=LiteralSequenceExpression(id=None, type='LiteralSequenceExpression', name=None, description=None, aliases=None, extensions=None, sequence=sequenceString(root='T')))
 ```
 
-## Logging
+Or issue a request against a live HTTP endpoint:
 
-AnyVar uses Python's built-in logging. To customize logging settings see [docs/logging.md](docs/logging.md)
+```pycon
+>>> import requests
+>>> response = requests.put("http://localhost:8000/variation", json={"definition": "NC_000010.11:g.87894077C>T"})
+>>> response.json()
+{'messages': [], 'object': {'id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', 'type': 'Allele', 'digest': 'K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', 'location': {'id': 'ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy', 'type': 'SequenceLocation', 'digest': '01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy', 'sequenceReference': {'type': 'SequenceReference', 'refgetAccession': 'SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB'}, 'start': 87894076, 'end': 87894077}, 'state': {'type': 'LiteralSequenceExpression', 'sequence': 'T'}}, 'object_id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU'}
+>>> response = requests.get("http://localhost:8000/variation/ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU")
+>>> response.json()
+{'messages': [], 'data': {'id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', 'type': 'Allele', 'digest': 'K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', 'location': {'id': 'ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8', 'type': 'SequenceLocation', 'digest': 'aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8', 'sequenceReference': {'type': 'SequenceReference', 'refgetAccession': 'SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB'}, 'start': 87894076, 'end': 87894077}, 'state': {'type': 'LiteralSequenceExpression', 'sequence': 'T'}}}
+```
+
+## Feedback and contributing
+
+We welcome [bug reports](https://github.com/biocommons/anyvar/issues/new?template=bug-report.md), [feature requests](https://github.com/biocommons/anyvar/issues/new?template=feature-request.md), and code contributions from users and interested collaborators. The [documentation](https://anyvar.readthedocs.io/en/latest/contributing.html) contains guidance for submitting feedback and contributing new code.

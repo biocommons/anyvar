@@ -1,7 +1,7 @@
-﻿anyvar
-======
+﻿anyvar.utils.liftover_utils
+===========================
 
-.. automodule:: anyvar
+.. automodule:: anyvar.utils.liftover_utils
    :members:
    :undoc-members:
    :special-members: __init__
