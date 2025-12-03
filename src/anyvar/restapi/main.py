@@ -196,7 +196,7 @@ VARIATION_EXAMPLE_PAYLOAD = {
 
 
 _variation_request_body = Body(
-    description="Variation description, including (at minimum) a definition property. Can provide optional input_type if the expected output representation is known, as well as an assembly name (e.g.,'GRCh37' or 'GRCh38'). If representing copy number, provide copies or copy_change.",
+    description="Variation description, including (at minimum) a definition property. Can provide optional input_type if the expected output representation is known, as well as an assembly_name (e.g.,'GRCh37' or 'GRCh38'). If representing copy number, provide copies or copy_change.",
     examples=[VARIATION_EXAMPLE_PAYLOAD],
 )
 
