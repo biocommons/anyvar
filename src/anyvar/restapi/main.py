@@ -1,6 +1,5 @@
 """Provide core route definitions for REST service."""
 
-import datetime
 import json
 import logging
 import logging.config
@@ -418,19 +417,9 @@ async def add_registration_annotations(
     ):  # If there's no input_vrs_id/input variant, registration was unsuccessful. Do not attempt any further operations.
         return new_response
 
-    # Add annotations
+    # Add creation timestamp annotation
     av: AnyVar = request.app.state.anyvar
-    timestamp_annotations: list[types.Annotation] = av.get_object_annotations(
-        input_vrs_id, "creation_timestamp"
-    )
-    if not timestamp_annotations:
-        av.put_annotation(
-            types.Annotation(
-                object_id=input_vrs_id,
-                annotation_type="creation_timestamp",
-                annotation_value=datetime.datetime.now(tz=datetime.UTC).isoformat(),
-            )
-        )
+    av.create_timestamp_annotation_if_missing(input_vrs_id)
     return new_response
 
 

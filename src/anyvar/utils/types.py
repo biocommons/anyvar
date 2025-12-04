@@ -72,6 +72,12 @@ class Annotation(BaseModel):
     annotation_value: JsonValue
 
 
+class AnnotationType(StrEnum):
+    """Describe commonly used annotation types"""
+
+    CREATION_TIMESTAMP = "creation_timestamp"
+
+
 Type_VrsObject = TypeVar("Type_VrsObject", bound=VrsObject)
 
 

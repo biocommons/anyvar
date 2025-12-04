@@ -3,6 +3,7 @@ biological sequence variation
 
 """
 
+import datetime
 import importlib.util
 import logging
 import os
@@ -17,7 +18,7 @@ from anyvar.storage.base_storage import Storage
 from anyvar.translate.translate import Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
 from anyvar.utils import types
-from anyvar.utils.types import VrsObject
+from anyvar.utils.types import AnnotationType, VrsObject
 
 # Suppress pydantic warnings unless otherwise indicated
 if os.environ.get("ANYVAR_SHOW_PYDANTIC_WARNINGS", None) is None:
@@ -203,6 +204,26 @@ class AnyVar:
             except KeyError as e:
                 raise ObjectNotFoundError(object_id) from e
         return annotations
+
+    def create_timestamp_annotation_if_missing(self, object_id: str) -> int | None:
+        """Store a 'creation_timestamp' annotation if missing for an object
+
+        :param object_id: The ID of the object to create a timestamp annotation for
+        :return: ID of newly created annotation. If timestamp annotation exists, will
+            return None.
+        """
+        timestamp_annotations: list[types.Annotation] = self.get_object_annotations(
+            object_id, AnnotationType.CREATION_TIMESTAMP.value
+        )
+        if not timestamp_annotations:
+            return self.put_annotation(
+                types.Annotation(
+                    object_id=object_id,
+                    annotation_type=AnnotationType.CREATION_TIMESTAMP.value,
+                    annotation_value=datetime.datetime.now(tz=datetime.UTC).isoformat(),
+                )
+            )
+        return None
 
     def put_mapping(self, mapping: types.VariationMapping) -> None:
         """Attempt to store a mapping between two objects
