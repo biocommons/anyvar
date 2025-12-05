@@ -27,9 +27,8 @@ class EndpointTag(str, Enum):
     """Denote endpoint group membership"""
 
     GENERAL = "General"
-    SEQUENCES = "Sequences"
-    LOCATIONS = "Locations"
-    VARIATIONS = "Variations"
+    VCF = "VCF Operations"
+    VRS_OBJECTS = "VRS Objects"
     SEARCH = "Search"
 
 
@@ -129,12 +128,6 @@ class ServiceInfo(BaseModel):
     spec_metadata: SpecMetadata = SpecMetadata()
     impl_metadata: ImplMetadata = ImplMetadata()
     capabilities_metadata: CapabilitiesMetadata = CapabilitiesMetadata()
-
-
-class GetSequenceLocationResponse(BaseModel):
-    """Describe response for the GET /locations/ endpoint"""
-
-    location: models.SequenceLocation | None
 
 
 class VariationRequest(BaseModel):
@@ -243,7 +236,7 @@ class RegisterVariationResponse(BaseModel):
     object_id: str | None = None
 
 
-class GetVariationResponse(BaseModel):
+class GetObjectResponse(BaseModel):
     """Describe response for the GET /variation endpoint"""
 
     model_config = ConfigDict(

@@ -72,13 +72,11 @@ def test_put_vrs_variation_example(restapi_client: TestClient, alleles: dict):
 
 def test_get_allele(restapi_client: TestClient, preloaded_alleles):
     for allele_id, allele_fixture in preloaded_alleles.items():
-        resp = restapi_client.get(f"/variation/{allele_id}")
+        resp = restapi_client.get(f"/object/{allele_id}")
         assert resp.status_code == HTTPStatus.OK
         assert resp.json()["data"] == allele_fixture["variation"]
 
-    bad_resp = restapi_client.get(
-        "/variation/ga4gh:VA.invalid7DSM9KE3Z0LntAukLqm0K2ENn"
-    )
+    bad_resp = restapi_client.get("/object/ga4gh:VA.invalid7DSM9KE3Z0LntAukLqm0K2ENn")
     assert bad_resp.status_code == HTTPStatus.NOT_FOUND
 
 
@@ -102,7 +100,7 @@ def test_post_variation_not_registered(storage, restapi_client: TestClient, alle
 
         resp = restapi_client.post("/variation", json=allele_fixture["register_params"])
         assert resp.status_code == HTTPStatus.NOT_FOUND
-        assert resp.json() == {"detail": f"Variation {allele_id} not found"}
+        assert resp.json() == {"detail": f"VRS Object {allele_id} not found"}
 
 
 @pytest.mark.parametrize(

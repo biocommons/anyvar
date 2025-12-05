@@ -21,7 +21,7 @@ def test_annotation_crud(
 
     # post an annotation
     response = restapi_client.post(
-        f"/variation/{braf_v600e_id}/annotations", json=braf_annotation_payload
+        f"/object/{braf_v600e_id}/annotations", json=braf_annotation_payload
     )
     response.raise_for_status()
     assert (
@@ -34,7 +34,7 @@ def test_annotation_crud(
 
     # get an annotation
     response = restapi_client.get(
-        f"/variation/{braf_v600e_id}/annotations/{braf_annotation_payload['annotation_type']}"
+        f"/object/{braf_v600e_id}/annotations/{braf_annotation_payload['annotation_type']}"
     )
     response.raise_for_status()
     data = response.json()["annotations"]
@@ -45,17 +45,19 @@ def test_annotation_crud(
 
 def test_get_annotation_nonexistent_var(restapi_client: TestClient):
     response = restapi_client.get(
-        "/variation/vrs_id_that_doesnt_exist/annotations/doesnt_matter"
+        "/object/vrs_id_that_doesnt_exist/annotations/doesnt_matter"
     )
     assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json() == {"detail": "Variation vrs_id_that_doesnt_exist not found"}
+    assert response.json() == {
+        "detail": "VRS Object vrs_id_that_doesnt_exist not found"
+    }
 
 
 def test_post_annotation_nonexistent_var(
     restapi_client: TestClient, braf_annotation_payload: dict
 ):
     response = restapi_client.post(
-        "/variation/not_a_real_vrs_id/annotations", json=braf_annotation_payload
+        "/object/not_a_real_vrs_id/annotations", json=braf_annotation_payload
     )
     assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json() == {"detail": "Variation not_a_real_vrs_id not found"}
+    assert response.json() == {"detail": "VRS Object not_a_real_vrs_id not found"}
