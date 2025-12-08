@@ -35,5 +35,4 @@ def test_adding_stuff():
     null_storage = NoObjectStore()
     null_storage.add_objects([MockVRSObject("01"), MockVRSObject("02")])
     null_storage.wait_for_writes()
-    assert len(list(null_storage.get_all_object_ids())) == 0
     null_storage.close()

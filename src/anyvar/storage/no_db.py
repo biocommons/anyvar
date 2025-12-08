@@ -38,10 +38,6 @@ class NoObjectStore(Storage):
         """(No-op) Retrieve multiple VRS objects from storage by their IDs."""
         return []
 
-    def get_all_object_ids(self) -> Iterable[str]:
-        """(No-op) Retrieve all object IDs from storage."""
-        return []
-
     def delete_objects(
         self, object_type: type[types.VrsObject], object_ids: Iterable[str]
     ) -> None:

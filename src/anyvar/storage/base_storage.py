@@ -82,13 +82,6 @@ class Storage(ABC):
         """
 
     @abstractmethod
-    def get_all_object_ids(self) -> Iterable[str]:
-        """Retrieve all object IDs from storage.
-
-        :return: all stored VRS object IDs
-        """
-
-    @abstractmethod
     def delete_objects(
         self, object_type: type[types.VrsObject], object_ids: Iterable[str]
     ) -> None:

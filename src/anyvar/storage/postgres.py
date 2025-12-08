@@ -32,7 +32,9 @@ class PostgresObjectStore(Storage):
     with object mapping to convert between VRS models and database entities.
     """
 
-    BATCH_SIZE = 100
+    # temporary cap on max # of rows that can be returned by a single SQL query
+    # issue 295 should convert this to a batch size parameter
+    MAX_ROWS = 100
 
     _VRS_OBJECT_INSERT_ORDER: list[str] = [  # noqa: RUF012
         orm.SequenceReference.__name__,
@@ -143,7 +145,7 @@ class PostgresObjectStore(Storage):
                         )
                     )
                     .where(orm.Allele.id.in_(object_ids_list))
-                    .limit(self.BATCH_SIZE)
+                    .limit(self.MAX_ROWS)
                 )
                 db_objects = session.scalars(stmt).all()
             elif object_type is vrs_models.SequenceLocation:
@@ -152,7 +154,7 @@ class PostgresObjectStore(Storage):
                     select(orm.Location)
                     .options(joinedload(orm.Location.sequence_reference))
                     .where(orm.Location.id.in_(object_ids_list))
-                    .limit(self.BATCH_SIZE)
+                    .limit(self.MAX_ROWS)
                 )
                 db_objects = session.scalars(stmt).all()
             elif object_type is vrs_models.SequenceReference:
@@ -160,7 +162,7 @@ class PostgresObjectStore(Storage):
                 stmt = (
                     select(orm.SequenceReference)
                     .where(orm.SequenceReference.id.in_(object_ids_list))
-                    .limit(self.BATCH_SIZE)
+                    .limit(self.MAX_ROWS)
                 )
                 db_objects = session.scalars(stmt).all()
             else:
@@ -171,16 +173,6 @@ class PostgresObjectStore(Storage):
                 results.append(vrs_object)
 
         return results
-
-    def get_all_object_ids(self) -> Iterable[str]:
-        """Retrieve all object IDs from storage.
-
-        :return: all stored VRS object IDs
-        """
-        with self.session_factory() as session:
-            stmt = select(orm.Allele.id).limit(self.BATCH_SIZE)
-            allele_ids = session.execute(stmt).scalars().all()
-            return allele_ids
 
     def delete_objects(
         self, object_type: type[types.VrsObject], object_ids: Iterable[str]
@@ -286,7 +278,7 @@ class PostgresObjectStore(Storage):
         stmt = (
             select(orm.VariationMapping)
             .where(orm.VariationMapping.source_id == source_object_id)
-            .limit(self.BATCH_SIZE)
+            .limit(self.MAX_ROWS)
         )
         if mapping_type:
             stmt = stmt.where(orm.VariationMapping.mapping_type == mapping_type)
@@ -325,7 +317,7 @@ class PostgresObjectStore(Storage):
         if annotation_type:
             stmt = stmt.where(orm.Annotation.annotation_type == annotation_type)
 
-        stmt = stmt.limit(self.BATCH_SIZE)
+        stmt = stmt.limit(self.MAX_ROWS)
 
         with self.session_factory() as session, session.begin():
             db_annotations = session.execute(stmt).scalars().all()
@@ -404,7 +396,7 @@ class PostgresObjectStore(Storage):
                     orm.Location.start <= stop,
                     orm.Location.end >= start,
                 )
-                .limit(self.BATCH_SIZE)
+                .limit(self.MAX_ROWS)
             )
             db_alleles = session.scalars(stmt).all()
 
