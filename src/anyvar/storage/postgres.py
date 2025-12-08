@@ -172,16 +172,6 @@ class PostgresObjectStore(Storage):
 
         return results
 
-    def get_all_object_ids(self) -> Iterable[str]:
-        """Retrieve all object IDs from storage.
-
-        :return: all stored VRS object IDs
-        """
-        with self.session_factory() as session:
-            stmt = select(orm.Allele.id).limit(self.BATCH_SIZE)
-            allele_ids = session.execute(stmt).scalars().all()
-            return allele_ids
-
     def delete_objects(
         self, object_type: type[types.VrsObject], object_ids: Iterable[str]
     ) -> None:

@@ -88,18 +88,6 @@ def test_db_lifecycle(
 
 
 @pytest.mark.ci_ok
-def test_db_batch_size(monkeypatch, postgres_storage, focus_alleles):
-    """Test that batch size works correctly"""
-    postgres_storage.add_objects(focus_alleles)
-    result = list(postgres_storage.get_all_object_ids())
-    assert len(result) > 1
-
-    monkeypatch.setattr(type(postgres_storage), "BATCH_SIZE", 1)
-    result = list(postgres_storage.get_all_object_ids())
-    assert len(result) == 1
-
-
-@pytest.mark.ci_ok
 def test_alleles_crud(
     postgres_storage: PostgresObjectStore,
     focus_alleles: tuple[models.Allele, models.Allele, models.Allele],
@@ -341,20 +329,6 @@ def test_sequencereferences_crud(
         for a in validated_vrs_alleles.values()
     ]
     postgres_storage.add_objects(all_sequence_references)
-
-
-@pytest.mark.ci_ok
-def test_get_all_ids(
-    postgres_storage: PostgresObjectStore,
-    focus_alleles: tuple[models.Allele, models.Allele, models.Allele],
-):
-    assert postgres_storage.get_all_object_ids() == []
-    postgres_storage.add_objects(focus_alleles)
-    result = list(postgres_storage.get_all_object_ids())
-    assert len(result) == 3
-    assert "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU" in result
-    assert "ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf" in result
-    assert "ga4gh:VA.1FzYrqG-7jB3Wr46eIL_L5BWElQZEB7i" in result
 
 
 @pytest.mark.ci_ok
