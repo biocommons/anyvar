@@ -101,10 +101,10 @@ class AnyVar:
         self.object_store = object_store
         self.translator = translator
 
-    def put_objects(self, variation_objects: list[VrsObject]) -> None:
+    def put_objects(self, variation_objects: Iterable[VrsObject]) -> None:
         """Attempt to register variation objects
 
-        The provided list may contain any supported variation object -- i.e. not just
+        The provided iterable may contain any supported variation object -- i.e. not just
         Alleles or molecular variations -- and is not required to contain only one
         kind of object.
 
