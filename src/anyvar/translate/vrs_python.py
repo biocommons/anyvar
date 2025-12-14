@@ -3,7 +3,7 @@
 from os import environ
 
 from ga4gh.vrs import models
-from ga4gh.vrs.dataproxy import _DataProxy, create_dataproxy
+from ga4gh.vrs.dataproxy import DataProxyValidationError, _DataProxy, create_dataproxy
 from ga4gh.vrs.extras.translator import AlleleTranslator, CnvTranslator
 
 from anyvar.translate.translate import TranslationError, Translator
@@ -88,12 +88,15 @@ class VrsPythonTranslator(Translator):
             VRS-Python sets a default, but we should set a default just in case
             VRS-Python ever changes the default.
         :returns: VRS variation object if able to translate
+        :raise ga4gh.vrs.dataproxy.DataProxyValidationError: if a provided ref allele is invalid
         :raises TranslationError: if translation is unsuccessful, either because
             the submitted variation is malformed, or because VRS-Python doesn't support
             its translation.
         """
         try:
-            return self.allele_tlr.translate_from(var, fmt=None, **kwargs)  # type: ignore (this will always return a models.Allele instance, or raise a ValueError)
+            return self.allele_tlr.translate_from(var, fmt=None, **kwargs)  # type: ignore (this will always return a models.Allele instance, or raise an error)
+        except DataProxyValidationError:
+            raise
         except ValueError as e:
             msg = f"{var} isn't supported by the VRS-Python AlleleTranslator."
             raise TranslationError(msg) from e

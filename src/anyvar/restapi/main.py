@@ -219,17 +219,24 @@ def register_variation(
         translated_variation = av.translator.translate_variation(
             definition, **variation.model_dump(mode="json")
         )
-    except TranslationError:
-        return RegisterVariationResponse(
-            messages=[f'Unable to translate "{definition}"']
-        )
-    except NotImplementedError:
-        return RegisterVariationResponse(
-            messages=[f"Variation class for {definition} is currently unsupported."]
-        )
+    except DataProxyValidationError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY, detail=str(e)
+        ) from e
+    except TranslationError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            detail=f'Unable to translate "{definition}"',
+        ) from e
+    except NotImplementedError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            detail=f"Variation class for {definition} is currently unsupported.",
+        ) from e
     if not translated_variation:
-        return RegisterVariationResponse(
-            messages=[f"Translation of {definition} failed."]
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            detail=f"Translation of {definition} failed.",
         )
     messages: list[str] = []
 

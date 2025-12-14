@@ -37,13 +37,12 @@ def test_put_allele(restapi_client: TestClient, alleles: dict):
         restapi_client, test_allele_fixture["register_params"], test_allele_id
     )
 
-    # try unsupported variation type
+
+def test_put_allele_unsupported_vartype(restapi_client: TestClient):
     resp = restapi_client.put("/variation", json={"definition": "BRAF amplification"})
-    assert resp.status_code == HTTPStatus.OK
+    assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     resp_json = resp.json()
-    assert resp_json["messages"] == ['Unable to translate "BRAF amplification"']
-    assert "object" not in resp_json
-    assert "object_id" not in resp_json
+    assert resp_json["detail"] == 'Unable to translate "BRAF amplification"'
 
 
 def test_put_variation_example(restapi_client: TestClient, alleles: dict):
