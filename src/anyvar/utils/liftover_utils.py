@@ -81,18 +81,6 @@ class AccessionConversionError(LiftoverError):
     error_details = "Could not convert refget accession"
 
 
-class ReverseLiftoverError(LiftoverError):
-    """Indicates the lifted-over version of a variant was unable to be lifted over back to the original input variant"""
-
-    error_details = "Reverse-liftover variant id does not match expected value of original variant id"
-
-    def __init__(
-        self, reverse_liftover_variant_id: str, original_variant_id: str
-    ) -> None:
-        """Customizes error_details with the expected/actual variant ids"""
-        self.error_details = f"Lifted-over variant id of {reverse_liftover_variant_id} does not match expected value of {original_variant_id}"
-
-
 def _convert_coordinate(converter: Converter, chromosome: str, coordinate: int) -> int:
     """Convert an individual coordinate to another reference genome. If the conversion is unsuccessful, raises a `CoordinateConversionError`
 
