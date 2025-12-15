@@ -66,7 +66,20 @@ async def _annotate_vcf_async(
 ) -> RunStatusResponse | ErrorResponse:
     """Annotate with VRS IDs asynchronously.  See `annotate_vcf()` for parameter definitions."""
     # if run_id is provided, validate it does not already exist
-    if not anyvar.anyvar.has_queueing_enabled() or not AsyncResult or not aiofiles:
+    if (
+        not anyvar.anyvar.has_queueing_enabled()
+        or not AsyncResult
+        or not aiofiles
+        or not celery_worker
+    ):
+        _logger.warning(
+            "Async VCF annotation requested but not enabled (has_queueing_enabled=%s, AsyncResult=%s, aiofiles=%s, celery_worker=%s)",
+            anyvar.anyvar.has_queueing_enabled(),
+            AsyncResult,
+            aiofiles,
+            celery_worker,
+            stack_info=True,
+        )
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ErrorResponse(
             error="Required modules and/or configurations for asynchronous VCF annotation are missing"
@@ -110,8 +123,8 @@ async def _annotate_vcf_async(
             "input_file_path": str(input_file_path),
             "assembly": assembly,
             "for_ref": for_ref,
-            "add_vrs_attributes": add_vrs_attributes,
             "allow_async_write": allow_async_write,
+            "add_vrs_attributes": add_vrs_attributes,
         },
         task_id=run_id,
     )
@@ -190,7 +203,7 @@ async def _annotate_vcf_sync(
     "/vcf",
     summary="Register alleles from a VCF",
     description="Provide a valid VCF. All reference and alternate alleles will be registered with AnyVar. The file is annotated with VRS IDs and returned.",
-    tags=[EndpointTag.VARIATIONS],
+    tags=[EndpointTag.VCF],
     response_model=None,
 )
 async def annotate_vcf(
@@ -250,6 +263,12 @@ async def annotate_vcf(
     """
     # If async requested but not enabled, return an error
     if run_async and not anyvar.anyvar.has_queueing_enabled():
+        _logger.warning(
+            "Async VCF annotation requested but not enabled (run_async=%s, has_queueing_enabled=%s)",
+            run_async,
+            anyvar.anyvar.has_queueing_enabled(),
+            stack_info=True,
+        )
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ErrorResponse(
             error="Required modules and/or configurations for asynchronous VCF annotation are missing"
@@ -372,8 +391,7 @@ async def _ingest_annotated_vcf_async(
     vcf_site_count = 0
     async with aiofiles.open(input_file_path, mode="wb") as fd:
         while buffer := await vcf.read(1024 * 1024):
-            if ord("\n") in buffer:
-                vcf_site_count = vcf_site_count + 1
+            vcf_site_count += buffer.count(b"\n")
             await fd.write(buffer)
     _logger.debug("wrote working file for async vcf to %s", input_file_path)
     _logger.debug("vcf site count of async vcf is %s", vcf_site_count)
@@ -411,7 +429,7 @@ async def _ingest_annotated_vcf_async(
     "/annotated_vcf",
     summary="Register alleles from a VCF that has already been annotated with VRS objects.",
     description="Provide a VCF that already has VRS position and state annotations. Ingest the objects into AnyVar.",
-    tags=[EndpointTag.VARIATIONS],
+    tags=[EndpointTag.VCF],
     response_model=None,
 )
 async def annotated_vcf(
@@ -472,6 +490,12 @@ async def annotated_vcf(
     """
     # If async requested but not enabled, return an error
     if (run_async and not anyvar.anyvar.has_queueing_enabled()) or not AsyncResult:
+        _logger.warning(
+            "Async VCF annotation requested but not enabled (run_async=%s, has_queueing_enabled=%s)",
+            run_async,
+            anyvar.anyvar.has_queueing_enabled(),
+            stack_info=True,
+        )
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ErrorResponse(
             error="Required modules and/or configurations for asynchronous VCF ingest are missing"
@@ -523,7 +547,7 @@ async def annotated_vcf(
     "/vcf/{run_id}",
     summary="Poll for status and/or result for asynchronous VCF ingestion",
     description="Provide a valid run id to get the status and/or result of a VCF ingestion run",
-    tags=[EndpointTag.VARIATIONS],
+    tags=[EndpointTag.VCF],
     response_model=None,
 )
 async def get_vcf_run_status(
@@ -547,6 +571,14 @@ async def get_vcf_run_status(
         or not TimeLimitExceeded
         or not WorkerLostError
     ):
+        _logger.warning(
+            "Async VCF annotation requested but not enabled (has_queueing_enabled=%s, AsyncResult=%s, TimeLimitExceeded=%s, WorkerLostError=%s)",
+            anyvar.anyvar.has_queueing_enabled(),
+            AsyncResult,
+            TimeLimitExceeded,
+            WorkerLostError,
+            stack_info=True,
+        )
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ErrorResponse(
             error="Required modules and/or configurations for asynchronous VCF annotation are missing"
@@ -559,7 +591,6 @@ async def get_vcf_run_status(
     # completed successfully
     if async_result.status == "SUCCESS":
         response.status_code = status.HTTP_200_OK
-        # TODO provide logic to handle different return based on task type
         output_file_path = async_result.result
         async_result.forget()
         if output_file_path:

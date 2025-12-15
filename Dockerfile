@@ -17,7 +17,7 @@ COPY pyproject.toml /app/pyproject.toml
 COPY src /app/src
 COPY .git /app/.git
 ENV PATH=/app/venv/bin:$PATH
-RUN pip install -e '.[dev,test,queueing,snowflake,postgres]'
+RUN pip install -e '.[dev,test,queueing,postgres]'
 
 FROM python:3.12-slim as anyvar
 

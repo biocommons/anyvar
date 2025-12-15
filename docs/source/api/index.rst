@@ -11,23 +11,44 @@ Core Functions and Utilities
    :toctree: api/
    :template: module_summary.rst
 
-   anyvar
+   anyvar.anyvar
    anyvar.queueing.celery_worker
    anyvar.extras.vcf
-   anyvar.translate.translate
-   anyvar.translate.vrs_python
-   anyvar.utils.types
 
-Storage
-=======
+Object Storage
+==============
 
 .. autosummary::
    :nosignatures:
-   :toctree: api/
+   :toctree: api/storage/
    :template: module_summary.rst
 
-   anyvar.storage.no_db
-   anyvar.storage.sql_storage
-   anyvar.storage.duckdb
+   anyvar.storage.base_storage
    anyvar.storage.postgres
-   anyvar.storage.snowflake
+   anyvar.storage.mapper_registry
+   anyvar.storage.mappers
+   anyvar.storage.orm
+   anyvar.storage.no_db
+
+Variant Translation
+===================
+
+.. autosummary::
+   :nosignatures:
+   :toctree: api/translate/
+   :template: module_summary.rst
+
+   anyvar.translate.translate
+   anyvar.translate.vrs_python
+
+Utilities
+=========
+
+.. autosummary::
+   :nosignatures:
+   :toctree: api/utils/
+   :template: module_summary.rst
+
+   anyvar.utils.funcs
+   anyvar.utils.liftover_utils
+   anyvar.utils.types

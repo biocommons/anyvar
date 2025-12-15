@@ -11,6 +11,8 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
@@ -19,9 +21,9 @@ dependencies = [
     "python-multipart",  # required for fastapi file uploads
     "uvicorn",
     "ga4gh.vrs[extras]~=2.1.2",
-    "sqlalchemy~=1.4.54",
+    "sqlalchemy~=2.0.0",
     "pyyaml",
-    "agct",
+    "agct >= 0.2.0rc1",
     "pysam",
     "python-dotenv",
     "anyio",
@@ -31,14 +33,9 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 postgres = ["psycopg[binary]"]
-snowflake = ["snowflake-sqlalchemy~=1.5.1"]
 queueing = [
     "celery[redis]~=5.5.0",
     "aiofiles",
-]
-duckdb = [
-    "duckdb",       # duckdb python client
-    "duckdb-engine" # sqlalchemy engine for duckdb
 ]
 test = [
     "pytest",
@@ -87,6 +84,10 @@ build-backend = "setuptools.build_meta"
 [tool.pytest.ini_options]
 addopts = "--cov=anyvar --cov-report term-missing"
 testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "ci_ok: tests safe to run in CI",
+]
 
 [tool.coverage.run]
 branch = true
@@ -174,13 +175,18 @@ ignore = [
     "RET504",
 ]
 
+[tool.ruff.lint.flake8-unused-arguments]
+ignore-variadic-names = true
+
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "E402"]
+"src/anyvar/extras/vcf.py" = ["ARG002"]
 "src/anyvar/restapi/main.py" = ["B008"]
 "src/anyvar/queueing/celery_worker.py" = ["PLW0602", "PLW0603"]
+"src/anyvar/storage/no_db.py" = ["ARG002"]
 "tests/*" = ["ANN001", "ANN2", "ANN102", "S101", "B011", "INP001", "D", "C400", "PLR2004"]
-"tests/storage/*" = ["S608"]
-"tests/storage/sqlalchemy_mocks.py" = ["ARG002", "A002", "TRY002"]
+"tests/unit/storage/*" = ["S608"]
+"tests/unit/storage/test_no_db.py" = ["ARG002", "A002", "TRY002"]
 "demo/*" = ["T201"]
 
 [tool.ruff.format]

@@ -1,67 +1,29 @@
 import json
 import os
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import pytest
+from dotenv import load_dotenv
 from fastapi.testclient import TestClient
+from ga4gh.vrs import models
+from pydantic import BaseModel
 
 from anyvar.anyvar import AnyVar, create_storage, create_translator
 from anyvar.restapi.main import app as anyvar_restapi
+from anyvar.storage.base_storage import Storage
+from anyvar.translate.translate import Translator
+from anyvar.utils.types import VrsVariation
 
 pytest_plugins = ("celery.contrib.pytest",)
 
 
-def pytest_collection_modifyitems(items):
-    """Modify test items in place to ensure test modules run in a given order."""
-    module_order = [
-        "test_lifespan",
-        "test_variation",
-        "test_general",
-        "test_location",
-        "test_search",
-        "test_annotate_vcf",
-        "test_ingest_vcf",
-        "test_sql_storage_mapping",
-        "test_postgres",
-        "test_duckdb",
-        "test_snowflake",
-        "test_postgres_annotation",
-        "test_duckdb_annotation",
-        "test_no_db",
-        "test_liftover",
-    ]
-    # remember to add new test modules to the order constant:
-    assert len(module_order) == len(list(Path(__file__).parent.rglob("test_*.py")))
-    items.sort(key=lambda i: module_order.index(i.module.__name__))
-
-
 @pytest.fixture(scope="session", autouse=True)
-def storage():
-    """Provide API client instance as test fixture"""
-    if "ANYVAR_TEST_STORAGE_URI" in os.environ:
-        storage_uri = os.environ["ANYVAR_TEST_STORAGE_URI"]
-    else:
-        storage_uri = "postgresql://postgres:postgres@localhost:5432/anyvar_test"
+def load_env():
+    """Load `.env` file.
 
-    storage = create_storage(uri=storage_uri)
-    storage.wipe_db()
-    return storage
-
-
-@pytest.fixture(scope="session")
-def annotator():
-    annotator = MagicMock()
-    annotator.get_annotation.return_value = []
-    return annotator
-
-
-@pytest.fixture(scope="session")
-def client(storage, annotator):
-    translator = create_translator()
-    anyvar_restapi.state.anyvar = AnyVar(object_store=storage, translator=translator)
-    anyvar_restapi.state.anyannotation = annotator
-    return TestClient(app=anyvar_restapi)
+    Must set `autouse=True` to run before other fixtures or test cases.
+    """
+    load_dotenv()
 
 
 @pytest.fixture(scope="session")
@@ -71,10 +33,39 @@ def test_data_dir() -> Path:
 
 
 @pytest.fixture(scope="session")
-def alleles(test_data_dir) -> dict:
-    """Provide allele fixture object."""
+def alleles(test_data_dir: Path):
+    class _AlleleFixture(BaseModel):
+        """Validate data structure in variations.json"""
+
+        variation: models.Allele
+        comment: str | None = None
+        register_params: dict[str, str | int] | None = None
+
     with (test_data_dir / "variations.json").open() as f:
-        return json.load(f)["alleles"]
+        data = json.load(f)
+        alleles = data["alleles"]
+        for allele in alleles.values():
+            assert _AlleleFixture(**allele), f"Not a valid allele fixture: {allele}"
+        return alleles
+
+
+@pytest.fixture(scope="session")
+def copy_number_variations(test_data_dir: Path):
+    class _CopyNumberFixture(BaseModel):
+        """Validate data structure in variations.json"""
+
+        variation: models.CopyNumberChange | models.CopyNumberCount
+        comment: str | None = None
+        register_params: dict[str, str | int] | None = None
+
+    with (test_data_dir / "variations.json").open() as f:
+        data = json.load(f)
+        cns = data["copy_numbers"]
+        for cn in cns.values():
+            assert _CopyNumberFixture(**cn), (
+                f"Not a valid copy number variation fixture: {cn}"
+            )
+        return cns
 
 
 @pytest.fixture(scope="session")
@@ -88,3 +79,62 @@ def celery_config():
         "result_serializer": "json",
         "accept_content": ["application/json"],
     }
+
+
+@pytest.fixture(scope="session")
+def storage_uri() -> str:
+    """Define test storage URI to employ for all storage instance fixtures
+
+    Uses `ANYVAR_TEST_STORAGE_URI` env var
+    """
+    return os.environ.get(
+        "ANYVAR_TEST_STORAGE_URI",
+        "postgresql://postgres:postgres@localhost:5432/anyvar_test",
+    )
+
+
+@pytest.fixture(scope="module")
+def storage(storage_uri: str):
+    """Provide live storage instance from factory.
+
+    Configures from env var ``ANYVAR_TEST_STORAGE_URI``. Defaults to a Postgres DB
+    named ``anyvar_test``
+    """
+    storage = create_storage(uri=storage_uri)
+    storage.wipe_db()
+    return storage
+
+
+@pytest.fixture(scope="session")
+def translator():
+    return create_translator()
+
+
+@pytest.fixture(scope="module")
+def anyvar_instance(storage: Storage, translator: Translator):
+    """Provide a test AnyVar instance"""
+    return AnyVar(object_store=storage, translator=translator)
+
+
+@pytest.fixture(scope="module")
+def restapi_client(anyvar_instance: AnyVar):
+    anyvar_restapi.state.anyvar = anyvar_instance
+    return TestClient(app=anyvar_restapi)
+
+
+# variation type: VRS-Python model
+variation_class_map: dict[str, type[VrsVariation]] = {
+    "Allele": models.Allele,
+    "CopyNumberCount": models.CopyNumberCount,
+    "CopyNumberChange": models.CopyNumberChange,
+}
+
+
+def build_vrs_variant_from_dict(variant_dict: dict) -> VrsVariation:
+    """Construct a `VrsVariation` class instance from a dictionary representation of one
+
+    :param variant_dict: a dictionary representation of a `VrsVariation` object
+    :return: a `VrsVariation` object
+    """
+    variant_type = variant_dict.get("type", "")
+    return variation_class_map[variant_type](**variant_dict)

@@ -6,13 +6,11 @@ from ga4gh.vrs import models
 from ga4gh.vrs.dataproxy import _DataProxy, create_dataproxy
 from ga4gh.vrs.extras.translator import AlleleTranslator, CnvTranslator
 
-from anyvar.translate.translate import TranslationError
-from anyvar.utils.types import SupportedVariationType
-
-from . import _Translator
+from anyvar.translate.translate import TranslationError, Translator
+from anyvar.utils import types
 
 
-class VrsPythonTranslator(_Translator):
+class VrsPythonTranslator(Translator):
     """Translator layer using VRS-Python Translator class."""
 
     def __init__(self, seqrepo_proxy: _DataProxy | None = None) -> None:
@@ -41,17 +39,17 @@ class VrsPythonTranslator(_Translator):
         self.allele_tlr = AlleleTranslator(data_proxy=self.dp)
         self.cnv_tlr = CnvTranslator(data_proxy=self.dp)
 
-    def translate_variation(
-        self, var: str, **kwargs
-    ) -> models.Allele | models.CopyNumberCount | models.CopyNumberChange | None:
+    def translate_variation(self, var: str, **kwargs) -> types.VrsVariation | None:
         """Translate provided variation text into a VRS Variation object.
 
         :param var: user-provided string describing or referencing a variation.
         :param input_type: The type of variation for `var`.
-        :keyword SupportedVariationType input_type: The type of variation for `var`. If
+        :keyword types.VrsVariation input_type: The type of variation for `var`. If
             not provided, will first try to translate to allele and then copy number
         :keyword int copies: The number of copies for VRS Copy Number Count
         :keyword models.CopyChange copy_change: The EFO code for VRS COpy Number Change
+        :keyword ReferenceAssembly assembly_name: Assembly name for ``var``.
+            Only used when ``var`` uses gnomad format.
         :returns: VRS variation object if able to translate
         :raises TranslationError: if translation is unsuccessful, either because
             the submitted variation is malformed, or because VRS-Python doesn't support
@@ -59,12 +57,12 @@ class VrsPythonTranslator(_Translator):
         """
         variation = None
         input_type = kwargs.get("input_type")
-        if input_type == SupportedVariationType.ALLELE:
-            variation = self.translate_allele(var)
-        elif input_type in {
-            SupportedVariationType.COPY_NUMBER_CHANGE,
-            SupportedVariationType.COPY_NUMBER_COUNT,
-        }:
+        if input_type == types.SupportedVariationType.ALLELE:
+            variation = self.translate_allele(var, **kwargs)
+        elif input_type in (
+            types.SupportedVariationType.COPY_NUMBER_CHANGE,
+            types.SupportedVariationType.COPY_NUMBER_COUNT,
+        ):
             variation = self.translate_cnv(var, **kwargs)
         else:
             # Try allele then copy number
@@ -79,17 +77,23 @@ class VrsPythonTranslator(_Translator):
 
         return variation
 
-    def translate_allele(self, var: str) -> models.Allele:
+    def translate_allele(self, var: str, **kwargs) -> models.Allele:
         """Translate provided variation text into a VRS Allele object.
 
         :param var: user-provided string describing or referencing a variation.
+        :kwargs:
+            assembly_name(str) -> Assembly name for ``var``.
+            Only used when ``var`` uses gnomad format.
+            Defaults to "GRCh38". Must be "GRCh38" or "GRCh7"
+            VRS-Python sets a default, but we should set a default just in case
+            VRS-Python ever changes the default.
         :returns: VRS variation object if able to translate
         :raises TranslationError: if translation is unsuccessful, either because
             the submitted variation is malformed, or because VRS-Python doesn't support
             its translation.
         """
         try:
-            return self.allele_tlr.translate_from(var, fmt=None)  # type: ignore (this will always return a models.Allele instance, or raise a ValueError)
+            return self.allele_tlr.translate_from(var, fmt=None, **kwargs)  # type: ignore (this will always return a models.Allele instance, or raise a ValueError)
         except ValueError as e:
             msg = f"{var} isn't supported by the VRS-Python AlleleTranslator."
             raise TranslationError(msg) from e

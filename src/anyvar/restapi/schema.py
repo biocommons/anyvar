@@ -1,7 +1,9 @@
 """Provide response definitions to REST API endpoint."""
 
+from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 from ga4gh.vrs import (
     VRS_VERSION,
@@ -10,11 +12,12 @@ from ga4gh.vrs import (
 from ga4gh.vrs import (
     __version__ as vrs_python_version,
 )
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
 from anyvar import __version__
+from anyvar.utils import types
+from anyvar.utils.liftover_utils import ReferenceAssembly
 from anyvar.utils.types import (
-    Annotation,
     SupportedVariationType,
     VrsObject,
 )
@@ -24,9 +27,8 @@ class EndpointTag(str, Enum):
     """Denote endpoint group membership"""
 
     GENERAL = "General"
-    SEQUENCES = "Sequences"
-    LOCATIONS = "Locations"
-    VARIATIONS = "Variations"
+    VCF = "VCF Operations"
+    VRS_OBJECTS = "VRS Objects"
     SEARCH = "Search"
 
 
@@ -78,6 +80,12 @@ class ImplMetadata(BaseModel):
     vrs_python_version: str = vrs_python_version
 
 
+class CapabilitiesMetadata(BaseModel):
+    """Define substructure for reporting metadata about service capabilities"""
+
+    liftover_assemblies: list[str] = ["GRCh38", "GRCh37"]
+
+
 class ServiceInfo(BaseModel):
     """Define response structure for GA4GH /service_info endpoint."""
 
@@ -119,31 +127,29 @@ class ServiceInfo(BaseModel):
     version: str = __version__
     spec_metadata: SpecMetadata = SpecMetadata()
     impl_metadata: ImplMetadata = ImplMetadata()
+    capabilities_metadata: CapabilitiesMetadata = CapabilitiesMetadata()
 
 
-class GetSequenceLocationResponse(BaseModel):
-    """Describe response for the GET /locations/ endpoint"""
+class VariationRequest(BaseModel):
+    """Describe request structure for the PUT and POST /variation endpoints"""
 
-    location: models.SequenceLocation | None
-
-
-class RegisterVariationRequest(BaseModel):
-    """Describe request structure for the PUT /variation endpoint"""
+    model_config = ConfigDict(use_enum_values=True)
 
     definition: StrictStr
     input_type: SupportedVariationType | None = None
     copies: int | None = None
     copy_change: models.CopyChange | None = None
+    assembly_name: ReferenceAssembly | None = ReferenceAssembly.GRCH38
 
 
 class AddAnnotationResponse(BaseModel):
     """Response for the POST /variation/{vrs_id}/annotations endpoint"""
 
-    messages: list[str]
     object: VrsObject | None
     object_id: str | None
     annotation_type: str | None
-    annotation: dict | None
+    annotation_value: Any | None
+    annotation_id: int | None
 
 
 class AddAnnotationRequest(BaseModel):
@@ -153,17 +159,44 @@ class AddAnnotationRequest(BaseModel):
     """
 
     annotation_type: str
-    annotation: dict
+    annotation_value: Any
 
 
 class GetAnnotationResponse(BaseModel):
     """Response for the GET /variation/{vrs_id}/annotations/{annotation_type} endpoint"""
 
-    annotations: list[Annotation]
+    annotations: list[types.Annotation]
+
+
+class AddMappingResponse(BaseModel):
+    """Response for POST /variation/{vrs_id}/mappings endpoint"""
+
+    model_config = ConfigDict(use_enum_values=True)
+
+    source_object: VrsObject | None
+    source_object_id: str
+    dest_object: VrsObject | None
+    dest_object_id: str
+    mapping_type: types.VariationMappingType
+
+
+class AddMappingRequest(BaseModel):
+    """Request for the POST /variation/{vrs_id}/mappings endpoint"""
+
+    model_config = ConfigDict(use_enum_values=True)
+
+    dest_id: str
+    mapping_type: types.VariationMappingType
+
+
+class GetMappingResponse(BaseModel):
+    """Request for the GET /variation/{vrs_id}/mappings endpoint"""
+
+    mappings: Iterable[types.VariationMapping]
 
 
 class RegisterVariationResponse(BaseModel):
-    """Describe response for the PUT /variation endpoint"""
+    """Describe response for the PUT /variation and PUT /vrs_variation endpoints"""
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -171,40 +204,39 @@ class RegisterVariationResponse(BaseModel):
                 {
                     "messages": [],
                     "object": {
-                        "_id": "ga4gh:VA.ZDdoQdURgO2Daj2NxLj4pcDnjiiAsfbO",
+                        "id": "ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb",
                         "type": "Allele",
+                        "digest": "d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb",
                         "location": {
-                            "_id": "ga4gh:VSL.2cHIgn7iLKk4x9z3zLkSTTFMV0e48DR4",
+                            "id": "ga4gh:SL.JOFKL4nL5mRUlO_xLwQ8VOD1v7mxhs3I",
                             "type": "SequenceLocation",
-                            "sequence_id": "ga4gh:SQ.cQvw4UsHHRRlogxbWCB8W-mKD4AraM9y",
-                            "interval": {
-                                "type": "SequenceInterval",
-                                "start": {"type": "Number", "value": 599},
-                                "end": {"type": "Number", "value": 600},
+                            "digest": "JOFKL4nL5mRUlO_xLwQ8VOD1v7mxhs3I",
+                            "sequenceReference": {
+                                "type": "SequenceReference",
+                                "refgetAccession": "SQ.IW78mgV5Cqf6M24hy52hPjyyo5tCCd86",
                             },
+                            "start": 36561661,
+                            "end": 36561663,
                         },
-                        "state": {"type": "LiteralSequenceExpression", "sequence": "E"},
+                        "state": {
+                            "type": "ReferenceLengthExpression",
+                            "length": 0,
+                            "sequence": "",
+                            "repeatSubunitLength": 2,
+                        },
                     },
-                    "object_id": "ga4gh:VA.ZDdoQdURgO2Daj2NxLj4pcDnjiiAsfbO",
+                    "object_id": "ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb",
                 }
             ]
         }
     )
 
-    messages: list[str]
-    object: models.Variation | None
-    object_id: str | None
+    messages: list[str] = []
+    object: types.VrsVariation | None = None
+    object_id: str | None = None
 
 
-class RegisterVrsVariationResponse(BaseModel):
-    """Describe response for the PUT /vrs_variation endpoint"""
-
-    messages: list[str]
-    object: models.Variation | None
-    object_id: str | None
-
-
-class GetVariationResponse(BaseModel):
+class GetObjectResponse(BaseModel):
     """Describe response for the GET /variation endpoint"""
 
     model_config = ConfigDict(
@@ -235,29 +267,13 @@ class GetVariationResponse(BaseModel):
     )
 
     messages: list[StrictStr]
-    data: VrsObject
+    data: VrsObject | None = None
 
 
 class SearchResponse(BaseModel):
     """Describe response for the GET /search endpoint"""
 
     variations: list[models.Variation]
-
-
-class VariationStatisticType(str, Enum):
-    """Define parameter values for variation statistics endpoint"""
-
-    SUBSTITUTION = "substitution"
-    DELETION = "deletion"
-    INSERTION = "insertion"
-    ALL = "all"
-
-
-class AnyVarStatsResponse(BaseModel):
-    """Describe response for the GET /stats endpoint"""
-
-    variation_type: VariationStatisticType
-    count: StrictInt
 
 
 class RunStatusResponse(BaseModel):
