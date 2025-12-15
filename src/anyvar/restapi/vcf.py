@@ -359,6 +359,12 @@ async def _ingest_annotated_vcf_async(
 ) -> RunStatusResponse | ErrorResponse:
     """Ingest annotated VCF asynchronously.  See `annotated_vcf()` for parameter definitions."""
     if not anyvar.anyvar.has_queueing_enabled() or not aiofiles:
+        _logger.warning(
+            "Async VCF annotation requested but not enabled (has_queueing_enabled=%s, aiofiles=%s)",
+            anyvar.anyvar.has_queueing_enabled(),
+            aiofiles,
+            stack_info=True,
+        )
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ErrorResponse(
             error="Required modules and/or configurations for asynchronous VCF annotation are missing"
