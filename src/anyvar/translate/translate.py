@@ -27,7 +27,7 @@ class Translator(ABC):
     dp: _DataProxy
 
     @abstractmethod
-    def translate_variation(self, var: str, **kwargs) -> VrsVariation | None:
+    def translate_variation(self, var: str, **kwargs) -> VrsVariation:
         """Translate provided variation text into a VRS Variation object.
 
         :param var: user-provided string describing or referencing a variation.
@@ -43,7 +43,7 @@ class Translator(ABC):
                 Defaults to "GRCh38". Must be "GRCh38" or "GRCh7"
                 VRS-Python sets a default, but we should set a default just in case
                 VRS-Python ever changes the default.
-        :returns: VRS variation object if able to translate
+        :returns: VRS variation object
         :raises TranslationError: if translation is unsuccessful, either because
             the submitted variation is malformed, or because VRS-Python doesn't support
             its translation.
