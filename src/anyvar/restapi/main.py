@@ -1,6 +1,5 @@
 """Provide core route definitions for REST service."""
 
-import datetime
 import json
 import logging
 import logging.config
@@ -12,7 +11,6 @@ from http import HTTPStatus
 from typing import Annotated, cast
 
 import anyio
-import ga4gh.vrs
 import yaml
 from dotenv import load_dotenv
 from fastapi import (
@@ -25,34 +23,60 @@ from fastapi import (
     Response,
 )
 from fastapi.responses import JSONResponse, StreamingResponse
+from ga4gh.vrs.dataproxy import DataProxyValidationError
+from hgvs.exceptions import HGVSParseError
 from pydantic import StrictStr
 
 import anyvar
-from anyvar.anyvar import AnyAnnotation, AnyVar
+from anyvar.anyvar import AnyVar, ObjectNotFoundError
 from anyvar.restapi.schema import (
     AddAnnotationRequest,
     AddAnnotationResponse,
-    AnyVarStatsResponse,
+    AddMappingRequest,
+    AddMappingResponse,
     EndpointTag,
     GetAnnotationResponse,
-    GetSequenceLocationResponse,
-    GetVariationResponse,
-    RegisterVariationRequest,
+    GetMappingResponse,
+    GetObjectResponse,
     RegisterVariationResponse,
-    RegisterVrsVariationResponse,
     SearchResponse,
     ServiceInfo,
-    VariationStatisticType,
+    VariationRequest,
 )
 from anyvar.restapi.vcf import router as vcf_router
+from anyvar.storage.base_storage import IncompleteVrsObjectError
 from anyvar.translate.translate import (
     TranslationError,
 )
-from anyvar.utils import liftover_utils
-from anyvar.utils.types import VrsVariation, variation_class_map
+from anyvar.utils import liftover_utils, types
+from anyvar.utils.types import (
+    VrsObject,
+    VrsVariation,
+    recursive_identify,
+)
 
 load_dotenv()
 _logger = logging.getLogger(__name__)
+
+
+def _get_vrs_object(
+    av: AnyVar, vrs_object_id: str, object_type: type[types.VrsObject] | None = None
+) -> VrsObject:
+    """Get VRS variation given VRS ID
+
+    :param av: AnyVar instance
+    :param vrs_object_id: VRS Object ID to retrieve
+    :param object_type: (Optional) The type of object to retrieve
+    :raises HTTPException: If no VRS object ID found
+    :return: VrsObject
+    """
+    try:
+        return av.get_object(vrs_object_id, object_type)
+    except KeyError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"VRS Object {vrs_object_id} not found",
+        ) from e
 
 
 async def parse_and_rebuild_response(
@@ -125,27 +149,10 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
 
     # associate anyvar with the app state
     param_app.state.anyvar = anyvar_instance
-
-    # create annotation instance if configured
-    annotation_storage = None
-    if "ANYVAR_ANNOTATION_STORAGE_URI" in os.environ:
-        if "ANYVAR_ANNOTATION_TABLE_NAME" not in os.environ:
-            raise ValueError(
-                "ANYVAR_ANNOTATION_TABLE_NAME is required if ANYVAR_ANNOTATION_STORAGE_URI is set"
-            )
-        annotation_storage = anyvar.anyvar.create_annotation_storage(
-            os.environ["ANYVAR_ANNOTATION_STORAGE_URI"],
-            table_name=os.environ["ANYVAR_ANNOTATION_TABLE_NAME"],
-        )
-        anyannotation_instance = AnyAnnotation(annotation_storage)
-        param_app.state.anyannotation = anyannotation_instance
-
     yield
 
     # close storage connector on shutdown
     storage.close()
-    if annotation_storage:
-        annotation_storage.close()
 
 
 app = FastAPI(
@@ -178,141 +185,365 @@ def service_info(
     return ServiceInfo(**service_info)
 
 
-@app.get(
-    "/locations/{location_id}",
-    response_model_exclude_none=True,
-    summary="Retrieve sequence location",
-    description="Retrieve registered sequence location by ID",
-    tags=[EndpointTag.LOCATIONS],
-)
-def get_location_by_id(
-    request: Request,
-    location_id: Annotated[StrictStr, Path(..., description="Location VRS ID")],
-) -> GetSequenceLocationResponse:
-    """Retrieve stored location object by ID.
+VARIATION_EXAMPLE_PAYLOAD = {
+    "definition": "NC_000007.13:g.36561662_36561663del",
+    "input_type": "Allele",
+    "copies": 0,
+    "copy_change": "complete genomic loss",
+    "assembly_name": None,
+}
 
-    :param request: FastAPI request object
-    :param location_id: VRS location identifier
-    :return: complete location object if successful
-    :raise HTTPException: if requested location isn't found
-    """
+
+_variation_request_body = Body(
+    description="Variation description, including (at minimum) a definition property. Can provide optional input_type if the expected output representation is known, as well as an assembly_name (e.g.,'GRCh37' or 'GRCh38'). If representing copy number, provide copies or copy_change.",
+    examples=[VARIATION_EXAMPLE_PAYLOAD],
+)
+
+
+@app.put(
+    "/variation",
+    response_model_exclude_none=True,
+    summary="Register a new allele or copy number object",
+    description="Provide a variation definition to be normalized and registered with AnyVar. A complete VRS Allele or Copy Number object and digest is returned for later reference.",
+    tags=[EndpointTag.VRS_OBJECTS],
+)
+def register_variation(
+    request: Request,
+    variation: Annotated[VariationRequest, _variation_request_body],
+) -> RegisterVariationResponse:
+    """Register a variation based on a provided description or reference."""
+    av: AnyVar = request.app.state.anyvar
+    definition = variation.definition
+
+    try:
+        translated_variation = av.translator.translate_variation(
+            definition, **variation.model_dump(mode="json")
+        )
+    except TranslationError:
+        return RegisterVariationResponse(
+            messages=[f'Unable to translate "{definition}"']
+        )
+    except NotImplementedError:
+        return RegisterVariationResponse(
+            messages=[f"Variation class for {definition} is currently unsupported."]
+        )
+    if not translated_variation:
+        return RegisterVariationResponse(
+            messages=[f"Translation of {definition} failed."]
+        )
+    messages: list[str] = []
+
+    av.put_objects([translated_variation])  # type: ignore
+
+    liftover_messages = liftover_utils.add_liftover_mapping(
+        variation=translated_variation,
+        storage=av.object_store,
+        dataproxy=av.translator.dp,
+    )
+    if liftover_messages:
+        messages += liftover_messages
+
+    return RegisterVariationResponse(
+        object=translated_variation,  # type: ignore
+        object_id=translated_variation.id,
+        messages=messages,
+    )
+
+
+PUT_VRS_VARIATION_EXAMPLE_PAYLOAD = {
+    "location": {
+        "end": 87894077,
+        "start": 87894076,
+        "sequenceReference": {
+            "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
+            "type": "SequenceReference",
+        },
+        "type": "SequenceLocation",
+    },
+    "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
+    "type": "Allele",
+}
+
+
+@app.put(
+    "/vrs_variation",
+    summary="Register a VRS variation",
+    description="Provide a valid VRS variation object to be registered with AnyVar. A digest is returned for later reference.",
+    response_model_exclude_none=True,
+    tags=[EndpointTag.VRS_OBJECTS],
+)
+def register_vrs_object(
+    request: Request,
+    variation: Annotated[
+        VrsVariation,
+        Body(
+            description="Valid VRS object.",
+            examples=[PUT_VRS_VARIATION_EXAMPLE_PAYLOAD],
+        ),
+    ],
+) -> RegisterVariationResponse:
+    """Register a complete VRS object. No additional normalization is performed."""
+    if not isinstance(variation, VrsVariation):
+        return RegisterVariationResponse(
+            messages=[f"Registration for {variation.type} not currently supported."]
+        )
+
     av: AnyVar = request.app.state.anyvar
     try:
-        location: ga4gh.vrs.models.SequenceLocation = av.get_object(location_id)  # type: ignore[reportAssignmentType]
-    except KeyError as e:
+        av.put_objects([variation])
+    except IncompleteVrsObjectError:
+        variation = recursive_identify(variation)
+        av.put_objects([variation])
+    except Exception as e:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail=f"Location {location_id} not found"
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail="Variation could not be registered",
         ) from e
 
-    if location:
-        return GetSequenceLocationResponse(location=location)
-    raise HTTPException(
-        status_code=HTTPStatus.NOT_FOUND, detail=f"Location {location_id} not found"
+    liftover_messages = liftover_utils.add_liftover_mapping(
+        variation, av.object_store, av.translator.dp
+    )
+
+    return RegisterVariationResponse(
+        object=variation,
+        object_id=variation.id,
+        messages=liftover_messages or [],
     )
 
 
 @app.post(
-    "/variation/{vrs_id}/annotations",
+    "/variation",
     response_model_exclude_none=True,
-    summary="Add annotation to a variation",
-    description="Provide an annotation to associate with a Variation object. The Variation must be registered with AnyVar before adding annotations.",
-    tags=[EndpointTag.VARIATIONS],
+    summary="Retrieve a registered allele or copy number variation",
+    description="Provide a variation definition to be normalized and searched for in AnyVar",
+    tags=[EndpointTag.VRS_OBJECTS],
 )
-def add_variation_annotation(
+def get_variation(
+    request: Request,
+    variation: Annotated[VariationRequest, _variation_request_body],
+) -> GetObjectResponse:
+    """Search for registered variation"""
+    av: AnyVar = request.app.state.anyvar
+    definition = variation.definition
+
+    try:
+        translated_variation = av.translator.translate_variation(
+            definition, **variation.model_dump(mode="json")
+        )
+    except TranslationError:
+        return GetObjectResponse(messages=[f"Unable to translate '{definition}'"])
+    except NotImplementedError:
+        return GetObjectResponse(
+            messages=[f"Variation class for {definition} is currently unsupported."]
+        )
+    except HGVSParseError:
+        return GetObjectResponse(messages=[f"Unsupported HGVS '{definition}'"])
+    except DataProxyValidationError:
+        return GetObjectResponse(messages=[f"Invalid definition '{definition}'"])
+
+    if not translated_variation:
+        return GetObjectResponse(messages=[f"Translation of {definition} failed."])
+
+    vrs_id = translated_variation.id
+    _get_vrs_object(av, vrs_id)  # type: ignore
+
+    return GetObjectResponse(messages=[], data=translated_variation)
+
+
+@app.get(
+    "/object/{vrs_id}",
+    response_model_exclude_none=True,
+    operation_id="getVariation",
+    summary="Retrieve a VRS object",
+    description="Gets a VRS object by ID. May return any supported type of VRS Object.",
+    tags=[EndpointTag.VRS_OBJECTS],
+)
+def get_object_by_id(
+    request: Request,
+    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for object")],
+) -> GetObjectResponse:
+    """Get registered VRS object given its VRS ID.
+
+    :param request: FastAPI request object
+    :param object_id: ID to look up
+    :return: VRS Object if successful
+    :raise HTTPException: if no variation matches provided ID
+    """
+    av: AnyVar = request.app.state.anyvar
+    vrs_object: VrsObject = _get_vrs_object(av, vrs_id)
+    return GetObjectResponse(messages=[], data=vrs_object)
+
+
+@app.post(
+    "/object/{vrs_id}/annotations",
+    response_model_exclude_none=True,
+    summary="Add annotation to a VRS Object",
+    description="Provide an annotation to associate with a VRS object. The object must be registered with AnyVar before adding annotations.",
+    tags=[EndpointTag.VRS_OBJECTS],
+)
+def add_object_annotation(
     request: Request,
     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
-    annotation: Annotated[
+    annotation_request: Annotated[
         AddAnnotationRequest,
         Body(
             description="Annotation to associate with the variation",
         ),
     ],
 ) -> AddAnnotationResponse:
-    """Store an annotation for a variation.
+    """Store an annotation for a VRS Object.
 
     :param request: FastAPI request object
-    :param vrs_id: the VRS ID of the variation to annotate
+    :param vrs_id: the VRS ID of the VRS Object to annotate
     :param annotation: the annotation to store
-    :return: the variation and annotations if stored
+    :return: the VRS Object and annotations if stored
     :raise HTTPException: if requested location isn't found
     """
-    messages: list[str] = []
-    # Look up the variation from the AnyVar store
+    # Look up the VRS Object from the AnyVar store
     av: AnyVar = request.app.state.anyvar
+    vrs_object: VrsObject = _get_vrs_object(av, vrs_id)
+
+    # Add the annotation to the database
+    annotation_id: int | None = None
     try:
-        variation = av.get_object(vrs_id)
-    except KeyError as e:
+        annotation = types.Annotation(
+            object_id=vrs_object.id,  # pyright: ignore[reportArgumentType] - VRS Objects from the DB will never NOT have an ID
+            annotation_type=annotation_request.annotation_type,
+            annotation_value=annotation_request.annotation_value,
+        )
+        annotation_id = av.put_annotation(annotation)
+    except ValueError as e:
+        _logger.exception(
+            "Failed to add annotation `%s` on VRS Object `%s`",
+            annotation_request,
+            vrs_id,
+        )
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail=f"Variation {vrs_id} not found"
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=f"Failed to add annotation: {annotation_request}",
         ) from e
 
-    # Add the annotation to the annotation store
-    if hasattr(request.app.state, "anyannotation"):
-        anyannotation: AnyAnnotation = request.app.state.anyannotation
-        try:
-            anyannotation.put_annotation(
-                object_id=vrs_id,
-                annotation_type=annotation.annotation_type,
-                annotation=annotation.annotation,
-            )
-        except ValueError as e:
-            _logger.exception(
-                "Failed to add annotation `%s` on variation `%s`", annotation, vrs_id
-            )
-            raise HTTPException(
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-                detail=f"Failed to add annotation: {annotation}",
-            ) from e
-    else:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_IMPLEMENTED,
-            detail="Annotations are not supported by this backend configuration.",
-        )
-
     return AddAnnotationResponse(
-        messages=messages,
-        object=variation,
+        object=vrs_object,
         object_id=vrs_id,
-        annotation_type=annotation.annotation_type,
-        annotation=annotation.annotation,
+        annotation_type=annotation_request.annotation_type,
+        annotation_value=annotation_request.annotation_value,
+        annotation_id=annotation_id,
     )
 
 
 @app.get(
-    "/variation/{vrs_id}/annotations/{annotation_type}",
+    "/object/{vrs_id}/annotations/{annotation_type}",
     response_model_exclude_none=True,
-    summary="Retrieve annotations for a variation",
-    description="Retrieve annotations for a variation by VRS ID and annotation type",
-    tags=[EndpointTag.VARIATIONS],
+    summary="Retrieve annotations for a VRS Object",
+    description="Retrieve annotations for a VRS Object by VRS ID and annotation type",
+    tags=[EndpointTag.VRS_OBJECTS],
 )
-def get_variation_annotation(
+def get_object_annotations(
     request: Request,
-    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
+    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for VRS Object")],
     annotation_type: Annotated[StrictStr, Path(..., description="Annotation type")],
 ) -> GetAnnotationResponse:
-    """Retrieve annotations for a variation.
+    """Retrieve annotations for a VRS Object."""
+    av: AnyVar = request.app.state.anyvar
+    try:
+        annotations = av.get_object_annotations(vrs_id, annotation_type)
+    except ObjectNotFoundError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"VRS Object {vrs_id} not found",
+        ) from e
+    return GetAnnotationResponse(annotations=annotations)
+
+
+@app.put(
+    "/object/{vrs_id}/mappings",
+    response_model_exclude_none=True,
+    summary="Add mapping to a VRS Object",
+    description="Provide a mapping to associate with a VRS object. The source and dest objects must be registered with AnyVar before adding mappings.",
+    tags=[EndpointTag.VRS_OBJECTS],
+)
+async def add_object_mapping(
+    request: Request,
+    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID")],
+    mapping_request: Annotated[
+        AddMappingRequest, Body(description="Mapping to associate with the VRS Object")
+    ],
+) -> AddMappingResponse:
+    """Store a mapping for a VRS Object
 
     :param request: FastAPI request object
-    :param vrs_id: VRS ID for variation
-    :param annotation_type: type of annotation to retrieve
-    :return: response object containing list of annotations for the variation
+    :param vrs_id: The VRS ID of the object to add mapping to
+    :param mapping_request: The mapping to store
+    :raises HTTPException: If unable to store a mapping, or source or dest objects
+        not registered
+    :return: source and destination VRS object and mapping type, if found
     """
-    if not hasattr(request.app.state, "anyannotation"):
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_IMPLEMENTED,
-            detail="Annotations are not supported by this backend configuration.",
-        )
-    anyannotation: AnyAnnotation = request.app.state.anyannotation
-    annotations = anyannotation.get_annotation(vrs_id, annotation_type)
+    av: AnyVar = request.app.state.anyvar
+    source_vrs_obj: VrsObject = _get_vrs_object(av, vrs_id)
+    dest_vrs_id = mapping_request.dest_id
+    dest_vrs_obj: VrsObject = _get_vrs_object(av, dest_vrs_id)
 
-    return GetAnnotationResponse(annotations=annotations)
+    # Add the mapping to the database
+    mapping: types.VariationMapping | None = None
+    mapping_type = mapping_request.mapping_type
+    try:
+        mapping = types.VariationMapping(
+            source_id=vrs_id, dest_id=dest_vrs_id, mapping_type=mapping_type
+        )
+        av.put_mapping(mapping)
+    except ValueError as e:
+        _logger.exception(
+            "Failed to add mapping `%s` on variation `%s`",
+            mapping_request,
+            vrs_id,
+        )
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            detail=f"Failed to add annotation: {mapping_request}. {e}",
+        ) from e
+
+    return AddMappingResponse(
+        source_object=source_vrs_obj,
+        source_object_id=vrs_id,
+        dest_object=dest_vrs_obj,
+        dest_object_id=dest_vrs_id,
+        mapping_type=mapping_type,
+    )
+
+
+@app.get(
+    "/object/{vrs_id}/mappings/{mapping_type}",
+    response_model_exclude_none=True,
+    summary="Retrieve mappings for a VRS Object",
+    description="Retrieve mappings for a VRS Object by ID and mapping type",
+    tags=[EndpointTag.VRS_OBJECTS],
+)
+def get_object_mapping(
+    request: Request,
+    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
+    mapping_type: Annotated[
+        types.VariationMappingType, Path(..., description="Mapping type")
+    ],
+) -> GetMappingResponse:
+    """Retrieve mappings for a VRS Object."""
+    av: AnyVar = request.app.state.anyvar
+    try:
+        mappings = av.get_object_mappings(vrs_id, mapping_type)
+    except ObjectNotFoundError as e:
+        raise HTTPException(
+            HTTPStatus.NOT_FOUND,
+            detail=f"VRS Object {vrs_id} not found",
+        ) from e
+
+    return GetMappingResponse(mappings=mappings)
 
 
 @app.middleware("http")
 async def add_registration_annotations(
     request: Request, call_next: Callable
 ) -> Response:
-    """Add all required annotations ("creation_timestamp" & "liftover") for newly-registered variants
+    """Add all required annotations ("creation_timestamp") for newly-registered variants
 
     :param request: FastAPI `Request` object
     :param call_next: A FastAPI function that receives the `request` as a parameter, passes it to the corresponding path operation, and returns the generated `response`
@@ -343,174 +574,10 @@ async def add_registration_annotations(
     ):  # If there's no input_vrs_id/input variant, registration was unsuccessful. Do not attempt any further operations.
         return new_response
 
-    # Add annotations
-    annotator: AnyAnnotation | None = request.app.state.anyannotation
-    if annotator:
-        timestamp_annotations = annotator.get_annotation(
-            input_vrs_id, "creation_timestamp"
-        )
-        if not timestamp_annotations:
-            annotator.put_annotation(
-                object_id=input_vrs_id,
-                annotation_type="creation_timestamp",
-                annotation={
-                    "timestamp": datetime.datetime.now(tz=datetime.UTC).isoformat()
-                },
-            )
-
-        liftover_annotations = annotator.get_annotation(input_vrs_id, "liftover")
-        if not liftover_annotations:
-            liftover_utils.add_liftover_annotations(
-                input_vrs_id=input_vrs_id,
-                input_vrs_variant_dict=input_variant,
-                anyvar=request.app.state.anyvar,
-                annotator=annotator,
-            )
-
+    # Add creation timestamp annotation
+    av: AnyVar = request.app.state.anyvar
+    av.create_timestamp_annotation_if_missing(input_vrs_id)
     return new_response
-
-
-@app.put(
-    "/variation",
-    response_model_exclude_none=True,
-    summary="Register a new allele or copy number object",
-    description="Provide a variation definition to be normalized and registered with AnyVar. A complete VRS Allele or Copy Number object and digest is returned for later reference.",
-    tags=[EndpointTag.VARIATIONS],
-)
-def register_variation(
-    request: Request,
-    variation: Annotated[
-        RegisterVariationRequest,
-        Body(
-            description="Variation description, including (at minimum) a definition property. Can provide optional input_type if the expected output representation is known. If representing copy number, provide copies or copy_change.",
-            examples=[
-                {
-                    "definition": "NC_000007.13:g.36561662_36561663del",
-                    "input_type": "Allele",
-                    "copies": 0,
-                    "copy_change": "complete genomic loss",
-                }
-            ],
-        ),
-    ],
-) -> RegisterVariationResponse:
-    """Register a variation based on a provided description or reference.
-
-    :param request: FastAPI request object
-    :param variation: provided variation description
-    :return: messages describing translation failure, or object and references if
-        successful
-    """
-    av: AnyVar = request.app.state.anyvar
-    definition = variation.definition
-
-    result = {"object": None, "messages": [], "object_id": None}
-    try:
-        translated_variation = av.translator.translate_variation(
-            definition, **variation.model_dump()
-        )
-    except TranslationError:
-        result["messages"].append(f'Unable to translate "{definition}"')
-    except NotImplementedError:
-        result["messages"].append(
-            f"Variation class for {definition} is currently unsupported."
-        )
-    else:
-        if translated_variation:
-            v_id = av.put_object(translated_variation)
-            result["object"] = translated_variation
-            result["object_id"] = v_id
-        else:
-            result["messages"].append(f"Translation of {definition} failed.")
-    return RegisterVariationResponse(**result)
-
-
-@app.put(
-    "/vrs_variation",
-    summary="Register a VRS variation",
-    description="Provide a valid VRS variation object to be registered with AnyVar. A digest is returned for later reference.",
-    response_model_exclude_none=True,
-    tags=[EndpointTag.VARIATIONS],
-)
-def register_vrs_object(
-    request: Request,
-    variation: Annotated[
-        VrsVariation,
-        Body(
-            description="Valid VRS object.",
-            examples=[
-                {
-                    "location": {
-                        "id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8",
-                        "end": 87894077,
-                        "start": 87894076,
-                        "sequenceReference": {
-                            "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
-                            "type": "SequenceReference",
-                        },
-                        "type": "SequenceLocation",
-                    },
-                    "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
-                    "type": "Allele",
-                }
-            ],
-        ),
-    ],
-) -> RegisterVrsVariationResponse:
-    """Register a complete VRS object. No additional normalization is performed.
-
-    :param request: FastAPI request object
-    :param variation: provided VRS variation object
-    :return: object and references if successful
-    """
-    av: AnyVar = request.app.state.anyvar
-    result = {
-        "object": None,
-        "messages": [],
-    }
-    variation_type = variation.type
-    if variation_type not in variation_class_map:
-        result["messages"].append(
-            f"Registration for {variation_type} not currently supported."
-        )
-        return RegisterVrsVariationResponse(**result)
-
-    variation_object = variation_class_map[variation_type](**variation.dict())
-    v_id = av.put_object(variation_object)
-    result["object"] = variation_object
-    result["object_id"] = v_id
-    return RegisterVrsVariationResponse(**result)
-
-
-@app.get(
-    "/variation/{variation_id}",
-    response_model_exclude_none=True,
-    operation_id="getVariation",
-    summary="Retrieve a variation object",
-    description="Gets a variation instance by ID. May return any supported type of variation.",
-    tags=[EndpointTag.VARIATIONS],
-)
-def get_variation_by_id(
-    request: Request,
-    variation_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
-) -> GetVariationResponse:
-    """Get registered variation given VRS ID.
-
-    :param request: FastAPI request object
-    :param variation_id: ID to look up
-    :return: VRS variation if successful
-    :raise HTTPException: if no variation matches provided ID
-    """
-    av: AnyVar = request.app.state.anyvar
-    try:
-        variation = av.get_object(variation_id, deref=True)
-    except KeyError as e:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail=f"Variation {variation_id} not found",
-        ) from e
-
-    return GetVariationResponse(messages=[], data=variation)
 
 
 @app.get(
@@ -537,7 +604,10 @@ def search_variations(
     """
     av: AnyVar = request.app.state.anyvar
     try:
-        ga4gh_id = av.translator.get_sequence_id(accession)
+        if accession.startswith("ga4gh:"):
+            ga4gh_id = accession
+        else:
+            ga4gh_id = av.translator.get_sequence_id(accession)
     except KeyError as e:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
@@ -548,52 +618,11 @@ def search_variations(
     if ga4gh_id:
         try:
             refget_accession = ga4gh_id.split("ga4gh:")[-1]
-            alleles = av.object_store.search_variations(refget_accession, start, end)
+            alleles = av.object_store.search_alleles(refget_accession, start, end)
         except NotImplementedError as e:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_IMPLEMENTED,
                 detail="Search not implemented for current storage backend",
             ) from e
 
-    inline_alleles = []
-    if alleles:
-        for allele in alleles:
-            try:
-                var_object = av.get_object(allele["id"], deref=True)
-            except KeyError:
-                continue
-            inline_alleles.append(var_object)
-
-    return SearchResponse(variations=inline_alleles)
-
-
-@app.get(
-    "/stats/{variation_type}",
-    operation_id="getStats",
-    summary="Summary statistics for registered variations",
-    description="Retrieve summary statistics for registered variation objects.",
-    tags=[EndpointTag.GENERAL],
-)
-def get_stats(
-    request: Request,
-    variation_type: Annotated[
-        VariationStatisticType, Path(..., description="category of variation")
-    ],
-) -> AnyVarStatsResponse:
-    """Get summary statistics for registered variants. Currently just returns totals.
-
-    :param request: FastAPI request object
-    :param variation_type: type of variation to summarize
-    :return: total number of matching variants
-    :raise HTTPException: if invalid variation type is requested, although FastAPI
-        should block the request from going through in that case
-    """
-    av: AnyVar = request.app.state.anyvar
-    try:
-        count = av.object_store.get_variation_count(variation_type)
-    except NotImplementedError as e:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_IMPLEMENTED,
-            detail="Stats not available for current storage backend",
-        ) from e
-    return AnyVarStatsResponse(variation_type=variation_type, count=count)
+    return SearchResponse(variations=alleles)

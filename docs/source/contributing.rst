@@ -1,14 +1,10 @@
 Contributing to AnyVar
 !!!!!!!!!!!!!!!!!!!!!!
 
-Prerequisites
-=============
-
-* Python >= 3.11
-* `Docker <https://docs.docker.com/engine/install/>`_
-
-Installing for development
+Installing For Development
 ==========================
+
+Clone and enter the repo, use the ``devready`` Makefile target to set up a virtual environment, then activate it and install pre-commit hooks:
 
 .. code-block:: shell
 
@@ -21,48 +17,26 @@ Installing for development
 Testing
 =======
 
-Run tests:
+Some configuration is required to run tests:
 
-1. Set up a database for testing. The default is a postgres database, which you can set up by following the instructions found :ref:`here <postgresql-setup>`.
+* **Install test dependencies** - in your AnyVar environment, ensure that the ``test`` dependency group is available by running ``make testready`` in the root directory.
+* **Configure test database** - unit and integration tests will set up a storage instance using the connection string defined by the environment variable ``ANYVAR_TEST_STORAGE_URI`` (not ``ANYVAR_STORAGE_URI``!), which defaults to ``"postgresql://postgres:postgres@localhost:5432/anyvar_test"``.
 
-2. Follow the :ref:`quickstart guide <quick-start>` to get AnyVar running
+.. note::
 
-3. If you haven't run ``make devready`` before, open a new terminal and do so now. Then, source your venv by running: ``source venv/3.11/bin/activate``. Otherwise, you can skip straight to sourcing your venv: ``source venv/3.11/bin/activate``
+    Ensure that the database and role are available in the PostgreSQL instance.
 
-4. Within your venv, run ``make testready`` if you've never done so before. Otherwise, skip this step.
+    For example, to support the connection string ``"postgresql://anyvar_test_user:anyvar_test_pw@localhost:5432/anyvar_test_db"``, run ``psql -U postgres -C "CREATE USER anyvar_test_user WITH PASSWORD anyvar_test_pw; CREATE DATABASE anyvar_test_db WITH OWNER anyvar_test_user;"``
 
-5. Ensure the following environment variables are set in your ``.env`` file:
+* **Ensure Celery backend and broker are available, and that Celery workers are NOT running** - the task queueing tests create and manage their own Celery workers, but they do require access to a broker/backend for message transport and result storage. See `async task queuing setup instructions <todo>`_ for more. If an existing AnyVar Celery worker is running, they may not function properly.
 
-* ``SEQREPO_DATAPROXY_URI`` - See the quickstart guide above.
-* ``ANYVAR_STORAGE_URI`` - See the quickstart guide above.
-* ``ANYVAR_TEST_STORAGE_URI`` - This specifies the database to use for tests. If you set up a postgres database by following the PostgreSQL setup guide suggested in step 1, then you can just copy/paste the example ``ANYVAR_TEST_STORAGE_URI`` found below.
+.. TODO fix celery reference above
 
-For example:
-
-.. code-block::
-
-   ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost/anyvar_test
-   ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@localhost:5432/anyvar
-   SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/latest
-
-6. Finally, run tests with the following command:
+Tests are invoked with the ``pytest`` command. The project Makefile includes an easy shortcut:
 
 .. code-block:: shell
 
    make test
-
-Notes
-=====
-
-Currently, there is some interdependency between test modules -- namely, tests that rely on reading data from storage assume that the data from ``test_variation`` has been uploaded. A pytest hook ensures correct test order, but some test modules may not be able to pass when run in isolation. By default, the tests will use a Postgres database installation. To run the tests against a Snowflake database, change the ``ANYVAR_TEST_STORAGE_URI`` to a Snowflake URI and run the tests.
-
-For the ``tests/test_vcf::test_vcf_registration_async`` unit test to pass, a real broker and backend are required for Celery to interact with. Set the ``CELERY_BROKER_URL`` and ``CELERY_BACKEND_URL`` environment variables. The simplest solution is to run Redis locally and use that for both the broker and the backend, eg:
-
-.. code-block::
-
-    export CELERY_BROKER_URL="redis://"
-    export CELERY_BACKEND_URL="redis://"
-
 
 Documentation
 =============
@@ -73,4 +47,6 @@ To build documentation, use the ``docs`` Makefile target from the project root d
 
    make docs
 
-HTML output is built in the subdirectory ``docs/build/html/index.html``.
+HTML output is built in the subdirectory ``docs/build/html/``.
+
+The docs use `Sphinx GitHub Changelog <https://github.com/ewjoachim/sphinx-github-changelog>`_ to automatically generate the :doc:`changelog <changelog>` page. A GitHub API token must be provided for the Sphinx build process to fetch GitHub release history and generate this page. If not provided, an error will be logged during the build and the page will be blank.

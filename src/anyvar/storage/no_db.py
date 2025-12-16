@@ -1,94 +1,79 @@
-"""Provide minimal class for backend with no persistent storage"""
+"""Stateless storage implementation (no persistence).
 
-from typing import Any
+Use for processing-only deployments (e.g., variation translation, VCF annotation);
+writes are discarded and reads always miss.
+"""
 
-from anyvar.restapi.schema import VariationStatisticType
+from collections.abc import Iterable
 
-from . import _BatchManager, _Storage
+from ga4gh.vrs import models as vrs_models
+
+from anyvar.storage.base_storage import Storage
+from anyvar.utils import types
 
 
-class NoObjectStore(dict, _Storage):
-    """Storage backend that does not persistently store any data. Should be used for VCF annotation only"""
+class NoObjectStore(Storage):
+    """Storage backend that does not persistently store any data."""
 
-    def __init__(self) -> None:
-        """Initialize DB handler."""
-        super().__init__()
-        self.batch_manager = NoStorageBatchManager
-        self.batch_mode = False
-
-    def __setitem__(self, name: str, value: Any) -> None:  # noqa: ANN401
-        """Add item to database if batch mode is off, noop if batch mode is on.
-
-        :param name: value for `vrs_id` field
-        :param value: value for `vrs_object` field
-        """
-        if not self.batch_mode:
-            super().__setitem__(name, value)
-
-    def wait_for_writes(self) -> None:
-        """Return immediately as no pending database modifications occur in this backend."""
+    def __init__(self, *args, **kwargs) -> None:
+        """Initialize stateless storage instance."""
 
     def close(self) -> None:
-        """Return immediately as no pending database connections need closing."""
+        """(No-op) Close the storage backend."""
 
-    def get_variation_count(self, variation_type: VariationStatisticType) -> int:
-        """Get total # of registered variations of requested type.
-
-        :param variation_type: variation type to check
-        :raise NotImplementedError:
-        """
-        raise NotImplementedError
-
-    def search_variations(self, refget_accession: str, start: int, stop: int) -> list:
-        """Find all alleles that were registered that are in 1 genomic region
-
-        :param refget_accession: refget accession (SQ. identifier)
-        :param start: Start genomic region to query
-        :param stop: Stop genomic region to query
-
-        :raise NotImplementedError:
-        """
-        raise NotImplementedError
+    def wait_for_writes(self) -> None:
+        """(No-op) Wait for all background writes to complete."""
 
     def wipe_db(self) -> None:
-        """Remove all stored records from the cache"""
-        self.clear()
+        """(No-op) Wipe all data from the storage backend."""
 
+    def add_objects(self, objects: Iterable[types.VrsObject]) -> None:
+        """(No-op) Add multiple VRS objects to storage."""
 
-class NoStorageBatchManager(_BatchManager):
-    """Context manager disabling any insertions for bulk insertion statements
-
-    Use in cases like VCF ingest when intaking large amounts of data at once.
-    Prevents the backing in-memory dictionary used for enref/deref for single VRS IDs to be used during bulk operations
-    """
-
-    def __init__(self, storage: NoObjectStore) -> None:
-        """Initialize context manager.
-
-        :param storage: NoObjectStore instance to manage
-        :raise ValueError: if `storage` param is not a `NoObjectStore` instance
-        """
-        if not isinstance(storage, NoObjectStore):
-            msg = "NoStorageBatchManager requires a NoObjectStore instance"
-            raise TypeError(msg)
-        self._storage = storage
-
-    def __enter__(self) -> None:
-        """Enter managed context."""
-        self._storage.batch_mode = True
-
-    def __exit__(
+    def get_objects(
         self,
-        exc_type: type | None,
-        exc_value: BaseException | None,
-        traceback: Any | None,  # noqa: ANN401
-    ) -> bool:
-        """Handle exit from context management.  Hands off final batch to background bulk insert processor.
+        object_type: type[types.VrsObject],
+        object_ids: Iterable[str],
+    ) -> Iterable[types.VrsObject]:
+        """(No-op) Retrieve multiple VRS objects from storage by their IDs."""
+        return []
 
-        :param exc_type: type of exception encountered, if any
-        :param exc_value: exception value
-        :param traceback: traceback for context of exception
-        :return: True if no exceptions encountered, False otherwise
-        """
-        self._storage.batch_mode = False
-        return not exc_type
+    def delete_objects(
+        self, object_type: type[types.VrsObject], object_ids: Iterable[str]
+    ) -> None:
+        """(No-op) Delete all objects of a specific type from storage."""
+
+    def add_mapping(self, mapping: types.VariationMapping) -> None:
+        """(No-op) Add a mapping between two objects."""
+
+    def delete_mapping(self, mapping: types.VariationMapping) -> None:
+        """(No-op) Delete a mapping between two objects."""
+
+    def get_mappings(
+        self,
+        source_object_id: str,
+        mapping_type: types.VariationMappingType | None = None,
+    ) -> Iterable[types.VariationMapping]:
+        """(No-op) Return an iterable of mappings from the source ID"""
+        return []
+
+    def add_annotation(self, annotation: types.Annotation) -> None:
+        """(No-op) Adds an annotation to the database."""
+
+    def get_annotations(
+        self, object_id: str, annotation_type: str | None = None
+    ) -> list[types.Annotation]:
+        """(No-op) Get all annotations for the specified object, optionally filtered by type."""
+        return []
+
+    def delete_annotation(self, annotation: types.Annotation) -> None:
+        """(No-op) Deletes an annotation from the database"""
+
+    def search_alleles(
+        self,
+        refget_accession: str,
+        start: int,
+        stop: int,
+    ) -> list[vrs_models.Allele]:
+        """(No-op) Find all Alleles within the specified interval."""
+        return []
