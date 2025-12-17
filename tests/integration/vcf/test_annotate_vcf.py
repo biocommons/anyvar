@@ -12,6 +12,8 @@ from celery.exceptions import WorkerLostError
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
+from anyvar.restapi.vcf import _working_file_cleanup
+
 
 @pytest.fixture
 def sample_vcf_grch38():
@@ -271,7 +273,7 @@ def test_vcf_get_result_success(restapi_client: TestClient, mocker: MockerFixtur
     with pathlib.Path(__file__).open(mode="rb") as fd:
         assert resp.content == fd.read()
     mock_result.return_value.forget.assert_called_once()
-    mock_bg_tasks.assert_called_with(os.unlink, __file__)
+    mock_bg_tasks.assert_called_with(_working_file_cleanup, __file__)
 
 
 def test_vcf_get_result_failure_timeout(
