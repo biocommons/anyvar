@@ -34,7 +34,7 @@ dynamic = ["version"]
 [project.optional-dependencies]
 postgres = ["psycopg[binary]"]
 queueing = [
-    "celery[redis]~=5.4.0",
+    "celery[redis]~=5.5.0",
     "aiofiles",
 ]
 test = [
