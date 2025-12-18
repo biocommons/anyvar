@@ -168,6 +168,8 @@ def register_existing_annotations(
                     FieldName.STARTS_FIELD in record.info,
                     FieldName.ENDS_FIELD in record.info,
                     FieldName.STATES_FIELD in record.info,
+                    FieldName.LENGTHS_FIELD in record.info,
+                    FieldName.REPEAT_SUBUNIT_LENGTHS_FIELD in record.info,
                 ]
             ):
                 continue
@@ -180,24 +182,40 @@ def register_existing_annotations(
                     record.pos,
                 )
                 continue
-            for vrs_id, start, end, state in zip(
+            for vrs_id, start, end, state, length, repeat_subunit_length in zip(
                 record.info[FieldName.IDS_FIELD],
                 record.info[FieldName.STARTS_FIELD],
                 record.info[FieldName.ENDS_FIELD],
                 record.info[FieldName.STATES_FIELD],
+                record.info[FieldName.LENGTHS_FIELD],
+                record.info[FieldName.REPEAT_SUBUNIT_LENGTHS_FIELD],
                 strict=True,
             ):
                 if vrs_id == ".":
                     continue
                 true_state = "" if state == "." else state
+                if isinstance(true_state, str):
+                    true_state = vrs_models.sequenceString(true_state)
+
                 seq_ref = vrs_models.SequenceReference(refgetAccession=refget_accession)
                 location = vrs_models.SequenceLocation(
                     sequenceReference=seq_ref, start=start, end=end
                 )
                 location_id = ga4gh_identify(location)
                 location.id = location_id
-                lse = vrs_models.LiteralSequenceExpression(sequence=true_state)  # pyright: ignore[reportArgumentType]
-                allele = vrs_models.Allele(location=location, state=lse)
+
+                if length != "." and repeat_subunit_length != ".":
+                    sequence_expression = vrs_models.ReferenceLengthExpression(
+                        length=length,
+                        repeatSubunitLength=repeat_subunit_length,
+                        sequence=true_state,
+                    )
+                else:
+                    sequence_expression = vrs_models.LiteralSequenceExpression(
+                        sequence=true_state
+                    )
+
+                allele = vrs_models.Allele(location=location, state=sequence_expression)
                 allele = normalize(allele, av.translator.dp)
                 new_vrs_id = ga4gh_identify(allele)
                 if conflict_logfile and new_vrs_id != vrs_id:
@@ -209,10 +227,10 @@ def register_existing_annotations(
                         record.chrom,
                         start,
                         end,
-                        state,
+                        sequence_expression,
                     )
                     conflict_logfile.write(
-                        f"{vrs_id},{assembly},{record.chrom},{record.pos},{start},{end},{true_state},{new_vrs_id}\n"
+                        f"{vrs_id},{assembly},{record.chrom},{record.pos},{start},{end},{sequence_expression},{new_vrs_id}\n"
                     )
                 vrs_object_registration_batcher.add_to_batch(allele)
 

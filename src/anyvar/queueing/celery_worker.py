@@ -188,7 +188,8 @@ def annotate_vcf(
     :param assembly: the reference assembly for the VCF
     :param for_ref: whether to compute VRS IDs for REF alleles
     :param allow_async_write: whether to allow async database writes
-    :param add_vrs_attributes: Whether to annotate with VRS attributes (start, stop, state) or just IDs
+    :param add_vrs_attributes: Whether to annotate with VRS attributes (start, stop,
+        state, length, repeat subunit length) or just IDs
     :return: path to the annotated VCF file
     """
     try:
