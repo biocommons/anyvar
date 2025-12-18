@@ -227,13 +227,9 @@ def register_variation(
         return RegisterVariationResponse(
             messages=[f"Variation class for {definition} is currently unsupported."]
         )
-    if not translated_variation:
-        return RegisterVariationResponse(
-            messages=[f"Translation of {definition} failed."]
-        )
     messages: list[str] = []
 
-    av.put_objects([translated_variation])  # type: ignore
+    av.put_objects([translated_variation])
 
     liftover_messages = liftover_utils.add_liftover_mapping(
         variation=translated_variation,
@@ -244,7 +240,7 @@ def register_variation(
         messages += liftover_messages
 
     return RegisterVariationResponse(
-        object=translated_variation,  # type: ignore
+        object=translated_variation,
         object_id=translated_variation.id,
         messages=messages,
     )
@@ -344,8 +340,8 @@ def get_variation(
     if not translated_variation:
         return GetObjectResponse(messages=[f"Translation of {definition} failed."])
 
-    vrs_id = translated_variation.id
-    _get_vrs_object(av, vrs_id)  # type: ignore
+    vrs_id: str = translated_variation.id  # type: ignore
+    _get_vrs_object(av, vrs_id)
 
     return GetObjectResponse(messages=[], data=translated_variation)
 

@@ -39,7 +39,7 @@ class VrsPythonTranslator(Translator):
         self.allele_tlr = AlleleTranslator(data_proxy=self.dp)
         self.cnv_tlr = CnvTranslator(data_proxy=self.dp)
 
-    def translate_variation(self, var: str, **kwargs) -> types.VrsVariation | None:
+    def translate_variation(self, var: str, **kwargs) -> types.VrsVariation:
         """Translate provided variation text into a VRS Variation object.
 
         :param var: user-provided string describing or referencing a variation.
@@ -50,12 +50,11 @@ class VrsPythonTranslator(Translator):
         :keyword models.CopyChange copy_change: The EFO code for VRS COpy Number Change
         :keyword ReferenceAssembly assembly_name: Assembly name for ``var``.
             Only used when ``var`` uses gnomad format.
-        :returns: VRS variation object if able to translate
+        :returns: VRS variation object
         :raises TranslationError: if translation is unsuccessful, either because
             the submitted variation is malformed, or because VRS-Python doesn't support
             its translation.
         """
-        variation = None
         input_type = kwargs.get("input_type")
         if input_type == types.SupportedVariationType.ALLELE:
             variation = self.translate_allele(var, **kwargs)
