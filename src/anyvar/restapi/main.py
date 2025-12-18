@@ -47,6 +47,7 @@ from anyvar.restapi.vcf import router as vcf_router
 from anyvar.storage.base_storage import IncompleteVrsObjectError
 from anyvar.translate.translate import (
     TranslationError,
+    Translator,
 )
 from anyvar.utils import liftover_utils, types
 from anyvar.utils.types import (
@@ -200,6 +201,40 @@ _variation_request_body = Body(
 )
 
 
+def _handle_translation_request(
+    tlr: Translator, var_req: VariationRequest
+) -> VrsVariation:
+    """Perform variant translation and convert known exceptions to appropriate HTTP responses
+
+    :param tlr: Translator instance
+    :param var_req: request object relayed to variation endpoint
+    :return: VRS variation instance
+    :raise HTTPException: return 422 response if
+       * Variant definition cannot be translated
+       * Reference base in gnomad/VCF-style expression fails to validate
+       * translator returns not-implemented variation type
+    """
+    try:
+        translated_variation = tlr.translate_variation(
+            var_req.definition, **var_req.model_dump(mode="json")
+        )
+    except DataProxyValidationError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY, detail=str(e)
+        ) from e
+    except TranslationError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            detail=f'Unable to translate "{var_req.definition}"',
+        ) from e
+    except HGVSParseError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            detail=f'Unable to parse HGVS expression "{var_req.definition}"',
+        ) from e
+    return translated_variation
+
+
 @app.put(
     "/variation",
     response_model_exclude_none=True,
@@ -213,20 +248,8 @@ def register_variation(
 ) -> RegisterVariationResponse:
     """Register a variation based on a provided description or reference."""
     av: AnyVar = request.app.state.anyvar
-    definition = variation.definition
 
-    try:
-        translated_variation = av.translator.translate_variation(
-            definition, **variation.model_dump(mode="json")
-        )
-    except TranslationError:
-        return RegisterVariationResponse(
-            messages=[f'Unable to translate "{definition}"']
-        )
-    except NotImplementedError:
-        return RegisterVariationResponse(
-            messages=[f"Variation class for {definition} is currently unsupported."]
-        )
+    translated_variation = _handle_translation_request(av.translator, variation)
     messages: list[str] = []
 
     av.put_objects([translated_variation])
@@ -279,11 +302,6 @@ def register_vrs_object(
     ],
 ) -> RegisterVariationResponse:
     """Register a complete VRS object. No additional normalization is performed."""
-    if not isinstance(variation, VrsVariation):
-        return RegisterVariationResponse(
-            messages=[f"Registration for {variation.type} not currently supported."]
-        )
-
     av: AnyVar = request.app.state.anyvar
     try:
         av.put_objects([variation])
@@ -320,29 +338,9 @@ def get_variation(
 ) -> GetObjectResponse:
     """Search for registered variation"""
     av: AnyVar = request.app.state.anyvar
-    definition = variation.definition
-
-    try:
-        translated_variation = av.translator.translate_variation(
-            definition, **variation.model_dump(mode="json")
-        )
-    except TranslationError:
-        return GetObjectResponse(messages=[f"Unable to translate '{definition}'"])
-    except NotImplementedError:
-        return GetObjectResponse(
-            messages=[f"Variation class for {definition} is currently unsupported."]
-        )
-    except HGVSParseError:
-        return GetObjectResponse(messages=[f"Unsupported HGVS '{definition}'"])
-    except DataProxyValidationError:
-        return GetObjectResponse(messages=[f"Invalid definition '{definition}'"])
-
-    if not translated_variation:
-        return GetObjectResponse(messages=[f"Translation of {definition} failed."])
-
+    translated_variation = _handle_translation_request(av.translator, variation)
     vrs_id: str = translated_variation.id  # type: ignore
     _get_vrs_object(av, vrs_id)
-
     return GetObjectResponse(messages=[], data=translated_variation)
 
 

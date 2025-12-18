@@ -15,7 +15,11 @@ from anyvar.storage.base_storage import Storage
 
 @pytest.fixture
 def preloaded_alleles(storage: Storage, alleles: dict):
-    """Provide alleles that have been loaded into the storage instance for this scope"""
+    """Provide alleles that have been loaded into the storage instance for this scope.
+
+    Utilizing this fixture means that everything in the alleles fixture will be preloaded
+    into the storage instance that the test function ultimately receives.
+    """
     storage.wipe_db()
     storage.add_objects(
         [build_vrs_variant_from_dict(a["variation"]) for a in alleles.values()]

@@ -9,6 +9,7 @@ from anyvar.restapi.main import (
     PUT_VRS_VARIATION_EXAMPLE_PAYLOAD,
     VARIATION_EXAMPLE_PAYLOAD,
 )
+from anyvar.storage.base_storage import Storage
 from anyvar.utils.liftover_utils import ReferenceAssembly
 
 
@@ -37,13 +38,30 @@ def test_put_allele(restapi_client: TestClient, alleles: dict):
         restapi_client, test_allele_fixture["register_params"], test_allele_id
     )
 
-    # try unsupported variation type
-    resp = restapi_client.put("/variation", json={"definition": "BRAF amplification"})
-    assert resp.status_code == HTTPStatus.OK
-    resp_json = resp.json()
-    assert resp_json["messages"] == ['Unable to translate "BRAF amplification"']
-    assert "object" not in resp_json
-    assert "object_id" not in resp_json
+
+@pytest.mark.parametrize(
+    ("definition", "err_msg"),
+    [
+        (
+            "GRCh38/hg38 7p22.3-q36.3(chr7:54185-159282390)x1",
+            'Unable to translate "GRCh38/hg38 7p22.3-q36.3(chr7:54185-159282390)x1"',
+        ),
+        (
+            "NC_000007.13:g.36561662_36561663deletion",
+            'Unable to parse HGVS expression "NC_000007.13:g.36561662_36561663deletion"',
+        ),
+        (
+            "19-44908822-A-T",
+            "Reference mismatch at GRCh38:19 position 44908821-44908822 (input gave 'A' but correct ref is 'C')",
+        ),
+    ],
+)
+def test_put_allele_invalid_request(
+    restapi_client: TestClient, definition: str, err_msg: str
+):
+    resp = restapi_client.post("/variation", json={"definition": definition})
+    assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert resp.json() == {"detail": err_msg}
 
 
 def test_put_variation_example(restapi_client: TestClient, alleles: dict):
@@ -91,7 +109,9 @@ def test_post_variation_registered(restapi_client: TestClient, preloaded_alleles
         assert resp.json() == {"data": allele_fixture["variation"], "messages": []}
 
 
-def test_post_variation_not_registered(storage, restapi_client: TestClient, alleles):
+def test_post_variation_not_registered(
+    restapi_client: TestClient, alleles: dict, storage: Storage
+):
     """Test POST method when variation has not been registered"""
     storage.wipe_db()
     for allele_id, allele_fixture in alleles.items():
@@ -108,19 +128,22 @@ def test_post_variation_not_registered(storage, restapi_client: TestClient, alle
     [
         (
             "GRCh38/hg38 7p22.3-q36.3(chr7:54185-159282390)x1",
-            "Unable to translate 'GRCh38/hg38 7p22.3-q36.3(chr7:54185-159282390)x1'",
+            'Unable to translate "GRCh38/hg38 7p22.3-q36.3(chr7:54185-159282390)x1"',
         ),
         (
             "NC_000007.13:g.36561662_36561663deletion",
-            "Unsupported HGVS 'NC_000007.13:g.36561662_36561663deletion'",
+            'Unable to parse HGVS expression "NC_000007.13:g.36561662_36561663deletion"',
         ),
-        ("19-44908822-A-T", "Invalid definition '19-44908822-A-T'"),
+        (
+            "19-44908822-A-T",
+            "Reference mismatch at GRCh38:19 position 44908821-44908822 (input gave 'A' but correct ref is 'C')",
+        ),
     ],
 )
 def test_post_variation_invalid_request(
-    restapi_client: TestClient, definition, err_msg
+    restapi_client: TestClient, definition: str, err_msg: str
 ):
     """Test POST method with invalid requests"""
     resp = restapi_client.post("/variation", json={"definition": definition})
-    assert resp.status_code == HTTPStatus.OK
-    assert resp.json() == {"messages": [err_msg]}
+    assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert resp.json() == {"detail": err_msg}
