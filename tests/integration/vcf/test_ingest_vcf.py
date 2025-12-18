@@ -42,13 +42,15 @@ def basic_vcf():
 ##FILTER=<ID=AC0,Description="Allele count is zero after filtering out low-confidence genotypes (GQ < 20; DP < 10; and AB < 0.2 for het calls)">
 ##FILTER=<ID=AS_VQSR,Description="Failed VQSR filtering thresholds of -2.7739 for SNPs and -1.0606 for indels">
 ##contig=<ID=chr1,length=248956422,assembly=GRCh38>
-##INFO=<ID=VRS_Allele_IDs,Number=R,Type=String,Description="The computed identifiers for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles [VRS version=2.0.1;VRS-Python version=2.1.2]">
+##INFO=<ID=VRS_Allele_IDs,Number=R,Type=String,Description="The computed identifiers for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles [VRS version=2.0.1;VRS-Python version=2.2.0]">
 ##INFO=<ID=VRS_Error,Number=.,Type=String,Description="If an error occurred computing a VRS Identifier, the error message">
 ##INFO=<ID=VRS_Starts,Number=R,Type=Integer,Description="Interresidue coordinates used as the location starts for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles">
 ##INFO=<ID=VRS_Ends,Number=R,Type=Integer,Description="Interresidue coordinates used as the location ends for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles">
 ##INFO=<ID=VRS_States,Number=R,Type=String,Description="The literal sequence states used for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles">
+##INFO=<ID=VRS_Lengths,Number=R,Type=Integer,Description="The length values from ReferenceLengthExpression states for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles">
+##INFO=<ID=VRS_RepeatSubunitLengths,Number=R,Type=Integer,Description="The repeatSubunitLength values from ReferenceLengthExpression states for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
-chr1	10330	.	CCCCTAACCCTAACCCTAACCCTACCCTAACCCTAACCCTAACCCTAACCCTAA	C	.	PASS	QUALapprox=21493;SB=325,1077,113,694;MQ=32.1327;MQRankSum=0.72;VarDP=2236;AS_ReadPosRankSum=-0.736;AS_pab_max=1;AS_QD=5.17857;AS_MQ=29.5449;QD=9.61225;AS_MQRankSum=0;FS=8.55065;AS_FS=.;ReadPosRankSum=0.727;AS_QUALapprox=145;AS_SB_TABLE=325,1077,2,5;AS_VarDP=28;AS_SOR=0.311749;SOR=1.481;singleton;AS_VQSLOD=13.4641;InbreedingCoeff=-0.000517845;VRS_Allele_IDs=ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe,ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6;VRS_Starts=10329,10330;VRS_Ends=10383,10392;VRS_States=CCCCTAACCCTAACCCTAACCCTACCCTAACCCTAACCCTAACCCTAACCCTAA,CCCTAACCC"""
+chr1	10330	.	CCCCTAACCCTAACCCTAACCCTACCCTAACCCTAACCCTAACCCTAACCCTAA	C	.	PASS	QUALapprox=21493;SB=325,1077,113,694;MQ=32.1327;MQRankSum=0.72;VarDP=2236;AS_ReadPosRankSum=-0.736;AS_pab_max=1;AS_QD=5.17857;AS_MQ=29.5449;QD=9.61225;AS_MQRankSum=0;FS=8.55065;AS_FS=.;ReadPosRankSum=0.727;AS_QUALapprox=145;AS_SB_TABLE=325,1077,2,5;AS_VarDP=28;AS_SOR=0.311749;SOR=1.481;singleton;AS_VQSLOD=13.4641;InbreedingCoeff=-0.000517845;VRS_Allele_IDs=ga4gh:VA.5PqxTNMJZYJqQZ8MgF_77I1I_qcddGN_,ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6;VRS_Starts=10329,10330;VRS_Ends=10383,10392;VRS_States=,CCCTAACCC;VRS_Lengths=54,9;VRS_RepeatSubunitLengths=54,53"""
     return io.BytesIO(file_contents)
 
 
@@ -86,13 +88,15 @@ def vcf_incorrect_id():
 ##FILTER=<ID=AC0,Description="Allele count is zero after filtering out low-confidence genotypes (GQ < 20; DP < 10; and AB < 0.2 for het calls)">
 ##FILTER=<ID=AS_VQSR,Description="Failed VQSR filtering thresholds of -2.7739 for SNPs and -1.0606 for indels">
 ##contig=<ID=chr1,length=248956422,assembly=GRCh38>
-##INFO=<ID=VRS_Allele_IDs,Number=R,Type=String,Description="The computed identifiers for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles [VRS version=2.0.1;VRS-Python version=2.1.2]">
+##INFO=<ID=VRS_Allele_IDs,Number=R,Type=String,Description="The computed identifiers for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles [VRS version=2.0.1;VRS-Python version=2.2.0]">
 ##INFO=<ID=VRS_Error,Number=.,Type=String,Description="If an error occurred computing a VRS Identifier, the error message">
 ##INFO=<ID=VRS_Starts,Number=R,Type=Integer,Description="Interresidue coordinates used as the location starts for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles">
 ##INFO=<ID=VRS_Ends,Number=R,Type=Integer,Description="Interresidue coordinates used as the location ends for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles">
 ##INFO=<ID=VRS_States,Number=R,Type=String,Description="The literal sequence states used for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles">
+##INFO=<ID=VRS_Lengths,Number=R,Type=Integer,Description="The length values from ReferenceLengthExpression states for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles">
+##INFO=<ID=VRS_RepeatSubunitLengths,Number=R,Type=Integer,Description="The repeatSubunitLength values from ReferenceLengthExpression states for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
-chr1	10330	.	CCCCTAACCCTAACCCTAACCCTACCCTAACCCTAACCCTAACCCTAACCCTAA	C	.	PASS	QUALapprox=21493;SB=325,1077,113,694;MQ=32.1327;MQRankSum=0.72;VarDP=2236;AS_ReadPosRankSum=-0.736;AS_pab_max=1;AS_QD=5.17857;AS_MQ=29.5449;QD=9.61225;AS_MQRankSum=0;FS=8.55065;AS_FS=.;ReadPosRankSum=0.727;AS_QUALapprox=145;AS_SB_TABLE=325,1077,2,5;AS_VarDP=28;AS_SOR=0.311749;SOR=1.481;singleton;AS_VQSLOD=13.4641;InbreedingCoeff=-0.000517845;VRS_Allele_IDs=ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe,ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6z;VRS_Starts=10329,10330;VRS_Ends=10383,10392;VRS_States=CCCCTAACCCTAACCCTAACCCTACCCTAACCCTAACCCTAACCCTAACCCTAA,CCCTAACCC"""
+chr1	10330	.	CCCCTAACCCTAACCCTAACCCTACCCTAACCCTAACCCTAACCCTAACCCTAA	C	.	PASS	QUALapprox=21493;SB=325,1077,113,694;MQ=32.1327;MQRankSum=0.72;VarDP=2236;AS_ReadPosRankSum=-0.736;AS_pab_max=1;AS_QD=5.17857;AS_MQ=29.5449;QD=9.61225;AS_MQRankSum=0;FS=8.55065;AS_FS=.;ReadPosRankSum=0.727;AS_QUALapprox=145;AS_SB_TABLE=325,1077,2,5;AS_VarDP=28;AS_SOR=0.311749;SOR=1.481;singleton;AS_VQSLOD=13.4641;InbreedingCoeff=-0.000517845;VRS_Allele_IDs=ga4gh:VA.5PqxTNMJZYJqQZ8MgF_77I1I_qcddGN_,ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6z;VRS_Starts=10329,10330;VRS_Ends=10383,10392;VRS_States=,CCCTAACCC;VRS_Lengths=54,9;VRS_RepeatSubunitLengths=54,53"""
     return io.BytesIO(file_contents)
 
 
@@ -130,9 +134,9 @@ def vcf_incomplete_annotations():
 ##FILTER=<ID=AC0,Description="Allele count is zero after filtering out low-confidence genotypes (GQ < 20; DP < 10; and AB < 0.2 for het calls)">
 ##FILTER=<ID=AS_VQSR,Description="Failed VQSR filtering thresholds of -2.7739 for SNPs and -1.0606 for indels">
 ##contig=<ID=chr1,length=248956422,assembly=GRCh38>
-##INFO=<ID=VRS_Allele_IDs,Number=R,Type=String,Description="The computed identifiers for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles [VRS version=2.0.1;VRS-Python version=2.1.2]">
+##INFO=<ID=VRS_Allele_IDs,Number=R,Type=String,Description="The computed identifiers for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles [VRS version=2.0.1;VRS-Python version=2.2.0]">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
-chr1	10330	.	CCCCTAACCCTAACCCTAACCCTACCCTAACCCTAACCCTAACCCTAACCCTAA	C	.	PASS	QUALapprox=21493;SB=325,1077,113,694;MQ=32.1327;MQRankSum=0.72;VarDP=2236;AS_ReadPosRankSum=-0.736;AS_pab_max=1;AS_QD=5.17857;AS_MQ=29.5449;QD=9.61225;AS_MQRankSum=0;FS=8.55065;AS_FS=.;ReadPosRankSum=0.727;AS_QUALapprox=145;AS_SB_TABLE=325,1077,2,5;AS_VarDP=28;AS_SOR=0.311749;SOR=1.481;singleton;AS_VQSLOD=13.4641;InbreedingCoeff=-0.000517845;VRS_Allele_IDs=ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe,ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"""
+chr1	10330	.	CCCCTAACCCTAACCCTAACCCTACCCTAACCCTAACCCTAACCCTAACCCTAA	C	.	PASS	QUALapprox=21493;SB=325,1077,113,694;MQ=32.1327;MQRankSum=0.72;VarDP=2236;AS_ReadPosRankSum=-0.736;AS_pab_max=1;AS_QD=5.17857;AS_MQ=29.5449;QD=9.61225;AS_MQRankSum=0;FS=8.55065;AS_FS=.;ReadPosRankSum=0.727;AS_QUALapprox=145;AS_SB_TABLE=325,1077,2,5;AS_VarDP=28;AS_SOR=0.311749;SOR=1.481;singleton;AS_VQSLOD=13.4641;InbreedingCoeff=-0.000517845;VRS_Allele_IDs=ga4gh:VA.5PqxTNMJZYJqQZ8MgF_77I1I_qcddGN_,ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"""
     return io.BytesIO(file_contents)
 
 
@@ -153,7 +157,7 @@ def test_registration_sync(
 
     assert resp.status_code == HTTPStatus.OK
     assert recorded, "put_objects was never called"
-    assert recorded[0].id == "ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe"
+    assert recorded[0].id == "ga4gh:VA.5PqxTNMJZYJqQZ8MgF_77I1I_qcddGN_"
     assert recorded[1].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
 
     # ignore wrong IDs
@@ -163,7 +167,7 @@ def test_registration_sync(
 
     assert resp.status_code == HTTPStatus.OK
     assert recorded, "put_objects was never called"
-    assert recorded[2].id == "ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe"
+    assert recorded[2].id == "ga4gh:VA.5PqxTNMJZYJqQZ8MgF_77I1I_qcddGN_"
     assert recorded[3].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
 
 
@@ -188,7 +192,7 @@ def test_registration_sync_validate(
 
     assert resp.status_code == HTTPStatus.OK
     assert recorded, "put_objects was never called"
-    assert recorded[0].id == "ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe"
+    assert recorded[0].id == "ga4gh:VA.5PqxTNMJZYJqQZ8MgF_77I1I_qcddGN_"
     assert recorded[1].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
     assert resp.content.count(b"\n") == 1  # just header
 
@@ -201,7 +205,7 @@ def test_registration_sync_validate(
 
     assert resp.status_code == HTTPStatus.OK
     assert recorded, "put_objects was never called"
-    assert recorded[0].id == "ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe"
+    assert recorded[0].id == "ga4gh:VA.5PqxTNMJZYJqQZ8MgF_77I1I_qcddGN_"
     # use correct ID (it's wrong in the input)
     assert recorded[1].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
     assert resp.content.count(b"\n") == 2

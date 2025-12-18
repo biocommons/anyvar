@@ -231,7 +231,7 @@ async def annotate_vcf(
     add_vrs_attributes: Annotated[
         bool,
         Query(
-            description="Whether to annotate with VRS attributes (start, stop, state) or just IDs"
+            description="Whether to annotate with VRS attributes (start, stop, state, length, repeat subunit length) or just IDs"
         ),
     ] = False,
     run_async: Annotated[
@@ -256,7 +256,8 @@ async def annotate_vcf(
     :param for_ref: whether to compute VRS IDs for REF alleles
     :param allow_async_write: whether to allow async database writes
     :param assembly: the reference assembly for the VCF
-    :param add_vrs_attributes: Whether to annotate with VRS attributes (start, stop, state) or just IDs
+    :param add_vrs_attributes: Whether to annotate with VRS attributes (start, stop,
+        state, length, repeat subunit length) or just IDs
     :param run_async: whether to run the VCF annotation synchronously or asynchronously
     :param run_id: user provided id for asynchronous VCF annotation
     :return: streamed annotated file or a run status response for an asynchronous run

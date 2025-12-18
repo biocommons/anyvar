@@ -61,7 +61,7 @@ def test_vcf_registration_default_assembly(
     resp = restapi_client.put("/vcf", files={"vcf": ("test.vcf", sample_vcf_grch38)})
     assert resp.status_code == HTTPStatus.OK
     assert (
-        b"VRS_Allele_IDs=ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe,ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
+        b"VRS_Allele_IDs=ga4gh:VA.5PqxTNMJZYJqQZ8MgF_77I1I_qcddGN_,ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
         in resp.content
     )
 
@@ -77,7 +77,7 @@ def test_vcf_registration_vrs_attrs(
     )
     assert resp.status_code == HTTPStatus.OK
     assert (
-        b"VRS_Starts=10329,10330;VRS_Ends=10383,10392;VRS_States=CCCCTAACCCTAACCCTAACCCTACCCTAACCCTAACCCTAACCCTAACCCTAA,CCCTAACCC"
+        b"VRS_Starts=10329,10330;VRS_Ends=10383,10392;VRS_States=,CCCTAACCC;VRS_Lengths=54,9;VRS_RepeatSubunitLengths=54,53"
         in resp.content
     )
 
@@ -93,7 +93,7 @@ def test_vcf_registration_grch38(
     )
     assert resp.status_code == HTTPStatus.OK
     assert (
-        b"VRS_Allele_IDs=ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe,ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
+        b"VRS_Allele_IDs=ga4gh:VA.5PqxTNMJZYJqQZ8MgF_77I1I_qcddGN_,ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
         in resp.content
     )
 
@@ -148,7 +148,7 @@ def test_vcf_registration_grch37(
     )
     assert resp.status_code == HTTPStatus.OK
     assert (
-        b"VRS_Allele_IDs=ga4gh:VA.iwk6beQfvJGkeW33NBbSqalr29XkDBE5,ga4gh:VA.CNSRLQlBrly3rRcdldN85dw2Tjos7Cas"
+        b"VRS_Allele_IDs=ga4gh:VA.STbZFTK0grB7JO2cs3TCblpDiMjIMJWq,ga4gh:VA.CNSRLQlBrly3rRcdldN85dw2Tjos7Cas"
         in resp.content
     )
 
@@ -198,7 +198,7 @@ def test_vcf_registration_async(
             raise AssertionError(f"Unexpected HTTP response: {resp.status_code}")
 
     assert (
-        b"VRS_Allele_IDs=ga4gh:VA.ryPubD68BB0D-D78L_kK4993mXmsNNWe,ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
+        b"VRS_Allele_IDs=ga4gh:VA.5PqxTNMJZYJqQZ8MgF_77I1I_qcddGN_,ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
         in resp.content
     )
 

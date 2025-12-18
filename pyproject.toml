@@ -20,7 +20,7 @@ dependencies = [
     "fastapi>=0.95.0",
     "python-multipart",  # required for fastapi file uploads
     "uvicorn",
-    "ga4gh.vrs[extras]~=2.1.2",
+    "ga4gh.vrs[extras]>=2.2.0,<3.0",  # needs to be >=2.2.0 for RLE bug fix
     "sqlalchemy~=2.0.0",
     "pyyaml",
     "agct >= 0.2.0rc1",
