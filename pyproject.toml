@@ -33,6 +33,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 postgres = ["psycopg[binary]"]
+snowflake = ["snowflake-sqlalchemy~=1.8.2"]
 queueing = [
     "celery[redis]~=5.5.0",
     "aiofiles",
