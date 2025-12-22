@@ -1,10 +1,16 @@
 """SQLAlchemy ORM models for AnyVar database schema."""
 
+import json
 import os
 from collections.abc import Iterator
+from urllib.parse import urlparse
 
+import snowflake.sqlalchemy.snowdialect
+from build.lib.anyvar.storage import DEFAULT_STORAGE_URI
 from ga4gh.vrs.models import MoleculeType
 from sqlalchemy import (
+    JSON,
+    Dialect,
     Enum,
     ForeignKey,
     Index,
@@ -14,6 +20,7 @@ from sqlalchemy import (
     create_engine,
 )
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -22,9 +29,68 @@ from sqlalchemy.orm import (
     sessionmaker,
 )
 from sqlalchemy.orm.decl_api import declared_attr
+from sqlalchemy.sql.compiler import SQLCompiler
+from sqlalchemy.sql.expression import Insert
+from sqlalchemy.types import TypeDecorator
 
 from anyvar.utils.funcs import camel_case_to_snake_case
 from anyvar.utils.types import VariationMappingType
+
+
+class SnowflakeVARIANT(TypeDecorator):
+    """Custom SQLAlchemy type to handle Snowflake VARIANT type.
+    For INSERTs and UPDATEs, converts Python dicts to JSON strings.
+    """
+
+    impl = snowflake.sqlalchemy.snowdialect.VARIANT
+
+    def process_bind_param(self, value, dialect: Dialect):  # noqa: ANN001 ANN201
+        """If the value is a dict, convert it to a JSON string for Snowflake VARIANT storage."""
+        if (
+            value is not None
+            and isinstance(value, dict)
+            and dialect.name == "snowflake"
+        ):
+            return json.dumps(value)
+        return value
+
+
+@compiles(Insert, "snowflake")
+def compile_insert_with_parse_json(
+    insert_stmt: Insert, compiler: SQLCompiler, **kwargs
+) -> str:
+    """Custom compilation of INSERT statements for Snowflake to use PARSE_JSON
+    to convert strings into VARIANTs.
+    """
+    target_col = None
+    if insert_stmt.entity_description.get("table", None) == Allele.__table__:
+        target_col = Allele.state.name
+    elif insert_stmt.entity_description.get("table", None) == Annotation.__table__:
+        target_col = Annotation.annotation_value.name
+    elif insert_stmt.entity_description.get("table", None) == VrsObject.__table__:
+        target_col = VrsObject.vrs_object.name
+
+    if target_col:
+        insert_sql = compiler.visit_insert(insert_stmt, **kwargs)
+        select_list = []
+        idx = 1
+        found = False
+        for key in insert_stmt.compile().params:
+            if key == target_col:
+                select_list.append(f"PARSE_JSON(${idx})")
+                found = True
+            else:
+                select_list.append(f"${idx}")
+            idx += 1
+
+        if found:
+            insert_sql = insert_sql.replace(
+                ") VALUES (",
+                f") SELECT {', '.join(select_list)} FROM VALUES (",  # noqa: S608
+            )
+            return insert_sql
+
+    return compiler.visit_insert(insert_stmt, **kwargs)
 
 
 class Base(DeclarativeBase):
@@ -95,44 +161,11 @@ class VrsObject(Base):
     """AnyVar ORM model for vrs_objects table."""
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    vrs_object: Mapped[dict] = mapped_column(JSONB)
-
-
-class Allele(Base):
-    """AnyVar ORM model for Alleles"""
-
-    id: Mapped[str] = mapped_column(String, primary_key=True)
-    digest: Mapped[str] = mapped_column(String)
-    location_id: Mapped[str] = mapped_column(String, ForeignKey("locations.id"))
-    location: Mapped["Location"] = relationship()
-    state: Mapped[dict] = mapped_column(JSONB)
-
-    def get_disassembler(self) -> Iterator[Base]:
-        """Recursively disassemble to yield self + constituent `Location` and `SequenceReference` objects"""
-        yield self
-        yield from self.location.get_disassembler()
-
-
-class Location(Base):
-    """AnyVar ORM model for Locations"""
-
-    id: Mapped[str] = mapped_column(String, primary_key=True)
-    digest: Mapped[str] = mapped_column(String)
-    sequence_reference_id: Mapped[str] = mapped_column(
-        String, ForeignKey("sequence_references.id")
+    vrs_object: Mapped[dict] = mapped_column(
+        JSON()
+        .with_variant(JSONB, "postgresql")
+        .with_variant(SnowflakeVARIANT, "snowflake")
     )
-    sequence_reference: Mapped["SequenceReference"] = relationship()
-    start: Mapped[int | None]
-    end: Mapped[int | None]
-    start_outer: Mapped[int | None]
-    start_inner: Mapped[int | None]
-    end_outer: Mapped[int | None]
-    end_inner: Mapped[int | None]
-
-    def get_disassembler(self) -> Iterator[Base]:
-        """Recursively disassemble to yield self + constituent `SequenceReference` object"""
-        yield self
-        yield self.sequence_reference
 
 
 class SequenceReference(Base):
@@ -150,22 +183,74 @@ class SequenceReference(Base):
     )
 
 
+class Location(Base):
+    """AnyVar ORM model for Locations"""
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    digest: Mapped[str] = mapped_column(String)
+    sequence_reference_id: Mapped[str] = mapped_column(
+        String, ForeignKey(SequenceReference.id)
+    )
+    sequence_reference: Mapped["SequenceReference"] = relationship()
+    start: Mapped[int | None]
+    end: Mapped[int | None]
+    start_outer: Mapped[int | None]
+    start_inner: Mapped[int | None]
+    end_outer: Mapped[int | None]
+    end_inner: Mapped[int | None]
+
+    def get_disassembler(self) -> Iterator[Base]:
+        """Recursively disassemble to yield self + constituent `SequenceReference` object"""
+        yield self
+        yield self.sequence_reference
+
+
+class Allele(Base):
+    """AnyVar ORM model for Alleles"""
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    digest: Mapped[str] = mapped_column(String)
+    location_id: Mapped[str] = mapped_column(String, ForeignKey(Location.id))
+    location: Mapped["Location"] = relationship()
+    state: Mapped[dict] = mapped_column(
+        JSON()
+        .with_variant(JSONB, "postgresql")
+        .with_variant(SnowflakeVARIANT, "snowflake")
+    )
+
+    def get_disassembler(self) -> Iterator[Base]:
+        """Recursively disassemble to yield self + constituent `Location` and `SequenceReference` objects"""
+        yield self
+        yield from self.location.get_disassembler()
+
+
 class Annotation(Base):
     """AnyVar ORM model for annotations table."""
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     object_id: Mapped[str] = mapped_column(String)
     annotation_type: Mapped[str] = mapped_column(String)
-    annotation_value: Mapped[JSONB] = mapped_column(JSONB)
+    annotation_value: Mapped[dict] = mapped_column(
+        JSON()
+        .with_variant(JSONB, "postgresql")
+        .with_variant(SnowflakeVARIANT, "snowflake")
+    )
 
     # https://docs.sqlalchemy.org/en/20/core/constraints.html#indexes
-    __table_args__ = (
-        Index(
-            "idx_annotations_object_id_annotation_type",
-            "object_id",
-            "annotation_type",
-        ),
-    )
+    @declared_attr
+    @classmethod
+    def __table_args__(cls):  # noqa: ANN206
+        uri = os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
+        parsed_uri = urlparse(uri)
+        if parsed_uri.scheme == "snowflake":
+            return ()
+        return (
+            Index(
+                "idx_annotations_object_id_annotation_type",
+                "object_id",
+                "annotation_type",
+            ),
+        )
 
 
 mapping_type_enum = Enum(
@@ -186,12 +271,19 @@ class VariationMapping(Base):
     dest_id: Mapped[str] = mapped_column(String)
     mapping_type: Mapped[str] = mapped_column(mapping_type_enum)
 
-    __table_args__ = (
-        Index("idx_mappings_source_id", "source_id"),
-        Index("idx_mappings_dest_id", "dest_id"),
-        Index("idx_mappings_source_id_type", "source_id", "mapping_type"),
-        UniqueConstraint("source_id", "dest_id", "mapping_type"),
-    )
+    @declared_attr
+    @classmethod
+    def __table_args__(cls):  # noqa: ANN206
+        uri = os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
+        parsed_uri = urlparse(uri)
+        if parsed_uri.scheme == "snowflake":
+            return (UniqueConstraint("source_id", "dest_id", "mapping_type"),)
+        return (
+            Index("idx_mappings_source_id", "source_id"),
+            Index("idx_mappings_dest_id", "dest_id"),
+            Index("idx_mappings_source_id_type", "source_id", "mapping_type"),
+            UniqueConstraint("source_id", "dest_id", "mapping_type"),
+        )
 
 
 def create_tables(db_url: str) -> None:
