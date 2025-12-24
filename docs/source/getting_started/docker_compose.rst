@@ -18,6 +18,14 @@ Clone the AnyVar repository (optionally switching to a release tag), and enter t
    % git clone https://github.com/biocommons/anyvar
    % cd anyvar
 
+Create all required volumes:
+
+.. code-block:: bash
+
+   % docker volume create seqrepo_vol
+   % docker volume create uta_vol
+   % docker volume create anyvar_vol
+
 Then, launch the application:
 
 .. code-block:: console
