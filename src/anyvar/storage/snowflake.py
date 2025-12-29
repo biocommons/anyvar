@@ -102,19 +102,19 @@ class SnowflakeObjectStore(Storage):
         # create ORM session factory
         self.session_factory = sessionmaker(bind=self.engine)
 
-        # determine if we are running in optimized mode
+        # determine if we are running with dynamic tables
         #   which only inserts into the main object ref table
         #   and relies on Snowflake dynamic tables to populate
         #   the allele/location/seqref tables
-        self.optimized_mode = (
-            os.getenv("ANYVAR_SNOWFLAKE_STORE_OPTIMIZED_MODE", "false").lower()
+        self.use_dynamic_tables = (
+            os.getenv("ANYVAR_SNOWFLAKE_STORE_USE_DYNAMIC_TABLES", "false").lower()
             == "true"
         )
 
         # create the schema objects if necessary
-        if self.optimized_mode:
+        if self.use_dynamic_tables:
             _logger.info(
-                "SnowflakeObjectStore operating in optimized mode, uses dynamic tables for Allele, Location, SequenceReference"
+                "SnowflakeObjectStore using dynamic tables for Allele, Location, SequenceReference"
             )
             orm.Base.metadata.create_all(self.engine, tables=[orm.VrsObject.__table__])
             self._create_dyn_tables()
@@ -265,7 +265,7 @@ class SnowflakeObjectStore(Storage):
         with self.session_factory() as session, session.begin():
             # Delete all data from tables in dependency order
             session.execute(delete(orm.VariationMapping))
-            if not self.optimized_mode:
+            if not self.use_dynamic_tables:
                 session.execute(delete(orm.Allele))
                 session.execute(delete(orm.Location))
                 session.execute(delete(orm.SequenceReference))
@@ -295,7 +295,7 @@ class SnowflakeObjectStore(Storage):
             return
 
         # Collect unique entities by ID to avoid duplicates
-        if not self.optimized_mode:
+        if not self.use_dynamic_tables:
             vrs_objects = defaultdict(dict[str, orm.Base])
 
             # Process all objects and extract their components
@@ -310,7 +310,7 @@ class SnowflakeObjectStore(Storage):
                     vrs_objects[entity_type][entity.id] = entity  # type: ignore (all children of orm.Base have an `id`)
 
         with self.session_factory() as session, session.begin():
-            if not self.optimized_mode:
+            if not self.use_dynamic_tables:
                 for vrs_object_type in self._VRS_OBJECT_INSERT_ORDER:
                     objects_by_id = vrs_objects[vrs_object_type]
                     if objects_by_id:
@@ -401,18 +401,18 @@ class SnowflakeObjectStore(Storage):
 
         with self.session_factory() as session, session.begin():
             if object_type is vrs_models.Allele:
-                if not self.optimized_mode:
+                if not self.use_dynamic_tables:
                     stmt = delete(orm.Allele).where(orm.Allele.id.in_(object_ids_list))
                 stmt2 = delete(orm.VrsObject).where(
                     orm.VrsObject.id.in_(object_ids_list)
                 )
             elif object_type is vrs_models.SequenceLocation:
-                if not self.optimized_mode:
+                if not self.use_dynamic_tables:
                     stmt = delete(orm.Location).where(
                         orm.Location.id.in_(object_ids_list)
                     )
             elif object_type is vrs_models.SequenceReference:
-                if not self.optimized_mode:
+                if not self.use_dynamic_tables:
                     stmt = delete(orm.SequenceReference).where(
                         orm.SequenceReference.id.in_(object_ids_list)
                     )
