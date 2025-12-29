@@ -18,6 +18,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     create_engine,
+    inspect,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.compiler import compiles
@@ -111,9 +112,8 @@ class Base(DeclarativeBase):
 
     def to_dict(self) -> dict:
         """Convert the model fields to a dictionary (non-recursive)."""
-        return {
-            column.name: getattr(self, column.name) for column in self.__table__.columns
-        }
+        mapper = inspect(self.__class__)
+        return {column.key: getattr(self, column.key) for column in mapper.column_attrs}
 
     def get_disassembler(self) -> Iterator["Base"]:
         """Yields an Iterator that recursively disassembles this entity into itself + its constituent ORM objects.
