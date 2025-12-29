@@ -55,6 +55,12 @@ class SnowflakeVARIANT(TypeDecorator):
             return json.dumps(value)
         return value
 
+    def process_result_value(self, value, dialect: Dialect):  # noqa: ANN001 ANN201
+        """Convert JSON string back to dict when retrieving from Snowflake VARIANT."""
+        if value is not None and isinstance(value, str) and dialect.name == "snowflake":
+            return json.loads(value)  # Convert JSON string back to dict
+        return value
+
 
 @compiles(Insert, "snowflake")
 def compile_insert_with_parse_json(
