@@ -14,7 +14,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from ga4gh.vrs import models as vrs_models
 from snowflake.sqlalchemy.snowdialect import SnowflakeDialect
-from sqlalchemy import create_engine, delete, insert, select
+from sqlalchemy import create_engine, delete, insert, select, text
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, sessionmaker
@@ -102,7 +102,23 @@ class SnowflakeObjectStore(Storage):
         # create ORM session factory
         self.session_factory = sessionmaker(bind=self.engine)
 
+        # determine if we are running in optimized mode
+        #   which only inserts into the main object ref table
+        #   and relies on Snowflake dynamic tables to populate
+        #   the allele/location/seqref tables
+        self.optimized_mode = (
+            os.getenv("ANYVAR_SNOWFLAKE_STORE_OPTIMIZED_MODE", "false").lower()
+            == "true"
+        )
+
         # create the schema objects if necessary
+        if self.optimized_mode:
+            _logger.info(
+                "SnowflakeObjectStore operating in optimized mode, uses dynamic tables for Allele, Location, SequenceReference"
+            )
+            orm.Base.metadata.create_all(self.engine, tables=[orm.VrsObject.__table__])
+            self._create_dyn_tables()
+
         orm.Base.metadata.create_all(self.engine)
 
     def _preprocess_db_url(self, db_url: str) -> str:
@@ -162,6 +178,79 @@ class SnowflakeObjectStore(Storage):
             }
         return {}
 
+    def _create_dyn_tables(self) -> None:
+        """Create dynamic tables for Allele, Location, and SequenceReference."""
+        with self.engine.connect() as conn:
+            dyn_table_opts = os.getenv("ANYVAR_SNOWFLAKE_STORE_DYNAMIC_TABLE_OPTS", "")
+            if not dyn_table_opts:
+                sfwh = conn.scalar(text("SELECT CURRENT_WAREHOUSE()"))
+                dyn_table_opts = f"WAREHOUSE = {sfwh} TARGET_LAG = '1 hour'"
+            conn.execute(
+                text(
+                    f"""
+                CREATE DYNAMIC TABLE IF NOT EXISTS {orm.Allele.__tablename__}
+                (
+                    id VARCHAR(500) COLLATE 'utf8',
+                    digest VARCHAR(500) COLLATE 'utf8',
+                    location_id VARCHAR(500) COLLATE 'utf8',
+                    state VARIANT
+                )
+                {dyn_table_opts}
+                AS SELECT
+                    id,
+                    COLLATE(vrs_object:digest::VARCHAR, 'utf8'),
+                    COLLATE(vrs_object:location.id::VARCHAR, 'utf8'),
+                    vrs_object:state
+                FROM {orm.VrsObject.__tablename__}
+                """  # noqa: S608
+                )
+            )
+            conn.execute(
+                text(
+                    f"""
+                CREATE DYNAMIC TABLE IF NOT EXISTS {orm.Location.__tablename__}
+                (
+                    id VARCHAR(500) COLLATE 'utf8',
+                    digest VARCHAR(500) COLLATE 'utf8',
+                    sequence_reference_id VARCHAR(500) COLLATE 'utf8',
+                    start_pos INTEGER,
+                    start_inner INTEGER,
+                    start_outer INTEGER,
+                    end_pos INTEGER,
+                    end_inner INTEGER,
+                    end_outer INTEGER
+                )
+                {dyn_table_opts}
+                AS SELECT DISTINCT
+                    COLLATE(vrs_object:location.id::VARCHAR, 'utf8'),
+                    COLLATE(vrs_object:location.digest::VARCHAR, 'utf8'),
+                    COLLATE(vrs_object:location.sequenceReference.refgetAccession::VARCHAR, 'utf8'),
+                    CASE WHEN IS_INTEGER(vrs_object:location.start) THEN vrs_object:location.start::INTEGER ELSE NULL END,
+                    CASE WHEN IS_ARRAY(vrs_object:location.start) THEN GET(vrs_object:location.start, 0)::INTEGER ELSE NULL END,
+                    CASE WHEN IS_ARRAY(vrs_object:location.start) THEN GET(vrs_object:location.start, 1)::INTEGER ELSE NULL END,
+                    CASE WHEN IS_INTEGER(vrs_object:location.end) THEN vrs_object:location.end::INTEGER ELSE NULL END,
+                    CASE WHEN IS_ARRAY(vrs_object:location.end) THEN GET(vrs_object:location.end, 0)::INTEGER ELSE NULL END,
+                    CASE WHEN IS_ARRAY(vrs_object:location.end) THEN GET(vrs_object:location.end, 1)::INTEGER ELSE NULL END
+                FROM {orm.VrsObject.__tablename__}
+                """  # noqa: S608
+                )
+            )
+            conn.execute(
+                text(
+                    f"""
+                CREATE DYNAMIC TABLE IF NOT EXISTS {orm.SequenceReference.__tablename__}
+                (
+                    id VARCHAR(500) COLLATE 'utf8',
+                    molecule_type VARCHAR(100)
+                )
+                {dyn_table_opts}
+                AS SELECT DISTINCT
+                    COLLATE(vrs_object:location.sequenceReference.refgetAccession::VARCHAR, 'utf8'), NULL
+                FROM {orm.VrsObject.__tablename__}
+                """  # noqa: S608
+                )
+            )
+
     def close(self) -> None:
         """Close the storage backend."""
         self.engine.dispose()
@@ -205,28 +294,29 @@ class SnowflakeObjectStore(Storage):
             return
 
         # Collect unique entities by ID to avoid duplicates
-        vrs_objects = defaultdict(dict[str, orm.Base])
+        if not self.optimized_mode:
+            vrs_objects = defaultdict(dict[str, orm.Base])
 
-        # Process all objects and extract their components
-        for vrs_object in objects_list:
-            try:
-                db_entity = mapper_registry.to_db_entity(vrs_object)
-            except AttributeError as e:
-                raise IncompleteVrsObjectError from e
+            # Process all objects and extract their components
+            for vrs_object in objects_list:
+                try:
+                    db_entity = mapper_registry.to_db_entity(vrs_object)
+                except AttributeError as e:
+                    raise IncompleteVrsObjectError from e
 
-            object_parts = db_entity.disassemble()
-            for entity_type, entity in object_parts.items():
-                vrs_objects[entity_type][entity.id] = entity  # type: ignore (all children of orm.Base have an `id`)
+                object_parts = db_entity.disassemble()
+                for entity_type, entity in object_parts.items():
+                    vrs_objects[entity_type][entity.id] = entity  # type: ignore (all children of orm.Base have an `id`)
 
         with self.session_factory() as session, session.begin():
-            for vrs_object_type in self._VRS_OBJECT_INSERT_ORDER:
-                objects_by_id = vrs_objects[vrs_object_type]
-                if objects_by_id:
-                    dicts = [entity.to_dict() for entity in objects_by_id.values()]
-                    orm_model = getattr(orm, vrs_object_type)
-                    stmt = insert(orm_model)
-                    session.execute(stmt, dicts)
-
+            if not self.optimized_mode:
+                for vrs_object_type in self._VRS_OBJECT_INSERT_ORDER:
+                    objects_by_id = vrs_objects[vrs_object_type]
+                    if objects_by_id:
+                        dicts = [entity.to_dict() for entity in objects_by_id.values()]
+                        orm_model = getattr(orm, vrs_object_type)
+                        stmt = insert(orm_model)
+                        session.execute(stmt, dicts)
             stmt = insert(getattr(orm, orm.VrsObject.__name__))
             session.execute(
                 stmt,
