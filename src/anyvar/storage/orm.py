@@ -122,8 +122,8 @@ class Location(Base):
         String, ForeignKey("sequence_references.id")
     )
     sequence_reference: Mapped["SequenceReference"] = relationship()
-    start: Mapped[int | None]
-    end: Mapped[int | None]
+    start: Mapped[int | None] = mapped_column(name="start_pos")
+    end: Mapped[int | None] = mapped_column(name="end_pos")
     start_outer: Mapped[int | None]
     start_inner: Mapped[int | None]
     end_outer: Mapped[int | None]
