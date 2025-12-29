@@ -265,9 +265,10 @@ class SnowflakeObjectStore(Storage):
         with self.session_factory() as session, session.begin():
             # Delete all data from tables in dependency order
             session.execute(delete(orm.VariationMapping))
-            session.execute(delete(orm.Allele))
-            session.execute(delete(orm.Location))
-            session.execute(delete(orm.SequenceReference))
+            if not self.optimized_mode:
+                session.execute(delete(orm.Allele))
+                session.execute(delete(orm.Location))
+                session.execute(delete(orm.SequenceReference))
 
             # Delete other tables
             session.execute(delete(orm.VrsObject))
@@ -400,20 +401,26 @@ class SnowflakeObjectStore(Storage):
 
         with self.session_factory() as session, session.begin():
             if object_type is vrs_models.Allele:
-                stmt = delete(orm.Allele).where(orm.Allele.id.in_(object_ids_list))
+                if not self.optimized_mode:
+                    stmt = delete(orm.Allele).where(orm.Allele.id.in_(object_ids_list))
                 stmt2 = delete(orm.VrsObject).where(
                     orm.VrsObject.id.in_(object_ids_list)
                 )
             elif object_type is vrs_models.SequenceLocation:
-                stmt = delete(orm.Location).where(orm.Location.id.in_(object_ids_list))
+                if not self.optimized_mode:
+                    stmt = delete(orm.Location).where(
+                        orm.Location.id.in_(object_ids_list)
+                    )
             elif object_type is vrs_models.SequenceReference:
-                stmt = delete(orm.SequenceReference).where(
-                    orm.SequenceReference.id.in_(object_ids_list)
-                )
+                if not self.optimized_mode:
+                    stmt = delete(orm.SequenceReference).where(
+                        orm.SequenceReference.id.in_(object_ids_list)
+                    )
             else:
                 raise ValueError(f"Unsupported object type: {object_type}")
             try:
-                session.execute(stmt)
+                if stmt:
+                    session.execute(stmt)
                 if stmt2:
                     session.execute(stmt2)
             except IntegrityError as e:
