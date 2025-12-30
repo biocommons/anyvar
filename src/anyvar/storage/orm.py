@@ -12,6 +12,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     create_engine,
+    inspect,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import (
@@ -45,9 +46,8 @@ class Base(DeclarativeBase):
 
     def to_dict(self) -> dict:
         """Convert the model fields to a dictionary (non-recursive)."""
-        return {
-            column.name: getattr(self, column.name) for column in self.__table__.columns
-        }
+        mapper = inspect(self.__class__)
+        return {column.key: getattr(self, column.key) for column in mapper.column_attrs}
 
     def get_disassembler(self) -> Iterator["Base"]:
         """Yields an Iterator that recursively disassembles this entity into itself + its constituent ORM objects.
@@ -122,8 +122,8 @@ class Location(Base):
         String, ForeignKey("sequence_references.id")
     )
     sequence_reference: Mapped["SequenceReference"] = relationship()
-    start: Mapped[int | None]
-    end: Mapped[int | None]
+    start: Mapped[int | None] = mapped_column(name="start_pos")
+    end: Mapped[int | None] = mapped_column(name="end_pos")
     start_outer: Mapped[int | None]
     start_inner: Mapped[int | None]
     end_outer: Mapped[int | None]
