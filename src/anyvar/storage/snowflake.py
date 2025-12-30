@@ -13,11 +13,16 @@ import snowflake.connector
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from ga4gh.vrs import models as vrs_models
+from snowflake.sqlalchemy import MergeInto
 from snowflake.sqlalchemy.snowdialect import SnowflakeDialect
-from sqlalchemy import create_engine, delete, insert, select, text
+from sqlalchemy import String, column, create_engine, delete, insert, select, text
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import joinedload, sessionmaker
+from sqlalchemy.sql import Values
+from sqlalchemy.sql.compiler import SQLCompiler
+from sqlalchemy.sql.expression import Insert
 
 from anyvar.storage import orm
 from anyvar.storage.base_storage import (
@@ -198,9 +203,9 @@ class SnowflakeObjectStore(Storage):
                 {dyn_table_opts}
                 AS SELECT
                     id,
-                    COLLATE(vrs_object:digest::VARCHAR, 'utf8'),
-                    COLLATE(vrs_object:location.id::VARCHAR, 'utf8'),
-                    vrs_object:state
+                    COLLATE(vrs_object:digest::VARCHAR, 'utf8') AS digest,
+                    COLLATE(vrs_object:location.id::VARCHAR, 'utf8') AS location_id,
+                    vrs_object:state AS state
                 FROM {orm.VrsObject.__tablename__}
                 """  # noqa: S608
                 )
@@ -214,23 +219,23 @@ class SnowflakeObjectStore(Storage):
                     digest VARCHAR(500) COLLATE 'utf8',
                     sequence_reference_id VARCHAR(500) COLLATE 'utf8',
                     start_pos INTEGER,
-                    start_inner INTEGER,
                     start_outer INTEGER,
+                    start_inner INTEGER,
                     end_pos INTEGER,
-                    end_inner INTEGER,
-                    end_outer INTEGER
+                    end_outer INTEGER,
+                    end_inner INTEGER
                 )
                 {dyn_table_opts}
                 AS SELECT DISTINCT
-                    COLLATE(vrs_object:location.id::VARCHAR, 'utf8'),
-                    COLLATE(vrs_object:location.digest::VARCHAR, 'utf8'),
-                    COLLATE(vrs_object:location.sequenceReference.refgetAccession::VARCHAR, 'utf8'),
-                    CASE WHEN IS_INTEGER(vrs_object:location.start) THEN vrs_object:location.start::INTEGER ELSE NULL END,
-                    CASE WHEN IS_ARRAY(vrs_object:location.start) THEN GET(vrs_object:location.start, 0)::INTEGER ELSE NULL END,
-                    CASE WHEN IS_ARRAY(vrs_object:location.start) THEN GET(vrs_object:location.start, 1)::INTEGER ELSE NULL END,
-                    CASE WHEN IS_INTEGER(vrs_object:location.end) THEN vrs_object:location.end::INTEGER ELSE NULL END,
-                    CASE WHEN IS_ARRAY(vrs_object:location.end) THEN GET(vrs_object:location.end, 0)::INTEGER ELSE NULL END,
-                    CASE WHEN IS_ARRAY(vrs_object:location.end) THEN GET(vrs_object:location.end, 1)::INTEGER ELSE NULL END
+                    COLLATE(vrs_object:location.id::VARCHAR, 'utf8') AS id,
+                    COLLATE(vrs_object:location.digest::VARCHAR, 'utf8') AS digest,
+                    COLLATE(vrs_object:location.sequenceReference.refgetAccession::VARCHAR, 'utf8') AS sequence_reference_id,
+                    (CASE WHEN IS_INTEGER(vrs_object:location.start) THEN vrs_object:location.start::INTEGER ELSE NULL END) AS start_pos,
+                    (CASE WHEN IS_ARRAY(vrs_object:location.start) THEN GET(vrs_object:location.start, 0)::INTEGER ELSE NULL END) AS start_outer,
+                    (CASE WHEN IS_ARRAY(vrs_object:location.start) THEN GET(vrs_object:location.start, 1)::INTEGER ELSE NULL END) AS start_inner,
+                    (CASE WHEN IS_INTEGER(vrs_object:location.end) THEN vrs_object:location.end::INTEGER ELSE NULL END) AS end_pos,
+                    (CASE WHEN IS_ARRAY(vrs_object:location.end) THEN GET(vrs_object:location.end, 0)::INTEGER ELSE NULL END) AS end_outer,
+                    (CASE WHEN IS_ARRAY(vrs_object:location.end) THEN GET(vrs_object:location.end, 1)::INTEGER ELSE NULL END) AS end_inner
                 FROM {orm.VrsObject.__tablename__}
                 """  # noqa: S608
                 )
@@ -245,7 +250,8 @@ class SnowflakeObjectStore(Storage):
                 )
                 {dyn_table_opts}
                 AS SELECT DISTINCT
-                    COLLATE(vrs_object:location.sequenceReference.refgetAccession::VARCHAR, 'utf8'), NULL
+                    COLLATE(vrs_object:location.sequenceReference.refgetAccession::VARCHAR, 'utf8') AS id,
+                    vrs_object:location.sequenceReference.moleculeType::VARCHAR AS molecule_type
                 FROM {orm.VrsObject.__tablename__}
                 """  # noqa: S608
                 )
@@ -446,15 +452,51 @@ class SnowflakeObjectStore(Storage):
             msg = f"source_id cannot equal dest_id: {mapping.source_id}"
             raise ValueError(msg)
 
-        stmt = insert(orm.VariationMapping).values(
-            [
-                {
-                    "source_id": mapping.source_id,
-                    "dest_id": mapping.dest_id,
-                    "mapping_type": mapping.mapping_type,
-                }
-            ]
-        )
+        # use a merge statement to avoid duplicates if we are protecting against them
+        #   since this is a single row insert, just use MERGE.  If this becomes a bulk
+        #   insert, switch to use a JOIN to mimic MERGE
+        if (
+            os.getenv("ANYVAR_SNOWFLAKE_STORE_USE_JOIN_FOR_MERGE", "true").lower()
+            == "true"
+        ):
+            source = Values(
+                column("source_id", String()),
+                column("dest_id", String()),
+                column("mapping_type", String()),
+                name="src",
+            ).data([(mapping.source_id, mapping.dest_id, mapping.mapping_type.value)])
+
+            # Define the MERGE statement
+            stmt = MergeInto(
+                target=orm.VariationMapping.__table__,
+                source=source,
+                on=(
+                    (orm.VariationMapping.__table__.c.source_id == source.c.source_id)
+                    & (orm.VariationMapping.__table__.c.dest_id == source.c.dest_id)
+                    & (
+                        orm.VariationMapping.__table__.c.mapping_type
+                        == source.c.mapping_type
+                    )
+                ),
+            )
+
+            # Define clauses for matched and not-matched scenarios
+            stmt.when_not_matched_then_insert().values(
+                source_id=source.c.source_id,
+                dest_id=source.c.dest_id,
+                mapping_type=source.c.mapping_type,
+            )
+        # otherwise do a straight insert
+        else:
+            stmt = insert(orm.VariationMapping).values(
+                [
+                    {
+                        "source_id": mapping.source_id,
+                        "dest_id": mapping.dest_id,
+                        "mapping_type": mapping.mapping_type.value,
+                    }
+                ]
+            )
         try:
             with self.session_factory() as session, session.begin():
                 session.execute(stmt)
@@ -620,3 +662,85 @@ class SnowflakeObjectStore(Storage):
             return [
                 mapper_registry.from_db_entity(db_allele) for db_allele in db_alleles
             ]
+
+
+@compiles(Insert, "snowflake")
+def compile_insert_with_parse_json_and_join_for_merge(
+    insert_stmt: Insert, compiler: SQLCompiler, **kwargs
+) -> str:
+    """Custom compilation of INSERT statements for Snowflake to use PARSE_JSON
+    to convert strings into VARIANTs and optionally use a LEFT OUTER JOIN to avoid
+    inserting duplicate IDs.
+    """
+    # determine if the insert is for a table where we need to modify the insert statement
+    json_col = None
+    target_table = None
+    if (
+        insert_stmt.entity_description.get("table", None)
+        == orm.SequenceReference.__table__
+    ):
+        target_table = orm.SequenceReference.__tablename__
+    elif insert_stmt.entity_description.get("table", None) == orm.Location.__table__:
+        target_table = orm.Location.__tablename__
+    elif insert_stmt.entity_description.get("table", None) == orm.Allele.__table__:
+        json_col = orm.Allele.state.name
+        target_table = orm.Allele.__tablename__
+    elif insert_stmt.entity_description.get("table", None) == orm.VrsObject.__table__:
+        json_col = orm.VrsObject.vrs_object.name
+        target_table = orm.VrsObject.__tablename__
+
+    if target_table:
+        # Generate the default insert SQL, usually of the form:
+        #   INSERT INTO table (col1, col2, json_col, ...) VALUES (%(col1)s, %(col2)s, %(json_col)s, ...)
+        insert_sql = compiler.visit_insert(insert_stmt, **kwargs)
+
+        # Collect information about the columns being inserted
+        select_list = []
+        id_col_idx = -1
+        idx = 1
+        found = False
+        for key in insert_stmt.compile().params:
+            # skip any keys that are not in the insert statement
+            if f"%({key})s" not in insert_sql:
+                continue
+
+            # all the primary key columns are named "id"
+            if key == "id":
+                id_col_idx = idx
+                found = True
+
+            # for the JSON column, use PARSE_JSON to convert the string into a VARIANT
+            if key == json_col:
+                select_list.append(f"PARSE_JSON(v.${idx})")
+                found = True
+            # otherwise, just reference the value directly
+            else:
+                select_list.append(f"v.${idx}")
+
+            idx += 1
+
+        # Either an "id" or JSON column was found so need to modify the insert SQL
+        if found:
+            # Replace the VALUES clause with a SELECT from VALUES clause
+            insert_sql = insert_sql.replace(
+                ") VALUES (",
+                f") SELECT {', '.join(select_list)} FROM VALUES (",  # noqa: S608
+            )
+            insert_sql += " v"
+
+            # If we have an id column and are using join to mimic merge, use a LEFT OUTER JOIN to avoid inserting duplicates
+            if (
+                target_table
+                and id_col_idx != -1
+                and os.getenv(
+                    "ANYVAR_SNOWFLAKE_STORE_USE_JOIN_FOR_MERGE", "true"
+                ).lower()
+                == "true"
+            ):
+                insert_sql += f" LEFT OUTER JOIN {target_table} vo ON vo.id = v.${id_col_idx} WHERE vo.id IS NULL"
+
+            # Return the modified insert SQL
+            return insert_sql
+
+    # If not modifying the SQL, return the default compilation
+    return compiler.visit_insert(insert_stmt, **kwargs)

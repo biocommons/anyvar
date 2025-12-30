@@ -21,7 +21,6 @@ from sqlalchemy import (
     inspect,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -30,8 +29,6 @@ from sqlalchemy.orm import (
     sessionmaker,
 )
 from sqlalchemy.orm.decl_api import declared_attr
-from sqlalchemy.sql.compiler import SQLCompiler
-from sqlalchemy.sql.expression import Insert
 from sqlalchemy.types import TypeDecorator
 
 from anyvar.utils.funcs import camel_case_to_snake_case
@@ -60,44 +57,6 @@ class SnowflakeVARIANT(TypeDecorator):
         if value is not None and isinstance(value, str) and dialect.name == "snowflake":
             return json.loads(value)  # Convert JSON string back to dict
         return value
-
-
-@compiles(Insert, "snowflake")
-def compile_insert_with_parse_json(
-    insert_stmt: Insert, compiler: SQLCompiler, **kwargs
-) -> str:
-    """Custom compilation of INSERT statements for Snowflake to use PARSE_JSON
-    to convert strings into VARIANTs.
-    """
-    target_col = None
-    if insert_stmt.entity_description.get("table", None) == Allele.__table__:
-        target_col = Allele.state.name
-    elif insert_stmt.entity_description.get("table", None) == Annotation.__table__:
-        target_col = Annotation.annotation_value.name
-    elif insert_stmt.entity_description.get("table", None) == VrsObject.__table__:
-        target_col = VrsObject.vrs_object.name
-
-    if target_col:
-        insert_sql = compiler.visit_insert(insert_stmt, **kwargs)
-        select_list = []
-        idx = 1
-        found = False
-        for key in insert_stmt.compile().params:
-            if key == target_col:
-                select_list.append(f"PARSE_JSON(${idx})")
-                found = True
-            else:
-                select_list.append(f"${idx}")
-            idx += 1
-
-        if found:
-            insert_sql = insert_sql.replace(
-                ") VALUES (",
-                f") SELECT {', '.join(select_list)} FROM VALUES (",  # noqa: S608
-            )
-            return insert_sql
-
-    return compiler.visit_insert(insert_stmt, **kwargs)
 
 
 class Base(DeclarativeBase):
