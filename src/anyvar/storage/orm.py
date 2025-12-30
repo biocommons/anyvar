@@ -6,7 +6,6 @@ from collections.abc import Iterator
 from urllib.parse import urlparse
 
 import snowflake.sqlalchemy.snowdialect
-from build.lib.anyvar.storage import DEFAULT_STORAGE_URI
 from ga4gh.vrs.models import MoleculeType
 from sqlalchemy import (
     JSON,
@@ -31,6 +30,7 @@ from sqlalchemy.orm import (
 from sqlalchemy.orm.decl_api import declared_attr
 from sqlalchemy.types import TypeDecorator
 
+from anyvar.storage import DEFAULT_STORAGE_URI
 from anyvar.utils.funcs import camel_case_to_snake_case
 from anyvar.utils.types import VariationMappingType
 
