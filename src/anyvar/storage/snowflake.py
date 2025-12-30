@@ -190,72 +190,77 @@ class SnowflakeObjectStore(Storage):
             if not dyn_table_opts:
                 sfwh = conn.scalar(text("SELECT CURRENT_WAREHOUSE()"))
                 dyn_table_opts = f"WAREHOUSE = {sfwh} TARGET_LAG = '1 hour'"
-            conn.execute(
-                text(
-                    f"""
-                CREATE DYNAMIC TABLE IF NOT EXISTS {orm.Allele.__tablename__}
-                (
-                    id VARCHAR(500) COLLATE 'utf8',
-                    digest VARCHAR(500) COLLATE 'utf8',
-                    location_id VARCHAR(500) COLLATE 'utf8',
-                    state VARIANT
+            if not self.engine.dialect.has_table(conn, orm.Allele.__tablename__):
+                conn.execute(
+                    text(
+                        f"""
+                    CREATE TRANSIENT DYNAMIC TABLE IF NOT EXISTS {orm.Allele.__tablename__}
+                    (
+                        id VARCHAR(500) COLLATE 'utf8',
+                        digest VARCHAR(500) COLLATE 'utf8',
+                        location_id VARCHAR(500) COLLATE 'utf8',
+                        state VARIANT
+                    )
+                    {dyn_table_opts}
+                    AS SELECT
+                        id,
+                        COLLATE(vrs_object:digest::VARCHAR, 'utf8') AS digest,
+                        COLLATE(vrs_object:location.id::VARCHAR, 'utf8') AS location_id,
+                        vrs_object:state AS state
+                    FROM {orm.VrsObject.__tablename__}
+                    """  # noqa: S608
+                    )
                 )
-                {dyn_table_opts}
-                AS SELECT
-                    id,
-                    COLLATE(vrs_object:digest::VARCHAR, 'utf8') AS digest,
-                    COLLATE(vrs_object:location.id::VARCHAR, 'utf8') AS location_id,
-                    vrs_object:state AS state
-                FROM {orm.VrsObject.__tablename__}
-                """  # noqa: S608
+            if not self.engine.dialect.has_table(conn, orm.Location.__tablename__):
+                conn.execute(
+                    text(
+                        f"""
+                    CREATE TRANSIENT DYNAMIC TABLE IF NOT EXISTS {orm.Location.__tablename__}
+                    (
+                        id VARCHAR(500) COLLATE 'utf8',
+                        digest VARCHAR(500) COLLATE 'utf8',
+                        sequence_reference_id VARCHAR(500) COLLATE 'utf8',
+                        start_pos INTEGER,
+                        start_outer INTEGER,
+                        start_inner INTEGER,
+                        end_pos INTEGER,
+                        end_outer INTEGER,
+                        end_inner INTEGER
+                    )
+                    {dyn_table_opts}
+                    AS SELECT DISTINCT
+                        COLLATE(vrs_object:location.id::VARCHAR, 'utf8') AS id,
+                        COLLATE(vrs_object:location.digest::VARCHAR, 'utf8') AS digest,
+                        COLLATE(vrs_object:location.sequenceReference.refgetAccession::VARCHAR, 'utf8') AS sequence_reference_id,
+                        (CASE WHEN IS_INTEGER(vrs_object:location.start) THEN vrs_object:location.start::INTEGER ELSE NULL END) AS start_pos,
+                        (CASE WHEN IS_ARRAY(vrs_object:location.start) THEN GET(vrs_object:location.start, 0)::INTEGER ELSE NULL END) AS start_outer,
+                        (CASE WHEN IS_ARRAY(vrs_object:location.start) THEN GET(vrs_object:location.start, 1)::INTEGER ELSE NULL END) AS start_inner,
+                        (CASE WHEN IS_INTEGER(vrs_object:location.end) THEN vrs_object:location.end::INTEGER ELSE NULL END) AS end_pos,
+                        (CASE WHEN IS_ARRAY(vrs_object:location.end) THEN GET(vrs_object:location.end, 0)::INTEGER ELSE NULL END) AS end_outer,
+                        (CASE WHEN IS_ARRAY(vrs_object:location.end) THEN GET(vrs_object:location.end, 1)::INTEGER ELSE NULL END) AS end_inner
+                    FROM {orm.VrsObject.__tablename__}
+                    """  # noqa: S608
+                    )
                 )
-            )
-            conn.execute(
-                text(
-                    f"""
-                CREATE DYNAMIC TABLE IF NOT EXISTS {orm.Location.__tablename__}
-                (
-                    id VARCHAR(500) COLLATE 'utf8',
-                    digest VARCHAR(500) COLLATE 'utf8',
-                    sequence_reference_id VARCHAR(500) COLLATE 'utf8',
-                    start_pos INTEGER,
-                    start_outer INTEGER,
-                    start_inner INTEGER,
-                    end_pos INTEGER,
-                    end_outer INTEGER,
-                    end_inner INTEGER
+            if not self.engine.dialect.has_table(
+                conn, orm.SequenceReference.__tablename__
+            ):
+                conn.execute(
+                    text(
+                        f"""
+                    CREATE TRANSIENT DYNAMIC TABLE IF NOT EXISTS {orm.SequenceReference.__tablename__}
+                    (
+                        id VARCHAR(500) COLLATE 'utf8',
+                        molecule_type VARCHAR(100)
+                    )
+                    {dyn_table_opts}
+                    AS SELECT DISTINCT
+                        COLLATE(vrs_object:location.sequenceReference.refgetAccession::VARCHAR, 'utf8') AS id,
+                        vrs_object:location.sequenceReference.moleculeType::VARCHAR AS molecule_type
+                    FROM {orm.VrsObject.__tablename__}
+                    """  # noqa: S608
+                    )
                 )
-                {dyn_table_opts}
-                AS SELECT DISTINCT
-                    COLLATE(vrs_object:location.id::VARCHAR, 'utf8') AS id,
-                    COLLATE(vrs_object:location.digest::VARCHAR, 'utf8') AS digest,
-                    COLLATE(vrs_object:location.sequenceReference.refgetAccession::VARCHAR, 'utf8') AS sequence_reference_id,
-                    (CASE WHEN IS_INTEGER(vrs_object:location.start) THEN vrs_object:location.start::INTEGER ELSE NULL END) AS start_pos,
-                    (CASE WHEN IS_ARRAY(vrs_object:location.start) THEN GET(vrs_object:location.start, 0)::INTEGER ELSE NULL END) AS start_outer,
-                    (CASE WHEN IS_ARRAY(vrs_object:location.start) THEN GET(vrs_object:location.start, 1)::INTEGER ELSE NULL END) AS start_inner,
-                    (CASE WHEN IS_INTEGER(vrs_object:location.end) THEN vrs_object:location.end::INTEGER ELSE NULL END) AS end_pos,
-                    (CASE WHEN IS_ARRAY(vrs_object:location.end) THEN GET(vrs_object:location.end, 0)::INTEGER ELSE NULL END) AS end_outer,
-                    (CASE WHEN IS_ARRAY(vrs_object:location.end) THEN GET(vrs_object:location.end, 1)::INTEGER ELSE NULL END) AS end_inner
-                FROM {orm.VrsObject.__tablename__}
-                """  # noqa: S608
-                )
-            )
-            conn.execute(
-                text(
-                    f"""
-                CREATE DYNAMIC TABLE IF NOT EXISTS {orm.SequenceReference.__tablename__}
-                (
-                    id VARCHAR(500) COLLATE 'utf8',
-                    molecule_type VARCHAR(100)
-                )
-                {dyn_table_opts}
-                AS SELECT DISTINCT
-                    COLLATE(vrs_object:location.sequenceReference.refgetAccession::VARCHAR, 'utf8') AS id,
-                    vrs_object:location.sequenceReference.moleculeType::VARCHAR AS molecule_type
-                FROM {orm.VrsObject.__tablename__}
-                """  # noqa: S608
-                )
-            )
 
     def close(self) -> None:
         """Close the storage backend."""
