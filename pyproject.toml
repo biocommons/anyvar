@@ -88,6 +88,8 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 markers = [
     "ci_ok: tests safe to run in CI",
+    "postgresql: tests safe to run when test db is Postgres",
+    "snowflake: tests safe to run when test db is Snowflake",
 ]
 
 [tool.coverage.run]

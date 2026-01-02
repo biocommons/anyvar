@@ -14,6 +14,8 @@ from anyvar.storage.base_storage import (
 from anyvar.storage.postgres import PostgresObjectStore
 from anyvar.utils import types
 
+pytestmark = pytest.mark.postgres
+
 
 @pytest.fixture(scope="session")
 def postgres_uri():
