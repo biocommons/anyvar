@@ -55,6 +55,10 @@ If dynamic tables are enabled, the ``ANYVAR_SNOWFLAKE_STORE_DYNAMIC_TABLE_OPTS``
 variable can be used to specify dynamic table creation options. If options are not specified
 the required options are defaulted to ``WAREHOUSE = [current_warehouse] TARGET_LAG = '1 hour'``.
 
+*NOTE*: Currently only ``Allele`` objects in the ``VrsObject`` table are supported when using
+dynamic tables. Other VRS object types will be ignored when populating the ``Allele``,
+``Location``, and ``SequenceReference`` tables.
+
 Join-Based Merge
 ~~~~~~~~~~~~~~~~
 

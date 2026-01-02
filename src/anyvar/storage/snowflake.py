@@ -207,6 +207,7 @@ class SnowflakeObjectStore(Storage):
                         COLLATE(vrs_object:location.id::VARCHAR, 'utf8') AS location_id,
                         vrs_object:state AS state
                     FROM {orm.VrsObject.__tablename__}
+                    WHERE id LIKE 'ga4gh:VA.%'
                     """  # noqa: S608
                     )
                 )
@@ -238,6 +239,7 @@ class SnowflakeObjectStore(Storage):
                         (CASE WHEN IS_ARRAY(vrs_object:location.end) THEN GET(vrs_object:location.end, 0)::INTEGER ELSE NULL END) AS end_outer,
                         (CASE WHEN IS_ARRAY(vrs_object:location.end) THEN GET(vrs_object:location.end, 1)::INTEGER ELSE NULL END) AS end_inner
                     FROM {orm.VrsObject.__tablename__}
+                    WHERE id LIKE 'ga4gh:VA.%'
                     """  # noqa: S608
                     )
                 )
@@ -257,6 +259,7 @@ class SnowflakeObjectStore(Storage):
                         COLLATE(vrs_object:location.sequenceReference.refgetAccession::VARCHAR, 'utf8') AS id,
                         vrs_object:location.sequenceReference.moleculeType::VARCHAR AS molecule_type
                     FROM {orm.VrsObject.__tablename__}
+                    WHERE id LIKE 'ga4gh:VA.%'
                     """  # noqa: S608
                     )
                 )
