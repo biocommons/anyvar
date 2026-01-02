@@ -1,9 +1,9 @@
 """Tests postgres storage implementation methods directly."""
 
 import os
+from collections.abc import Callable
 
 import pytest
-from conftest import build_vrs_variant_from_dict
 from ga4gh.vrs import models
 
 from anyvar.storage.base_storage import (
@@ -25,13 +25,17 @@ def postgres_uri():
 
 
 @pytest.fixture
-def focus_alleles(alleles: dict) -> tuple[models.Allele, ...]:
+def focus_alleles(
+    alleles: dict, build_vrs_variant_from_dict_function: Callable[[dict], models.Allele]
+) -> tuple[models.Allele, ...]:
     """A small subset of test alleles to use in more focused tests
 
     This is a tuple because many checks assume a specific order of these objects
     """
     return tuple(
-        models.Allele.model_validate(build_vrs_variant_from_dict(a["variation"]))
+        models.Allele.model_validate(
+            build_vrs_variant_from_dict_function(a["variation"])
+        )
         for a in (
             alleles["ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU"],
             alleles["ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf"],
@@ -41,9 +45,14 @@ def focus_alleles(alleles: dict) -> tuple[models.Allele, ...]:
 
 
 @pytest.fixture
-def validated_vrs_alleles(alleles: dict):
+def validated_vrs_alleles(
+    alleles: dict, build_vrs_variant_from_dict_function: Callable[[dict], models.Allele]
+) -> dict[str, models.Allele]:
     """All allele fixtures, transformed into VRS Pydantic models w/ other test metadata removed"""
-    return {k: build_vrs_variant_from_dict(v["variation"]) for k, v in alleles.items()}
+    return {
+        k: build_vrs_variant_from_dict_function(v["variation"])
+        for k, v in alleles.items()
+    }
 
 
 @pytest.fixture

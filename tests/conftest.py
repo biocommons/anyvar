@@ -138,3 +138,8 @@ def build_vrs_variant_from_dict(variant_dict: dict) -> VrsVariation:
     """
     variant_type = variant_dict.get("type", "")
     return variation_class_map[variant_type](**variant_dict)
+
+
+@pytest.fixture
+def build_vrs_variant_from_dict_function():
+    return build_vrs_variant_from_dict
