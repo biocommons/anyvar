@@ -693,6 +693,9 @@ def compile_insert_with_parse_json_and_join_for_merge(
     elif insert_stmt.entity_description.get("table", None) == orm.VrsObject.__table__:
         json_col = orm.VrsObject.vrs_object.name
         target_table = orm.VrsObject.__tablename__
+    elif insert_stmt.entity_description.get("table", None) == orm.Annotation.__table__:
+        json_col = orm.Annotation.annotation_value.name
+        target_table = orm.Annotation.__tablename__
 
     if target_table:
         # Generate the default insert SQL, usually of the form:
