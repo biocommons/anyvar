@@ -1,6 +1,5 @@
 """Provide Snowflake-based storage implementation."""
 
-import json
 import logging
 import os
 from collections import defaultdict
@@ -329,17 +328,17 @@ class SnowflakeObjectStore(Storage):
                         orm_model = getattr(orm, vrs_object_type)
                         stmt = insert(orm_model)
                         session.execute(stmt, dicts)
-            stmt = insert(getattr(orm, orm.VrsObject.__name__))
-            session.execute(
-                stmt,
-                [
-                    {
-                        "id": obj.id,
-                        "vrs_object": obj.model_dump(exclude_none=True),
-                    }
-                    for obj in objects_list
-                ],
-            )
+            dicts = [
+                {
+                    "id": obj.id,
+                    "vrs_object": obj.model_dump(exclude_none=True),
+                }
+                for obj in objects_list
+                if isinstance(obj, types.VrsObject) and obj.id is not None
+            ]
+            if len(dicts) > 0:
+                stmt = insert(getattr(orm, orm.VrsObject.__name__))
+                session.execute(stmt, dicts)
 
     def get_objects(
         self, object_type: type[types.VrsObject], object_ids: Iterable[str]
@@ -411,6 +410,8 @@ class SnowflakeObjectStore(Storage):
         object_ids_list = list(object_ids)
 
         with self.session_factory() as session, session.begin():
+            stmt = None
+            stmt2 = None
             if object_type is vrs_models.Allele:
                 if not self.use_dynamic_tables:
                     stmt = delete(orm.Allele).where(orm.Allele.id.in_(object_ids_list))
@@ -430,9 +431,9 @@ class SnowflakeObjectStore(Storage):
             else:
                 raise ValueError(f"Unsupported object type: {object_type}")
             try:
-                if stmt:
+                if stmt is not None:
                     session.execute(stmt)
-                if stmt2:
+                if stmt2 is not None:
                     session.execute(stmt2)
             except IntegrityError as e:
                 _logger.exception(
@@ -603,10 +604,7 @@ class SnowflakeObjectStore(Storage):
             delete(orm.Annotation)
             .where(orm.Annotation.object_id == annotation.object_id)
             .where(orm.Annotation.annotation_type == annotation.annotation_type)
-            .where(
-                orm.Annotation.annotation_value
-                == json.dumps(annotation.annotation_value)
-            )
+            .where(orm.Annotation.annotation_value == annotation.annotation_value)
         )
         with self.session_factory() as session, session.begin():
             session.execute(stmt)
