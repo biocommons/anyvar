@@ -152,7 +152,7 @@ class Location(Base):
     sequence_reference_id: Mapped[str] = mapped_column(
         String, ForeignKey(SequenceReference.id)
     )
-    sequence_reference: Mapped["SequenceReference"] = relationship()
+    sequence_reference: Mapped[SequenceReference] = relationship()
     start: Mapped[int | None] = mapped_column(name="start_pos")
     end: Mapped[int | None] = mapped_column(name="end_pos")
     start_outer: Mapped[int | None]
@@ -172,7 +172,7 @@ class Allele(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True)
     digest: Mapped[str] = mapped_column(String)
     location_id: Mapped[str] = mapped_column(String, ForeignKey(Location.id))
-    location: Mapped["Location"] = relationship()
+    location: Mapped[Location] = relationship()
     state: Mapped[dict] = mapped_column(
         JSON()
         .with_variant(JSONB, "postgresql")
