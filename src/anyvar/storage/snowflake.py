@@ -467,9 +467,9 @@ class SnowflakeObjectStore(Storage):
             source = Values(
                 column("source_id", String()),
                 column("dest_id", String()),
-                column("mapping_type", String()),
+                column("mapping_type", orm.mapping_type_enum),
                 name="src",
-            ).data([(mapping.source_id, mapping.dest_id, mapping.mapping_type.value)])
+            ).data([(mapping.source_id, mapping.dest_id, mapping.mapping_type)])
 
             # Define the MERGE statement
             stmt = MergeInto(
@@ -498,7 +498,7 @@ class SnowflakeObjectStore(Storage):
                     {
                         "source_id": mapping.source_id,
                         "dest_id": mapping.dest_id,
-                        "mapping_type": mapping.mapping_type.value,
+                        "mapping_type": mapping.mapping_type,
                     }
                 ]
             )
