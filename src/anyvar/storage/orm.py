@@ -43,12 +43,8 @@ class SnowflakeVARIANT(TypeDecorator):
     impl = snowflake.sqlalchemy.snowdialect.VARIANT
 
     def process_bind_param(self, value, dialect: Dialect):  # noqa: ANN001 ANN201
-        """If the value is a dict, convert it to a JSON string for Snowflake VARIANT storage."""
-        if (
-            value is not None
-            and isinstance(value, dict)
-            and dialect.name == "snowflake"
-        ):
+        """Convert value to a JSON string for Snowflake VARIANT storage."""
+        if value is not None and dialect.name == "snowflake":
             return json.dumps(value)
         return value
 
