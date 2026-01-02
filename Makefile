@@ -45,7 +45,7 @@ venv/%:
 #=> develop: install package in develop mode
 .PHONY: develop
 develop:
-	pip install -e .[postgres,queueing,test,dev,docs]
+	pip install -e .[postgres,snowflake,queueing,test,dev,docs]
 
 #=> devready: create venv, install prerequisites, install pkg in develop mode
 .PHONY: devready
@@ -67,7 +67,7 @@ bdist bdist_egg bdist_wheel build sdist install: %:
 
 .PHONY: testready
 testready:
-	pip install -e '.[postgres,queueing,test]'
+	pip install -e '.[postgres,snowflake,queueing,test]'
 
 #=> test: execute tests
 .PHONY: test
