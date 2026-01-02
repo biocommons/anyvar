@@ -563,9 +563,9 @@ class SnowflakeObjectStore(Storage):
 
         """
         db_entity: orm.Annotation = mapper_registry.to_db_entity(annotation)
-        stmt = insert(orm.Annotation).returning(orm.Annotation.id)
+        stmt = insert(orm.Annotation)
         with self.session_factory() as session, session.begin():
-            session.execute(stmt, db_entity.to_dict()).scalar_one()
+            session.execute(stmt, db_entity.to_dict())
 
     def get_annotations(
         self, object_id: str, annotation_type: str | None = None
