@@ -19,8 +19,12 @@ variable. For example::
 See the `Snowflake connection parameter reference <https://docs.snowflake.com/en/developer-guide/python-connector/python-connector-api>`_
 for more details.
 
-When running interactively and connecting to a Snowflake account that utilizes
-federated authentication or SSO, add the parameter ``authenticator=externalbrowser``.
+When running the AnyVar server from an interactive session and connecting to a Snowflake
+account that utilizes federated authentication or SSO, add the parameter ``authenticator=externalbrowser``.
+When AnyVar starts up, a browser window will open to allow the user to authenticate.
+Note that if AnyVar is run with multiple workers, each worker will need to be authenticated
+separately.  This is useful for development and testing, but not practical for production deployments.
+
 Non-interactive execution in a federated authentication or SSO environment
 requires a service account to connect. Connections using an encrypted or unencrypted
 private key are also supported by specifying the parameter ``private_key=path/to/file.p8``.
