@@ -61,7 +61,7 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --extra test --extra queueing --extra snowflake
+        run: uv sync --extra test --extra queueing
 
       - name: Run tests
         run: uv run pytest -vv -m "ci_ok"
