@@ -20,6 +20,7 @@ from anyvar.utils.liftover_utils import ReferenceAssembly
 from anyvar.utils.types import (
     SupportedVariationType,
     VrsObject,
+    VrsVariation,
 )
 
 
@@ -130,6 +131,13 @@ class ServiceInfo(BaseModel):
     capabilities_metadata: CapabilitiesMetadata = CapabilitiesMetadata()
 
 
+class TranslationResult(BaseModel):
+    """Describe structure for translation success or failure"""
+
+    variation: VrsVariation | None = None
+    error: str | None = None
+
+
 class VariationRequest(BaseModel):
     """Describe request structure for the PUT and POST /variation endpoints"""
 
@@ -196,12 +204,19 @@ class GetMappingResponse(BaseModel):
 
 
 class RegisterVariationResponse(BaseModel):
-    """Describe response for the PUT /variation and PUT /vrs_variation endpoints"""
+    """Describe response for the PUT /variation, PUT /variations, and PUT /vrs_variation endpoints"""
 
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
                 {
+                    "input_variation": {
+                        "definition": "NC_000007.13:g.36561662_36561663del",
+                        "input_type": "Allele",
+                        "copies": 0,
+                        "copy_change": "complete genomic loss",
+                        "assembly_name": None,
+                    },
                     "messages": [],
                     "object": {
                         "id": "ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb",
@@ -231,6 +246,7 @@ class RegisterVariationResponse(BaseModel):
         }
     )
 
+    input_variation: VariationRequest | VrsVariation
     messages: list[str] = []
     object: types.VrsVariation | None = None
     object_id: str | None = None
