@@ -9,6 +9,7 @@ from anyvar.restapi.main import (
     PUT_VRS_VARIATION_EXAMPLE_PAYLOAD,
     VARIATION_EXAMPLE_PAYLOAD,
 )
+from anyvar.restapi.schema import RegisterVariationResponse, VariationRequest
 from anyvar.storage.base_storage import Storage
 from anyvar.utils.liftover_utils import ReferenceAssembly
 
@@ -71,6 +72,52 @@ def test_put_variation_example(restapi_client: TestClient, alleles: dict):
     assert resp.json()["object_id"] == expected_id
     assert resp.json()["object"] == alleles[expected_id]["variation"]
     assert resp.json()["messages"] == []
+
+
+def test_put_variations(restapi_client: TestClient, alleles: dict):
+    alleles_to_use = {k: v for k, v in alleles.items() if "register_params" in v}
+
+    # add example where translation fails
+    alleles_to_use["failure_example"] = {
+        "register_params": {
+            "definition": "GRCh38/hg38 7p22.3-q36.3(chr7:54185-159282390)x1",
+        },
+        "expected_messages": [
+            'Unable to translate "GRCh38/hg38 7p22.3-q36.3(chr7:54185-159282390)x1"'
+        ],
+    }
+    variation_payloads = [
+        allele_fixture["register_params"] for allele_fixture in alleles_to_use.values()
+    ]
+
+    resp = restapi_client.put("/variations", json=variation_payloads)
+    assert resp.status_code == HTTPStatus.OK
+    resp_json = resp.json()
+    assert len(resp_json) == len(variation_payloads)
+
+    for (allele_id, allele_fixture), response_item in zip(
+        alleles_to_use.items(), resp_json, strict=True
+    ):
+        response = RegisterVariationResponse(**response_item)
+        assert response.input_variation.model_dump(
+            mode="json", exclude_none=True
+        ) == VariationRequest(**allele_fixture["register_params"]).model_dump(
+            mode="json", exclude_none=True
+        ), allele_id
+
+        assert response.messages == allele_fixture.get("expected_messages", []), (
+            allele_id
+        )
+        if allele_id == "failure_example":
+            assert response.object is None
+            assert response.object_id is None
+        else:
+            assert response.object is not None
+            assert (
+                response.object.model_dump(exclude_none=True)
+                == allele_fixture["variation"]
+            ), allele_id
+            assert response.object_id == allele_id, allele_id
 
 
 def test_put_vrs_variation_allele(restapi_client: TestClient, alleles: dict):
