@@ -264,8 +264,9 @@ def _register_variations(
     :param av: AnyVar instance
     :param variation_requests: Input variation requests to register
     :return: List of RegisterVariationResponse objects in the same order as the input.
-        Variations that fail translation are not registered and are represented with
-        null ``object`` and ``object_id`` fields.
+        Variations that fail translation are not registered and are returned with null
+        `object` and `object_id` fields. Registration or liftover failure messages may
+        also be included in the `messages` field.
     """
     translation_results: list[TranslationResult] = []
     variations_to_store: list[VrsObject] = []
@@ -341,7 +342,7 @@ def register_variation(
     "/variations",
     response_model_exclude_none=True,
     summary="Bulk register alleles or copy number objects",
-    description="Provide a list of variation definitions to be normalized and registered with AnyVar. Complete VRS Allele or Copy Number objects and digests are returned for later reference.",
+    description="Provide a list of variation definitions to be normalized and registered with AnyVar. The response contains one result per input, in the same order. Variations that fail translation are not registered and are returned with null `object` and `object_id` fields. Registration or liftover failure messages may also be included in the `messages` field.",
     tags=[EndpointTag.VRS_OBJECTS],
 )
 def register_variations(
