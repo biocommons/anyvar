@@ -133,6 +133,8 @@ class SnowflakeObjectStore(Storage):
         """
         db_url = db_url.replace(".snowflakecomputing.com", "")
         parsed_uri = urlparse(db_url)
+        if parsed_uri.scheme != "snowflake":
+            raise ValueError("DB URL scheme is not 'snowflake'")
         conn_params = {
             key: value[0] if value else None
             for key, value in parse_qs(parsed_uri.query).items()
