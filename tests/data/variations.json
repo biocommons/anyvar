@@ -227,6 +227,7 @@
       "register_params": {
         "definition": "NM_000551.3:c.1A>T"
       },
+      "expected_messages": ["Unable to complete liftover: Could not resolve reference assembly - accession not found in any supported assembly"],
       "variation": {
         "digest": "1FzYrqG-7jB3Wr46eIL_L5BWElQZEB7i",
         "id": "ga4gh:VA.1FzYrqG-7jB3Wr46eIL_L5BWElQZEB7i",
