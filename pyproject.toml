@@ -22,6 +22,7 @@ dependencies = [
     "uvicorn",
     "ga4gh.vrs[extras]>=2.2.0,<3.0",  # needs to be >=2.2.0 for RLE bug fix
     "sqlalchemy~=2.0.0",
+    "snowflake-sqlalchemy~=1.8.2",
     "pyyaml",
     "agct >= 0.2.0rc1",
     "pysam",
@@ -87,6 +88,8 @@ testpaths = ["tests"]
 pythonpath = ["src"]
 markers = [
     "ci_ok: tests safe to run in CI",
+    "postgresql: tests safe to run when test db is Postgres",
+    "snowflake: tests safe to run when test db is Snowflake",
 ]
 
 [tool.coverage.run]

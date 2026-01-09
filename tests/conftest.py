@@ -17,6 +17,24 @@ from anyvar.utils.types import VrsVariation
 pytest_plugins = ("celery.contrib.pytest",)
 
 
+def pytest_runtest_setup(item):
+    """Skip tests not compatible with the current test database backend"""
+    all_dbs = {"postgresql", "snowflake"}
+    supported_dbs = all_dbs.intersection(mark.name for mark in item.iter_markers())
+    current_db = (
+        os.environ.get(
+            "ANYVAR_TEST_STORAGE_URI",
+            "postgresql://postgres:postgres@localhost:5432/anyvar_test",
+        )
+        .split("+")[0]
+        .split(":")[0]
+    )
+    if supported_dbs and current_db not in supported_dbs:
+        pytest.skip(
+            f"Skipping test for {supported_dbs} when current test db is {current_db}"
+        )
+
+
 @pytest.fixture(scope="session", autouse=True)
 def load_env():
     """Load `.env` file.
@@ -138,3 +156,8 @@ def build_vrs_variant_from_dict(variant_dict: dict) -> VrsVariation:
     """
     variant_type = variant_dict.get("type", "")
     return variation_class_map[variant_type](**variant_dict)
+
+
+@pytest.fixture
+def build_vrs_variant_from_dict_function():
+    return build_vrs_variant_from_dict
