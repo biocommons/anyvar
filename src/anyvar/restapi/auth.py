@@ -187,6 +187,17 @@ def is_jwt_token_valid(
                 )
                 return False
 
+        # Validate appids if configured
+        if auth_cfg.appids:
+            token_appid = decoded.get("appid")
+            if token_appid not in auth_cfg.appids:
+                _logger.debug(
+                    "Token appid mismatch: expected %s, got %s",
+                    auth_cfg.appids,
+                    token_appid,
+                )
+                return False
+
         # Validate scopes if configured
         if auth_cfg.scopes:
             token_scopes = (
