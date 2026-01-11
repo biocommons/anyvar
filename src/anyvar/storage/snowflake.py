@@ -205,7 +205,7 @@ class SnowflakeObjectStore(Storage):
                     {dyn_table_opts}
                     AS SELECT
                         id,
-                        COLLATE(vrs_object:digest::VARCHAR, 'utf8') AS digest,
+                        COLLATE(SUBSTR(id, LENGTH('ga4gh:VA.') + 1), 'utf8') AS digest,
                         COLLATE(vrs_object:location.id::VARCHAR, 'utf8') AS location_id,
                         vrs_object:state AS state
                     FROM {orm.VrsObject.__tablename__}
@@ -232,7 +232,7 @@ class SnowflakeObjectStore(Storage):
                     {dyn_table_opts}
                     AS SELECT DISTINCT
                         COLLATE(vrs_object:location.id::VARCHAR, 'utf8') AS id,
-                        COLLATE(vrs_object:location.digest::VARCHAR, 'utf8') AS digest,
+                        COLLATE(SUBSTR(vrs_object:location.id::VARCHAR, LENGTH('ga4gh:SL') + 1), 'utf8') AS digest,
                         COLLATE(vrs_object:location.sequenceReference.refgetAccession::VARCHAR, 'utf8') AS sequence_reference_id,
                         (CASE WHEN IS_INTEGER(vrs_object:location.start) THEN vrs_object:location.start::INTEGER ELSE NULL END) AS start_pos,
                         (CASE WHEN IS_ARRAY(vrs_object:location.start) THEN GET(vrs_object:location.start, 0)::INTEGER ELSE NULL END) AS start_outer,

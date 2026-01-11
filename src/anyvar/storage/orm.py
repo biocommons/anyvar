@@ -148,7 +148,6 @@ class Location(Base):
     """AnyVar ORM model for Locations"""
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    digest: Mapped[str] = mapped_column(String)
     sequence_reference_id: Mapped[str] = mapped_column(
         String, ForeignKey(SequenceReference.id)
     )
@@ -170,7 +169,6 @@ class Allele(Base):
     """AnyVar ORM model for Alleles"""
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    digest: Mapped[str] = mapped_column(String)
     location_id: Mapped[str] = mapped_column(String, ForeignKey(Location.id))
     location: Mapped[Location] = relationship()
     state: Mapped[dict] = mapped_column(
