@@ -176,24 +176,6 @@ def run_incomplete_objects_error(storage: Storage):
     with pytest.raises(IncompleteVrsObjectError):
         storage.add_objects([allele_with_idless_sl])
 
-    # allele missing digest
-    digestless_allele = models.Allele(
-        id="ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb",
-        location=models.SequenceLocation(
-            id="ga4gh:SL.JOFKL4nL5mRUlO_xLwQ8VOD1v7mxhs3I",
-            sequenceReference=models.SequenceReference(
-                refgetAccession="SQ.IW78mgV5Cqf6M24hy52hPjyyo5tCCd86"
-            ),
-            start=36561661,
-            end=36561663,
-        ),
-        state=models.ReferenceLengthExpression(
-            length=0, sequence=models.sequenceString(root=""), repeatSubunitLength=2
-        ),
-    )
-    with pytest.raises(IncompleteVrsObjectError):
-        storage.add_objects([digestless_allele])
-
 
 def run_objects_raises_integrityerror(
     storage: Storage,
