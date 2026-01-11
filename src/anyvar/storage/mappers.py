@@ -70,7 +70,7 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, orm.Locatio
 
         return vrs_models.SequenceLocation(
             id=db_entity.id,
-            digest=f"ga4gh:SL.{db_entity.id}",
+            digest=db_entity.id.removeprefix("ga4gh:SL."),
             type="SequenceLocation",
             sequenceReference=self.seq_ref_mapper.from_db_entity(
                 db_entity.sequence_reference
@@ -149,7 +149,7 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, orm.Allele]):
         # Construct orm.Allele and delegate to orm.Location mapper
         return vrs_models.Allele(
             id=db_entity.id,
-            digest=f"ga4gh:VA.{db_entity.id}",
+            digest=db_entity.id.removeprefix("ga4gh:VA."),
             type="Allele",
             location=self.location_mapper.from_db_entity(db_entity.location),
             state=state,
