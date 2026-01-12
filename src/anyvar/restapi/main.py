@@ -15,6 +15,7 @@ import yaml
 from dotenv import load_dotenv
 from fastapi import (
     Body,
+    Depends,
     FastAPI,
     HTTPException,
     Path,
@@ -29,6 +30,7 @@ from pydantic import StrictStr
 
 import anyvar
 from anyvar.anyvar import AnyVar, ObjectNotFoundError
+from anyvar.restapi.auth import get_token_auth_dependency
 from anyvar.restapi.schema import (
     AddAnnotationRequest,
     AddAnnotationResponse,
@@ -165,6 +167,7 @@ app = FastAPI(
     swagger_ui_parameters={"tryItOutEnabled": True},
     description="Register and retrieve VRS value objects.",
     lifespan=app_lifespan,
+    dependencies=[Depends(get_token_auth_dependency())],
 )
 app.include_router(vcf_router)
 
