@@ -1,5 +1,33 @@
-archive
-build
-dist
-tests
-venv
+# Bytecode files
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+venv/
+.venv/
+
+# Debug and log files
+*.log
+debug*.txt
+
+# Data and media
+data/
+media/
+
+# Temporary files and directories
+tmp/
+temp/
+*.swp
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+
+# Distribution files
+dist/
+build/
+*.egg-info/
+
+.env

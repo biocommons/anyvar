@@ -1,4 +1,8 @@
-FROM python:3.12-slim as build
+FROM python:3.12-slim AS build
+
+LABEL org.opencontainers.image.source=https://github.com/biocommons/anyvar
+LABEL org.opencontainers.image.description="AnyVar container image"
+LABEL org.opencontainers.image.licenses=Apache-2.0
 
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     curl \
@@ -19,7 +23,7 @@ COPY .git /app/.git
 ENV PATH=/app/venv/bin:$PATH
 RUN pip install -e '.[dev,test,queueing,postgres]'
 
-FROM python:3.12-slim as anyvar
+FROM python:3.12-slim AS anyvar
 
 RUN apt-get update && apt-get install -y libpq-dev \
     && apt-get clean \
@@ -32,4 +36,4 @@ ENV PATH=/app/venv/bin:$PATH
 
 EXPOSE 8000
 
-CMD uvicorn --host=0.0.0.0 anyvar.restapi.main:app
+CMD ["uvicorn", "--host=0.0.0.0", "anyvar.restapi.main:app"]
