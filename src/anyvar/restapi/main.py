@@ -327,7 +327,7 @@ def _register_variations(
     "/variation",
     response_model_exclude_none=True,
     summary="Register a new allele or copy number object",
-    description="Provide a variation definition to be normalized and registered with AnyVar. A complete VRS Allele or Copy Number object and digest is returned for later reference.",
+    description="Provide a variation definition to be normalized and registered with AnyVar. A complete VRS Allele or Copy Number object and ID is returned for later reference.",
     tags=[EndpointTag.VRS_OBJECTS],
 )
 def register_variation(
@@ -377,7 +377,7 @@ PUT_VRS_VARIATION_EXAMPLE_PAYLOAD = {
 @app.put(
     "/vrs_variation",
     summary="Register a VRS variation",
-    description="Provide a valid VRS variation object to be registered with AnyVar. A digest is returned for later reference.",
+    description="Provide a valid VRS variation object to be registered with AnyVar. A fully-identified object is returned for later reference.",
     response_model_exclude_none=True,
     tags=[EndpointTag.VRS_OBJECTS],
 )

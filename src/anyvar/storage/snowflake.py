@@ -198,14 +198,12 @@ class SnowflakeObjectStore(Storage):
                     CREATE TRANSIENT DYNAMIC TABLE IF NOT EXISTS {orm.Allele.__tablename__}
                     (
                         id VARCHAR(500) COLLATE 'utf8',
-                        digest VARCHAR(500) COLLATE 'utf8',
                         location_id VARCHAR(500) COLLATE 'utf8',
                         state VARIANT
                     )
                     {dyn_table_opts}
                     AS SELECT
                         id,
-                        COLLATE(vrs_object:digest::VARCHAR, 'utf8') AS digest,
                         COLLATE(vrs_object:location.id::VARCHAR, 'utf8') AS location_id,
                         vrs_object:state AS state
                     FROM {orm.VrsObject.__tablename__}
@@ -220,7 +218,6 @@ class SnowflakeObjectStore(Storage):
                     CREATE TRANSIENT DYNAMIC TABLE IF NOT EXISTS {orm.Location.__tablename__}
                     (
                         id VARCHAR(500) COLLATE 'utf8',
-                        digest VARCHAR(500) COLLATE 'utf8',
                         sequence_reference_id VARCHAR(500) COLLATE 'utf8',
                         start_pos INTEGER,
                         start_outer INTEGER,
@@ -232,7 +229,6 @@ class SnowflakeObjectStore(Storage):
                     {dyn_table_opts}
                     AS SELECT DISTINCT
                         COLLATE(vrs_object:location.id::VARCHAR, 'utf8') AS id,
-                        COLLATE(vrs_object:location.digest::VARCHAR, 'utf8') AS digest,
                         COLLATE(vrs_object:location.sequenceReference.refgetAccession::VARCHAR, 'utf8') AS sequence_reference_id,
                         (CASE WHEN IS_INTEGER(vrs_object:location.start) THEN vrs_object:location.start::INTEGER ELSE NULL END) AS start_pos,
                         (CASE WHEN IS_ARRAY(vrs_object:location.start) THEN GET(vrs_object:location.start, 0)::INTEGER ELSE NULL END) AS start_outer,

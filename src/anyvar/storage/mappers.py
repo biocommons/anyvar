@@ -70,7 +70,7 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, orm.Locatio
 
         return vrs_models.SequenceLocation(
             id=db_entity.id,
-            digest=db_entity.digest,
+            digest=db_entity.id.removeprefix("ga4gh:SL."),
             type="SequenceLocation",
             sequenceReference=self.seq_ref_mapper.from_db_entity(
                 db_entity.sequence_reference
@@ -99,7 +99,6 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, orm.Locatio
         # Construct orm.Location and delegate to orm.SequenceReference mapper
         return orm.Location(
             id=anyvar_entity.id,
-            digest=anyvar_entity.digest,
             sequence_reference_id=anyvar_entity.sequenceReference.refgetAccession,
             sequence_reference=self.seq_ref_mapper.to_db_entity(
                 anyvar_entity.sequenceReference
@@ -150,7 +149,7 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, orm.Allele]):
         # Construct orm.Allele and delegate to orm.Location mapper
         return vrs_models.Allele(
             id=db_entity.id,
-            digest=db_entity.digest,
+            digest=db_entity.id.removeprefix("ga4gh:VA."),
             type="Allele",
             location=self.location_mapper.from_db_entity(db_entity.location),
             state=state,
@@ -159,14 +158,11 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, orm.Allele]):
     def to_db_entity(self, anyvar_entity: vrs_models.Allele) -> orm.Allele:
         """Convert VRS Allele to DB Allele.
 
-        :raise AttributeError: if `.id` or `.digest` field is missing, or uses
+        :raise AttributeError: if `.id` field is missing, or uses
             IRI references in place of full SequenceLocation/SequenceReference
         """
         if not anyvar_entity.id:
             msg = "`.id` property is required for storing in DB"
-            raise AttributeError(msg)
-        if not anyvar_entity.digest:
-            msg = "`.digest` property is required for storing in DB"
             raise AttributeError(msg)
 
         # Serialize state
@@ -175,7 +171,6 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, orm.Allele]):
         # purposely trip attribute/type errors below
         return orm.Allele(
             id=anyvar_entity.id,
-            digest=anyvar_entity.digest,
             location_id=anyvar_entity.location.id,  # type: ignore[reportAttributeAccessIssue]
             location=self.location_mapper.to_db_entity(anyvar_entity.location),  # type: ignore[reportArgumentType]
             state=state_dict,
