@@ -50,6 +50,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache chainfiles for liftover
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/wags_tails
+          key: ${{ runner.os }}-test-${{ hashFiles('pyproject.toml') }}
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
