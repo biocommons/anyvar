@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "AnyVar"
+authors:
+  - family-names: Hart
+    given-names: Reece
+  - family-names: Stevenson
+    given-names: James
+    orcid: https://orcid.org/my-orcid?orcid=0000-0002-2568-6163
+  - family-names: Kuzma
+    given-names: Kori
+    orcid: https://orcid.org/0000-0002-9954-7449
+  - family-names: Bowser
+    given-names: Jennifer
+    orcid: https://orcid.org/0009-0001-2462-0576
+  - family-names: Clark
+    given-names: Eugene
+  - family-names: Ferriter
+    given-names: Kyle
+  - family-names: Snow
+    given-names: Hana
+  - family-names: Shukla
+    given-names: Krutin
+  - family-names: Arbesfeld
+    given-names: Jeremy
+    orcid: https://orcid.org/0009-0000-5294-9953
+  - family-names: Babb
+    given-names: Lawrence
+  - family-names: Wong
+    given-names: Quinn Wai
+  - family-names: Wagner
+    given-names: Alex
+    orcid: https://orcid.org/0000-0002-2502-8961
+# identifiers:
+#   - type: doi
+#     value: fill in from zenodo when available
+url: "https://github.com/biocommons/anyvar"
