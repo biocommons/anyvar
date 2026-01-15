@@ -14,7 +14,7 @@ AnyVar enables **registration**, **lookup**, and **search** of genetic variants 
 
 ## Latest Release
 
-[![GitHub tag](https://img.shields.io/github/tag/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar) [![pypi_rel](https://img.shields.io/pypi/v/anyvar.svg)](https://pypi.org/project/anyvar/)
+[![GitHub tag](https://img.shields.io/github/tag/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar) [![pypi_rel](https://img.shields.io/pypi/v/anyvar.svg)](https://pypi.org/project/biocommons.anyvar/)
 
 ## Development
 
