@@ -676,9 +676,22 @@ async def add_registration_annotations(
 )
 def search_variations(
     request: Request,
-    accession: Annotated[str, Query(..., description="Sequence accession identifier")],
-    start: Annotated[int, Query(..., description="Start position for genomic region")],
-    end: Annotated[int, Query(..., description="End position for genomic region")],
+    accession: Annotated[
+        str,
+        Query(
+            ...,
+            description='Sequence accession identifier (ex: "ga4gh:SQ.8_liLu1aycC0tPQPFmUaGXJLDs5SbPZ5")',
+            examples=["ga4gh:SQ.8_liLu1aycC0tPQPFmUaGXJLDs5SbPZ5"],
+        ),
+    ],
+    start: Annotated[
+        int,
+        Query(..., description="Start position for genomic region", examples=[2781631]),
+    ],
+    end: Annotated[
+        int,
+        Query(..., description="End position for genomic region", examples=[2781758]),
+    ],
 ) -> SearchResponse:
     """Fetch all registered variations within the provided genomic coordinates.
 
