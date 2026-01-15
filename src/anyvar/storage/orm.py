@@ -17,6 +17,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     create_engine,
+    func,
     inspect,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -164,6 +165,22 @@ class Location(Base):
         yield self
         yield self.sequence_reference
 
+    @declared_attr
+    @classmethod
+    def __table_args__(cls):  # noqa: ANN206
+        uri = os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
+        parsed_uri = urlparse(uri)
+        if parsed_uri.scheme == "snowflake":
+            return ()
+        return (
+            Index(
+                "ix_location_ref_overlap",
+                cls.sequence_reference_id,
+                func.int8range(cls.start, cls.end, "[]"),
+                postgresql_using="gist",
+            ),
+        )
+
 
 class Allele(Base):
     """AnyVar ORM model for Alleles"""
@@ -195,7 +212,6 @@ class Annotation(Base):
         .with_variant(SnowflakeVARIANT, "snowflake")
     )
 
-    # https://docs.sqlalchemy.org/en/20/core/constraints.html#indexes
     @declared_attr
     @classmethod
     def __table_args__(cls):  # noqa: ANN206

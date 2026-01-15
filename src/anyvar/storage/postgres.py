@@ -6,7 +6,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
-from sqlalchemy import create_engine, delete, select
+from sqlalchemy import create_engine, delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, sessionmaker
@@ -393,8 +393,9 @@ class PostgresObjectStore(Storage):
                 .join(orm.SequenceReference)
                 .where(
                     orm.SequenceReference.id == refget_accession,
-                    orm.Location.start <= stop,
-                    orm.Location.end >= start,
+                    func.int8range(orm.Location.start, orm.Location.end, "[]").op("&&")(
+                        func.int8range(start, stop, "[]")
+                    ),
                 )
                 .limit(self.MAX_ROWS)
             )
