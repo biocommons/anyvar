@@ -540,7 +540,7 @@ async def annotated_vcf(
         _logger.exception("%s lacks required VRS annotations", vcf.filename)
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ErrorResponse(
-            error="Required VRS annotations are missing -- ensure INFO field has VRS_Allele_IDs, VRS_Starts, VRS_Ends, and VRS_States"
+            error="Required VRS annotations are missing -- ensure INFO field has VRS_Allele_IDs, VRS_Starts, VRS_Ends, VRS_States, and VRS_RepeatSubunitLengths"
         )
     except (TranslatorConnectionError, OSError, ValueError):
         _logger.exception(
