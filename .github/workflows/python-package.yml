@@ -50,6 +50,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Initialize GiST extension
+        run: psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS btree_gist;"
+
       - name: Cache chainfiles for liftover
         uses: actions/cache@v4
         with:

@@ -6,7 +6,7 @@ More advanced users may want to tailor resources to their specific needs. This s
 Prerequisites
 =============
 
-* Python >= 3.10
+* Python >= 3.11
 * PostgreSQL
 * Redis, or another `Celery backend/broker <https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/index.html>`_
 
