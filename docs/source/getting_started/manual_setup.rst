@@ -13,19 +13,11 @@ Prerequisites
 Python Package
 ==============
 
-.. TODO update once available on PyPI -- see issue #138
-
-Install AnyVar from the GitHub repository:
+Install AnyVar from PyPI with optional dependencies for PostgreSQL storage and task queueing:
 
 .. code-block:: console
 
-   % python -m pip install git+https://github.com/biocommons/anyvar
-
-Activate a virtual environment, and install AnyVar with optional dependencies for PostgreSQL storage and task queueing:
-
-.. code-block:: console
-
-   % python -m pip install ".[postgres,queueing]"
+   % python -m pip install "biocommons.anyvar[postgres,queueing]"
 
 Storage Backend: PostgreSQL Service
 ===================================

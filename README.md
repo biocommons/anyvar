@@ -9,12 +9,11 @@ AnyVar enables **registration**, **lookup**, and **search** of genetic variants 
 
 ## Information
 
-[![rtd](https://img.shields.io/badge/docs-readthedocs-green.svg)](http://anyvar.readthedocs.io/) [![changelog](https://img.shields.io/badge/docs-changelog-green.svg)](https://anyvar.readthedocs.io/en/latest/changelog.html) [![GitHub license](https://img.shields.io/github/license/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar/blob/main/LICENSE) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18249699.svg)](https://doi.org/10.5281/zenodo.18249699)
-
+[![rtd](https://img.shields.io/badge/docs-readthedocs-green.svg)](http://anyvar.readthedocs.io/) [![changelog](https://img.shields.io/badge/docs-changelog-green.svg)](https://anyvar.readthedocs.io/en/latest/changelog.html) [![GitHub license](https://img.shields.io/github/license/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar/blob/main/LICENSE) [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.18249699-blue)](https://doi.org/10.5281/zenodo.18249699)
 
 ## Latest Release
 
-[![GitHub tag](https://img.shields.io/github/tag/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar) [![pypi_rel](https://img.shields.io/pypi/v/anyvar.svg)](https://pypi.org/project/anyvar/)
+[![GitHub tag](https://img.shields.io/github/tag/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar) [![pypi_rel](https://img.shields.io/pypi/v/biocommons.anyvar.svg)](https://pypi.org/project/biocommons.anyvar/)
 
 ## Development
 

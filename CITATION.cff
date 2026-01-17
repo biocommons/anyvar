@@ -31,7 +31,5 @@ authors:
   - family-names: Wagner
     given-names: Alex
     orcid: https://orcid.org/0000-0002-2502-8961
-# identifiers:
-#   - type: doi
-#     value: fill in from zenodo when available
+doi: 10.5281/zenodo.18249699
 url: "https://github.com/biocommons/anyvar"
