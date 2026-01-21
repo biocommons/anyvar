@@ -26,7 +26,13 @@ Some configuration is required to run tests:
 
     Ensure that the database and role are available in the PostgreSQL instance.
 
-    For example, to support the connection string ``"postgresql://anyvar_test_user:anyvar_test_pw@localhost:5432/anyvar_test_db"``, run ``psql -U postgres -C "CREATE USER anyvar_test_user WITH PASSWORD anyvar_test_pw; CREATE DATABASE anyvar_test_db WITH OWNER anyvar_test_user; CREATE EXTENSION IF NOT EXISTS btree_gist;"``
+    For example, to support the connection string ``"postgresql://anyvar_test_user:anyvar_test_pw@localhost:5432/anyvar_test_db"``, run
+
+    .. code-block:: shell
+
+        psql -U postgres -c "CREATE USER anyvar_test_user WITH PASSWORD 'anyvar_test_pw';"
+        psql -U postgres -c "CREATE DATABASE anyvar_test_db WITH OWNER anyvar_test_user;"
+        psql -U postgres -d anyvar_test_db -c "CREATE EXTENSION IF NOT EXISTS btree_gist;"
 
 * **Ensure Celery backend and broker are available, and that Celery workers are NOT running** - the task queueing tests create and manage their own Celery workers, but they do require access to a broker/backend for message transport and result storage. See `async task queuing setup instructions <todo>`_ for more. If an existing AnyVar Celery worker is running, they may not function properly.
 
