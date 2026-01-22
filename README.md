@@ -22,10 +22,10 @@ AnyVar enables **registration**, **lookup**, and **search** of genetic variants 
 
 ## Installation
 
-Currently, AnyVar can be installed from GitHub:
+AnyVar can be installed from [PyPI](https://pypi.org/project/biocommons.anyvar/):
 
 ```
-pip install git+https://github.com/biocommons/anyvar
+pip install biocommons.anyvar
 ```
 
 See the [documentation](https://anyvar.readthedocs.io) for additional setup options and detailed instructions for initializing data dependencies.
