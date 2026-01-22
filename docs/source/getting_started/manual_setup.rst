@@ -17,7 +17,7 @@ Install AnyVar from PyPI with optional dependencies for PostgreSQL storage and t
 
 .. code-block:: console
 
-   % python -m pip install "biocommons.anyvar[postgres,queueing]"
+   % python -m pip install "anyvar[postgres,queueing]"
 
 Storage Backend: PostgreSQL Service
 ===================================
