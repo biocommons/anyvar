@@ -17,6 +17,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     create_engine,
+    func,
     inspect,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -90,21 +91,21 @@ class Base(DeclarativeBase):
 
         Example:
         >>> sequence_reference = orm.SequenceReference(
-            id="SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
-            # etc...
-        )
+        ...     id="SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
+        ...     # etc...
+        ... )
         >>> location = orm.Location(
-            id="ga4gh:SL.U8b3eMCw6QjGA9cnDx_KYxqbol0UrEKx",
-            sequence_reference_id=sequence_reference.id,
-            sequence_reference=sequence_reference
-            # etc...
-        )
+        ...     id="ga4gh:SL.U8b3eMCw6QjGA9cnDx_KYxqbol0UrEKx",
+        ...     sequence_reference_id=sequence_reference.id,
+        ...     sequence_reference=sequence_reference,
+        ...     # etc...
+        ... )
         >>> allele = orm.Allele(
-            id="ga4gh:VA.uR23Z7AAFaLHhPUymUEYNG4o2CCE560T",
-            location_id=location.id,
-            location=location
-            # etc...
-        )
+        ...     id="ga4gh:VA.uR23Z7AAFaLHhPUymUEYNG4o2CCE560T",
+        ...     location_id=location.id,
+        ...     location=location,
+        ...     # etc...
+        ... )
         >>> disassembled_allele = allele.disassemble()
         >>> print(disassembled_allele)
         {'Allele': <anyvar.storage.orm.Allele object at 0x108dfa780>, 'Location': <anyvar.storage.orm.Location object at 0x101416db0>, 'SequenceReference': <anyvar.storage.orm.SequenceReference object at 0x100af5250>}
@@ -164,6 +165,22 @@ class Location(Base):
         yield self
         yield self.sequence_reference
 
+    @declared_attr
+    @classmethod
+    def __table_args__(cls):  # noqa: ANN206
+        uri = os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
+        parsed_uri = urlparse(uri)
+        if parsed_uri.scheme == "snowflake":
+            return ()
+        return (
+            Index(
+                "ix_location_ref_overlap",
+                cls.sequence_reference_id,
+                func.int8range(cls.start, cls.end, "[]"),
+                postgresql_using="gist",
+            ),
+        )
+
 
 class Allele(Base):
     """AnyVar ORM model for Alleles"""
@@ -195,7 +212,6 @@ class Annotation(Base):
         .with_variant(SnowflakeVARIANT, "snowflake")
     )
 
-    # https://docs.sqlalchemy.org/en/20/core/constraints.html#indexes
     @declared_attr
     @classmethod
     def __table_args__(cls):  # noqa: ANN206
@@ -265,9 +281,9 @@ def session_factory(db_url: str) -> sessionmaker:
 
     >>> sf = session_factory(db_url)
     >>> with sf() as session:
-    >>>     with session.begin(): # Perform database operations
-    >>>         session.add(some_object)
-    >>>         session.execute(some_query)
+    ...     with session.begin():  # Perform database operations
+    ...         session.add(some_object)
+    ...         session.execute(some_query)
     >>> # Transaction from session.begin() automatically commits if no exceptions occur
     >>> # Session automatically closes
 
