@@ -13,7 +13,7 @@ AnyVar enables **registration**, **lookup**, and **search** of genetic variants 
 
 ## Latest Release
 
-[![GitHub tag](https://img.shields.io/github/tag/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar) [![pypi_rel](https://img.shields.io/pypi/v/biocommons.anyvar.svg)](https://pypi.org/project/biocommons.anyvar/)
+[![GitHub tag](https://img.shields.io/github/tag/biocommons/anyvar.svg)](https://github.com/biocommons/anyvar) [![pypi_rel](https://img.shields.io/pypi/v/anyvar.svg)](https://pypi.org/project/anyvar/)
 
 ## Development
 
@@ -22,10 +22,10 @@ AnyVar enables **registration**, **lookup**, and **search** of genetic variants 
 
 ## Installation
 
-AnyVar can be installed from [PyPI](https://pypi.org/project/biocommons.anyvar/):
+AnyVar can be installed from [PyPI](https://pypi.org/project/anyvar/):
 
 ```
-pip install biocommons.anyvar
+pip install anyvar
 ```
 
 See the [documentation](https://anyvar.readthedocs.io) for additional setup options and detailed instructions for initializing data dependencies.

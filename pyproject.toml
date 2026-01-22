@@ -1,5 +1,5 @@
 [project]
-name = "biocommons.anyvar"
+name = "anyvar"
 authors = [
   { name="biocommons contributors", email="biocommons-dev@googlegroups.com" },
 ]
@@ -95,7 +95,7 @@ markers = [
 
 [tool.coverage.run]
 branch = true
-source = ["biocommons.example"]
+source = ["anyvar"]
 omit = ["*_test.py", "*/test/*", "*/tests/*"]
 
 [tool.coverage.report]
