@@ -60,7 +60,7 @@ Here's a comprehensive logging configuration example: ::
         handlers: [console, file]
         propagate: no
 
-      anyvar.storage
+      anyvar.storage:
         level: DEBUG
         handlers: [console, file]
         propagate: no
