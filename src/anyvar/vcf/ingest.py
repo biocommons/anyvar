@@ -11,7 +11,7 @@ from ga4gh.vrs import normalize
 from ga4gh.vrs.dataproxy import _DataProxy
 from ga4gh.vrs.extras.annotator.vcf import FieldName, VcfAnnotator
 
-from anyvar.anyvar import AnyVar
+from anyvar import AnyVar
 from anyvar.core.objects import VrsObject
 
 _logger = logging.getLogger(__name__)

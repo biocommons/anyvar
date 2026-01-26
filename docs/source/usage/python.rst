@@ -17,7 +17,7 @@ The :py:class:`~anyvar.anyvar.AnyVar` class requires implementation of the :py:c
 
 .. code-block:: pycon
 
-   >>> from anyvar.anyvar import AnyVar, create_storage, create_translator
+   >>> from anyvar import AnyVar, create_storage, create_translator
    >>> av = AnyVar(create_translator(), create_storage())
 
 Basic Variant Object Operations
