@@ -13,7 +13,7 @@ This page demonstrates basic usage of the AnyVar Python interface. See the :ref:
 Instantiating An AnyVar Instance
 ================================
 
-The :py:class:`~anyvar.anyvar.AnyVar` class requires implementation of the :py:class:`~anyvar.storage.base_storage.Storage` and :py:class:`~anyvar.translate.translate._Translator` abstractions. These can easily be instantiated with the :py:meth:`~anyvar.anyvar.create_storage` and :py:meth:`~anyvar.anyvar.create_translator` factory functions:
+The :py:class:`~anyvar.anyvar.AnyVar` class requires implementation of the :py:class:`~anyvar.storage.base.Storage` and :py:class:`~anyvar.translate.base.Translator` abstractions. These can easily be instantiated with the :py:meth:`~anyvar.anyvar.create_storage` and :py:meth:`~anyvar.anyvar.create_translator` factory functions:
 
 .. code-block:: pycon
 

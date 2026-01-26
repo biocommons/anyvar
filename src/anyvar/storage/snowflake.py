@@ -24,7 +24,7 @@ from sqlalchemy.sql.compiler import SQLCompiler
 from sqlalchemy.sql.expression import Insert
 
 from anyvar.storage import orm
-from anyvar.storage.base_storage import (
+from anyvar.storage.base import (
     DataIntegrityError,
     IncompleteVrsObjectError,
     InvalidSearchParamsError,

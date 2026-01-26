@@ -6,7 +6,7 @@ from ga4gh.vrs import models
 from ga4gh.vrs.dataproxy import _DataProxy, create_dataproxy
 from ga4gh.vrs.extras.translator import AlleleTranslator, CnvTranslator
 
-from anyvar.translate.translate import TranslationError, Translator
+from anyvar.translate.base import TranslationError, Translator
 from anyvar.utils import types
 
 

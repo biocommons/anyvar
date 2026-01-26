@@ -3,7 +3,7 @@
 import pytest
 from ga4gh.vrs import models
 
-from anyvar.storage.base_storage import (
+from anyvar.storage.base import (
     DataIntegrityError,
     IncompleteVrsObjectError,
     InvalidSearchParamsError,

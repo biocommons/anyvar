@@ -1,7 +1,7 @@
-﻿anyvar.storage.base_storage
-===========================
+﻿anyvar.storage.base
+===================
 
-.. automodule:: anyvar.storage.base_storage
+.. automodule:: anyvar.storage.base
    :members:
    :undoc-members:
    :special-members: __init__

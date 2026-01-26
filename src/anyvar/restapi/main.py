@@ -47,8 +47,8 @@ from anyvar.restapi.schema import (
     VariationRequest,
 )
 from anyvar.restapi.vcf import router as vcf_router
-from anyvar.storage.base_storage import IncompleteVrsObjectError
-from anyvar.translate.translate import (
+from anyvar.storage.base import IncompleteVrsObjectError
+from anyvar.translate.base import (
     TranslationError,
     Translator,
 )

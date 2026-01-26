@@ -23,7 +23,7 @@ Object Storage
    :toctree: api/storage/
    :template: module_summary.rst
 
-   anyvar.storage.base_storage
+   anyvar.storage.base
    anyvar.storage.postgres
    anyvar.storage.mapper_registry
    anyvar.storage.mappers
@@ -38,7 +38,7 @@ Variant Translation
    :toctree: api/translate/
    :template: module_summary.rst
 
-   anyvar.translate.translate
+   anyvar.translate.base
    anyvar.translate.vrs_python
 
 Utilities

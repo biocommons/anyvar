@@ -4,7 +4,7 @@ from http import HTTPStatus
 
 import pytest
 
-from anyvar.storage.base_storage import Storage
+from anyvar.storage.base import Storage
 from anyvar.utils import types
 
 DEFAULT_MAPPING_TYPE = types.VariationMappingType.LIFTOVER

@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, sessionmaker
 
 from anyvar.storage import orm
-from anyvar.storage.base_storage import (
+from anyvar.storage.base import (
     DataIntegrityError,
     IncompleteVrsObjectError,
     InvalidSearchParamsError,

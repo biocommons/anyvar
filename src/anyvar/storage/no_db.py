@@ -8,7 +8,7 @@ from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
 
-from anyvar.storage.base_storage import Storage
+from anyvar.storage.base import Storage
 from anyvar.utils import types
 
 

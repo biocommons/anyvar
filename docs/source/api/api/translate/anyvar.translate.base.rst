@@ -1,7 +1,7 @@
-﻿anyvar.translate.translate
-==========================
+﻿anyvar.translate.base
+=====================
 
-.. automodule:: anyvar.translate.translate
+.. automodule:: anyvar.translate.base
    :members:
    :undoc-members:
    :special-members: __init__

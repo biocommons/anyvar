@@ -1,6 +1,6 @@
 """Provide proxy classes and other tools for translation middleware."""
 
-from .translate import (
+from .base import (
     TranslationError,
     Translator,
     TranslatorConnectionError,

@@ -14,8 +14,8 @@ from urllib.parse import urlparse
 from ga4gh.vrs import models as vrs_models
 
 from anyvar.storage import DEFAULT_STORAGE_URI
-from anyvar.storage.base_storage import Storage
-from anyvar.translate.translate import Translator
+from anyvar.storage.base import Storage
+from anyvar.translate.base import Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
 from anyvar.utils import types
 from anyvar.utils.types import AnnotationType, VrsObject

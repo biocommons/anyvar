@@ -10,8 +10,8 @@ from pydantic import BaseModel
 
 from anyvar.anyvar import AnyVar, create_storage, create_translator
 from anyvar.restapi.main import app as anyvar_restapi
-from anyvar.storage.base_storage import Storage
-from anyvar.translate.translate import Translator
+from anyvar.storage.base import Storage
+from anyvar.translate.base import Translator
 from anyvar.utils.types import VrsVariation
 
 pytest_plugins = ("celery.contrib.pytest",)

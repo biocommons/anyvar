@@ -10,7 +10,7 @@ from anyvar.restapi.main import (
     VARIATION_EXAMPLE_PAYLOAD,
 )
 from anyvar.restapi.schema import RegisterVariationResponse, VariationRequest
-from anyvar.storage.base_storage import Storage
+from anyvar.storage.base import Storage
 from anyvar.utils.liftover_utils import ReferenceAssembly
 
 

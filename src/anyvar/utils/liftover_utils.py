@@ -16,7 +16,7 @@ from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import models, normalize
 from ga4gh.vrs.dataproxy import _DataProxy
 
-from anyvar.storage.base_storage import Storage
+from anyvar.storage.base import Storage
 from anyvar.utils.types import VariationMapping, VariationMappingType, VrsVariation
 
 _logger = logging.getLogger(__name__)

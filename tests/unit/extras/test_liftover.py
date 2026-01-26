@@ -2,8 +2,8 @@ import pytest
 from ga4gh.vrs import models
 
 from anyvar.anyvar import AnyVar
-from anyvar.storage.base_storage import Storage
-from anyvar.translate.translate import Translator
+from anyvar.storage.base import Storage
+from anyvar.translate.base import Translator
 from anyvar.utils import liftover_utils
 from anyvar.utils.types import VariationMappingType
 
