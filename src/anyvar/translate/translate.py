@@ -33,16 +33,16 @@ class Translator(ABC):
         :param var: user-provided string describing or referencing a variation.
         :param input_type: The type of variation for `var`.
         :kwargs:
-            input_type (types.VrsVariation): The type of variation for `var`.
-                If not provided, will first try to translate to allele and then
-                copy number
-            copies (int) - The number of copies for VRS Copy Number Count
-            copy_change (models.CopyChange) - The EFO code for VRS COpy Number Change
-            assembly_name(str) -> Assembly name for ``var``.
-                Only used when ``var`` uses gnomad format.
-                Defaults to "GRCh38". Must be "GRCh38" or "GRCh7"
-                VRS-Python sets a default, but we should set a default just in case
-                VRS-Python ever changes the default.
+           * input_type (types.VrsVariation): The type of variation for `var`.
+             If not provided, will first try to translate to allele and then
+             copy number
+           * copies (int) - The number of copies for VRS Copy Number Count
+           * copy_change (models.CopyChange) - The EFO code for VRS COpy Number Change
+           * assembly_name(str) -> Assembly name for ``var``.
+             Only used when ``var`` uses gnomad format.
+             Defaults to "GRCh38". Must be "GRCh38" or "GRCh37".
+             VRS-Python sets a default, but we should set a default just in case
+             VRS-Python ever changes the default.
         :returns: VRS variation object
         :raises TranslationError: if translation is unsuccessful, either because
             the submitted variation is malformed, or because VRS-Python doesn't support

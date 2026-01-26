@@ -21,7 +21,7 @@ Object Storage
 .. autosummary::
    :nosignatures:
    :toctree: api/storage/
-   :template: module_summary.rst
+   :template: module_summary_no_inherit.rst
 
    anyvar.storage.base_storage
    anyvar.storage.postgres

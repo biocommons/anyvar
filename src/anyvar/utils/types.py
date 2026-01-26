@@ -84,12 +84,14 @@ Type_VrsObject = TypeVar("Type_VrsObject", bound=VrsObject)
 def recursive_identify(vrs_object: Type_VrsObject) -> Type_VrsObject:
     """Add GA4GH IDs to an object and all GA4GH-identifiable objects contained within.
 
-    ***This is a very hack-y solution and should not be relied upon any more than it is.
-    It appears that enref/deref() will add IDs within objects, but don't produce a
-    correct ID, and ga4gh_identify() won't add IDs to contained objects, so this function
-    runs both in succession.
+    .. ATTENTION::
 
-    There is probably an upstream fix in VRS-Python that needs to happen.
+       This is a very hack-y solution and should not be relied upon any more than it is.
+       It appears that enref/deref() will add IDs within objects, but don't produce a
+       correct ID, and ga4gh_identify() won't add IDs to contained objects, so this function
+       runs both in succession.
+
+       There is probably an upstream fix in VRS-Python that needs to happen.
 
     :param vrs_object: AnyVar-supported variation object
     :return: same object, with any missing ID fields filled in
