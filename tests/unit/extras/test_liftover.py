@@ -143,7 +143,7 @@ NO_LIFTOVER_CASES = ["empty_variation_object", "invalid_variant"]
 
 
 ####################################################################################
-## Tests for src/anyvar/utils/liftover.py > 'get_liftover_variant' function ##
+## Tests for src/anyvar/mapping/liftover.py > 'get_liftover_variant' function ##
 ####################################################################################
 @pytest.mark.parametrize("variant_fixture_name", SUCCESS_CASES)
 @pytest.mark.ci_ok
@@ -175,7 +175,7 @@ def test_liftover_failure(request, variant_fixture_name):
 
 
 ######################################################################################################
-## Tests for `src/anyvar/utils/liftover.py > 'add_liftover_mapping' ##
+## Tests for `src/anyvar/mapping/liftover.py > 'add_liftover_mapping' ##
 ######################################################################################################
 @pytest.mark.parametrize(
     "variant_fixture_name",

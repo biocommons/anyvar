@@ -12,8 +12,30 @@ Core Functions and Utilities
    :template: module_summary.rst
 
    anyvar.anyvar
+   anyvar.core.metadata
+   anyvar.core.objects
+   anyvar.core.string
+
+VCF Ingestion
+=============
+
+.. autosummary::
+   :nosignatures:
+   :toctree: api/vcf
+   :template: module_summary.rst
+
+   anyvar.vcf.ingest
+
+
+Bulk Processing
+===============
+
+.. autosummary::
+   :nosignatures:
+   :toctree: api/queueing
+   :template: module_summary.rst
+
    anyvar.queueing.celery_worker
-   anyvar.extras.vcf
 
 Object Storage
 ==============
@@ -46,19 +68,7 @@ Mapping
 
 .. autosummary::
    :nosignatures:
-   :toctree: api/utils/
+   :toctree: api/mapping/
    :template: module_summary.rst
 
    anyvar.mapping.liftover
-
-
-Utilities
-=========
-
-.. autosummary::
-   :nosignatures:
-   :toctree: api/utils/
-   :template: module_summary.rst
-
-   anyvar.utils.funcs
-   anyvar.utils.types

@@ -98,7 +98,7 @@ AnyVar can add basic mappings between objects with :py:meth:`AnyVar.put_mapping(
 
 .. code-block:: pycon
 
-   >>> from anyvar.utils.types import VariationMapping, VariationMappingType
+   >>> from anyvar.core.metadata import VariationMapping, VariationMappingType
    >>> genomic_allele = av.translator.translate_allele("NC_000007.14:g.140753336A>T")
    >>> tx_allele = av.translator.translate_allele("NM_004333.6:c.1799T>A")
    >>> av.put_objects([genomic_allele, tx_allele])
@@ -127,7 +127,7 @@ AnyVar can apply basic annotations on objects with :py:meth:`AnyVar.put_annotati
 
 .. code-block:: pycon
 
-   >>> from anyvar.utils.types import Annotation
+   >>> from anyvar.core.metadata import Annotation
    >>> av.put_annotation(Annotation(
    ...     object_id=genomic_allele.id,
    ...     annotation_type="clinvar_somatic_classification",
@@ -158,7 +158,7 @@ AnyVar can consume a Variant Call Format (VCF) file, register all contained vari
 
 .. code-block:: pycon
 
-   >>> from anyvar.extras.vcf import VcfRegistrar
+   >>> from anyvar.vcf.ingest import VcfRegistrar
    >>> from pathlib import Path
    >>> registrar = VcfRegistrar(data_proxy=av.translator.dp, av=av)
    >>> registrar.annotate(Path("my_vcf.vcf"), Path("out.vcf"))
