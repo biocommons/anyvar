@@ -1,4 +1,4 @@
-"""Defines utility functions used throughout AnyVar"""
+"""Provide basic functions related to string operations."""
 
 import re
 

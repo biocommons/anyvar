@@ -1,13 +1,12 @@
-"""Provide helpful type definitions, references, and type-based operations."""
+"""Provide types, classes, and functions for objects stored by AnyVar."""
 
 from enum import StrEnum
 from typing import TypeVar, get_args
 
 from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import models, vrs_deref, vrs_enref
-from pydantic import BaseModel, JsonValue
 
-from anyvar.utils.funcs import camel_case_to_snake_case
+from anyvar.core.string import camel_case_to_snake_case
 
 VrsObject = (
     models.Allele
@@ -46,36 +45,6 @@ For example:
 vrs_object_class_map: dict[str, type[VrsObject]] = {
     cls.__name__: cls for cls in get_args(VrsObject)
 }
-
-
-class VariationMappingType(StrEnum):
-    """Supported mapping types between VRS Variations."""
-
-    LIFTOVER = "liftover"
-    TRANSCRIPTION = "transcription"
-    TRANSLATION = "translation"
-
-
-class VariationMapping(BaseModel):
-    """Describe a mapping between two variations."""
-
-    source_id: str
-    dest_id: str
-    mapping_type: VariationMappingType
-
-
-class Annotation(BaseModel):
-    """Generic annotation class which attaches any object to an identifier"""
-
-    object_id: str
-    annotation_type: str
-    annotation_value: JsonValue
-
-
-class AnnotationType(StrEnum):
-    """Describe commonly used annotation types"""
-
-    CREATION_TIMESTAMP = "creation_timestamp"
 
 
 Type_VrsObject = TypeVar("Type_VrsObject", bound=VrsObject)

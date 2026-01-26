@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 
 from ga4gh.vrs.dataproxy import _DataProxy
 
-from anyvar.utils.types import VrsVariation
+from anyvar.core.objects import VrsVariation
 
 
 class TranslatorSetupError(Exception):

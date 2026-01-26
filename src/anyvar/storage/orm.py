@@ -31,9 +31,9 @@ from sqlalchemy.orm import (
 from sqlalchemy.orm.decl_api import declared_attr
 from sqlalchemy.types import TypeDecorator
 
+from anyvar.core import metadata
+from anyvar.core.string import camel_case_to_snake_case
 from anyvar.storage import DEFAULT_STORAGE_URI
-from anyvar.utils.funcs import camel_case_to_snake_case
-from anyvar.utils.types import VariationMappingType
 
 
 class SnowflakeVARIANT(TypeDecorator):
@@ -229,7 +229,7 @@ class Annotation(Base):
 
 
 mapping_type_enum = Enum(
-    VariationMappingType,
+    metadata.VariationMappingType,
     name="mapping_type",
     native_enum=True,
     metadata=Base.metadata,

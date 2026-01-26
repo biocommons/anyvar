@@ -2,10 +2,10 @@ import pytest
 from ga4gh.vrs import models
 
 from anyvar.anyvar import AnyVar
+from anyvar.core.metadata import VariationMappingType
 from anyvar.mapping import liftover
 from anyvar.storage.base import Storage
 from anyvar.translate.base import Translator
-from anyvar.utils.types import VariationMappingType
 
 
 # Success Cases
