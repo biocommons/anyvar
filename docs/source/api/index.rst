@@ -41,6 +41,17 @@ Variant Translation
    anyvar.translate.base
    anyvar.translate.vrs_python
 
+Mapping
+=======
+
+.. autosummary::
+   :nosignatures:
+   :toctree: api/utils/
+   :template: module_summary.rst
+
+   anyvar.mapping.liftover
+
+
 Utilities
 =========
 
@@ -50,5 +61,4 @@ Utilities
    :template: module_summary.rst
 
    anyvar.utils.funcs
-   anyvar.utils.liftover_utils
    anyvar.utils.types

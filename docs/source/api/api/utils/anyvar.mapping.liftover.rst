@@ -1,7 +1,7 @@
-﻿anyvar.utils.liftover_utils
-===========================
+﻿anyvar.mapping.liftover
+=======================
 
-.. automodule:: anyvar.utils.liftover_utils
+.. automodule:: anyvar.mapping.liftover
    :members:
    :undoc-members:
    :special-members: __init__

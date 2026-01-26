@@ -30,6 +30,7 @@ from pydantic import StrictStr
 
 import anyvar
 from anyvar.anyvar import AnyVar, ObjectNotFoundError
+from anyvar.mapping.liftover import add_liftover_mapping
 from anyvar.restapi.auth import get_token_auth_dependency
 from anyvar.restapi.schema import (
     AddAnnotationRequest,
@@ -52,7 +53,7 @@ from anyvar.translate.base import (
     TranslationError,
     Translator,
 )
-from anyvar.utils import liftover_utils, types
+from anyvar.utils import types
 from anyvar.utils.types import (
     VrsObject,
     VrsVariation,
@@ -301,7 +302,7 @@ def _register_variations(
             continue
 
         messages: list[str] = (
-            liftover_utils.add_liftover_mapping(
+            add_liftover_mapping(
                 variation=translation_result.variation,
                 storage=av.object_store,
                 dataproxy=av.translator.dp,
@@ -405,7 +406,7 @@ def register_vrs_object(
             detail="Variation could not be registered",
         ) from e
 
-    liftover_messages = liftover_utils.add_liftover_mapping(
+    liftover_messages = add_liftover_mapping(
         variation, av.object_store, av.translator.dp
     )
 

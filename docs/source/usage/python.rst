@@ -80,11 +80,11 @@ AnyVar's :ref:`variation translation <supported-variant-nomenclature>` feature c
 Variation Liftover
 ==================
 
-AnyVar employs the `agct <https://github.com/GenomicMedLab/agct/>`_ library to lift genomic variation locations between equivalent positions on GRCh37 and GRCh38. The :py:func:`~anyvar.utils.liftover_utils.get_liftover_variant` function takes a variation, determines its reference assembly, and returns the corresponding allele on the opposite assembly.
+AnyVar employs the `agct <https://github.com/GenomicMedLab/agct/>`_ library to lift genomic variation locations between equivalent positions on GRCh37 and GRCh38. The :py:func:`~anyvar.mapping.liftover.get_liftover_variant` function takes a variation, determines its reference assembly, and returns the corresponding allele on the opposite assembly.
 
 .. code-block:: pycon
 
-   >>> from anyvar.utils.liftover_utils import get_liftover_variant
+   >>> from anyvar.mapping.liftover import get_liftover_variant
    >>> (allele.location.start, allele.location.end)
    (87894076, 87894077)
    >>> lifted_variant = get_liftover_variant(allele)
@@ -118,7 +118,7 @@ They can be retrieved with :py:meth:`AnyVar.get_object_mappings() <anyvar.anyvar
 
 See :ref:`here <mappings>` for more information about object mappings in AnyVar.
 
-The :py:mod:`~anyvar.utils.liftover_utils` module provides the :py:func:`~anyvar.utils.liftover_utils.add_liftover_mapping` function as a convenient way to find the lifted-over equivalent of a variation, register it, and add mappings of type ``liftover`` between them.
+The :py:mod:`~anyvar.mapping.liftover` module provides the :py:func:`~anyvar.mapping.liftover.add_liftover_mapping` function as a convenient way to find the lifted-over equivalent of a variation, register it, and add mappings of type ``liftover`` between them.
 
 Object Annotations
 ==================

@@ -15,8 +15,8 @@ from ga4gh.vrs import (
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
 from anyvar import __version__
+from anyvar.mapping.liftover import ReferenceAssembly
 from anyvar.utils import types
-from anyvar.utils.liftover_utils import ReferenceAssembly
 from anyvar.utils.types import (
     SupportedVariationType,
     VrsObject,
