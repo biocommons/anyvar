@@ -78,7 +78,7 @@ from:
 
 To:
 
-.. code-block:: sql
+.. code-block:: text
 
     INSERT INTO target_table (id_col, col1)
     SELECT v.$1, v.$2
