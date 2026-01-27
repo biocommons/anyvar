@@ -56,11 +56,11 @@ class VrsPythonTranslator(Translator):
             its translation.
         """
         input_type = kwargs.get("input_type")
-        if input_type == types.SupportedVariationType.ALLELE:
+        if input_type == types.SupportedObjectType.ALLELE:
             variation = self.translate_allele(var, **kwargs)
         elif input_type in (
-            types.SupportedVariationType.COPY_NUMBER_CHANGE,
-            types.SupportedVariationType.COPY_NUMBER_COUNT,
+            types.SupportedObjectType.COPY_NUMBER_CHANGE,
+            types.SupportedObjectType.COPY_NUMBER_COUNT,
         ):
             variation = self.translate_cnv(var, **kwargs)
         else:

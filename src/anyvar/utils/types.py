@@ -7,8 +7,11 @@ from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import models, vrs_deref, vrs_enref
 from pydantic import BaseModel, JsonValue
 
-from anyvar.utils.funcs import camel_case_to_snake_case
+"""
+Any time this is updated, a corresponding member MUST be added to ``anyvar.restapi.schema.SupportedObjectType``.
 
+``tests/unit/restapi/test_schema.py`` will fail if you don't.
+"""
 VrsObject = (
     models.Allele
     | models.CopyNumberChange
@@ -19,23 +22,6 @@ VrsObject = (
 
 
 VrsVariation = models.Allele | models.CopyNumberChange | models.CopyNumberCount
-
-
-class SupportedVariationType(StrEnum):
-    """Supported variation types for API input. Enum is dynamically built from the models in the `VrsVariation` type union.
-    This should only be used to parse HTTP input in the `src/anyvar/restapi/schema.py` models, not within application logic.
-
-    Example:
-    >>> SupportedVariationType.COPY_NUMBER_CHANGE = "CopyNumberChange"
-
-    """
-
-    locals().update(
-        {
-            camel_case_to_snake_case(cls.__name__): cls.__name__
-            for cls in get_args(VrsObject)
-        }
-    )
 
 
 """
