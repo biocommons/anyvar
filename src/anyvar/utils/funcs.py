@@ -3,7 +3,7 @@
 import re
 
 
-def camel_case_to_snake_case(word: str, uppercase: bool = True) -> str:
+def camel_to_snake(word: str, uppercase: bool = True) -> str:
     """Transform a string from camelCase (or PascalCase) into snake_case, optionally UPPER_CASED as well
 
     :param word: The word to transform
