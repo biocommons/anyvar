@@ -109,9 +109,7 @@ async def parse_and_rebuild_response(
 
 @asynccontextmanager
 async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
-    """Initialize AnyVar instance and associate with FastAPI app on startup
-    and teardown the AnyVar instance on shutdown
-    """
+    """Perform resource initialization/teardown"""
     # Configure logging from file or use default
     logging_config_file = os.environ.get("ANYVAR_LOGGING_CONFIG", None)
     if logging_config_file and pathlib.Path(logging_config_file).is_file():
@@ -549,7 +547,7 @@ def get_object_annotations(
     description="Provide a mapping to associate with a VRS object. The source and dest objects must be registered with AnyVar before adding mappings.",
     tags=[EndpointTag.VRS_OBJECTS],
 )
-async def add_object_mapping(
+def add_object_mapping(
     request: Request,
     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID")],
     mapping_request: Annotated[
