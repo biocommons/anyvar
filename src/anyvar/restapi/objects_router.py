@@ -189,16 +189,15 @@ def _register_variations(
             continue
 
         # add variant metadata
-        if translation_result.variation:
-            av.create_timestamp_annotation_if_missing(translation_result.variation.id)  # type: ignore (ID guaranteed to be present)
-            messages: list[str] = (
-                liftover_utils.add_liftover_mapping(
-                    variation=translation_result.variation,
-                    storage=av.object_store,
-                    dataproxy=av.translator.dp,
-                )
-                or []
+        av.create_timestamp_annotation_if_missing(translation_result.variation.id)  # type: ignore (ID guaranteed to be present)
+        messages: list[str] = (
+            liftover_utils.add_liftover_mapping(
+                variation=translation_result.variation,
+                storage=av.object_store,
+                dataproxy=av.translator.dp,
             )
+            or []
+        )
 
         responses.append(
             RegisterVariationResponse(
@@ -212,6 +211,23 @@ def _register_variations(
         )
 
     return responses
+
+
+@objects_router.put(
+    "/variation",
+    response_model_exclude_none=True,
+    summary="Register a new allele or copy number object",
+    description="Provide a variation definition to be normalized and registered with AnyVar. A complete VRS Allele or Copy Number object and ID is returned for later reference.",
+)
+def register_variation(
+    request: Request,
+    variation: Annotated[VariationRequest, _variation_request_body],
+) -> RegisterVariationResponse:
+    """Register a variation based on a provided description or reference."""
+    av: AnyVar = request.app.state.anyvar
+
+    responses: list[RegisterVariationResponse] = _register_variations(av, [variation])
+    return responses[0]
 
 
 @objects_router.put(

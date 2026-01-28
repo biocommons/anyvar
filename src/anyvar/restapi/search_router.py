@@ -37,14 +37,7 @@ def search_variations(
         Query(..., description="End position for genomic region", examples=[2781758]),
     ],
 ) -> SearchResponse:
-    """Fetch all registered variations within the provided genomic coordinates.
-
-    :param request: FastAPI request object
-    :param accession: sequence accession
-    :param start: start position for genomic region
-    :param end: end position for genomic region
-    :return: list (possibly empty) of variations in the given region
-    """
+    """Perform genomic coordinate-based search over all registered variations."""
     av: AnyVar = request.app.state.anyvar
     try:
         if accession.startswith("ga4gh:"):

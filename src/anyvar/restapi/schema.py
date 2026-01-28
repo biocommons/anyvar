@@ -27,10 +27,10 @@ from anyvar.utils.types import (
 class EndpointTag(str, Enum):
     """Denote endpoint group membership"""
 
-    META = "Service Meta"
+    META = "Service Metadata"
     VCF = "VCF Operations"
     VRS_OBJECTS = "VRS Objects"
-    SEARCH = "Search"
+    SEARCH = "Search Operations"
 
 
 class ServiceEnvironment(str, Enum):
