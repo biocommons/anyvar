@@ -1,14 +1,12 @@
 """Provide core route definitions for REST service."""
 
-import json
 import logging
 import logging.config
 import os
 import pathlib
-from collections.abc import Callable
 from contextlib import asynccontextmanager
 from http import HTTPStatus
-from typing import Annotated, cast
+from typing import Annotated
 
 import anyio
 import yaml
@@ -21,9 +19,7 @@ from fastapi import (
     Path,
     Query,
     Request,
-    Response,
 )
-from fastapi.responses import JSONResponse, StreamingResponse
 from ga4gh.vrs.dataproxy import DataProxyValidationError
 from hgvs.exceptions import HGVSParseError
 from pydantic import StrictStr
@@ -81,30 +77,6 @@ def _get_vrs_object(
             status_code=HTTPStatus.NOT_FOUND,
             detail=f"VRS Object {vrs_object_id} not found",
         ) from e
-
-
-async def parse_and_rebuild_response(
-    response: StreamingResponse,
-) -> tuple[dict, Response]:
-    """Convert a `Response` object to a dict, then re-build a new Response object (since parsing exhausts the Response `body_iterator`).
-
-    :param response: the `Response` object to parse
-    :return: a tuple with a dictionary representation of the Response and a new `Response` object
-    """
-    response_chunks: list[bytes] = [
-        cast(bytes, chunk) async for chunk in response.body_iterator
-    ]
-    response_body_encoded = b"".join(response_chunks)
-    response_body = response_body_encoded.decode("utf-8")
-    response_json = json.loads(response_body)
-
-    new_response = JSONResponse(
-        content=response_json,
-        status_code=response.status_code,
-        media_type=response.media_type,
-    )
-
-    return (response_json, new_response)
 
 
 @asynccontextmanager
@@ -300,6 +272,8 @@ def _register_variations(
             )
             continue
 
+        # add variation metadata
+        _ = av.create_timestamp_annotation_if_missing(translation_result.variation.id)  # type: ignore
         messages: list[str] = (
             liftover_utils.add_liftover_mapping(
                 variation=translation_result.variation,
@@ -405,6 +379,7 @@ def register_vrs_object(
             detail="Variation could not be registered",
         ) from e
 
+    _ = av.create_timestamp_annotation_if_missing(variation.id)  # type: ignore
     liftover_messages = liftover_utils.add_liftover_mapping(
         variation, av.object_store, av.translator.dp
     )
@@ -623,47 +598,6 @@ def get_object_mapping(
         ) from e
 
     return GetMappingResponse(mappings=mappings)
-
-
-@app.middleware("http")
-async def add_registration_annotations(
-    request: Request, call_next: Callable
-) -> Response:
-    """Add all required annotations ("creation_timestamp") for newly-registered variants
-
-    :param request: FastAPI `Request` object
-    :param call_next: A FastAPI function that receives the `request` as a parameter, passes it to the corresponding path operation, and returns the generated `response`
-    :return: FastAPI`Response` object
-    """
-    # Do nothing on request. Pass downstream.
-    response = await call_next(request)
-
-    # Make sure we're only targeting the registration endpoints
-    registration_endpoints = [
-        "/variation",
-        "/vrs_variation",
-    ]
-
-    if request.url.path not in registration_endpoints:
-        return response
-
-    response_json, new_response = await parse_and_rebuild_response(
-        response
-    )  # We'll need to return the `new_response` object since we have now exhausted the original response body iterator
-
-    input_vrs_id, input_variant = (
-        response_json.get("object_id"),
-        response_json.get("object"),
-    )
-    if (
-        (not input_vrs_id) or (not input_variant)
-    ):  # If there's no input_vrs_id/input variant, registration was unsuccessful. Do not attempt any further operations.
-        return new_response
-
-    # Add creation timestamp annotation
-    av: AnyVar = request.app.state.anyvar
-    av.create_timestamp_annotation_if_missing(input_vrs_id)
-    return new_response
 
 
 @app.get(
