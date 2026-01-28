@@ -273,7 +273,7 @@ def _register_variations(
             continue
 
         # add variation metadata
-        _ = av.create_timestamp_annotation_if_missing(translation_result.variation.id)  # type: ignore
+        av.create_timestamp_annotation_if_missing(translation_result.variation.id)  # type: ignore
         messages: list[str] = (
             liftover_utils.add_liftover_mapping(
                 variation=translation_result.variation,
@@ -379,7 +379,8 @@ def register_vrs_object(
             detail="Variation could not be registered",
         ) from e
 
-    _ = av.create_timestamp_annotation_if_missing(variation.id)  # type: ignore
+    # add variation metadata
+    av.create_timestamp_annotation_if_missing(variation.id)  # type: ignore
     liftover_messages = liftover_utils.add_liftover_mapping(
         variation, av.object_store, av.translator.dp
     )
