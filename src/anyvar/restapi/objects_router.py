@@ -263,12 +263,12 @@ PUT_VRS_VARIATION_EXAMPLE_PAYLOAD = {
 
 
 @objects_router.put(
-    "/vrs_object",
-    summary="Register a VRS object",
-    description="Provide a valid VRS object to be registered with AnyVar. A fully-identified object is returned for later reference.",
+    "/vrs_variation",
+    summary="Register a VRS variation",
+    description="Provide a valid VRS variation object to be registered with AnyVar. A fully-identified variation object is returned for later reference.",
     response_model_exclude_none=True,
 )
-def register_vrs_object(
+def register_vrs_variation(
     request: Request,
     variation: Annotated[
         types.VrsVariation,
@@ -278,7 +278,10 @@ def register_vrs_object(
         ),
     ],
 ) -> RegisterVariationResponse:
-    """Register a complete VRS object. No additional normalization is performed."""
+    """Register a complete VRS variation object.
+
+    No additional formatting or normalization is performed. IDs are added if not provided.
+    """
     av: AnyVar = request.app.state.anyvar
     input_variation = variation
     try:
