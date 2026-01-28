@@ -2,11 +2,12 @@
 
 from collections.abc import Iterable
 from datetime import datetime
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any
 
 from ga4gh.vrs import (
     VRS_VERSION,
+    VrsType,
     models,
 )
 from ga4gh.vrs import (
@@ -139,7 +140,7 @@ class VariationRequest(BaseModel):
     model_config = ConfigDict(use_enum_values=True)
 
     definition: StrictStr
-    input_type: objects.SupportedVariationType | None = None
+    input_type: SupportedObjectType | None = None
     copies: int | None = None
     copy_change: models.CopyChange | None = None
     assembly_name: ReferenceAssembly | None = ReferenceAssembly.GRCH38

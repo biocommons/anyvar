@@ -6,7 +6,7 @@ from ga4gh.vrs import models
 from ga4gh.vrs.dataproxy import _DataProxy, create_dataproxy
 from ga4gh.vrs.extras.translator import AlleleTranslator, CnvTranslator
 
-from anyvar.core.objects import SupportedVariationType, VrsVariation
+from anyvar.core.objects import SupportedObjectType, VrsVariation
 from anyvar.translate.base import TranslationError, Translator
 
 
@@ -56,11 +56,11 @@ class VrsPythonTranslator(Translator):
             its translation.
         """
         input_type = kwargs.get("input_type")
-        if input_type == SupportedVariationType.ALLELE:
+        if input_type == SupportedObjectType.ALLELE:
             variation = self.translate_allele(var, **kwargs)
         elif input_type in (
-            SupportedVariationType.COPY_NUMBER_CHANGE,
-            SupportedVariationType.COPY_NUMBER_COUNT,
+            SupportedObjectType.COPY_NUMBER_CHANGE,
+            SupportedObjectType.COPY_NUMBER_COUNT,
         ):
             variation = self.translate_cnv(var, **kwargs)
         else:
