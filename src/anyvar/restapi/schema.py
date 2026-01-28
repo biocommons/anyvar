@@ -2,11 +2,12 @@
 
 from collections.abc import Iterable
 from datetime import datetime
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any
 
 from ga4gh.vrs import (
     VRS_VERSION,
+    VrsType,
     models,
 )
 from ga4gh.vrs import (
@@ -133,13 +134,21 @@ class TranslationResult(BaseModel):
     error: str | None = None
 
 
+class SupportedVariationType(StrEnum):
+    """Supported variation types for API input."""
+
+    ALLELE = VrsType.ALLELE.value
+    COPY_NUMBER_CHANGE = VrsType.CN_CHANGE.value
+    COPY_NUMBER_COUNT = VrsType.CN_COUNT.value
+
+
 class VariationRequest(BaseModel):
     """Describe request structure for the PUT and POST /variation endpoints"""
 
     model_config = ConfigDict(use_enum_values=True)
 
     definition: StrictStr
-    input_type: SupportedObjectType | None = None
+    input_type: SupportedVariationType | None = None
     copies: int | None = None
     copy_change: models.CopyChange | None = None
     assembly_name: ReferenceAssembly | None = ReferenceAssembly.GRCH38

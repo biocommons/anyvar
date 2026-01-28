@@ -1,16 +1,10 @@
 """Provide types, classes, and functions for objects stored by AnyVar."""
 
-from enum import StrEnum
 from typing import TypeVar, get_args
 
 from ga4gh.core import ga4gh_identify
-from ga4gh.vrs import VrsType, models, vrs_deref, vrs_enref
+from ga4gh.vrs import models, vrs_deref, vrs_enref
 
-"""
-Any time this is updated, a corresponding member MUST be added to ``SupportedObjectType``.
-
-``tests/unit/core/test_objects.py::test_supported_object_type`` will fail if you don't.
-"""
 VrsObject = (
     models.Allele
     | models.CopyNumberChange
@@ -19,17 +13,11 @@ VrsObject = (
     | models.SequenceReference
 )
 
+"""
+Any time this is updated, a corresponding member MUST be added to ``anyvar.restapi.schema.SupportedVariationType``.
 
-class SupportedObjectType(StrEnum):
-    """Enumeration, by name, of objects that can be stored by AnyVar"""
-
-    ALLELE = VrsType.ALLELE.value
-    COPY_NUMBER_CHANGE = VrsType.CN_CHANGE.value
-    COPY_NUMBER_COUNT = VrsType.CN_COUNT.value
-    SEQUENCE_LOCATION = VrsType.SEQ_LOC.value
-    SEQUENCE_REFERENCE = VrsType.SEQ_REF.value
-
-
+``tests/unit/restapi/test_schema.py`` will fail if you don't.
+"""
 VrsVariation = models.Allele | models.CopyNumberChange | models.CopyNumberCount
 
 
