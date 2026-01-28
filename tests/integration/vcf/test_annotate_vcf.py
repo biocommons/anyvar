@@ -12,7 +12,7 @@ from celery.exceptions import WorkerLostError
 from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 
-from anyvar.restapi.vcf import _working_file_cleanup
+from anyvar.restapi.vcf_router import _working_file_cleanup
 
 
 @pytest.fixture

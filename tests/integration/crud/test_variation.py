@@ -5,7 +5,7 @@ from http import HTTPStatus
 import pytest
 from fastapi.testclient import TestClient
 
-from anyvar.restapi.main import (
+from anyvar.restapi.objects_router import (
     PUT_VRS_VARIATION_EXAMPLE_PAYLOAD,
     VARIATION_EXAMPLE_PAYLOAD,
 )
