@@ -27,7 +27,7 @@ from anyvar.utils.types import (
 class EndpointTag(str, Enum):
     """Denote endpoint group membership"""
 
-    GENERAL = "General"
+    META = "Service Meta"
     VCF = "VCF Operations"
     VRS_OBJECTS = "VRS Objects"
     SEARCH = "Search"

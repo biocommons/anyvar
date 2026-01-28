@@ -29,7 +29,7 @@ from anyvar.extras.vcf import (
     VcfRegistrar,
     register_existing_annotations,
 )
-from anyvar.restapi.schema import EndpointTag, ErrorResponse, RunStatusResponse
+from anyvar.restapi.schema import ErrorResponse, RunStatusResponse
 from anyvar.translate.translate import TranslatorConnectionError
 
 try:
@@ -47,7 +47,7 @@ except ImportError:
 
 _logger = logging.getLogger(__name__)
 
-router = APIRouter()
+vcf_router = APIRouter()
 
 # high side estimate for time is 500 variants per second
 _expected_vrs_ids_per_second = int(
@@ -199,11 +199,10 @@ async def _annotate_vcf_sync(
     return FileResponse(temp_out_path)
 
 
-@router.put(
+@vcf_router.put(
     "/vcf",
     summary="Register alleles from a VCF",
     description="Provide a valid VCF. All reference and alternate alleles will be registered with AnyVar. The file is annotated with VRS IDs and returned.",
-    tags=[EndpointTag.VCF],
     response_model=None,
 )
 async def annotate_vcf(
@@ -432,11 +431,10 @@ async def _ingest_annotated_vcf_async(
     )
 
 
-@router.put(
+@vcf_router.put(
     "/annotated_vcf",
     summary="Register alleles from a VCF that has already been annotated with VRS objects.",
     description="Provide a VCF that already has VRS position and state annotations. Ingest the objects into AnyVar.",
-    tags=[EndpointTag.VCF],
     response_model=None,
 )
 async def annotated_vcf(
@@ -550,11 +548,10 @@ async def annotated_vcf(
         return ErrorResponse(error="VCF ingestion failed.")
 
 
-@router.get(
+@vcf_router.get(
     "/vcf/{run_id}",
     summary="Poll for status and/or result for asynchronous VCF ingestion",
     description="Provide a valid run id to get the status and/or result of a VCF ingestion run",
-    tags=[EndpointTag.VCF],
     response_model=None,
 )
 async def get_vcf_run_status(
