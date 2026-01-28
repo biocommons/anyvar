@@ -138,14 +138,12 @@ class TranslationResult(BaseModel):
     error: str | None = None
 
 
-class SupportedObjectType(StrEnum):
+class SupportedVariationType(StrEnum):
     """Supported variation types for API input."""
 
     ALLELE = VrsType.ALLELE.value
     COPY_NUMBER_CHANGE = VrsType.CN_CHANGE.value
     COPY_NUMBER_COUNT = VrsType.CN_COUNT.value
-    SEQUENCE_LOCATION = VrsType.SEQ_LOC.value
-    SEQUENCE_REFERENCE = VrsType.SEQ_REF.value
 
 
 class VariationRequest(BaseModel):
@@ -154,7 +152,7 @@ class VariationRequest(BaseModel):
     model_config = ConfigDict(use_enum_values=True)
 
     definition: StrictStr
-    input_type: SupportedObjectType | None = None
+    input_type: SupportedVariationType | None = None
     copies: int | None = None
     copy_change: models.CopyChange | None = None
     assembly_name: ReferenceAssembly | None = ReferenceAssembly.GRCH38

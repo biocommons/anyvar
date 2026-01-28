@@ -7,11 +7,6 @@ from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import models, vrs_deref, vrs_enref
 from pydantic import BaseModel, JsonValue
 
-"""
-Any time this is updated, a corresponding member MUST be added to ``anyvar.restapi.schema.SupportedObjectType``.
-
-``tests/unit/restapi/test_schema.py`` will fail if you don't.
-"""
 VrsObject = (
     models.Allele
     | models.CopyNumberChange
@@ -20,7 +15,11 @@ VrsObject = (
     | models.SequenceReference
 )
 
+"""
+Any time this is updated, a corresponding member MUST be added to ``anyvar.restapi.schema.SupportedVariationType``.
 
+``tests/unit/restapi/test_schema.py`` will fail if you don't.
+"""
 VrsVariation = models.Allele | models.CopyNumberChange | models.CopyNumberCount
 
 
