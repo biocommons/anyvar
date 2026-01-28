@@ -2,12 +2,11 @@
 
 from collections.abc import Iterable
 from datetime import datetime
-from enum import Enum, StrEnum
+from enum import Enum
 from typing import Any
 
 from ga4gh.vrs import (
     VRS_VERSION,
-    VrsType,
     models,
 )
 from ga4gh.vrs import (
