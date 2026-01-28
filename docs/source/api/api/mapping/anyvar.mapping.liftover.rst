@@ -1,7 +1,7 @@
-﻿anyvar.extras.vcf
-=================
+﻿anyvar.mapping.liftover
+=======================
 
-.. automodule:: anyvar.extras.vcf
+.. automodule:: anyvar.mapping.liftover
    :members:
    :undoc-members:
    :special-members: __init__

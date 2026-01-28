@@ -2,10 +2,10 @@ import pytest
 from ga4gh.vrs import models
 
 from anyvar.anyvar import AnyVar
-from anyvar.storage.base_storage import Storage
-from anyvar.translate.translate import Translator
-from anyvar.utils import liftover_utils
-from anyvar.utils.types import VariationMappingType
+from anyvar.core.metadata import VariationMappingType
+from anyvar.mapping import liftover
+from anyvar.storage.base import Storage
+from anyvar.translate.base import Translator
 
 
 # Success Cases
@@ -68,7 +68,7 @@ def grch36_variant(alleles: dict):
         "variant": models.Allele(
             **alleles["ga4gh:VA.4dEsVNR2JC_ZiHsYSGZgariIUOfYl6a0"]["variation"]
         ),
-        "error": liftover_utils.UnsupportedReferenceAssemblyError(
+        "error": liftover.UnsupportedReferenceAssemblyError(
             "Unable to get reference sequence ID for SQ.JY7UegcaYT-M0PYn1yDGQ_4XJsa-DsXq",
         ),
     }
@@ -80,7 +80,7 @@ def unconvertible_grch37_variant(alleles: dict):
         "variant": models.Allele(
             **alleles["ga4gh:VA.qP-qtMJqKhTEJfpTdAZN9CoIFCRKv4kg"]["variation"]
         ),
-        "error": liftover_utils.CoordinateConversionFailureError(),
+        "error": liftover.CoordinateConversionFailureError(),
     }
 
 
@@ -90,7 +90,7 @@ def unconvertible_grch38_variant(alleles: dict):
         "variant": models.Allele(
             **alleles["ga4gh:VA.5-m9wM6WTY5osPxLFg1_bITsOwSoMFui"]["variation"]
         ),
-        "error": liftover_utils.CoordinateConversionFailureError(),
+        "error": liftover.CoordinateConversionFailureError(),
     }
 
 
@@ -143,7 +143,7 @@ NO_LIFTOVER_CASES = ["empty_variation_object", "invalid_variant"]
 
 
 ####################################################################################
-## Tests for src/anyvar/utils/liftover_utils.py > 'get_liftover_variant' function ##
+## Tests for src/anyvar/mapping/liftover.py > 'get_liftover_variant' function ##
 ####################################################################################
 @pytest.mark.parametrize("variant_fixture_name", SUCCESS_CASES)
 @pytest.mark.ci_ok
@@ -153,11 +153,11 @@ def test_liftover_success(request: pytest.FixtureRequest, variant_fixture_name: 
     grch38 = fixture["grch38"]
 
     # 37 to 38
-    lifted_over_variant_output = liftover_utils.get_liftover_variant(grch37)
+    lifted_over_variant_output = liftover.get_liftover_variant(grch37)
     assert lifted_over_variant_output == grch38
 
     # 38 to 37
-    lifted_over_variant_output = liftover_utils.get_liftover_variant(grch38)
+    lifted_over_variant_output = liftover.get_liftover_variant(grch38)
     assert lifted_over_variant_output == grch37
 
 
@@ -171,11 +171,11 @@ def test_liftover_failure(request, variant_fixture_name):
         type(expected_error),
         match=expected_error.args[0] if expected_error.args else None,
     ):
-        liftover_utils.get_liftover_variant(variant_input)
+        liftover.get_liftover_variant(variant_input)
 
 
 ######################################################################################################
-## Tests for `src/anyvar/utils/liftover_utils.py > 'add_liftover_mapping' ##
+## Tests for `src/anyvar/mapping/liftover.py > 'add_liftover_mapping' ##
 ######################################################################################################
 @pytest.mark.parametrize(
     "variant_fixture_name",
@@ -200,7 +200,7 @@ def test_liftover_mapping_success(
 
     # ensure input is present in DB
     storage.add_objects([src])
-    liftover_utils.add_liftover_mapping(src, storage, translator.dp)
+    liftover.add_liftover_mapping(src, storage, translator.dp)
 
     # mapping and lifted-over variant should be present
     mappings = list(storage.get_mappings(src.id, VariationMappingType.LIFTOVER))
@@ -229,6 +229,6 @@ def test_liftover_mapping_failure(
     # ensure input is present in DB
     anyvar_instance.object_store.add_objects([variant_input])
 
-    assert liftover_utils.add_liftover_mapping(
-        variant_input, storage, translator.dp
-    ) == [expected_error.get_error_message()]
+    assert liftover.add_liftover_mapping(variant_input, storage, translator.dp) == [
+        expected_error.get_error_message()
+    ]

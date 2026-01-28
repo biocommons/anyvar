@@ -1,7 +1,7 @@
-﻿anyvar.translate.translate
-==========================
+﻿anyvar.core.metadata
+====================
 
-.. automodule:: anyvar.translate.translate
+.. automodule:: anyvar.core.metadata
    :members:
    :undoc-members:
    :special-members: __init__

@@ -26,6 +26,8 @@ from pydantic import StrictStr
 
 import anyvar
 from anyvar.anyvar import AnyVar, ObjectNotFoundError
+from anyvar.core import metadata, objects
+from anyvar.mapping.liftover import add_liftover_mapping
 from anyvar.restapi.auth import get_token_auth_dependency
 from anyvar.restapi.schema import (
     AddAnnotationRequest,
@@ -43,16 +45,10 @@ from anyvar.restapi.schema import (
     VariationRequest,
 )
 from anyvar.restapi.vcf import router as vcf_router
-from anyvar.storage.base_storage import IncompleteVrsObjectError
-from anyvar.translate.translate import (
+from anyvar.storage.base import IncompleteVrsObjectError
+from anyvar.translate.base import (
     TranslationError,
     Translator,
-)
-from anyvar.utils import liftover_utils, types
-from anyvar.utils.types import (
-    VrsObject,
-    VrsVariation,
-    recursive_identify,
 )
 
 load_dotenv()
@@ -60,8 +56,8 @@ _logger = logging.getLogger(__name__)
 
 
 def _get_vrs_object(
-    av: AnyVar, vrs_object_id: str, object_type: type[types.VrsObject] | None = None
-) -> VrsObject:
+    av: AnyVar, vrs_object_id: str, object_type: type[objects.VrsObject] | None = None
+) -> objects.VrsObject:
     """Get VRS variation given VRS ID
 
     :param av: AnyVar instance
@@ -210,7 +206,7 @@ def _translate_variation(
 
 def _handle_translation_request(
     tlr: Translator, var_req: VariationRequest
-) -> VrsVariation:
+) -> objects.VrsVariation:
     """Perform variant translation and convert known exceptions to appropriate HTTP responses
 
     :param tlr: Translator instance
@@ -244,7 +240,7 @@ def _register_variations(
         also be included in the `messages` field.
     """
     translation_results: list[TranslationResult] = []
-    variations_to_store: list[VrsObject] = []
+    variations_to_store: list[objects.VrsObject] = []
 
     for variation_request in variation_requests:
         translation_result = _translate_variation(av.translator, variation_request)
@@ -275,7 +271,7 @@ def _register_variations(
         # add variation metadata
         av.create_timestamp_annotation_if_missing(translation_result.variation.id)  # type: ignore
         messages: list[str] = (
-            liftover_utils.add_liftover_mapping(
+            add_liftover_mapping(
                 variation=translation_result.variation,
                 storage=av.object_store,
                 dataproxy=av.translator.dp,
@@ -358,7 +354,7 @@ PUT_VRS_VARIATION_EXAMPLE_PAYLOAD = {
 def register_vrs_object(
     request: Request,
     variation: Annotated[
-        VrsVariation,
+        objects.VrsVariation,
         Body(
             description="Valid VRS object.",
             examples=[PUT_VRS_VARIATION_EXAMPLE_PAYLOAD],
@@ -371,7 +367,7 @@ def register_vrs_object(
     try:
         av.put_objects([variation])
     except IncompleteVrsObjectError:
-        variation = recursive_identify(variation)
+        variation = objects.recursive_identify(variation)
         av.put_objects([variation])
     except Exception as e:
         raise HTTPException(
@@ -381,7 +377,7 @@ def register_vrs_object(
 
     # add variation metadata
     av.create_timestamp_annotation_if_missing(variation.id)  # type: ignore
-    liftover_messages = liftover_utils.add_liftover_mapping(
+    liftover_messages = add_liftover_mapping(
         variation, av.object_store, av.translator.dp
     )
 
@@ -432,7 +428,7 @@ def get_object_by_id(
     :raise HTTPException: if no variation matches provided ID
     """
     av: AnyVar = request.app.state.anyvar
-    vrs_object: VrsObject = _get_vrs_object(av, vrs_id)
+    vrs_object: objects.VrsObject = _get_vrs_object(av, vrs_id)
     return GetObjectResponse(messages=[], data=vrs_object)
 
 
@@ -463,12 +459,12 @@ def add_object_annotation(
     """
     # Look up the VRS Object from the AnyVar store
     av: AnyVar = request.app.state.anyvar
-    vrs_object: VrsObject = _get_vrs_object(av, vrs_id)
+    vrs_object: objects.VrsObject = _get_vrs_object(av, vrs_id)
 
     # Add the annotation to the database
     annotation_id: int | None = None
     try:
-        annotation = types.Annotation(
+        annotation = metadata.Annotation(
             object_id=vrs_object.id,  # pyright: ignore[reportArgumentType] - VRS Objects from the DB will never NOT have an ID
             annotation_type=annotation_request.annotation_type,
             annotation_value=annotation_request.annotation_value,
@@ -542,15 +538,15 @@ async def add_object_mapping(
     :return: source and destination VRS object and mapping type, if found
     """
     av: AnyVar = request.app.state.anyvar
-    source_vrs_obj: VrsObject = _get_vrs_object(av, vrs_id)
+    source_vrs_obj: objects.VrsObject = _get_vrs_object(av, vrs_id)
     dest_vrs_id = mapping_request.dest_id
-    dest_vrs_obj: VrsObject = _get_vrs_object(av, dest_vrs_id)
+    dest_vrs_obj: objects.VrsObject = _get_vrs_object(av, dest_vrs_id)
 
     # Add the mapping to the database
-    mapping: types.VariationMapping | None = None
+    mapping: metadata.VariationMapping | None = None
     mapping_type = mapping_request.mapping_type
     try:
-        mapping = types.VariationMapping(
+        mapping = metadata.VariationMapping(
             source_id=vrs_id, dest_id=dest_vrs_id, mapping_type=mapping_type
         )
         av.put_mapping(mapping)
@@ -585,7 +581,7 @@ def get_object_mapping(
     request: Request,
     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
     mapping_type: Annotated[
-        types.VariationMappingType, Path(..., description="Mapping type")
+        metadata.VariationMappingType, Path(..., description="Mapping type")
     ],
 ) -> GetMappingResponse:
     """Retrieve mappings for a VRS Object."""

@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 
 from ga4gh.vrs.dataproxy import _DataProxy
 
-from anyvar.utils.types import VrsVariation
+from anyvar.core.objects import VrsVariation
 
 
 class TranslatorSetupError(Exception):
@@ -22,7 +22,13 @@ class TranslationError(Exception):
 
 
 class Translator(ABC):
-    """Base Translator class."""
+    """Base Translator class.
+
+    Use for
+    * Translating incoming variant expressions to VRS
+    * Acquiring reference accessions for incoming sequence descriptions/references
+
+    """
 
     dp: _DataProxy
 
@@ -31,18 +37,15 @@ class Translator(ABC):
         """Translate provided variation text into a VRS Variation object.
 
         :param var: user-provided string describing or referencing a variation.
-        :param input_type: The type of variation for `var`.
         :kwargs:
-           * input_type (types.VrsVariation): The type of variation for `var`.
-             If not provided, will first try to translate to allele and then
-             copy number
+           * input_type (types.VrsVariation): The type of variation for `var`. If
+             not provided, will first try to translate to allele and then copy number
            * copies (int) - The number of copies for VRS Copy Number Count
            * copy_change (models.CopyChange) - The EFO code for VRS COpy Number Change
-           * assembly_name(str) -> Assembly name for ``var``.
-             Only used when ``var`` uses gnomad format.
-             Defaults to "GRCh38". Must be "GRCh38" or "GRCh37".
-             VRS-Python sets a default, but we should set a default just in case
-             VRS-Python ever changes the default.
+           * assembly_name(str) -> Assembly name for ``var``. Only used when ``var``
+             uses gnomad format. Defaults to "GRCh38". Must be "GRCh38" or "GRCh37".
+             VRS-Python sets a default, but we should set a default just in case VRS-Python
+             ever changes the default.
         :returns: VRS variation object
         :raises TranslationError: if translation is unsuccessful, either because
             the submitted variation is malformed, or because VRS-Python doesn't support

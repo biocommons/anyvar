@@ -24,13 +24,13 @@ from fastapi.responses import FileResponse
 
 import anyvar
 from anyvar.anyvar import AnyVar
-from anyvar.extras.vcf import (
+from anyvar.restapi.schema import EndpointTag, ErrorResponse, RunStatusResponse
+from anyvar.translate.base import TranslatorConnectionError
+from anyvar.vcf.ingest import (
     RequiredAnnotationsError,
     VcfRegistrar,
     register_existing_annotations,
 )
-from anyvar.restapi.schema import EndpointTag, ErrorResponse, RunStatusResponse
-from anyvar.translate.translate import TranslatorConnectionError
 
 try:
     import aiofiles  # noqa: I001

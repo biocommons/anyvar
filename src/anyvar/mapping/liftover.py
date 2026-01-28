@@ -16,8 +16,9 @@ from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import models, normalize
 from ga4gh.vrs.dataproxy import _DataProxy
 
-from anyvar.storage.base_storage import Storage
-from anyvar.utils.types import VariationMapping, VariationMappingType, VrsVariation
+from anyvar.core.metadata import VariationMapping, VariationMappingType
+from anyvar.core.objects import VrsVariation
+from anyvar.storage.base import Storage
 
 _logger = logging.getLogger(__name__)
 
@@ -43,12 +44,6 @@ class LiftoverError(Exception):
             if cls.error_details
             else cls.base_error_message
         )
-
-
-class MalformedInputError(LiftoverError):
-    """Indicates a malformed variant input"""
-
-    error_details = "Malformed variant input"
 
 
 class UnsupportedVariantLocationTypeError(LiftoverError):
@@ -139,26 +134,17 @@ def convert_position(
 
 def get_liftover_variant(input_variant: VrsVariation) -> VrsVariation:
     """Liftover a variant from GRCh37 or GRCH38 into the opposite assembly, and return the converted variant as a VrsVariation.
+
     If liftover is unsuccessful, raise an Exception.
 
     :param input_variant: A `VrsVariation`.
     :return: The converted variant as a `VrsVariation`.
-    :raises:
-        - `MalformedInputError`:  If the `input_variant` is empty or otherwise falsy
-
-        - `UnsupportedVariantLocationTypeError`: If the variant lacks a refget accession, start position or end position
-
-        - `UnsupportedReferenceAssemblyError`: If the variant's accession was not found in any supported assembly
-
-        - `CoordinateConversionFailureError`: If unable to lift over the variant's start and/or end position(s)
-
-        - `AmbiguousCoordinateConversionError`: If variant's start and/or end position(s) map to multiple possible locations
-
-        - `AccessionConversionError`: If unable to lift over the variant's refget accession
+    :raises UnsupportedVariantLocationTypeError: If the variant lacks a refget accession, start position or end position
+    :raises UnsupportedReferenceAssemblyError: If the variant's accession was not found in any supported assembly
+    :raises CoordinateConversionFailureError: If unable to lift over the variant's start and/or end position(s)
+    :raises AmbiguousCoordinateConversionError: If variant's start and/or end position(s) map to multiple possible locations
+    :raises AccessionConversionError: If unable to lift over the variant's refget accession
     """
-    if not input_variant:
-        raise MalformedInputError
-
     try:
         refget_accession = input_variant.location.sequenceReference.refgetAccession
         start_position = input_variant.location.start

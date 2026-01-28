@@ -17,7 +17,7 @@ AnyVar enables the registration and retrieval of a number of different variation
 Variant Translation
 ===================
 
-AnyVar implements a :py:mod:`Translator <anyvar.translate.translate>` abstraction that can be used to ingest free-text variation expressions of known nomenclatures. By way of the `VRS-Python <https://github.com/ga4gh/vrs-python>`_ translator module, the following kinds of expressions are supported:
+AnyVar implements a :py:mod:`Translator <anyvar.translate.base>` abstraction that can be used to ingest free-text variation expressions of known nomenclatures. By way of the `VRS-Python <https://github.com/ga4gh/vrs-python>`_ translator module, the following kinds of expressions are supported:
 
 
 .. list-table::
@@ -47,7 +47,7 @@ Object Annotations
 
 Registered variation objects can be associated with **annotations**. Annotations consist of a **type**, of type ``str``, and a **value**, which can be any JSON-serializable object or value. Annotations may be used to link to external references, indicate variant classifications, or otherwise adjoin genomic knowledge to a variation.
 
-.. autoclass:: anyvar.utils.types.Annotation
+.. autoclass:: anyvar.core.metadata.Annotation
    :no-index:
    :members:
    :undoc-members:
@@ -59,9 +59,9 @@ Registered variation objects can be associated with **annotations**. Annotations
 Variant Mappings
 ================
 
-**Mappings** can be used to register specific modes of relationship between variations, such as reference assembly liftover. The :py:class:`VariationMappingType<anyvar.utils.types.VariationMappingType>` enum provides the supported kinds of relationships:
+**Mappings** can be used to register specific modes of relationship between variations, such as reference assembly liftover. The :py:class:`VariationMappingType<anyvar.core.metadata.VariationMappingType>` enum provides the supported kinds of relationships:
 
-.. autoclass:: anyvar.utils.types.VariationMappingType
+.. autoclass:: anyvar.core.metadata.VariationMappingType
    :no-index:
    :members:
    :undoc-members:

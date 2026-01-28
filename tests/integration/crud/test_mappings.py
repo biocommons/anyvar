@@ -4,10 +4,10 @@ from http import HTTPStatus
 
 import pytest
 
-from anyvar.storage.base_storage import Storage
-from anyvar.utils import types
+from anyvar.core import metadata
+from anyvar.storage.base import Storage
 
-DEFAULT_MAPPING_TYPE = types.VariationMappingType.LIFTOVER
+DEFAULT_MAPPING_TYPE = metadata.VariationMappingType.LIFTOVER
 
 
 @pytest.fixture
@@ -29,7 +29,7 @@ def stored_variation_mappings(storage: Storage, preloaded_allele_pairs: list):
     """Store variation mappings and return preloaded pairs"""
     for source_vrs_object, dest_vrs_object in preloaded_allele_pairs:
         storage.add_mapping(
-            types.VariationMapping(
+            metadata.VariationMapping(
                 source_id=source_vrs_object["id"],
                 dest_id=dest_vrs_object["id"],
                 mapping_type=DEFAULT_MAPPING_TYPE,
@@ -39,7 +39,7 @@ def stored_variation_mappings(storage: Storage, preloaded_allele_pairs: list):
     return preloaded_allele_pairs
 
 
-@pytest.mark.parametrize("mapping_type", list(types.VariationMappingType))
+@pytest.mark.parametrize("mapping_type", list(metadata.VariationMappingType))
 def test_put_mapping_valid_request(
     restapi_client, preloaded_allele_pairs, mapping_type
 ):

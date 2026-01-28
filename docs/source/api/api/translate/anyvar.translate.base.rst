@@ -1,7 +1,7 @@
-﻿anyvar.utils.liftover_utils
-===========================
+﻿anyvar.translate.base
+=====================
 
-.. automodule:: anyvar.utils.liftover_utils
+.. automodule:: anyvar.translate.base
    :members:
    :undoc-members:
    :special-members: __init__

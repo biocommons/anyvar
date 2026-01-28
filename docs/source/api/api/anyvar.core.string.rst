@@ -1,7 +1,7 @@
-﻿anyvar.utils.funcs
+﻿anyvar.core.string
 ==================
 
-.. automodule:: anyvar.utils.funcs
+.. automodule:: anyvar.core.string
    :members:
    :undoc-members:
    :special-members: __init__

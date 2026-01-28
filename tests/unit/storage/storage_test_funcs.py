@@ -3,13 +3,13 @@
 import pytest
 from ga4gh.vrs import models
 
-from anyvar.storage.base_storage import (
+from anyvar.core import metadata
+from anyvar.storage.base import (
     DataIntegrityError,
     IncompleteVrsObjectError,
     InvalidSearchParamsError,
     Storage,
 )
-from anyvar.utils import types
 
 
 def run_db_lifecycle(storage: Storage, validated_vrs_alleles: dict[str, models.Allele]):
@@ -18,17 +18,17 @@ def run_db_lifecycle(storage: Storage, validated_vrs_alleles: dict[str, models.A
     allele_37 = validated_vrs_alleles["ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf"]
     storage.add_objects([allele_38, allele_37])
     storage.add_annotation(
-        types.Annotation(
+        metadata.Annotation(
             object_id=allele_38.id,
             annotation_type="classification",
             annotation_value="uncertain",
         )
     )
     storage.add_mapping(
-        types.VariationMapping(
+        metadata.VariationMapping(
             source_id=allele_38.id,
             dest_id=allele_37.id,
-            mapping_type=types.VariationMappingType.LIFTOVER,
+            mapping_type=metadata.VariationMappingType.LIFTOVER,
         )
     )
 
@@ -294,32 +294,32 @@ def run_mappings_crud(
     storage.add_objects([allele_38, allele_37, allele_tx])
 
     # add mapping
-    liftover_mapping = types.VariationMapping(
+    liftover_mapping = metadata.VariationMapping(
         source_id=allele_38.id,
         dest_id=allele_37.id,
-        mapping_type=types.VariationMappingType.LIFTOVER,
+        mapping_type=metadata.VariationMappingType.LIFTOVER,
     )
     storage.add_mapping(liftover_mapping)
-    tx_mapping = types.VariationMapping(
+    tx_mapping = metadata.VariationMapping(
         source_id=allele_38.id,
         dest_id=allele_tx.id,
-        mapping_type=types.VariationMappingType.TRANSCRIPTION,
+        mapping_type=metadata.VariationMappingType.TRANSCRIPTION,
     )
     storage.add_mapping(tx_mapping)
 
     # get mapping
     assert storage.get_mappings(
-        allele_38.id, types.VariationMappingType.TRANSCRIPTION
+        allele_38.id, metadata.VariationMappingType.TRANSCRIPTION
     ) == [tx_mapping]
-    assert storage.get_mappings(allele_38.id, types.VariationMappingType.LIFTOVER) == [
-        liftover_mapping
-    ]
+    assert storage.get_mappings(
+        allele_38.id, metadata.VariationMappingType.LIFTOVER
+    ) == [liftover_mapping]
 
     # redundant adds still work
     storage.add_mapping(liftover_mapping)
-    assert storage.get_mappings(allele_38.id, types.VariationMappingType.LIFTOVER) == [
-        liftover_mapping
-    ]
+    assert storage.get_mappings(
+        allele_38.id, metadata.VariationMappingType.LIFTOVER
+    ) == [liftover_mapping]
 
     # type param optional
     get_result = storage.get_mappings(allele_38.id)
@@ -330,7 +330,9 @@ def run_mappings_crud(
 
     # delete mapping
     storage.delete_mapping(liftover_mapping)
-    assert storage.get_mappings(allele_38.id, types.VariationMappingType.LIFTOVER) == []
+    assert (
+        storage.get_mappings(allele_38.id, metadata.VariationMappingType.LIFTOVER) == []
+    )
     assert storage.get_mappings(allele_38.id) == [tx_mapping]
     storage.delete_mapping(tx_mapping)
     assert storage.get_mappings(allele_38.id) == []
@@ -345,25 +347,25 @@ def run_annotations_crud(
     storage.add_objects(focus_alleles)
 
     # add arbitrary annotations
-    ann1 = types.Annotation(
+    ann1 = metadata.Annotation(
         object_id=focus_alleles[0].id,
         annotation_type="classification",
         annotation_value="pathogenic",
     )
     storage.add_annotation(ann1)
-    ann2 = types.Annotation(
+    ann2 = metadata.Annotation(
         object_id=focus_alleles[1].id,
         annotation_type="sample_count",
         annotation_value=5,
     )
     storage.add_annotation(ann2)
-    ann3 = types.Annotation(
+    ann3 = metadata.Annotation(
         object_id=focus_alleles[2].id,
         annotation_type="classification",
         annotation_value="likely_benign",
     )
     storage.add_annotation(ann3)
-    ann4 = types.Annotation(
+    ann4 = metadata.Annotation(
         object_id=focus_alleles[2].id,
         annotation_type="reference",
         annotation_value={"type": "article", "value": "pmid:123456"},
