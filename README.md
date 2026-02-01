@@ -35,7 +35,7 @@ See the [documentation](https://anyvar.readthedocs.io) for additional setup opti
 Use the Python API to directly instantiate and query a local AnyVar instance:
 
 ```pycon
->>> from anyvar.anyvar import AnyVar, create_storage, create_translator
+>>> from anyvar import AnyVar, create_storage, create_translator
 >>> av = AnyVar(translator=create_translator(), object_store=create_storage())
 >>> allele = Allele(**{"id": "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU", "digest": "K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU", "location": {"id": "ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8", "digest": "aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8", "end": 87894077, "start": 87894076, "sequenceReference": {"refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB"}}, "state": {"sequence": "T", "type": "LiteralSequenceExpression"}})
 >>> av.put_object(allele)

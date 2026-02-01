@@ -10,7 +10,7 @@ from tests.conftest import build_vrs_variant_from_dict
 
 import anyvar.anyvar
 from anyvar.queueing.celery_worker import celery_app
-from anyvar.storage.base_storage import Storage
+from anyvar.storage.base import Storage
 
 
 @pytest.fixture

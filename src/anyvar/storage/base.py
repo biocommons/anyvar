@@ -5,7 +5,8 @@ from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
 
-from anyvar.utils import types
+from anyvar.core import metadata
+from anyvar.core import objects as anyvar_objects
 
 
 class StorageError(Exception):
@@ -51,7 +52,7 @@ class Storage(ABC):
         """Wipe all data from the storage backend."""
 
     @abstractmethod
-    def add_objects(self, objects: Iterable[types.VrsObject]) -> None:
+    def add_objects(self, objects: Iterable[anyvar_objects.VrsObject]) -> None:
         """Add multiple VRS objects to storage.
 
         If an object ID conflicts with an existing object, skip it.
@@ -70,8 +71,8 @@ class Storage(ABC):
 
     @abstractmethod
     def get_objects(
-        self, object_type: type[types.VrsObject], object_ids: Iterable[str]
-    ) -> Iterable[types.VrsObject]:
+        self, object_type: type[anyvar_objects.VrsObject], object_ids: Iterable[str]
+    ) -> Iterable[anyvar_objects.VrsObject]:
         """Retrieve multiple VRS objects from storage by their IDs.
 
         If no object matches a given ID, that ID is skipped
@@ -83,7 +84,7 @@ class Storage(ABC):
 
     @abstractmethod
     def delete_objects(
-        self, object_type: type[types.VrsObject], object_ids: Iterable[str]
+        self, object_type: type[anyvar_objects.VrsObject], object_ids: Iterable[str]
     ) -> None:
         """Delete all objects of a specific type from storage.
 
@@ -97,7 +98,7 @@ class Storage(ABC):
         """
 
     @abstractmethod
-    def add_mapping(self, mapping: types.VariationMapping) -> None:
+    def add_mapping(self, mapping: metadata.VariationMapping) -> None:
         """Add a mapping between two objects.
 
         If the mapping instance already exists, do nothing.
@@ -107,7 +108,7 @@ class Storage(ABC):
         """
 
     @abstractmethod
-    def delete_mapping(self, mapping: types.VariationMapping) -> None:
+    def delete_mapping(self, mapping: metadata.VariationMapping) -> None:
         """Delete a mapping between two objects.
 
         * If no such mapping exists in the DB, does nothing.
@@ -122,8 +123,8 @@ class Storage(ABC):
     def get_mappings(
         self,
         source_object_id: str,
-        mapping_type: types.VariationMappingType | None = None,
-    ) -> Iterable[types.VariationMapping]:
+        mapping_type: metadata.VariationMappingType | None = None,
+    ) -> Iterable[metadata.VariationMapping]:
         """Return an iterable of mappings from the source ID
 
         Optionally provide a type to filter results.
@@ -135,7 +136,7 @@ class Storage(ABC):
         """
 
     @abstractmethod
-    def add_annotation(self, annotation: types.Annotation) -> None:
+    def add_annotation(self, annotation: metadata.Annotation) -> None:
         """Adds an annotation to the database.
 
         Adding the same annotation repeatedly creates redundant records.
@@ -147,7 +148,7 @@ class Storage(ABC):
     @abstractmethod
     def get_annotations(
         self, object_id: str, annotation_type: str | None = None
-    ) -> list[types.Annotation]:
+    ) -> list[metadata.Annotation]:
         """Get all annotations for the specified object, optionally filtered by type.
 
         :param object_id: The ID of the object to retrieve annotations for
@@ -156,7 +157,7 @@ class Storage(ABC):
         """
 
     @abstractmethod
-    def delete_annotation(self, annotation: types.Annotation) -> None:
+    def delete_annotation(self, annotation: metadata.Annotation) -> None:
         """Deletes an annotation from the database
 
         * If no such annotation exists, do nothing.

@@ -12,7 +12,7 @@ from celery.result import AsyncResult
 from dotenv import load_dotenv
 
 import anyvar
-from anyvar.extras.vcf import (
+from anyvar.vcf.ingest import (
     VcfRegistrar,
     register_existing_annotations,
 )

@@ -8,8 +8,9 @@ from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
 
-from anyvar.storage.base_storage import Storage
-from anyvar.utils import types
+from anyvar.core import metadata
+from anyvar.core import objects as anyvar_objects
+from anyvar.storage.base import Storage
 
 
 class NoObjectStore(Storage):
@@ -27,46 +28,46 @@ class NoObjectStore(Storage):
     def wipe_db(self) -> None:
         """(No-op) Wipe all data from the storage backend."""
 
-    def add_objects(self, objects: Iterable[types.VrsObject]) -> None:
+    def add_objects(self, objects: Iterable[anyvar_objects.VrsObject]) -> None:
         """(No-op) Add multiple VRS objects to storage."""
 
     def get_objects(
         self,
-        object_type: type[types.VrsObject],
+        object_type: type[anyvar_objects.VrsObject],
         object_ids: Iterable[str],
-    ) -> Iterable[types.VrsObject]:
+    ) -> Iterable[anyvar_objects.VrsObject]:
         """(No-op) Retrieve multiple VRS objects from storage by their IDs."""
         return []
 
     def delete_objects(
-        self, object_type: type[types.VrsObject], object_ids: Iterable[str]
+        self, object_type: type[anyvar_objects.VrsObject], object_ids: Iterable[str]
     ) -> None:
         """(No-op) Delete all objects of a specific type from storage."""
 
-    def add_mapping(self, mapping: types.VariationMapping) -> None:
+    def add_mapping(self, mapping: metadata.VariationMapping) -> None:
         """(No-op) Add a mapping between two objects."""
 
-    def delete_mapping(self, mapping: types.VariationMapping) -> None:
+    def delete_mapping(self, mapping: metadata.VariationMapping) -> None:
         """(No-op) Delete a mapping between two objects."""
 
     def get_mappings(
         self,
         source_object_id: str,
-        mapping_type: types.VariationMappingType | None = None,
-    ) -> Iterable[types.VariationMapping]:
+        mapping_type: metadata.VariationMappingType | None = None,
+    ) -> Iterable[metadata.VariationMapping]:
         """(No-op) Return an iterable of mappings from the source ID"""
         return []
 
-    def add_annotation(self, annotation: types.Annotation) -> None:
+    def add_annotation(self, annotation: metadata.Annotation) -> None:
         """(No-op) Adds an annotation to the database."""
 
     def get_annotations(
         self, object_id: str, annotation_type: str | None = None
-    ) -> list[types.Annotation]:
+    ) -> list[metadata.Annotation]:
         """(No-op) Get all annotations for the specified object, optionally filtered by type."""
         return []
 
-    def delete_annotation(self, annotation: types.Annotation) -> None:
+    def delete_annotation(self, annotation: metadata.Annotation) -> None:
         """(No-op) Deletes an annotation from the database"""
 
     def search_alleles(

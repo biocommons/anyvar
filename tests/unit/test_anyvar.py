@@ -2,7 +2,7 @@
 
 from unittest.mock import Mock
 
-from anyvar.utils.types import Annotation, AnnotationType
+from anyvar.core import metadata
 
 
 def test_create_timestamp_annotation_missing(anyvar_instance):
@@ -17,7 +17,7 @@ def test_create_timestamp_annotation_missing(anyvar_instance):
 
     assert result == expected_annotation_id
     anyvar_instance.get_object_annotations.assert_called_once_with(
-        object_id, AnnotationType.CREATION_TIMESTAMP
+        object_id, metadata.AnnotationType.CREATION_TIMESTAMP
     )
     anyvar_instance.put_annotation.assert_called_once()
 
@@ -28,9 +28,9 @@ def test_create_timestamp_annotation_exists(anyvar_instance):
 
     anyvar_instance.get_object_annotations = Mock(
         return_value=[
-            Annotation(
+            metadata.Annotation(
                 object_id=object_id,
-                annotation_type=AnnotationType.CREATION_TIMESTAMP,
+                annotation_type=metadata.AnnotationType.CREATION_TIMESTAMP,
                 annotation_value="2025-12-04T14:13:41.521791+00:00",
             )
         ]

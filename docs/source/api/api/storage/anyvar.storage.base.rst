@@ -1,7 +1,7 @@
-﻿anyvar.storage.base_storage
-===========================
+﻿anyvar.storage.base
+===================
 
-.. automodule:: anyvar.storage.base_storage
+.. automodule:: anyvar.storage.base
    :members:
    :no-inherited-members:
    :undoc-members:

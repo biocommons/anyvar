@@ -13,12 +13,11 @@ from urllib.parse import urlparse
 
 from ga4gh.vrs import models as vrs_models
 
+from anyvar.core import metadata, objects
 from anyvar.storage import DEFAULT_STORAGE_URI
-from anyvar.storage.base_storage import Storage
-from anyvar.translate.translate import Translator
+from anyvar.storage.base import Storage
+from anyvar.translate.base import Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
-from anyvar.utils import types
-from anyvar.utils.types import AnnotationType, VrsObject
 
 # Suppress pydantic warnings unless otherwise indicated
 if os.environ.get("ANYVAR_SHOW_PYDANTIC_WARNINGS", None) is None:
@@ -105,7 +104,7 @@ class AnyVar:
         self.object_store = object_store
         self.translator = translator
 
-    def put_objects(self, variation_objects: list[VrsObject]) -> None:
+    def put_objects(self, variation_objects: list[objects.VrsObject]) -> None:
         """Attempt to register variation objects
 
         The provided list may contain any supported variation object -- i.e. not just
@@ -121,8 +120,8 @@ class AnyVar:
             raise e  # noqa: TRY201
 
     def get_object(
-        self, object_id: str, object_type: type[types.VrsObject] | None = None
-    ) -> VrsObject:
+        self, object_id: str, object_type: type[objects.VrsObject] | None = None
+    ) -> objects.VrsObject:
         """Retrieve registered VRS Object.
 
         :param object_id: object identifier
@@ -144,7 +143,7 @@ class AnyVar:
         # Search all object types
         return self._get_object_polymorphic(object_id)
 
-    def _get_object_polymorphic(self, object_id: str) -> VrsObject:
+    def _get_object_polymorphic(self, object_id: str) -> objects.VrsObject:
         """Search all object types for the given object ID.
 
         :param object_id: VRS object identifier
@@ -171,7 +170,7 @@ class AnyVar:
                 continue
         raise KeyError(f"Object {object_id} not found in any table")
 
-    def put_annotation(self, annotation: types.Annotation) -> int | None:
+    def put_annotation(self, annotation: metadata.Annotation) -> int | None:
         """Attempt to store an annotation.
 
         :param annotation: an Annotation object
@@ -187,7 +186,7 @@ class AnyVar:
 
     def get_object_annotations(
         self, object_id: str, annotation_type: str | None = None
-    ) -> list[types.Annotation]:
+    ) -> list[metadata.Annotation]:
         """Get all annotations for the specified object, optionally filtered by type.
 
         :param object_id: The ID of the object to retrieve annotations for
@@ -216,20 +215,20 @@ class AnyVar:
         :return: ID of newly created annotation. If timestamp annotation exists, will
             return None.
         """
-        timestamp_annotations: list[types.Annotation] = self.get_object_annotations(
-            object_id, AnnotationType.CREATION_TIMESTAMP.value
+        timestamp_annotations: list[metadata.Annotation] = self.get_object_annotations(
+            object_id, metadata.AnnotationType.CREATION_TIMESTAMP.value
         )
         if not timestamp_annotations:
             return self.put_annotation(
-                types.Annotation(
+                metadata.Annotation(
                     object_id=object_id,
-                    annotation_type=AnnotationType.CREATION_TIMESTAMP.value,
+                    annotation_type=metadata.AnnotationType.CREATION_TIMESTAMP.value,
                     annotation_value=datetime.datetime.now(tz=datetime.UTC).isoformat(),
                 )
             )
         return None
 
-    def put_mapping(self, mapping: types.VariationMapping) -> None:
+    def put_mapping(self, mapping: metadata.VariationMapping) -> None:
         """Attempt to store a mapping between two objects
 
         :param mapping: a Mapping object
@@ -241,8 +240,8 @@ class AnyVar:
             raise
 
     def get_object_mappings(
-        self, source_object_id: str, mapping_type: types.VariationMappingType
-    ) -> Iterable[types.VariationMapping]:
+        self, source_object_id: str, mapping_type: metadata.VariationMappingType
+    ) -> Iterable[metadata.VariationMapping]:
         """Get all variation mappings given source object ID and mapping type
 
         :param source_object_id: ID of the source object
