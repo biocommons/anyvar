@@ -12,8 +12,29 @@ Core Functions and Utilities
    :template: module_summary.rst
 
    anyvar.anyvar
+   anyvar.core.metadata
+   anyvar.core.objects
+
+VCF Ingestion
+=============
+
+.. autosummary::
+   :nosignatures:
+   :toctree: api/vcf
+   :template: module_summary.rst
+
+   anyvar.vcf.ingest
+
+
+Bulk Processing
+===============
+
+.. autosummary::
+   :nosignatures:
+   :toctree: api/queueing
+   :template: module_summary.rst
+
    anyvar.queueing.celery_worker
-   anyvar.extras.vcf
 
 Object Storage
 ==============
@@ -23,7 +44,7 @@ Object Storage
    :toctree: api/storage/
    :template: module_summary_no_inherit.rst
 
-   anyvar.storage.base_storage
+   anyvar.storage.base
    anyvar.storage.postgres
    anyvar.storage.mapper_registry
    anyvar.storage.mappers
@@ -38,17 +59,15 @@ Variant Translation
    :toctree: api/translate/
    :template: module_summary.rst
 
-   anyvar.translate.translate
+   anyvar.translate.base
    anyvar.translate.vrs_python
 
-Utilities
-=========
+Mapping
+=======
 
 .. autosummary::
    :nosignatures:
-   :toctree: api/utils/
+   :toctree: api/mapping/
    :template: module_summary.rst
 
-   anyvar.utils.funcs
-   anyvar.utils.liftover_utils
-   anyvar.utils.types
+   anyvar.mapping.liftover

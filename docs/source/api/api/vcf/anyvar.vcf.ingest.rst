@@ -1,7 +1,7 @@
-﻿anyvar.utils.funcs
-==================
+﻿anyvar.vcf.ingest
+=================
 
-.. automodule:: anyvar.utils.funcs
+.. automodule:: anyvar.vcf.ingest
    :members:
    :undoc-members:
    :special-members: __init__

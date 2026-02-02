@@ -13,11 +13,11 @@ This page demonstrates basic usage of the AnyVar Python interface. See the :ref:
 Instantiating An AnyVar Instance
 ================================
 
-The :py:class:`~anyvar.anyvar.AnyVar` class requires implementation of the :py:class:`~anyvar.storage.base_storage.Storage` and :py:class:`~anyvar.translate.translate._Translator` abstractions. These can easily be instantiated with the :py:meth:`~anyvar.anyvar.create_storage` and :py:meth:`~anyvar.anyvar.create_translator` factory functions:
+The :py:class:`~anyvar.anyvar.AnyVar` class requires implementation of the :py:class:`~anyvar.storage.base.Storage` and :py:class:`~anyvar.translate.base.Translator` abstractions. These can easily be instantiated with the :py:meth:`~anyvar.anyvar.create_storage` and :py:meth:`~anyvar.anyvar.create_translator` factory functions:
 
 .. code-block:: pycon
 
-   >>> from anyvar.anyvar import AnyVar, create_storage, create_translator
+   >>> from anyvar import AnyVar, create_storage, create_translator
    >>> av = AnyVar(create_translator(), create_storage())
 
 Basic Variant Object Operations
@@ -80,11 +80,11 @@ AnyVar's :ref:`variation translation <supported-variant-nomenclature>` feature c
 Variation Liftover
 ==================
 
-AnyVar employs the `agct <https://github.com/GenomicMedLab/agct/>`_ library to lift genomic variation locations between equivalent positions on GRCh37 and GRCh38. The :py:func:`~anyvar.utils.liftover_utils.get_liftover_variant` function takes a variation, determines its reference assembly, and returns the corresponding allele on the opposite assembly.
+AnyVar employs the `agct <https://github.com/GenomicMedLab/agct/>`_ library to lift genomic variation locations between equivalent positions on GRCh37 and GRCh38. The :py:func:`~anyvar.mapping.liftover.get_liftover_variant` function takes a variation, determines its reference assembly, and returns the corresponding allele on the opposite assembly.
 
 .. code-block:: pycon
 
-   >>> from anyvar.utils.liftover_utils import get_liftover_variant
+   >>> from anyvar.mapping.liftover import get_liftover_variant
    >>> (allele.location.start, allele.location.end)
    (87894076, 87894077)
    >>> lifted_variant = get_liftover_variant(allele)
@@ -98,7 +98,7 @@ AnyVar can add basic mappings between objects with :py:meth:`AnyVar.put_mapping(
 
 .. code-block:: pycon
 
-   >>> from anyvar.utils.types import VariationMapping, VariationMappingType
+   >>> from anyvar.core.metadata import VariationMapping, VariationMappingType
    >>> genomic_allele = av.translator.translate_allele("NC_000007.14:g.140753336A>T")
    >>> tx_allele = av.translator.translate_allele("NM_004333.6:c.1799T>A")
    >>> av.put_objects([genomic_allele, tx_allele])
@@ -118,7 +118,7 @@ They can be retrieved with :py:meth:`AnyVar.get_object_mappings() <anyvar.anyvar
 
 See :ref:`here <mappings>` for more information about object mappings in AnyVar.
 
-The :py:mod:`~anyvar.utils.liftover_utils` module provides the :py:func:`~anyvar.utils.liftover_utils.add_liftover_mapping` function as a convenient way to find the lifted-over equivalent of a variation, register it, and add mappings of type ``liftover`` between them.
+The :py:mod:`~anyvar.mapping.liftover` module provides the :py:func:`~anyvar.mapping.liftover.add_liftover_mapping` function as a convenient way to find the lifted-over equivalent of a variation, register it, and add mappings of type ``liftover`` between them.
 
 Object Annotations
 ==================
@@ -127,7 +127,7 @@ AnyVar can apply basic annotations on objects with :py:meth:`AnyVar.put_annotati
 
 .. code-block:: pycon
 
-   >>> from anyvar.utils.types import Annotation
+   >>> from anyvar.core.metadata import Annotation
    >>> av.put_annotation(Annotation(
    ...     object_id=genomic_allele.id,
    ...     annotation_type="clinvar_somatic_classification",
@@ -158,7 +158,7 @@ AnyVar can consume a Variant Call Format (VCF) file, register all contained vari
 
 .. code-block:: pycon
 
-   >>> from anyvar.extras.vcf import VcfRegistrar
+   >>> from anyvar.vcf.ingest import VcfRegistrar
    >>> from pathlib import Path
    >>> registrar = VcfRegistrar(data_proxy=av.translator.dp, av=av)
    >>> registrar.annotate(Path("my_vcf.vcf"), Path("out.vcf"))

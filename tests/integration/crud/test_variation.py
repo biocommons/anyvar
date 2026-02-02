@@ -5,13 +5,13 @@ from http import HTTPStatus
 import pytest
 from fastapi.testclient import TestClient
 
+from anyvar.mapping.liftover import ReferenceAssembly
 from anyvar.restapi.main import (
     PUT_VRS_VARIATION_EXAMPLE_PAYLOAD,
     VARIATION_EXAMPLE_PAYLOAD,
 )
 from anyvar.restapi.schema import RegisterVariationResponse, VariationRequest
-from anyvar.storage.base_storage import Storage
-from anyvar.utils.liftover_utils import ReferenceAssembly
+from anyvar.storage.base import Storage
 
 
 def test_put_allele(restapi_client: TestClient, alleles: dict):

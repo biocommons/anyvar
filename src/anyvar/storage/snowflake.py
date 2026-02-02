@@ -23,15 +23,16 @@ from sqlalchemy.sql import Values
 from sqlalchemy.sql.compiler import SQLCompiler
 from sqlalchemy.sql.expression import Insert
 
+from anyvar.core import metadata
+from anyvar.core import objects as anyvar_objects
 from anyvar.storage import orm
-from anyvar.storage.base_storage import (
+from anyvar.storage.base import (
     DataIntegrityError,
     IncompleteVrsObjectError,
     InvalidSearchParamsError,
     Storage,
 )
 from anyvar.storage.mapper_registry import mapper_registry
-from anyvar.utils import types
 
 _logger = logging.getLogger(__name__)
 
@@ -285,7 +286,7 @@ class SnowflakeObjectStore(Storage):
             session.execute(delete(orm.VrsObject))
             session.execute(delete(orm.Annotation))
 
-    def add_objects(self, objects: Iterable[types.VrsObject]) -> None:
+    def add_objects(self, objects: Iterable[anyvar_objects.VrsObject]) -> None:
         """Add multiple VRS objects to storage using bulk inserts.
 
         If an object ID conflicts with an existing object, skip it.
@@ -301,7 +302,7 @@ class SnowflakeObjectStore(Storage):
         :raise IncompleteVrsObjectError: if object is missing required properties or if
             required properties aren't fully dereferenced
         """
-        objects_list: list[types.VrsObject] = list(objects)
+        objects_list: list[anyvar_objects.VrsObject] = list(objects)
         if not objects_list:
             return
 
@@ -335,15 +336,15 @@ class SnowflakeObjectStore(Storage):
                     "vrs_object": obj.model_dump(exclude_none=True),
                 }
                 for obj in objects_list
-                if isinstance(obj, types.VrsObject) and obj.id is not None
+                if isinstance(obj, anyvar_objects.VrsObject) and obj.id is not None
             ]
             if len(dicts) > 0:
                 stmt = insert(getattr(orm, orm.VrsObject.__name__))
                 session.execute(stmt, dicts)
 
     def get_objects(
-        self, object_type: type[types.VrsObject], object_ids: Iterable[str]
-    ) -> Iterable[types.VrsObject]:
+        self, object_type: type[anyvar_objects.VrsObject], object_ids: Iterable[str]
+    ) -> Iterable[anyvar_objects.VrsObject]:
         """Retrieve multiple VRS objects from storage by their IDs.
 
         If no object matches a given ID, that ID is skipped
@@ -396,7 +397,7 @@ class SnowflakeObjectStore(Storage):
         return results
 
     def delete_objects(
-        self, object_type: type[types.VrsObject], object_ids: Iterable[str]
+        self, object_type: type[anyvar_objects.VrsObject], object_ids: Iterable[str]
     ) -> None:
         """Delete all objects of a specific type from storage.
 
@@ -442,7 +443,7 @@ class SnowflakeObjectStore(Storage):
                 )
                 raise DataIntegrityError from e
 
-    def add_mapping(self, mapping: types.VariationMapping) -> None:
+    def add_mapping(self, mapping: metadata.VariationMapping) -> None:
         """Add a mapping between two objects.
 
         If the mapping instance already exists, do nothing.
@@ -510,7 +511,7 @@ class SnowflakeObjectStore(Storage):
         except IntegrityError as e:
             raise KeyError from e
 
-    def delete_mapping(self, mapping: types.VariationMapping) -> None:
+    def delete_mapping(self, mapping: metadata.VariationMapping) -> None:
         """Delete a mapping between two objects.
 
         * If no such mapping exists in the DB, does nothing.
@@ -530,8 +531,8 @@ class SnowflakeObjectStore(Storage):
     def get_mappings(
         self,
         source_object_id: str,
-        mapping_type: types.VariationMappingType | None = None,
-    ) -> Iterable[types.VariationMapping]:
+        mapping_type: metadata.VariationMappingType | None = None,
+    ) -> Iterable[metadata.VariationMapping]:
         """Return an iterable of mappings from the source ID
 
         Optionally provide a type to filter results.
@@ -552,7 +553,7 @@ class SnowflakeObjectStore(Storage):
             mappings = session.scalars(stmt).all()
             return [mapper_registry.from_db_entity(mapping) for mapping in mappings]
 
-    def add_annotation(self, annotation: types.Annotation) -> None:
+    def add_annotation(self, annotation: metadata.Annotation) -> None:
         """Add an annotation to the database.
 
         Adding the same annotation repeatedly creates redundant records.
@@ -571,7 +572,7 @@ class SnowflakeObjectStore(Storage):
 
     def get_annotations(
         self, object_id: str, annotation_type: str | None = None
-    ) -> list[types.Annotation]:
+    ) -> list[metadata.Annotation]:
         """Get all annotations for the specified object, optionally filtered by type.
 
         :param object_id: The ID of the object to retrieve annotations for
@@ -593,7 +594,7 @@ class SnowflakeObjectStore(Storage):
                 for db_annotation in db_annotations
             ]
 
-    def delete_annotation(self, annotation: types.Annotation) -> None:
+    def delete_annotation(self, annotation: metadata.Annotation) -> None:
         """Deletes an annotation from the database
 
         * If no such annotation exists, do nothing.

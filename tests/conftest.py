@@ -9,10 +9,10 @@ from ga4gh.vrs import models
 from pydantic import BaseModel
 
 from anyvar.anyvar import AnyVar, create_storage, create_translator
+from anyvar.core import objects
 from anyvar.restapi.main import app as anyvar_restapi
-from anyvar.storage.base_storage import Storage
-from anyvar.translate.translate import Translator
-from anyvar.utils.types import VrsVariation
+from anyvar.storage.base import Storage
+from anyvar.translate.base import Translator
 
 pytest_plugins = ("celery.contrib.pytest",)
 
@@ -141,14 +141,14 @@ def restapi_client(anyvar_instance: AnyVar):
 
 
 # variation type: VRS-Python model
-variation_class_map: dict[str, type[VrsVariation]] = {
+variation_class_map: dict[str, type[objects.VrsVariation]] = {
     "Allele": models.Allele,
     "CopyNumberCount": models.CopyNumberCount,
     "CopyNumberChange": models.CopyNumberChange,
 }
 
 
-def build_vrs_variant_from_dict(variant_dict: dict) -> VrsVariation:
+def build_vrs_variant_from_dict(variant_dict: dict) -> objects.VrsVariation:
     """Construct a `VrsVariation` class instance from a dictionary representation of one
 
     :param variant_dict: a dictionary representation of a `VrsVariation` object

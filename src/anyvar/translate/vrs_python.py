@@ -6,9 +6,9 @@ from ga4gh.vrs import models
 from ga4gh.vrs.dataproxy import _DataProxy, create_dataproxy
 from ga4gh.vrs.extras.translator import AlleleTranslator, CnvTranslator
 
+from anyvar.core.objects import VrsVariation
 from anyvar.restapi.schema import SupportedVariationType
-from anyvar.translate.translate import TranslationError, Translator
-from anyvar.utils import types
+from anyvar.translate.base import TranslationError, Translator
 
 
 class VrsPythonTranslator(Translator):
@@ -40,7 +40,7 @@ class VrsPythonTranslator(Translator):
         self.allele_tlr = AlleleTranslator(data_proxy=self.dp)
         self.cnv_tlr = CnvTranslator(data_proxy=self.dp)
 
-    def translate_variation(self, var: str, **kwargs) -> types.VrsVariation:
+    def translate_variation(self, var: str, **kwargs) -> VrsVariation:
         """Translate provided variation text into a VRS Variation object.
 
         :param var: user-provided string describing or referencing a variation.

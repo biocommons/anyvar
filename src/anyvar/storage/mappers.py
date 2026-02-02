@@ -5,8 +5,8 @@ from typing import Generic, TypeVar
 
 from ga4gh.vrs import models as vrs_models
 
+from anyvar.core import metadata
 from anyvar.storage import orm
-from anyvar.utils import types
 
 A = TypeVar("A")  # Anyvar entity type
 D = TypeVar("D")  # DB entity type
@@ -195,20 +195,24 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, orm.Allele]):
         raise ValueError(f"Unknown state type '{state_type}' from: {state_data}")
 
 
-class VariationMappingMapper(BaseMapper[types.VariationMapping, orm.VariationMapping]):
+class VariationMappingMapper(
+    BaseMapper[metadata.VariationMapping, orm.VariationMapping]
+):
     """Maps between VariationMapping entities."""
 
-    def from_db_entity(self, db_entity: orm.VariationMapping) -> types.VariationMapping:
+    def from_db_entity(
+        self, db_entity: orm.VariationMapping
+    ) -> metadata.VariationMapping:
         """Convert DB instance into business logic object"""
-        mapping_type = types.VariationMappingType(db_entity.mapping_type)
-        return types.VariationMapping(
+        mapping_type = metadata.VariationMappingType(db_entity.mapping_type)
+        return metadata.VariationMapping(
             source_id=db_entity.source_id,
             dest_id=db_entity.dest_id,
             mapping_type=mapping_type,
         )
 
     def to_db_entity(
-        self, anyvar_entity: types.VariationMapping
+        self, anyvar_entity: metadata.VariationMapping
     ) -> orm.VariationMapping:
         """Convert VariationMapping object to DB mapping instance."""
         return orm.VariationMapping(
@@ -218,22 +222,22 @@ class VariationMappingMapper(BaseMapper[types.VariationMapping, orm.VariationMap
         )
 
 
-class AnnotationMapper(BaseMapper[types.Annotation, orm.Annotation]):
+class AnnotationMapper(BaseMapper[metadata.Annotation, orm.Annotation]):
     """Maps between Annotations entities."""
 
-    def from_db_entity(self, db_entity: orm.Annotation) -> types.Annotation:
+    def from_db_entity(self, db_entity: orm.Annotation) -> metadata.Annotation:
         """Convert DB Annotation to AnyVar Annotation.
 
         :param db_entity: An ORM Annotation instance
         :return: An Anyvar Annotation instance
         """
-        return types.Annotation(
+        return metadata.Annotation(
             object_id=db_entity.object_id,
             annotation_type=db_entity.annotation_type,
             annotation_value=db_entity.annotation_value,
         )
 
-    def to_db_entity(self, anyvar_entity: types.Annotation) -> orm.Annotation:
+    def to_db_entity(self, anyvar_entity: metadata.Annotation) -> orm.Annotation:
         """Convert AnyVar Annotation into DB Annotation.
 
         :param anyvar_entity: An Anyvar Annotation instance

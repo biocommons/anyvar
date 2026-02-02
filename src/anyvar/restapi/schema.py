@@ -16,12 +16,8 @@ from ga4gh.vrs import (
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
 from anyvar import __version__
-from anyvar.utils import types
-from anyvar.utils.liftover_utils import ReferenceAssembly
-from anyvar.utils.types import (
-    VrsObject,
-    VrsVariation,
-)
+from anyvar.core import metadata, objects
+from anyvar.mapping.liftover import ReferenceAssembly
 
 
 class EndpointTag(str, Enum):
@@ -134,7 +130,7 @@ class ServiceInfo(BaseModel):
 class TranslationResult(BaseModel):
     """Describe structure for translation success or failure"""
 
-    variation: VrsVariation | None = None
+    variation: objects.VrsVariation | None = None
     error: str | None = None
 
 
@@ -161,7 +157,7 @@ class VariationRequest(BaseModel):
 class AddAnnotationResponse(BaseModel):
     """Response for the POST /variation/{vrs_id}/annotations endpoint"""
 
-    object: VrsObject | None
+    object: objects.VrsObject | None
     object_id: str | None
     annotation_type: str | None
     annotation_value: Any | None
@@ -181,7 +177,7 @@ class AddAnnotationRequest(BaseModel):
 class GetAnnotationResponse(BaseModel):
     """Response for the GET /variation/{vrs_id}/annotations/{annotation_type} endpoint"""
 
-    annotations: list[types.Annotation]
+    annotations: list[metadata.Annotation]
 
 
 class AddMappingResponse(BaseModel):
@@ -189,11 +185,11 @@ class AddMappingResponse(BaseModel):
 
     model_config = ConfigDict(use_enum_values=True)
 
-    source_object: VrsObject | None
+    source_object: objects.VrsObject | None
     source_object_id: str
-    dest_object: VrsObject | None
+    dest_object: objects.VrsObject | None
     dest_object_id: str
-    mapping_type: types.VariationMappingType
+    mapping_type: metadata.VariationMappingType
 
 
 class AddMappingRequest(BaseModel):
@@ -202,13 +198,13 @@ class AddMappingRequest(BaseModel):
     model_config = ConfigDict(use_enum_values=True)
 
     dest_id: str
-    mapping_type: types.VariationMappingType
+    mapping_type: metadata.VariationMappingType
 
 
 class GetMappingResponse(BaseModel):
     """Request for the GET /variation/{vrs_id}/mappings endpoint"""
 
-    mappings: Iterable[types.VariationMapping]
+    mappings: Iterable[metadata.VariationMapping]
 
 
 class RegisterVariationResponse(BaseModel):
@@ -254,9 +250,9 @@ class RegisterVariationResponse(BaseModel):
         }
     )
 
-    input_variation: VariationRequest | VrsVariation
+    input_variation: VariationRequest | objects.VrsVariation
     messages: list[str] = []
-    object: types.VrsVariation | None = None
+    object: objects.VrsVariation | None = None
     object_id: str | None = None
 
 
@@ -291,7 +287,7 @@ class GetObjectResponse(BaseModel):
     )
 
     messages: list[StrictStr]
-    data: VrsObject | None = None
+    data: objects.VrsObject | None = None
 
 
 class SearchResponse(BaseModel):

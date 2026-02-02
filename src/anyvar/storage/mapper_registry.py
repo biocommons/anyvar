@@ -4,6 +4,7 @@ from typing import TypeVar
 
 from ga4gh.vrs import models as vrs_models
 
+from anyvar.core import metadata
 from anyvar.storage import orm
 from anyvar.storage.mappers import (
     AlleleMapper,
@@ -13,7 +14,6 @@ from anyvar.storage.mappers import (
     SequenceReferenceMapper,
     VariationMappingMapper,
 )
-from anyvar.utils import types
 
 T = TypeVar("T")
 
@@ -27,8 +27,8 @@ class MapperRegistry:
             vrs_models.Allele: orm.Allele,
             vrs_models.SequenceLocation: orm.Location,
             vrs_models.SequenceReference: orm.SequenceReference,
-            types.VariationMapping: orm.VariationMapping,
-            types.Annotation: orm.Annotation,
+            metadata.VariationMapping: orm.VariationMapping,
+            metadata.Annotation: orm.Annotation,
         }
 
         self._mappers: dict[type, BaseMapper] = {

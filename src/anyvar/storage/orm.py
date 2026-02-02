@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 from collections.abc import Iterator
 from urllib.parse import urlparse
 
@@ -31,9 +32,8 @@ from sqlalchemy.orm import (
 from sqlalchemy.orm.decl_api import declared_attr
 from sqlalchemy.types import TypeDecorator
 
+from anyvar.core import metadata
 from anyvar.storage import DEFAULT_STORAGE_URI
-from anyvar.utils.funcs import camel_to_snake
-from anyvar.utils.types import VariationMappingType
 
 
 class SnowflakeVARIANT(TypeDecorator):
@@ -56,6 +56,17 @@ class SnowflakeVARIANT(TypeDecorator):
         return value
 
 
+def _camel_to_snake(word: str, uppercase: bool = True) -> str:
+    """Transform a string from camelCase (or PascalCase) into snake_case, optionally UPPER_CASED as well
+
+    :param word: The word to transform
+    :param uppercase: Whether or not to return the word in UPPER_SNAKE_CASE (defaults to true)
+    :return: The provided word, transformed to snake case
+    """
+    snake_case_word: str = re.sub(r"(?<!^)(?=[A-Z])", "_", word)
+    return snake_case_word.upper() if uppercase else snake_case_word.lower()
+
+
 class Base(DeclarativeBase):
     """Base class for all AnyVar ORM models."""
 
@@ -64,7 +75,7 @@ class Base(DeclarativeBase):
         # Default table name = class name, transformed from PascalCase into snake_case and pluralized.
         # Example: The table name created by the "VrsObject" ORM class is `vrs_objects`
         # NOTE: Classes/tables that require a different pluralization scheme should override this function.
-        default_name: str = camel_to_snake(cls.__name__, False) + "s"
+        default_name: str = _camel_to_snake(cls.__name__, False) + "s"
 
         # Environment variable name is the class name transformed into UPPER_SNAKE_CASE, pluralized, and prefixed by 'ANYVAR_' + suffixed with "_TABLE_NAME".
         # e.g., the environment variable to override the table name created by the "VrsObject" ORM class is `ANYVAR_VRS_OBJECTS_TABLE_NAME`
@@ -229,7 +240,7 @@ class Annotation(Base):
 
 
 mapping_type_enum = Enum(
-    VariationMappingType,
+    metadata.VariationMappingType,
     name="mapping_type",
     native_enum=True,
     metadata=Base.metadata,

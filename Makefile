@@ -8,7 +8,7 @@
 SHELL:=/bin/bash -e -o pipefail
 SELF:=$(firstword $(MAKEFILE_LIST))
 
-PKG=eutils
+PKG=anyvar
 PKGD=$(subst .,/,${PKG})
 PYV:=3.11
 VEDIR=venv/${PYV}
