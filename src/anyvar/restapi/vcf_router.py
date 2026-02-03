@@ -24,7 +24,7 @@ from fastapi.responses import FileResponse
 
 import anyvar
 from anyvar.anyvar import AnyVar
-from anyvar.restapi.schema import EndpointTag, ErrorResponse, RunStatusResponse
+from anyvar.restapi.schema import ErrorResponse, RunStatusResponse
 from anyvar.translate.base import TranslatorConnectionError
 from anyvar.vcf.ingest import (
     RequiredAnnotationsError,
@@ -47,7 +47,7 @@ except ImportError:
 
 _logger = logging.getLogger(__name__)
 
-router = APIRouter()
+vcf_router = APIRouter()
 
 # high side estimate for time is 500 variants per second
 _expected_vrs_ids_per_second = int(
@@ -199,11 +199,10 @@ async def _annotate_vcf_sync(
     return FileResponse(temp_out_path)
 
 
-@router.put(
+@vcf_router.put(
     "/vcf",
     summary="Register alleles from a VCF",
     description="Provide a valid VCF. All reference and alternate alleles will be registered with AnyVar. The file is annotated with VRS IDs and returned.",
-    tags=[EndpointTag.VCF],
     response_model=None,
 )
 async def annotate_vcf(
@@ -247,21 +246,7 @@ async def annotate_vcf(
         ),
     ] = None,
 ) -> FileResponse | RunStatusResponse | ErrorResponse:
-    """Register alleles from a VCF and return a file annotated with VRS IDs.
-
-    :param request: FastAPI request object
-    :param response: FastAPI response object
-    :param bg_tasks: FastAPI background tasks object
-    :param vcf: incoming VCF file object
-    :param for_ref: whether to compute VRS IDs for REF alleles
-    :param allow_async_write: whether to allow async database writes
-    :param assembly: the reference assembly for the VCF
-    :param add_vrs_attributes: Whether to annotate with VRS attributes (start, stop,
-        state, length, repeat subunit length) or just IDs
-    :param run_async: whether to run the VCF annotation synchronously or asynchronously
-    :param run_id: user provided id for asynchronous VCF annotation
-    :return: streamed annotated file or a run status response for an asynchronous run
-    """
+    """Register alleles from a VCF and return a file annotated with VRS IDs."""
     # If async requested but not enabled, return an error
     if run_async and not anyvar.anyvar.has_queueing_enabled():
         _logger.warning(
@@ -432,11 +417,10 @@ async def _ingest_annotated_vcf_async(
     )
 
 
-@router.put(
+@vcf_router.put(
     "/annotated_vcf",
-    summary="Register alleles from a VCF that has already been annotated with VRS objects.",
-    description="Provide a VCF that already has VRS position and state annotations. Ingest the objects into AnyVar.",
-    tags=[EndpointTag.VCF],
+    summary="Register alleles from a VCF that has already been annotated with VRS objects",
+    description="Provide a VCF that already has VRS location and state annotations. Ingest the objects into AnyVar.",
     response_model=None,
 )
 async def annotated_vcf(
@@ -482,19 +466,7 @@ async def annotated_vcf(
         ),
     ] = None,
 ) -> FileResponse | RunStatusResponse | ErrorResponse | None:
-    """Register alleles from a VCF and return a file annotated with VRS IDs.
-
-    :param request: FastAPI request object
-    :param response: FastAPI response object
-    :param bg_tasks: FastAPI background tasks object
-    :param vcf: incoming VCF file object
-    :param allow_async_write: whether to allow async database writes
-    :param assembly: the reference assembly for the VCF
-    :param run_async: whether to run the VCF annotation synchronously or asynchronously
-    :param require_validation:
-    :param run_id: user provided id for asynchronous VCF annotation
-    :return: streamed annotated file or a run status response for an asynchronous run
-    """
+    """Register alleles from a VCF and return a file annotated with VRS IDs."""
     # If async requested but not enabled, return an error
     if (run_async and not anyvar.anyvar.has_queueing_enabled()) or not AsyncResult:
         _logger.warning(
@@ -550,11 +522,10 @@ async def annotated_vcf(
         return ErrorResponse(error="VCF ingestion failed.")
 
 
-@router.get(
+@vcf_router.get(
     "/vcf/{run_id}",
     summary="Poll for status and/or result for asynchronous VCF ingestion",
     description="Provide a valid run id to get the status and/or result of a VCF ingestion run",
-    tags=[EndpointTag.VCF],
     response_model=None,
 )
 async def get_vcf_run_status(
@@ -564,13 +535,7 @@ async def get_vcf_run_status(
         str, Path(description="The run id to retrieve the result or status for")
     ],
 ) -> RunStatusResponse | FileResponse | ErrorResponse:
-    """Return the status or result of an asynchronous registration of alleles from a VCF file.
-
-    :param response: FastAPI response object
-    :param bg_tasks: FastAPI background tasks object
-    :param run_id: asynchronous run id
-    :return: streamed annotated file or a run status response
-    """
+    """Return the status or result of an asynchronous registration of alleles from a VCF file."""
     # Asynchronous VCF annotation not enabled, return error
     if (
         not anyvar.anyvar.has_queueing_enabled()

@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from anyvar.anyvar import AnyVar, create_storage, create_translator
 from anyvar.core import objects
 from anyvar.restapi.main import app as anyvar_restapi
+from anyvar.restapi.schema import ServiceInfo
 from anyvar.storage.base import Storage
 from anyvar.translate.base import Translator
 
@@ -137,6 +138,7 @@ def anyvar_instance(storage: Storage, translator: Translator):
 @pytest.fixture(scope="module")
 def restapi_client(anyvar_instance: AnyVar):
     anyvar_restapi.state.anyvar = anyvar_instance
+    anyvar_restapi.state.service_info = ServiceInfo()
     return TestClient(app=anyvar_restapi)
 
 
