@@ -23,10 +23,10 @@ from anyvar.mapping.liftover import ReferenceAssembly
 class EndpointTag(str, Enum):
     """Denote endpoint group membership"""
 
-    GENERAL = "General"
+    META = "Service Metadata"
     VCF = "VCF Operations"
     VRS_OBJECTS = "VRS Objects"
-    SEARCH = "Search"
+    SEARCH = "Search Operations"
 
 
 class ServiceEnvironment(str, Enum):
@@ -93,7 +93,9 @@ class ServiceInfo(BaseModel):
     name: str = Field(
         default="AnyVar", description="Name of this service. Should be human readable."
     )
-    type: ServiceType = Field(ServiceType(), description="Type of a GA4GH service")
+    type: ServiceType = Field(
+        default=ServiceType(), description="Type of a GA4GH service"
+    )
     description: str = Field(
         default="Register and retrieve variations and associated annotations.",
         description="Description of the service. Should be human readable and provide information about the service.",

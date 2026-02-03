@@ -60,5 +60,6 @@ def test_fastapi_lifespan(mocker):
         create_storage_mock.assert_called_once()
         create_translator_mock.assert_called_once()
         assert app.state.anyvar is not None
+        assert app.state.service_info
 
     storage_mock.close.assert_called_once()
