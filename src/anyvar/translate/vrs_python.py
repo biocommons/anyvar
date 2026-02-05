@@ -1,14 +1,51 @@
 """Normalize incoming variation descriptions with the VRS-Python library."""
 
+import logging
 from os import environ
 
+from bioutils.accessions import coerce_namespace
 from ga4gh.vrs import models
-from ga4gh.vrs.dataproxy import _DataProxy, create_dataproxy
+from ga4gh.vrs.dataproxy import SeqRepoDataProxy, _DataProxy, create_dataproxy
 from ga4gh.vrs.extras.translator import AlleleTranslator, CnvTranslator
 
 from anyvar.core.objects import VrsVariation
 from anyvar.restapi.schema import SupportedVariationType
 from anyvar.translate.base import TranslationError, Translator
+
+_logger = logging.getLogger(__name__)
+
+
+class SequentialSeqRepoDataProxy(SeqRepoDataProxy):  # noqa: D101
+    def __init__(self, sr) -> None:  # noqa: ANN001
+        """Initialize DataProxy instance.
+
+        :param sr: SeqRepo instance
+        """
+        super().__init__(sr)
+        self._chunk_size = 10000
+        self._seq_id, self._seq_start, self._seq_end, self._seq = set(), -1, -1, ""
+
+    def _get_sequence(
+        self, identifier: str, start: int | None = None, end: int | None = None
+    ) -> str:
+        namespaced_id = coerce_namespace(identifier)
+        if (start is None or end is None) or (end - start >= self._chunk_size):
+            return self.sr.fetch_uri(namespaced_id, start, end)
+        if (
+            namespaced_id in self._seq_id
+            and start >= self._seq_start
+            and end <= self._seq_end
+        ):
+            return self._seq[start - self._seq_start : end - self._seq_start]
+        sequence = self.sr.fetch_uri(namespaced_id, start, start + self._chunk_size)
+        if self._seq == "" or self._seq != sequence:
+            self._seq_id = {namespaced_id}
+            self._seq_start = start
+            self._seq_end = start + self._chunk_size
+            self._seq = sequence
+        elif sequence == self._seq:
+            self._seq_id.add(namespaced_id)
+        return self._get_sequence(namespaced_id, start, end)
 
 
 class VrsPythonTranslator(Translator):
@@ -36,9 +73,11 @@ class VrsPythonTranslator(Translator):
             seqrepo_uri = environ.get(
                 "SEQREPO_DATAPROXY_URI", "seqrepo+http://localhost:5000/seqrepo"
             )
-            self.dp = create_dataproxy(seqrepo_uri)
-        self.allele_tlr = AlleleTranslator(data_proxy=self.dp)
-        self.cnv_tlr = CnvTranslator(data_proxy=self.dp)
+            seqrepo_proxy = create_dataproxy(seqrepo_uri)
+            _logger.info("Creating sequential dataproxy")
+        self.dp = seqrepo_proxy
+        self.allele_tlr = AlleleTranslator(data_proxy=seqrepo_proxy)
+        self.cnv_tlr = CnvTranslator(data_proxy=seqrepo_proxy)
 
     def translate_variation(self, var: str, **kwargs) -> VrsVariation:
         """Translate provided variation text into a VRS Variation object.

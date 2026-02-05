@@ -47,6 +47,7 @@ class VrsObjectRegistrationBatcher:
         """Registers a batch of vrs objects and resets the collection list to prepare for the next batch"""
         if self.batch_collection:
             self.anyvar_instance.put_objects(self.batch_collection)
+            _logger.debug("Wrote %s variants to DB", len(self.batch_collection))
             self.batch_collection = []
 
 
@@ -64,6 +65,7 @@ class VcfRegistrar(VcfAnnotator):
         self.av: AnyVar = av
         self.vrs_object_registration_batcher = VrsObjectRegistrationBatcher(self.av)
         super().__init__(data_proxy)
+        _logger.debug("TODO remove initializing vcf registrar")
 
     def on_vrs_object(
         self,
