@@ -5,7 +5,7 @@ import logging
 from http import HTTPStatus
 from typing import Annotated, cast
 
-from fastapi import APIRouter, Body, HTTPException, Request, Response
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response
 from fastapi.params import Path
 from fastapi.responses import JSONResponse, StreamingResponse
 from ga4gh.vrs.dataproxy import DataProxyValidationError
@@ -15,6 +15,10 @@ from pydantic import StrictStr
 from anyvar.anyvar import AnyVar, ObjectNotFoundError
 from anyvar.core import metadata, objects
 from anyvar.mapping import liftover
+from anyvar.restapi.dependencies import (
+    RegistrationExtras,
+    registration_extras,
+)
 from anyvar.restapi.schema import (
     AddAnnotationRequest,
     AddAnnotationResponse,
@@ -149,12 +153,15 @@ def _handle_translation_request(
 
 
 def _register_variations(
-    av: AnyVar, variation_requests: list[VariationRequest]
+    av: AnyVar,
+    variation_requests: list[VariationRequest],
+    add_annotations: RegistrationExtras,
 ) -> list[RegisterVariationResponse]:
     """Bulk register variations
 
     :param av: AnyVar instance
     :param variation_requests: Input variation requests to register
+    :param add_annotations:
     :return: List of RegisterVariationResponse objects in the same order as the input.
         Variations that fail translation are not registered and are returned with null
         `object` and `object_id` fields. Registration or liftover failure messages may
@@ -190,15 +197,18 @@ def _register_variations(
             continue
 
         # add variant metadata
-        av.create_timestamp_annotation_if_missing(translation_result.variation.id)  # type: ignore (ID guaranteed to be present)
-        messages: list[str] = (
-            liftover.add_liftover_mapping(
-                variation=translation_result.variation,
-                storage=av.object_store,
-                dataproxy=av.translator.dp,
+        messages: list[str] = []
+        if add_annotations.add_timestamp:
+            av.create_timestamp_annotation_if_missing(translation_result.variation.id)  # type: ignore (ID guaranteed to be present)
+        if add_annotations.add_liftover:
+            messages = (
+                liftover.add_liftover_mapping(
+                    variation=translation_result.variation,
+                    storage=av.object_store,
+                    dataproxy=av.translator.dp,
+                )
+                or []
             )
-            or []
-        )
 
         responses.append(
             RegisterVariationResponse(
@@ -223,11 +233,14 @@ def _register_variations(
 def register_variation(
     request: Request,
     variation: Annotated[VariationRequest, _variation_request_body],
+    add_annotations: Annotated[RegistrationExtras, Depends(registration_extras)],
 ) -> RegisterVariationResponse:
     """Register a variation based on a provided description or reference."""
     av: AnyVar = request.app.state.anyvar
 
-    responses: list[RegisterVariationResponse] = _register_variations(av, [variation])
+    responses: list[RegisterVariationResponse] = _register_variations(
+        av, [variation], add_annotations
+    )
     return responses[0]
 
 
@@ -242,10 +255,11 @@ def register_variations(
     variations: Annotated[
         list[VariationRequest], Body(description="List of variations to register")
     ],
+    add_annotations: Annotated[RegistrationExtras, Depends(registration_extras)],
 ) -> list[RegisterVariationResponse]:
     """Register multiple variations based on provided descriptions or references."""
     av: AnyVar = request.app.state.anyvar
-    return _register_variations(av, variations)
+    return _register_variations(av, variations, add_annotations)
 
 
 PUT_VRS_VARIATION_EXAMPLE_PAYLOAD = {
