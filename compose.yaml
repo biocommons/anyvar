@@ -34,11 +34,20 @@ services:
   #     /bin/sh -c "rsync -a --delete /seqrepo/2024-12-20/ /usr/local/share/seqrepo/2024-12-20/"
 
   uta:
+    # Test:
+    # psql -XAt postgres://anonymous@localhost:5433/uta -c 'select count(*) from uta_20241220.transcript'
+    # 329090
     image: biocommons/uta:uta_20241220
     environment:
       - POSTGRES_PASSWORD=some-password-that-you-make-up
     volumes:
       - uta_vol:/var/lib/postgresql/data
+      - type: bind
+        source: ./uta_20241220.pgd.gz
+        target: /tmp/uta_20241220.pgd.gz
+        read_only: true
+        bind:
+          create_host_path: false
     ports:
       - 127.0.0.1:5433:5432
 
