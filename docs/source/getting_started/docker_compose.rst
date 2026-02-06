@@ -26,6 +26,8 @@ Create all required volumes:
    % docker volume create uta_vol
    % docker volume create anyvar_vol
 
+Download `uta_20241220.pgd.gz` from https://dl.biocommons.org/uta/ using a web browser and move it to the root of the repository.
+
 Then, launch the application:
 
 .. code-block:: console

@@ -135,6 +135,8 @@ UTA Service Configuration
 
 The ``uta`` service runs a UTA PostgreSQL instance with its data directory on the ``uta_vol`` volume.
 
+You must download `uta_20241220.pgd.gz` from https://dl.biocommons.org/uta/ using a web browser and move it to the root of the repository.
+
 You can test that UTA is running and populated by using the example ``psql`` command in the compose file comments.
 
 AnyVar Database Configuration
