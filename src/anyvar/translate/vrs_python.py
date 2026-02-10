@@ -37,6 +37,8 @@ class VrsPythonTranslator(Translator):
                 "SEQREPO_DATAPROXY_URI", "seqrepo+http://localhost:5000/seqrepo"
             )
             self.dp = create_dataproxy(seqrepo_uri)
+        else:
+            self.dp = seqrepo_proxy
         self.allele_tlr = AlleleTranslator(data_proxy=self.dp)
         self.cnv_tlr = CnvTranslator(data_proxy=self.dp)
 
