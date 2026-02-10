@@ -11,6 +11,13 @@ from fastapi.testclient import TestClient
 
 from anyvar.restapi.main import app_lifespan
 from anyvar.storage import Storage
+from anyvar.translate.vrs_python import VrsPythonTranslator
+
+
+@pytest.fixture(scope="module")
+def translator():
+    """Override translator to disable health check for CI tests"""
+    return VrsPythonTranslator(disable_healthcheck=True)
 
 
 @pytest.mark.ci_ok
