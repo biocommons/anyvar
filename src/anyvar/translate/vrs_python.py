@@ -14,7 +14,9 @@ from anyvar.translate.base import TranslationError, Translator
 class VrsPythonTranslator(Translator):
     """Translator layer using VRS-Python Translator class."""
 
-    def __init__(self, seqrepo_proxy: _DataProxy | None = None) -> None:
+    def __init__(
+        self, seqrepo_proxy: _DataProxy | None = None, disable_healthcheck: bool = False
+    ) -> None:
         """Initialize VRS-Python translator.
 
         If an existing SeqRepo data proxy is not provided, use the VRS-Python
@@ -31,12 +33,18 @@ class VrsPythonTranslator(Translator):
         (``"seqrepo+http://localhost:5000/seqrepo"``) if it's undefined.
 
         :param seqrepo_proxy: existing SR proxy instance if available.
+        :param disable_healthcheck: Whether or not to disable the health check for REST
+            dataproxy
         """
         if not seqrepo_proxy:
             seqrepo_uri = environ.get(
                 "SEQREPO_DATAPROXY_URI", "seqrepo+http://localhost:5000/seqrepo"
             )
-            self.dp = create_dataproxy(seqrepo_uri)
+            self.dp = create_dataproxy(
+                seqrepo_uri, disable_healthcheck=disable_healthcheck
+            )
+        else:
+            self.dp = seqrepo_proxy
         self.allele_tlr = AlleleTranslator(data_proxy=self.dp)
         self.cnv_tlr = CnvTranslator(data_proxy=self.dp)
 
