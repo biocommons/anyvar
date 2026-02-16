@@ -146,7 +146,7 @@ async def _annotate_vcf_async(
         "writing working file for async run %s vcf to %s", run_id, input_file_path
     )
 
-    vcf_site_count = _write_vcf_and_count_sites(vcf, run_id, input_file_path)
+    vcf_site_count = await _write_vcf_and_count_sites(vcf, run_id, input_file_path)
 
     # submit async job
     task_result = celery_worker.annotate_vcf.apply_async(
@@ -411,7 +411,7 @@ async def _ingest_annotated_vcf_async(
         input_file_path.parent.mkdir(parents=True)
     _logger.debug("writing working file for async vcf to %s", input_file_path)
 
-    vcf_site_count = _write_vcf_and_count_sites(vcf, run_id, input_file_path)
+    vcf_site_count = await _write_vcf_and_count_sites(vcf, run_id, input_file_path)
 
     task_result = celery_worker.ingest_annotated_vcf.apply_async(
         kwargs={
