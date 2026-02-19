@@ -3,9 +3,13 @@
 import io
 import time
 from http import HTTPStatus
+from pathlib import Path
 
 import pytest
+from fastapi import UploadFile
 from fastapi.testclient import TestClient
+
+from anyvar.restapi.vcf_router import write_vcf_and_count_sites
 
 
 @pytest.fixture
@@ -138,6 +142,13 @@ def vcf_incomplete_annotations():
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
 chr1	10330	.	CCCCTAACCCTAACCCTAACCCTACCCTAACCCTAACCCTAACCCTAACCCTAA	C	.	PASS	QUALapprox=21493;SB=325,1077,113,694;MQ=32.1327;MQRankSum=0.72;VarDP=2236;AS_ReadPosRankSum=-0.736;AS_pab_max=1;AS_QD=5.17857;AS_MQ=29.5449;QD=9.61225;AS_MQRankSum=0;FS=8.55065;AS_FS=.;ReadPosRankSum=0.727;AS_QUALapprox=145;AS_SB_TABLE=325,1077,2,5;AS_VarDP=28;AS_SOR=0.311749;SOR=1.481;singleton;AS_VQSLOD=13.4641;InbreedingCoeff=-0.000517845;VRS_Allele_IDs=ga4gh:VA.5PqxTNMJZYJqQZ8MgF_77I1I_qcddGN_,ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"""
     return io.BytesIO(file_contents)
+
+
+@pytest.mark.asyncio
+async def test_write_sitecounter(basic_vcf: io.BytesIO, tmp_path: Path):
+    file = UploadFile(basic_vcf)
+    count = await write_vcf_and_count_sites(file, "1234", tmp_path / "tmpfile.vcf")
+    assert count == 1
 
 
 def test_registration_sync(

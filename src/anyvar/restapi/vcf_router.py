@@ -55,6 +55,46 @@ _expected_vrs_ids_per_second = int(
 )
 
 
+async def write_vcf_and_count_sites(
+    vcf: UploadFile, run_id: str | None, input_file_path: pathlib.Path
+) -> int:
+    """Write fastapi file buffer to a tmp location and get VCF site count
+
+    :param vcf: uploaded file from the FastAPI request
+    :param run_id: ID for the task, used for logging
+    :param input_file_path: location to write file to
+    :return: VCF site count
+    """
+    vcf_site_count = 0
+    newline = b"\n"
+    remainder = b""
+
+    async with aiofiles.open(input_file_path, mode="wb") as fd:
+        while chunk := await vcf.read(1024 * 1024):
+            await fd.write(chunk)
+
+            chunk = remainder + chunk
+            lines = chunk.split(newline)
+
+            # Last line may be incomplete — save it for next iteration
+            remainder = lines.pop()
+
+            # Count non-header lines
+            vcf_site_count += sum(
+                1 for line in lines if line and not line.startswith(b"#")
+            )
+
+    # Handle final remainder if file doesn't end with newline
+    if remainder and not remainder.startswith(b"#"):
+        vcf_site_count += 1
+
+    _logger.debug(
+        "wrote working file for async run %s vcf to %s", run_id, input_file_path
+    )
+    _logger.debug("vcf site count of async run %s vcf is %s", run_id, vcf_site_count)
+    return vcf_site_count
+
+
 async def _annotate_vcf_async(
     response: Response,
     vcf: UploadFile,
@@ -106,16 +146,7 @@ async def _annotate_vcf_async(
         "writing working file for async run %s vcf to %s", run_id, input_file_path
     )
 
-    vcf_site_count = 0
-    newline_bytes = b"\n"
-    async with aiofiles.open(input_file_path, mode="wb") as fd:
-        while buffer := await vcf.read(1024 * 1024):
-            vcf_site_count += buffer.count(newline_bytes)
-            await fd.write(buffer)
-    _logger.debug(
-        "wrote working file for async run %s vcf to %s", run_id, input_file_path
-    )
-    _logger.debug("vcf site count of async run %s vcf is %s", run_id, vcf_site_count)
+    vcf_site_count = await write_vcf_and_count_sites(vcf, run_id, input_file_path)
 
     # submit async job
     task_result = celery_worker.annotate_vcf.apply_async(
@@ -380,13 +411,7 @@ async def _ingest_annotated_vcf_async(
         input_file_path.parent.mkdir(parents=True)
     _logger.debug("writing working file for async vcf to %s", input_file_path)
 
-    vcf_site_count = 0
-    async with aiofiles.open(input_file_path, mode="wb") as fd:
-        while buffer := await vcf.read(1024 * 1024):
-            vcf_site_count += buffer.count(b"\n")
-            await fd.write(buffer)
-    _logger.debug("wrote working file for async vcf to %s", input_file_path)
-    _logger.debug("vcf site count of async vcf is %s", vcf_site_count)
+    vcf_site_count = await write_vcf_and_count_sites(vcf, run_id, input_file_path)
 
     task_result = celery_worker.ingest_annotated_vcf.apply_async(
         kwargs={
