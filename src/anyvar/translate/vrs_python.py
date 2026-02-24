@@ -1,14 +1,95 @@
 """Normalize incoming variation descriptions with the VRS-Python library."""
 
+import logging
 from os import environ
+from warnings import warn
 
+from biocommons.seqrepo import SeqRepo
+from bioutils.accessions import coerce_namespace
 from ga4gh.vrs import models
-from ga4gh.vrs.dataproxy import _DataProxy, create_dataproxy
+from ga4gh.vrs.dataproxy import SeqRepoDataProxy, _DataProxy, create_dataproxy
 from ga4gh.vrs.extras.translator import AlleleTranslator, CnvTranslator
 
 from anyvar.core.objects import VrsVariation
 from anyvar.restapi.schema import SupportedVariationType
 from anyvar.translate.base import TranslationError, Translator
+
+_logger = logging.getLogger(__name__)
+
+
+class WindowedSeqRepoDataProxy(SeqRepoDataProxy):
+    """SeqRepo proxy with fixed-size window caching.
+
+    Optimizes repeated small range queries by caching a single fixed-size sequence
+    window and serving subsequent sub-range requests from memory when possible.
+
+    .. warning::
+
+       This API is still experimental, and is subject to change.
+
+    If a request falls outside the cached window or exceeds the configured chunk size,
+    it is delegated directly to SeqRepo.
+    """
+
+    def __init__(self, sr: SeqRepo) -> None:
+        """Initialize DataProxy instance.
+
+        :param sr: SeqRepo instance
+        """
+        warn(
+            "WindowedSeqRepoDataProxy is experimental, and its module path and API may change in future releases",
+            category=FutureWarning,
+            stacklevel=2,
+        )
+        super().__init__(sr)
+        self._chunk_size = 100000
+        self._cached_ids = set()
+        # initialize window start/end with illegal values so that first request is always a miss
+        self._seq_start, self._seq_end = -1, -1
+        self._seq = ""
+        _logger.info("Initialized windowed-caching seqrepo dataproxy")
+
+    def _get_sequence(
+        self, identifier: str, start: int | None = None, end: int | None = None
+    ) -> str:
+        """Return a sequence slice, using a fixed-size window cache when possible.
+
+        For small range queries (< self._chunk_size), this method fetches and caches
+        a contiguous window of sequence starting at ``start``. Subsequent requests
+        that fall within the cached window are served directly from memory.
+
+        The cache stores:
+          - a single sequence window
+          - its genomic start/end bounds
+          - identifiers known to resolve to the same underlying sequence
+
+        This optimization improves performance for workloads exhibiting
+        spatial locality (many nearby small slice requests).
+        """
+        namespaced_id = coerce_namespace(identifier)
+
+        # Delegate large or unbounded requests directly to SeqRepo
+        if (start is None or end is None) or (end - start >= self._chunk_size):
+            return self.sr.fetch_uri(namespaced_id, start, end)
+
+        # cache hit
+        if (
+            namespaced_id in self._cached_ids
+            and start >= self._seq_start
+            and end <= self._seq_end
+        ):
+            return self._seq[start - self._seq_start : end - self._seq_start]
+
+        sequence = self.sr.fetch_uri(namespaced_id, start, start + self._chunk_size)
+        if self._seq == "" or self._seq != sequence:
+            self._cached_ids = {namespaced_id}
+            self._seq_start = start
+            self._seq_end = start + self._chunk_size
+            self._seq = sequence
+        elif sequence == self._seq:
+            # update the known aliases for this sequence and try again
+            self._cached_ids.add(namespaced_id)
+        return self._get_sequence(namespaced_id, start, end)
 
 
 class VrsPythonTranslator(Translator):
