@@ -65,6 +65,11 @@ class WindowedSeqRepoDataProxy(SeqRepoDataProxy):
 
         This optimization improves performance for workloads exhibiting
         spatial locality (many nearby small slice requests).
+
+        :param identifier: full sequence ID
+        :param start: optional starting position
+        :param end: optional ending position
+        :return: literal sequence
         """
         namespaced_id = coerce_namespace(identifier)
 
