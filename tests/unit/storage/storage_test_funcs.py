@@ -425,30 +425,30 @@ def run_search_alleles(
     result = storage.search_alleles(
         rle.location.sequenceReference.refgetAccession, 36561660, 36561665
     )
-    assert result == [rle]
+    assert result.items == [rle]
     result = storage.search_alleles(
         egfr_variant.location.sequenceReference.refgetAccession, 55174010, 140753340
     )
-    sorted(result, key=lambda a: a.id)
-    assert result == [egfr_variant, braf_variant]
+    sorted(result.items, key=lambda a: a.id)
+    assert result.items == [egfr_variant, braf_variant]
 
     # result partially overlaps with interval
     result = storage.search_alleles(
         rle.location.sequenceReference.refgetAccession, 36561662, 36561665
     )
-    assert result == [rle]
+    assert result.items == [rle]
     assert storage.search_alleles(
         rle.location.sequenceReference.refgetAccession, 36561662, 36561663
-    ) == [rle]
+    ).items == [rle]
 
     # position ranges are inclusive
     result = storage.search_alleles(
         braf_variant.location.sequenceReference.refgetAccession, 140753335, 140753336
     )
-    assert result == [braf_variant]
+    assert result.items == [braf_variant]
 
     # handle unrecognized accession
-    assert storage.search_alleles("SQ.unknown-sequence", 1, 10) == []
+    assert storage.search_alleles("SQ.unknown-sequence", 1, 10).items == []
 
     # handle invalid params
     with pytest.raises(InvalidSearchParamsError):
@@ -469,15 +469,41 @@ def run_search_alleles(
     assert (
         storage.search_alleles(
             long_ins.location.sequenceReference.refgetAccession, 10599292, 10599295
-        )
+        ).items
         == []
     )
     assert (
         storage.search_alleles(
             rle_del.location.sequenceReference.refgetAccession, 905, 910
-        )
+        ).items
         == []
     )
     assert storage.search_alleles(
         rle_del.location.sequenceReference.refgetAccession, 904, 910
-    ) == [rle_del]
+    ).items == [rle_del]
+
+    # test pagination
+    result = storage.search_alleles(
+        egfr_variant.location.sequenceReference.refgetAccession,
+        55174010,
+        140753340,
+        page_size=1,
+    )
+    assert result.items == [egfr_variant]
+    result = storage.search_alleles(
+        egfr_variant.location.sequenceReference.refgetAccession,
+        55174010,
+        140753340,
+        page_size=1,
+        cursor=result.next_cursor,
+    )
+    assert result.items == [braf_variant]
+    result = storage.search_alleles(
+        egfr_variant.location.sequenceReference.refgetAccession,
+        55174010,
+        140753340,
+        page_size=1,
+        cursor=result.next_cursor,
+    )
+    assert result.items == []
+    assert result.next_cursor is None

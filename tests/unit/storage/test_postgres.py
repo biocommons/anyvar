@@ -14,7 +14,6 @@ from .storage_test_funcs import (
     run_incomplete_objects_error,
     run_mappings_crud,
     run_objects_raises_integrityerror,
-    run_query_max_rows,
     run_search_alleles,
     run_sequencelocations_crud,
     run_sequencereferences_crud,
@@ -47,15 +46,6 @@ def test_db_lifecycle(
     # set up and populate DB
     storage = PostgresObjectStore(postgres_uri)
     run_db_lifecycle(storage, validated_vrs_alleles)
-
-
-@pytest.mark.ci_ok
-def test_query_max_rows(
-    monkeypatch,
-    postgres_storage: PostgresObjectStore,
-    focus_alleles: tuple[models.Allele, models.Allele, models.Allele],
-):
-    run_query_max_rows(monkeypatch, postgres_storage, focus_alleles)
 
 
 @pytest.mark.ci_ok

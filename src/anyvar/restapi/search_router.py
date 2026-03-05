@@ -36,6 +36,8 @@ def search_variations(
         int,
         Query(..., description="End position for genomic region", examples=[2781758]),
     ],
+    page_size: int = Query(1000, ge=1, le=10000),
+    cursor: str | None = Query(None, description="Opaque pagination cursor"),
 ) -> SearchResponse:
     """Perform genomic coordinate-based search over all registered variations."""
     av: AnyVar = request.app.state.anyvar
@@ -50,15 +52,18 @@ def search_variations(
             detail="Unable to dereference provided accession ID",
         ) from e
 
-    alleles = []
-    if ga4gh_id:
-        try:
-            refget_accession = ga4gh_id.split("ga4gh:")[-1]
-            alleles = av.object_store.search_alleles(refget_accession, start, end)
-        except NotImplementedError as e:
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_IMPLEMENTED,
-                detail="Search not implemented for current storage backend",
-            ) from e
+    if not ga4gh_id:
+        return SearchResponse(variations=[], next_cursor=None)
 
-    return SearchResponse(variations=alleles)
+    try:
+        refget_accession = ga4gh_id.split("ga4gh:")[-1]
+        page = av.object_store.search_alleles(
+            refget_accession, start, end, page_size=page_size, cursor=cursor
+        )
+    except NotImplementedError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_IMPLEMENTED,
+            detail="Search not implemented for current storage backend",
+        ) from e
+
+    return SearchResponse(variations=page.items, next_cursor=page.next_cursor)

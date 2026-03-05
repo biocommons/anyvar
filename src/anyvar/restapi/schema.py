@@ -296,6 +296,7 @@ class SearchResponse(BaseModel):
     """Describe response for the GET /search endpoint"""
 
     variations: list[models.Variation]
+    next_cursor: str | None
 
 
 class RunStatusResponse(BaseModel):

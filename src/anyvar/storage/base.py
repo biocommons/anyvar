@@ -1,7 +1,10 @@
 """Provide PostgreSQL-based storage implementation."""
 
+import base64
+import json
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
+from dataclasses import dataclass
 
 from ga4gh.vrs import models as vrs_models
 
@@ -27,6 +30,18 @@ class IncompleteVrsObjectError(StorageError):
 
 class InvalidSearchParamsError(StorageError):
     """Raise if search params violate specified logical constraints"""
+
+
+@dataclass(frozen=True)
+class AlleleSearchPage:
+    """Return object for implementing keyset pagination in allele search
+
+    Used in accordance with GA4GH pagination guidelines --
+    https://github.com/ga4gh/TASC/blob/main/recommendations/API%20pagination%20guide.md#token-based-pagination
+    """
+
+    items: list[vrs_models.Allele]
+    next_cursor: str | None
 
 
 class Storage(ABC):
@@ -168,18 +183,47 @@ class Storage(ABC):
             depended upon by another object
         """
 
+    @staticmethod
+    def _encode_search_cursor(start: int, allele_id: str) -> str:
+        """Create cursor for search
+
+        :param start: start value for next row
+        :param allele_id: ID for next row
+        :return: cursor to use to fetch next page
+        """
+        raw = json.dumps(
+            {"start": start, "id": allele_id}, separators=(",", ":")
+        ).encode()
+        return base64.urlsafe_b64encode(raw).decode()
+
+    @staticmethod
+    def _decode_search_cursor(cursor: str) -> tuple[int, str]:
+        """Decode cursor for getting next page during search
+
+        :param cursor: opaque key included with previous result
+        :return: start and ID values indicating the first row of the next page
+        """
+        raw = base64.urlsafe_b64decode(cursor.encode())
+        obj = json.loads(raw)
+        return int(obj["start"]), str(obj["id"])
+
     @abstractmethod
     def search_alleles(
         self,
         refget_accession: str,
         start: int,
         stop: int,
-    ) -> list[vrs_models.Allele]:
+        page_size: int = 1000,
+        cursor: str | None = None,
+    ) -> AlleleSearchPage:
         """Find all Alleles that are located within the specified interval.
 
         The interval is the closed range [start, stop] on the sequence identified by
         the RefGet SequenceReference accession (`SQ.*`). Both `start` and `stop` are
         inclusive and represent inter-residue positions.
+
+        Uses keyset pagination, meaning that altering the page size while looping through
+        successive cursors will effectively nullify the search loop.
 
         Currently, any variation which overlaps the queried region is returned.
 
@@ -194,7 +238,8 @@ class Storage(ABC):
         :param refget_accession: refget accession (e.g. `"SQ.IW78mgV5Cqf6M24hy52hPjyyo5tCCd86"`)
         :param start: Inclusive, inter-residue start position of the interval
         :param stop: Inclusive, inter-residue end position of the interval
-        :return: a list of matching VRS alleles
+        :param page_size: Max # of results to return
+        :param cursor: Opaque key indicating start location for query in pagination
+        :return: Results page including variants and a cursor for next result page, if available
         :raise InvalidSearchParamsError: if above search param requirements are violated
-
         """
