@@ -14,7 +14,17 @@ from cryptography.hazmat.primitives import serialization
 from ga4gh.vrs import models as vrs_models
 from snowflake.sqlalchemy import MergeInto
 from snowflake.sqlalchemy.snowdialect import SnowflakeDialect
-from sqlalchemy import String, column, create_engine, delete, insert, select, text
+from sqlalchemy import (
+    String,
+    and_,
+    column,
+    create_engine,
+    delete,
+    insert,
+    or_,
+    select,
+    text,
+)
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.compiler import compiles
@@ -27,6 +37,7 @@ from anyvar.core import metadata
 from anyvar.core import objects as anyvar_objects
 from anyvar.storage import orm
 from anyvar.storage.base import (
+    AlleleSearchPage,
     DataIntegrityError,
     IncompleteVrsObjectError,
     InvalidSearchParamsError,
@@ -616,12 +627,17 @@ class SnowflakeObjectStore(Storage):
         refget_accession: str,
         start: int,
         stop: int,
-    ) -> list[vrs_models.Allele]:
+        page_size: int = 1000,
+        cursor: str | None = None,
+    ) -> AlleleSearchPage:
         """Find all Alleles that are located within the specified interval.
 
         The interval is the closed range [start, stop] on the sequence identified by
         the RefGet SequenceReference accession (`SQ.*`). Both `start` and `stop` are
         inclusive and represent inter-residue positions.
+
+        Uses keyset pagination, meaning that altering the page size while looping through
+        successive cursors will effectively nullify the search loop.
 
         Currently, any variation which overlaps the queried region is returned.
 
@@ -636,12 +652,18 @@ class SnowflakeObjectStore(Storage):
         :param refget_accession: refget accession (e.g. `"SQ.IW78mgV5Cqf6M24hy52hPjyyo5tCCd86"`)
         :param start: Inclusive, inter-residue start position of the interval
         :param stop: Inclusive, inter-residue end position of the interval
-        :return: a list of matching VRS alleles
+        :param page_size: Max # of results to return
+        :param cursor: Opaque key indicating start location for query in pagination
+        :return: Results page including variants and a cursor for next result page, if available
         :raise InvalidSearchParamsError: if above search param requirements are violated
-
         """
         if start < 0 or stop < 0 or start > stop:
             raise InvalidSearchParamsError
+
+        seek_start: int | None = None
+        seek_id: str | None = None
+        if cursor:
+            seek_start, seek_id = self._decode_search_cursor(cursor)
 
         with self.session_factory() as session:
             # Query alleles with overlapping locations
@@ -660,13 +682,26 @@ class SnowflakeObjectStore(Storage):
                     orm.Location.start <= stop,
                     orm.Location.end >= start,
                 )
-                .limit(self.MAX_ROWS)
+                .order_by(orm.Location.start, orm.Allele.id)
+                .limit(page_size)
             )
-            db_alleles = session.scalars(stmt).all()
 
-            return [
-                mapper_registry.from_db_entity(db_allele) for db_allele in db_alleles
-            ]
+            # seek predicate -- assumes ORDER BY location.start ASC, allele.id ASC
+            if seek_start is not None and seek_id is not None:
+                stmt = stmt.where(
+                    or_(
+                        orm.Location.start > seek_start,
+                        and_(orm.Location.start == seek_start, orm.Allele.id > seek_id),
+                    )
+                )
+
+            page_db = session.scalars(stmt).all()
+            items = [mapper_registry.from_db_entity(a) for a in page_db]
+            if not page_db:
+                return AlleleSearchPage(items=[], next_cursor=None)
+            last = page_db[-1]
+            next_cursor = self._encode_search_cursor(last.location.start, last.id)
+            return AlleleSearchPage(items=items, next_cursor=next_cursor)
 
 
 @compiles(Insert, "snowflake")
