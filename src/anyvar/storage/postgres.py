@@ -263,23 +263,26 @@ class PostgresObjectStore(Storage):
 
     def get_mappings(
         self,
-        source_object_id: str,
+        object_id: str,
+        as_source: bool,
         mapping_type: metadata.VariationMappingType | None = None,
     ) -> Iterable[metadata.VariationMapping]:
-        """Return an iterable of mappings from the source ID
+        """Return an iterable of mappings
 
         Optionally provide a type to filter results.
 
-        :param source_object_id: ID of the source object
+        :param object_id: ID of object to get mappings for
+        :param as_source: If ``True``, object_id is treated as the source. If ``False``,
+            ``object_id`` is treated as the destination.
         :param mapping_type: The type of mapping to retrieve (defaults to `None` to
             retrieve all mappings for the source ID)
         :return: iterable collection of mapping descriptors (empty if no matching mappings exist)
         """
-        stmt = (
-            select(orm.VariationMapping)
-            .where(orm.VariationMapping.source_id == source_object_id)
-            .limit(self.MAX_ROWS)
-        )
+        stmt = select(orm.VariationMapping).limit(self.MAX_ROWS)
+        if as_source:
+            stmt = stmt.where(orm.VariationMapping.source_id == object_id)
+        else:
+            stmt = stmt.where(orm.VariationMapping.dest_id == object_id)
         if mapping_type:
             stmt = stmt.where(orm.VariationMapping.mapping_type == mapping_type)
         with self.session_factory() as session, session.begin():

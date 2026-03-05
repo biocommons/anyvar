@@ -7,7 +7,7 @@ import pytest
 from anyvar.core import metadata
 from anyvar.storage.base import Storage
 
-DEFAULT_MAPPING_TYPE = metadata.VariationMappingType.LIFTOVER
+DEFAULT_MAPPING_TYPE = metadata.VariationMappingType.LIFTOVER_TO
 
 
 @pytest.fixture
@@ -95,7 +95,7 @@ def test_put_mapping_same_source_and_dest(restapi_client, preloaded_allele_pairs
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     assert (
         resp.json()["detail"]
-        == f"Failed to add annotation: dest_id='{source_vrs_id}' mapping_type='liftover'. source_id cannot equal dest_id: {source_vrs_id}"
+        == f"Failed to add annotation: dest_id='{source_vrs_id}' mapping_type='liftover_to'. source_id cannot equal dest_id: {source_vrs_id}"
     )
 
 
@@ -138,7 +138,7 @@ def test_put_mapping_invalid_mapping(restapi_client, preloaded_allele_pairs):
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     assert (
         resp.json()["detail"][0]["msg"]
-        == "Input should be 'liftover', 'transcription' or 'translation'"
+        == "Input should be 'liftover_to', 'transcribe_to' or 'translate_to'"
     )
 
 
@@ -161,13 +161,28 @@ def test_get_mapping_valid_request_found(restapi_client, stored_variation_mappin
         ]
     }
 
+    resp = restapi_client.get(
+        f"/object/{dest_vrs_obj['id']}/mappings/{DEFAULT_MAPPING_TYPE}",
+        params={"as_source": False},
+    )
+    assert resp.status_code == HTTPStatus.OK
+    assert resp.json() == {
+        "mappings": [
+            {
+                "source_id": source_vrs_id,
+                "dest_id": dest_vrs_obj["id"],
+                "mapping_type": DEFAULT_MAPPING_TYPE,
+            }
+        ]
+    }
+
 
 def test_get_mapping_valid_request_not_found(restapi_client, stored_variation_mappings):
     """Test valid request where result is not found for GET method"""
     source_vrs_obj, _ = stored_variation_mappings[0]
     source_vrs_id = source_vrs_obj["id"]
 
-    resp = restapi_client.get(f"/object/{source_vrs_id}/mappings/transcription")
+    resp = restapi_client.get(f"/object/{source_vrs_id}/mappings/transcribe_to")
     assert resp.status_code == HTTPStatus.OK
     assert resp.json() == {"mappings": []}
 
@@ -190,5 +205,5 @@ def test_get_mapping_invalid_mapping(restapi_client, stored_variation_mappings):
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     assert (
         resp.json()["detail"][0]["msg"]
-        == "Input should be 'liftover', 'transcription' or 'translation'"
+        == "Input should be 'liftover_to', 'transcribe_to' or 'translate_to'"
     )

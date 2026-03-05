@@ -240,27 +240,36 @@ class AnyVar:
             raise
 
     def get_object_mappings(
-        self, source_object_id: str, mapping_type: metadata.VariationMappingType
+        self,
+        object_id: str,
+        mapping_type: metadata.VariationMappingType,
+        as_source: bool = True,
     ) -> Iterable[metadata.VariationMapping]:
         """Get all variation mappings given source object ID and mapping type
 
-        :param source_object_id: ID of the source object
+        :param object_id: ID of the source object
         :param mapping_type: kind of mapping to retrieve
+        :param as_source: whether to retrieve mappings where ``object_id`` is the source
+            of the mapping, or the destination
         :return: iterable collection of mapping objects
         :raise ObjectNotFoundError: if ``source_object_id`` can't be found in DB
         """
         try:
-            mappings = self.object_store.get_mappings(source_object_id, mapping_type)
+            mappings = self.object_store.get_mappings(
+                object_id,
+                as_source,
+                mapping_type,
+            )
         except Exception:
             _logger.exception(
                 "Failed to retrieve mappings for source_object_id: %s and mapping_type: %s",
-                source_object_id,
+                object_id,
                 mapping_type,
             )
             raise
         if not mappings:
             try:
-                _ = self.get_object(source_object_id)
+                _ = self.get_object(object_id)
             except KeyError as e:
-                raise ObjectNotFoundError(source_object_id) from e
+                raise ObjectNotFoundError(object_id) from e
         return mappings

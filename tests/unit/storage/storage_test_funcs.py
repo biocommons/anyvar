@@ -28,7 +28,7 @@ def run_db_lifecycle(storage: Storage, validated_vrs_alleles: dict[str, models.A
         metadata.VariationMapping(
             source_id=allele_38.id,
             dest_id=allele_37.id,
-            mapping_type=metadata.VariationMappingType.LIFTOVER,
+            mapping_type=metadata.VariationMappingType.LIFTOVER_TO,
         )
     )
 
@@ -297,32 +297,38 @@ def run_mappings_crud(
     liftover_mapping = metadata.VariationMapping(
         source_id=allele_38.id,
         dest_id=allele_37.id,
-        mapping_type=metadata.VariationMappingType.LIFTOVER,
+        mapping_type=metadata.VariationMappingType.LIFTOVER_TO,
     )
     storage.add_mapping(liftover_mapping)
     tx_mapping = metadata.VariationMapping(
         source_id=allele_38.id,
         dest_id=allele_tx.id,
-        mapping_type=metadata.VariationMappingType.TRANSCRIPTION,
+        mapping_type=metadata.VariationMappingType.TRANSCRIBE_TO,
     )
     storage.add_mapping(tx_mapping)
 
     # get mapping
     assert storage.get_mappings(
-        allele_38.id, metadata.VariationMappingType.TRANSCRIPTION
+        allele_38.id,
+        as_source=True,
+        mapping_type=metadata.VariationMappingType.TRANSCRIBE_TO,
     ) == [tx_mapping]
     assert storage.get_mappings(
-        allele_38.id, metadata.VariationMappingType.LIFTOVER
+        allele_38.id,
+        as_source=True,
+        mapping_type=metadata.VariationMappingType.LIFTOVER_TO,
     ) == [liftover_mapping]
 
     # redundant adds still work
     storage.add_mapping(liftover_mapping)
     assert storage.get_mappings(
-        allele_38.id, metadata.VariationMappingType.LIFTOVER
+        allele_38.id,
+        as_source=True,
+        mapping_type=metadata.VariationMappingType.LIFTOVER_TO,
     ) == [liftover_mapping]
 
     # type param optional
-    get_result = storage.get_mappings(allele_38.id)
+    get_result = storage.get_mappings(allele_38.id, as_source=True)
     assert len(get_result) == 2
     sorted(get_result, key=lambda a: a.mapping_type)
     assert get_result[0] == liftover_mapping
@@ -331,11 +337,14 @@ def run_mappings_crud(
     # delete mapping
     storage.delete_mapping(liftover_mapping)
     assert (
-        storage.get_mappings(allele_38.id, metadata.VariationMappingType.LIFTOVER) == []
+        storage.get_mappings(
+            allele_38.id, True, metadata.VariationMappingType.LIFTOVER_TO
+        )
+        == []
     )
-    assert storage.get_mappings(allele_38.id) == [tx_mapping]
+    assert storage.get_mappings(allele_38.id, as_source=True) == [tx_mapping]
     storage.delete_mapping(tx_mapping)
-    assert storage.get_mappings(allele_38.id) == []
+    assert storage.get_mappings(allele_38.id, as_source=True) == []
 
 
 def run_annotations_crud(

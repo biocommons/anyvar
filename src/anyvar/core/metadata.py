@@ -12,11 +12,27 @@ from pydantic import BaseModel, JsonValue
 
 
 class VariationMappingType(StrEnum):
-    """Supported mapping types between VRS Variations."""
+    """Supported mapping types between VRS Variations.
 
-    LIFTOVER = "liftover"
-    TRANSCRIPTION = "transcription"
-    TRANSLATION = "translation"
+    .. warning::
+
+       Currently, use of mappings outside of the liftover relation are experimental,
+       and these parameters are subject to change. The following describes current intentions,
+       and may or may not be validated within AnyVar.
+
+    * ``LIFTOVER_TO``: Genomic-to-genomic coordinate transformation. Use when mapping
+        a variation between two reference sequences of the same molecule type, typically
+        genomic DNA.
+    * ``TRANSCRIBE_TO``: Genomic-to-transcript (RNA/cDNA) projection. Use when projecting
+        a genomic DNA object onto a transcript sequence (RNA or cDNA). This accounts for
+        splicing, transcript strand orientation, and transcript-specific exon structure.
+    * ``TRANSLATE_TO``: Transcript-to-protein projection. This entails codon interpretation,
+        amino acid substitution/insertion/deletion/extension, and protein coordinate changes.
+    """
+
+    LIFTOVER_TO = "liftover_to"
+    TRANSCRIBE_TO = "transcribe_to"
+    TRANSLATE_TO = "translate_to"
 
 
 class VariationMapping(BaseModel):
