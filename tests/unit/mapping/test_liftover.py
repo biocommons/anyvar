@@ -203,7 +203,11 @@ def test_liftover_mapping_success(
     liftover.add_liftover_mapping(src, storage, translator.dp)
 
     # mapping and lifted-over variant should be present
-    mappings = list(storage.get_mappings(src.id, VariationMappingType.LIFTOVER))
+    mappings = list(
+        storage.get_mappings(
+            src.id, as_source=True, mapping_type=VariationMappingType.LIFTOVER_TO
+        )
+    )
     assert len(mappings) == 1
     assert mappings[0].dest_id == dst.id
 

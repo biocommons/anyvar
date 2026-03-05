@@ -5,7 +5,7 @@ import logging
 from http import HTTPStatus
 from typing import Annotated, cast
 
-from fastapi import APIRouter, Body, HTTPException, Request, Response
+from fastapi import APIRouter, Body, HTTPException, Query, Request, Response
 from fastapi.params import Path
 from fastapi.responses import JSONResponse, StreamingResponse
 from ga4gh.vrs.dataproxy import DataProxyValidationError
@@ -460,11 +460,19 @@ def add_object_mapping(
     )
 
 
+_get_mappings_description = """Retrieve mappings associated with a VRS object.
+
+Mappings are *directed*; if `as_source=true`, then retrieve mappings where the VRS object is the mapping *source*, i.e. where the mapping points from the object to another. Otherwise, get mappings where another object points to the VRS object.
+
+By default, retrieve mappings of any type. Use the `mapping_type` argument to specify a specific type.
+"""
+
+
 @objects_router.get(
     "/object/{vrs_id}/mappings/{mapping_type}",
     response_model_exclude_none=True,
     summary="Retrieve mappings for a VRS Object",
-    description="Retrieve mappings for a VRS Object by ID and mapping type",
+    description=_get_mappings_description,
 )
 def get_object_mapping(
     request: Request,
@@ -472,11 +480,18 @@ def get_object_mapping(
     mapping_type: Annotated[
         metadata.VariationMappingType, Path(..., description="Mapping type")
     ],
+    as_source: Annotated[
+        bool,
+        Query(
+            ...,
+            description="If `true`, get mappings where `vrs_id` corresponds to the mapping source; otherwise, get mappings where `vrs_id` is the mapping destination",
+        ),
+    ] = True,
 ) -> GetMappingResponse:
     """Retrieve mappings for a VRS Object."""
     av: AnyVar = request.app.state.anyvar
     try:
-        mappings = av.get_object_mappings(vrs_id, mapping_type)
+        mappings = av.get_object_mappings(vrs_id, mapping_type, as_source)
     except ObjectNotFoundError as e:
         raise HTTPException(
             HTTPStatus.NOT_FOUND,

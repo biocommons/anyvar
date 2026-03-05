@@ -247,14 +247,14 @@ def add_liftover_mapping(
         VariationMapping(
             source_id=input_vrs_id,
             dest_id=normalized_lifted_over_variant_id,
-            mapping_type=VariationMappingType.LIFTOVER,
+            mapping_type=VariationMappingType.LIFTOVER_TO,
         )
     )
     storage.add_mapping(
         VariationMapping(
             source_id=normalized_lifted_over_variant_id,
             dest_id=input_vrs_id,
-            mapping_type=VariationMappingType.LIFTOVER,
+            mapping_type=VariationMappingType.LIFTOVER_TO,
         )
     )
     return None
