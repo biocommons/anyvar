@@ -199,6 +199,13 @@ def _register_variations(
             )
             or []
         )
+        if av.projector is not None:
+            projection_messages = av.projector.add_mappings(
+                variation=translation_result.variation,
+                storage=av.object_store,
+            )
+            if projection_messages:
+                messages.extend(projection_messages)
 
         responses.append(
             RegisterVariationResponse(
@@ -294,12 +301,21 @@ def register_vrs_variation(
     liftover_messages = liftover.add_liftover_mapping(
         variation, av.object_store, av.translator.dp
     )
+    messages: list[str] = liftover_messages or []
+
+    if av.projector is not None:
+        projection_messages = av.projector.add_mappings(
+            variation=variation,
+            storage=av.object_store,
+        )
+        if projection_messages:
+            messages.extend(projection_messages)
 
     return RegisterVariationResponse(
         input_variation=input_variation,
         object=variation,
         object_id=variation.id,
-        messages=liftover_messages or [],
+        messages=messages,
     )
 
 
