@@ -24,3 +24,8 @@ def test_search(restapi_client: TestClient, preloaded_alleles: dict):
         assert len(resp_json["variations"]) == 1
 
         assert resp_json["variations"][0] == allele["variation"]
+
+
+def test_gene_search(restapi_client: TestClient, preloaded_alleles: dict):
+    # TODO add some stuff in after figuring out ref build problem
+    pass

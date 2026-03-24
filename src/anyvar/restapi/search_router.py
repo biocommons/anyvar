@@ -8,7 +8,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from anyvar.anyvar import AnyVar
 from anyvar.features.genes import get_gene_coords
-from anyvar.restapi.dependencies import get_uta_conn, pagination_params
+from anyvar.restapi.dependencies import (
+    PaginationParams,
+    get_pagination_params,
+    get_uta_conn,
+)
 from anyvar.restapi.schema import GeneSearchResponse, SearchResponse
 
 search_router = APIRouter()
@@ -39,7 +43,7 @@ def search_variations(
         int,
         Query(..., description="End position for genomic region", examples=[2781758]),
     ],
-    params: Annotated[dict, Depends(pagination_params)],
+    pagination_params: Annotated[PaginationParams, Depends(get_pagination_params)],
 ) -> SearchResponse:
     """Perform genomic coordinate-based search over all registered variations."""
     av: AnyVar = request.app.state.anyvar
@@ -63,8 +67,8 @@ def search_variations(
             refget_accession,
             start,
             end,
-            page_size=params["page_size"],
-            cursor=params["cursor"],
+            page_size=pagination_params.page_size,
+            cursor=pagination_params.cursor,
         )
     except NotImplementedError as e:
         raise HTTPException(
@@ -79,16 +83,18 @@ def search_variations(
     "/search_by_gene",
     response_model_exclude_none=True,
     operation_id="searchVariationsByGene",
-    summary="Search for registered variations by gene context",
-    description="Return all variants with start and end positions that fall within the contours of the gene",
+    summary="Search for registered genomic variations by gene context",
+    description="Return all genomic variants with start and end positions that fall within the contours of the gene",
 )
 async def search_variations_by_gene(
     request: Request,
-    gene: str,
-    params: Annotated[dict, Depends(pagination_params)],
+    gene: Annotated[
+        str, Query(..., description="HGNC-approved gene symbol", examples=["BRAF"])
+    ],
+    pagination_params: Annotated[PaginationParams, Depends(get_pagination_params)],
     uta_conn: Annotated[PoolConnectionProxy, Depends(get_uta_conn)],
 ) -> GeneSearchResponse:
-    """Perform search"""
+    """Retrieve all genomic variants located within the bounds of a gene"""
     gene_result = await get_gene_coords(uta_conn, gene)
     if not gene_result:
         return GeneSearchResponse(gene_name=gene, variations=[], next_cursor=None)
@@ -103,8 +109,8 @@ async def search_variations_by_gene(
         refget_accession,
         gene_result.start_i,
         gene_result.end_i,
-        page_size=params["page_size"],
-        cursor=params["cursor"],
+        page_size=pagination_params.page_size,
+        cursor=pagination_params.cursor,
     )
     return GeneSearchResponse(
         variations=page.items,

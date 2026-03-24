@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 
 import pytest
+import pytest_asyncio
+from cool_seq_tool.sources import UtaDatabase
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from ga4gh.vrs import models
@@ -135,10 +137,14 @@ def anyvar_instance(storage: Storage, translator: Translator):
     return AnyVar(object_store=storage, translator=translator)
 
 
-@pytest.fixture(scope="module")
-def restapi_client(anyvar_instance: AnyVar):
+@pytest_asyncio.fixture(scope="module")
+async def restapi_client(anyvar_instance: AnyVar):
     anyvar_restapi.state.anyvar = anyvar_instance
     anyvar_restapi.state.service_info = ServiceInfo()
+
+    uta = await UtaDatabase.create()
+    await uta.create_pool()
+    anyvar_restapi.state.uta = uta
     return TestClient(app=anyvar_restapi)
 
 
