@@ -137,16 +137,8 @@ def anyvar_instance(storage: Storage, translator: Translator):
     return AnyVar(object_store=storage, translator=translator)
 
 
-@pytest.fixture(scope="module")
-def restapi_client(anyvar_instance: AnyVar):
-    anyvar_restapi.state.anyvar = anyvar_instance
-    anyvar_restapi.state.service_info = ServiceInfo()
-
-    return TestClient(app=anyvar_restapi)
-
-
 @pytest_asyncio.fixture(scope="module")
-async def uta_enabled_restapi_client(anyvar_instance: AnyVar):
+async def restapi_client(anyvar_instance: AnyVar):
     anyvar_restapi.state.anyvar = anyvar_instance
     anyvar_restapi.state.service_info = ServiceInfo()
 
