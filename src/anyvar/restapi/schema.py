@@ -299,6 +299,12 @@ class SearchResponse(BaseModel):
     next_cursor: str | None
 
 
+class GeneSearchResponse(SearchResponse):
+    """Describe 200 OK response for the GET /search_by_gene endpoint"""
+
+    gene_name: str
+
+
 class RunStatusResponse(BaseModel):
     """Represents the response for triggering or checking the status of a run
     at the GET /vcf/{run_id} endpoint.

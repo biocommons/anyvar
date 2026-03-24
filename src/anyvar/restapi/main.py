@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 
 import anyio
 import yaml
+from cool_seq_tool.sources import UtaDatabase
 from dotenv import load_dotenv
 from fastapi import (
     Depends,
@@ -77,6 +78,12 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
 
     # associate anyvar with the app state
     param_app.state.anyvar = anyvar_instance
+
+    # initialize UTA connection
+    uta = await UtaDatabase.create()
+    await uta.create_pool()
+    param_app.state.uta = uta
+
     yield
 
     # close storage connector on shutdown
