@@ -6,6 +6,7 @@ AnyVar enables **registration**, **lookup**, and **search** of genetic variants 
 * Support a broad range of query modes, including VRS ID lookups, HGVS expressions, gene-based searches, and genomic ranges
 * Translate community nomenclatures and conventions into a universal model for variant representation
 * Provide a community-driven, extensible platform for shared conventions and policy to realize the above goals
+* Enable institutions to deploy and manage their own variant registry to meet privacy, governance, or data-sharing requirements
 
 ## Information
 
