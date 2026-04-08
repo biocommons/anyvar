@@ -5,6 +5,7 @@ from datetime import datetime
 from enum import Enum, StrEnum
 from typing import Any
 
+from biocommons.seqrepo import __version__ as seqrepo_version
 from ga4gh.vrs import (
     VRS_VERSION,
     VrsType,
@@ -75,6 +76,10 @@ class ImplMetadata(BaseModel):
     """Define substructure for reporting metadata about internal software dependencies."""
 
     vrs_python_version: str = vrs_python_version
+    seqrepo_version: str = seqrepo_version
+    uta_schema: str | None = (
+        None  # must be set in the service info override file specified by the `ANYVAR_SERVICE_INFO` environment variable
+    )
 
 
 class CapabilitiesMetadata(BaseModel):
