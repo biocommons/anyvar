@@ -1,5 +1,6 @@
 [project]
 name = "anyvar"
+version="1.1.0-dev0"
 authors = [
   { name="biocommons contributors", email="biocommons-dev@googlegroups.com" },
 ]
@@ -31,7 +32,6 @@ dependencies = [
     "bioutils",
     "biocommons.seqrepo",
 ]
-dynamic = ["version"]
 
 [project.optional-dependencies]
 postgres = ["psycopg[binary]"]
@@ -73,16 +73,11 @@ Source = "https://github.com/biocommons/anyvar/"
 
 
 [build-system]
-requires = [
-    "setuptools >= 65.3",
-    "setuptools_scm >= 8"
-]
+requires = ["setuptools >= 65.3"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.package-data]
 "anyvar.storage" = ["*.sql"]
-
-[tool.setuptools_scm]
 
 [tool.pytest.ini_options]
 addopts = "--cov=anyvar --cov-report term-missing"
