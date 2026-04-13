@@ -29,6 +29,7 @@ class EndpointTag(StrEnum):
     VCF = "VCF Operations"
     VRS_OBJECTS = "VRS Objects"
     VARIATIONS = "Variations"
+    TRANSLATE = "Translate Operations"
 
 
 class ServiceEnvironment(StrEnum):
