@@ -2,11 +2,15 @@
 
 from http import HTTPStatus
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.params import Path
 from ga4gh.vrs.extras.translator import AlleleTranslator
 from ga4gh.vrs.models import Allele
+from typing import Annotated
+from pydantic import StrictStr
 
 from anyvar.anyvar import AnyVar
-from anyvar.restapi.schema import TranslateToResponse
+from anyvar.core.objects import VrsObject
+from anyvar.restapi.schema import TranslateToResponse, TranslateFromResponse
 translate_router = APIRouter()
 
 
@@ -36,13 +40,24 @@ def translate_to(
 
 
 @translate_router.get(
-    "/translate_from",
+    "/translate_from/{format}/{identifier}",
     response_model_exclude_none=True,
     operation_id="translateFrom",
     summary="Translate the specified identifier to a VRS Object",
-    description="Return the full VRS Object for any given variant identifier",
+    description="Return the full VRS Object for the given variant identifier",
 )
 def translate_from(
     request: Request,
-) -> None:
-    raise NotImplementedError
+    format: Annotated[StrictStr, Path(..., description="Format for identifier (i.e. hgvs, gnomad)")],
+    identifier: Annotated[StrictStr, Path(..., description="Identifier")],
+) -> TranslateFromResponse:
+    av: AnyVar = request.app.state.anyvar
+    translator: AlleleTranslator = av.translator.allele_tlr
+    try:
+        vrs_object = translator.translate_from(identifier, format)
+    except (ValueError, NotImplementedError) as e:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        )
+    return TranslateFromResponse(object=vrs_object)
