@@ -303,6 +303,14 @@ class SearchResponse(BaseModel):
 class TranslateToResponse(BaseModel):
     """Describe response for the POST /translate_to endpoint"""
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {"hgvs": "ENST00000453660.4:n.718G>T", "spdi": "NC_000009.12:133256041:C:A"},
+            ],
+        }
+    )
+
     identifiers: dict[str, str]
 
 
