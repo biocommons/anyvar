@@ -1,6 +1,7 @@
 """Provide API routes relating to translate operations"""
 
-from fastapi import APIRouter, Request
+from http import HTTPStatus
+from fastapi import APIRouter, HTTPException, Request
 from ga4gh.vrs.extras.translator import AlleleTranslator
 from ga4gh.vrs.models import Allele
 
@@ -22,9 +23,15 @@ def translate_to(
 ) -> TranslateToResponse:
     av: AnyVar = request.app.state.anyvar
     translator: AlleleTranslator = av.translator.allele_tlr
-    identifiers = {
-        fmt: translator.translate_to(vrs_object, fmt) for fmt in translator.to_translators
-    }
+    try:
+        identifiers = {
+            fmt: translator.translate_to(vrs_object, fmt) for fmt in translator.to_translators
+        }
+    except ValueError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        )
     return TranslateToResponse(identifiers=identifiers)
 
 
