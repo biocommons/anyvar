@@ -2,9 +2,9 @@
 
 from fastapi import APIRouter, Request
 from ga4gh.vrs.extras.translator import AlleleTranslator
+from ga4gh.vrs.models import Allele
 
 from anyvar.anyvar import AnyVar
-from anyvar.core.objects import VrsObject
 from anyvar.restapi.schema import TranslateToResponse
 translate_router = APIRouter()
 
@@ -14,11 +14,11 @@ translate_router = APIRouter()
     response_model_exclude_none=True,
     operation_id="translateTo",
     summary="Translate the specified VRS object to other identifiers",
-    description="Return the a list of variant identifiers that are represented by the specified VRS object",
+    description="Return a dictionary of variant identifiers keyed by identifier type (i.e. hgvs, spdi) that are represented by the specified VRS Allele object",
 )
 def translate_to(
     request: Request,
-    vrs_object: VrsObject,
+    vrs_object: Allele,
 ) -> TranslateToResponse:
     av: AnyVar = request.app.state.anyvar
     translator: AlleleTranslator = av.translator.allele_tlr
