@@ -1,7 +1,9 @@
 """Provide API routes relating to translate operations"""
 
 from fastapi import APIRouter, Request
+from ga4gh.vrs.extras.translator import AlleleTranslator
 
+from anyvar.anyvar import AnyVar
 from anyvar.core.objects import VrsObject
 from anyvar.restapi.schema import TranslateToResponse
 translate_router = APIRouter()
@@ -18,7 +20,12 @@ def translate_to(
     request: Request,
     vrs_object: VrsObject,
 ) -> TranslateToResponse:
-    raise NotImplementedError
+    av: AnyVar = request.app.state.anyvar
+    translator: AlleleTranslator = av.translator.allele_tlr
+    identifiers = {
+        fmt: translator.translate_to(vrs_object, fmt) for fmt in translator.to_translators
+    }
+    return TranslateToResponse(identifiers=identifiers)
 
 
 @translate_router.get(
