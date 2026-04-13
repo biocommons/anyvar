@@ -27,6 +27,7 @@ class EndpointTag(str, Enum):
     VCF = "VCF Operations"
     VRS_OBJECTS = "VRS Objects"
     SEARCH = "Search Operations"
+    TRANSLATE = 'Translate Operations'
 
 
 class ServiceEnvironment(str, Enum):

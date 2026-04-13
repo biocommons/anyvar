@@ -124,7 +124,7 @@ class VrsPythonTranslator(Translator):
         """
         if not seqrepo_proxy:
             seqrepo_uri = environ.get(
-                "SEQREPO_DATAPROXY_URI", "seqrepo+http://localhost:5000/seqrepo"
+                "SEQREPO_DATAPROXY_URI", "seqrepo+https://services.genomicmedlab.org/seqrepo"
             )
             self.dp = create_dataproxy(
                 seqrepo_uri, disable_healthcheck=disable_healthcheck
