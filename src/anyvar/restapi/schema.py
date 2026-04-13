@@ -339,7 +339,7 @@ class SearchResponse(BaseModel):
 class TranslateToResponse(BaseModel):
     """Describe response for the POST /translate_to endpoint"""
 
-    identifiers: list[str]
+    identifiers: dict[str, str]
 
 
 class RunStatusResponse(BaseModel):
