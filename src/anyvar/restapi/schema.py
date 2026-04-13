@@ -300,6 +300,12 @@ class SearchResponse(BaseModel):
     next_cursor: str | None
 
 
+class TranslateToResponse(BaseModel):
+    """Describe response for the POST /translate_to endpoint"""
+
+    identifiers: list[str]
+
+
 class RunStatusResponse(BaseModel):
     """Represents the response for triggering or checking the status of a run
     at the GET /vcf/{run_id} endpoint.

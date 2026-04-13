@@ -2,10 +2,12 @@
 
 from fastapi import APIRouter, Request
 
+from anyvar.core.objects import VrsObject
+from anyvar.restapi.schema import TranslateToResponse
 translate_router = APIRouter()
 
 
-@translate_router.get(
+@translate_router.post(
     "/translate_to",
     response_model_exclude_none=True,
     operation_id="translateTo",
@@ -14,7 +16,8 @@ translate_router = APIRouter()
 )
 def translate_to(
     request: Request,
-) -> None:
+    vrs_object: VrsObject,
+) -> TranslateToResponse:
     raise NotImplementedError
 
 
