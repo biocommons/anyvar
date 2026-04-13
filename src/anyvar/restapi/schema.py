@@ -27,7 +27,7 @@ class EndpointTag(str, Enum):
     VCF = "VCF Operations"
     VRS_OBJECTS = "VRS Objects"
     SEARCH = "Search Operations"
-    TRANSLATE = 'Translate Operations'
+    TRANSLATE = "Translate Operations"
 
 
 class ServiceEnvironment(str, Enum):
@@ -305,10 +305,15 @@ class TranslateToResponse(BaseModel):
 
     model_config = ConfigDict(
         json_schema_extra={
-            "examples": [{
-                "hgvs": ["ENST00000453660.4:n.718G>T", "ENSP00000483018.1:p.Gly229Val"],
-                "spdi": ["NC_000009.12:133256041:C:A"],
-            }],
+            "examples": [
+                {
+                    "hgvs": [
+                        "ENST00000453660.4:n.718G>T",
+                        "ENSP00000483018.1:p.Gly229Val",
+                    ],
+                    "spdi": ["NC_000009.12:133256041:C:A"],
+                }
+            ],
         }
     )
 
