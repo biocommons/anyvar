@@ -305,13 +305,14 @@ class TranslateToResponse(BaseModel):
 
     model_config = ConfigDict(
         json_schema_extra={
-            "examples": [
-                {"hgvs": "ENST00000453660.4:n.718G>T", "spdi": "NC_000009.12:133256041:C:A"},
-            ],
+            "examples": [{
+                "hgvs": ["ENST00000453660.4:n.718G>T", "ENSP00000483018.1:p.Gly229Val"],
+                "spdi": ["NC_000009.12:133256041:C:A"],
+            }],
         }
     )
 
-    identifiers: dict[str, str]
+    identifiers: dict[str, list[str]]
 
 
 class RunStatusResponse(BaseModel):
