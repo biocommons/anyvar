@@ -315,6 +315,12 @@ class TranslateToResponse(BaseModel):
     identifiers: dict[str, list[str]]
 
 
+class TranslateFromResponse(BaseModel):
+    """Describe response for the POST /translate_from endpoint"""
+
+    object: objects.VrsObject
+
+
 class RunStatusResponse(BaseModel):
     """Represents the response for triggering or checking the status of a run
     at the GET /vcf/{run_id} endpoint.
