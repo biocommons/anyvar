@@ -2,9 +2,9 @@
 
 import logging
 import logging.config
-import os
 import pathlib
 from contextlib import asynccontextmanager
+from os import getenv
 
 import anyio
 import yaml
@@ -35,7 +35,7 @@ _logger = logging.getLogger(__name__)
 async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
     """Perform resource initialization/teardown"""
     # Configure logging from file or use default
-    logging_config_file = os.environ.get("ANYVAR_LOGGING_CONFIG", None)
+    logging_config_file = getenv("ANYVAR_LOGGING_CONFIG", None)
     if logging_config_file and pathlib.Path(logging_config_file).is_file():
         async with await anyio.open_file(logging_config_file) as f:
             try:
@@ -51,7 +51,7 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
         _logger.info("Logging with default configs.")
 
     # Override default service-info parameters
-    service_info_config_file = os.environ.get("ANYVAR_SERVICE_INFO")
+    service_info_config_file = getenv("ANYVAR_SERVICE_INFO")
     if service_info_config_file and pathlib.Path(service_info_config_file).is_file():
         async with await anyio.open_file(service_info_config_file) as f:
             try:
@@ -84,11 +84,13 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
     storage.close()
 
 
+API_PREFIX = getenv("ANYVAR_API_PREFIX", "")
+
 app = FastAPI(
     title="AnyVar",
     version=anyvar.__version__,
-    docs_url="/",
-    openapi_url="/openapi.json",
+    docs_url=f"{API_PREFIX}/",
+    openapi_url=f"{API_PREFIX}/openapi.json",
     swagger_ui_parameters={"tryItOutEnabled": True},
     description="Register and retrieve VRS value objects.",
     lifespan=app_lifespan,
@@ -96,8 +98,8 @@ app = FastAPI(
 )
 
 
-app.include_router(vcf_router, tags=[EndpointTag.VCF])
-app.include_router(search_router, tags=[EndpointTag.SEARCH])
-app.include_router(meta_router, tags=[EndpointTag.META])
-app.include_router(translate_router, tags=[EndpointTag.TRANSLATE])
-app.include_router(objects_router, tags=[EndpointTag.VRS_OBJECTS])
+app.include_router(vcf_router, tags=[EndpointTag.VCF], prefix=API_PREFIX)
+app.include_router(search_router, tags=[EndpointTag.SEARCH], prefix=API_PREFIX)
+app.include_router(meta_router, tags=[EndpointTag.META], prefix=API_PREFIX)
+app.include_router(translate_router, tags=[EndpointTag.TRANSLATE], prefix=API_PREFIX)
+app.include_router(objects_router, tags=[EndpointTag.VRS_OBJECTS], prefix=API_PREFIX)
