@@ -6,8 +6,6 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from ga4gh.vrs import models as vrs_models
-
 from anyvar.core import metadata
 from anyvar.core import objects as anyvar_objects
 
@@ -40,7 +38,7 @@ class AlleleSearchPage:
     https://github.com/ga4gh/TASC/blob/main/recommendations/API%20pagination%20guide.md#token-based-pagination
     """
 
-    items: list[vrs_models.Allele]
+    items: list[anyvar_objects.VrsVariation]
     next_cursor: str | None
 
 

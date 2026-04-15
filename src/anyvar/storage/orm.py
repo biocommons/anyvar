@@ -176,7 +176,7 @@ class Location(Base):
         yield self
         yield self.sequence_reference
 
-    @declared_attr
+    @declared_attr.directive
     @classmethod
     def __table_args__(cls):  # noqa: ANN206
         uri = os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
@@ -223,7 +223,7 @@ class Annotation(Base):
         .with_variant(SnowflakeVARIANT, "snowflake")
     )
 
-    @declared_attr
+    @declared_attr.directive
     @classmethod
     def __table_args__(cls):  # noqa: ANN206
         uri = os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
@@ -257,7 +257,7 @@ class VariationMapping(Base):
     dest_id: Mapped[str] = mapped_column(String)
     mapping_type: Mapped[str] = mapped_column(mapping_type_enum)
 
-    @declared_attr
+    @declared_attr.directive
     @classmethod
     def __table_args__(cls):  # noqa: ANN206
         uri = os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)

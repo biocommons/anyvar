@@ -40,7 +40,7 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
             try:
                 contents = await f.read()
                 config = yaml.safe_load(contents)
-                logging.config.dictConfig(config)
+                logging.config.dictConfig(config)  # pyright: ignore[reportArgumentType]
                 _logger.info("Logging using configs set from %s", logging_config_file)
             except Exception:
                 _logger.exception(
@@ -56,7 +56,7 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
             try:
                 contents = await f.read()
                 service_info = yaml.safe_load(contents)
-                param_app.state.service_info = ServiceInfo(**service_info)
+                param_app.state.service_info = ServiceInfo(**service_info)  # pyright: ignore[reportCallIssue]
                 _logger.info(
                     "Assigning service info values from %s", service_info_config_file
                 )

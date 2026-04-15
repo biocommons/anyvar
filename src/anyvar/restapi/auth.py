@@ -215,8 +215,8 @@ def is_jwt_token_valid(
 
         # Validate emails if configured
         if auth_cfg.emails:
-            token_email = decoded.get("email")
-            if token_email.lower() not in auth_cfg.emails:
+            token_email: str = decoded.get("email", "").lower()
+            if token_email not in auth_cfg.emails:
                 _logger.debug(
                     "Token email mismatch: expected %s, got %s",
                     auth_cfg.emails,
