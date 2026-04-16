@@ -15,7 +15,7 @@ from ga4gh.vrs import (
 from ga4gh.vrs import (
     __version__ as vrs_python_version,
 )
-from pydantic import BaseModel, ConfigDict, Field, StrictStr, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictStr, computed_field
 
 from anyvar import __version__
 from anyvar.core import metadata, objects
@@ -76,7 +76,12 @@ class SpecMetadata(BaseModel):
 class ImplMetadata(BaseModel):
     """Define substructure for reporting metadata about internal software dependencies."""
 
-    vrs_python_version: str = vrs_python_version
+    @computed_field
+    @property
+    def vrs_python_version(self) -> str:
+        """Gets the version of vrs-python that AnyVar is currently using"""
+        return vrs_python_version
+
     seqrepo_version: str | None = Field(
         default_factory=lambda: ImplMetadata._get_env_var_path_name(
             "SEQREPO_DATAPROXY_URI"
@@ -85,14 +90,6 @@ class ImplMetadata(BaseModel):
     uta_schema: str | None = Field(
         default_factory=lambda: ImplMetadata._get_env_var_path_name("UTA_DB_URL")
     )
-
-    @model_validator(mode="before")
-    @classmethod
-    def forbid_vrs_python_override(cls, data: dict | None) -> dict | None:
-        """prevent 'vrs_python_version' from being overridden"""
-        if isinstance(data, dict) and "vrs_python_version" in data:
-            raise ValueError("`vrs_python_version` cannot be overridden")
-        return data
 
     @staticmethod
     def _get_env_var_path_name(env_var: str) -> str | None:
