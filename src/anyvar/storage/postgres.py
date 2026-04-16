@@ -301,7 +301,7 @@ class PostgresObjectStore(Storage):
         :raise MissingVariationReferenceError: if no object corresponding to the annotation's object ID is present in DB
 
         """
-        db_entity: orm.Annotation = mapper_registry.to_db_entity(annotation)
+        db_entity = mapper_registry.to_db_entity(annotation)
         stmt = insert(orm.Annotation).returning(orm.Annotation.id)
         with self.session_factory() as session, session.begin():
             session.execute(stmt, db_entity.to_dict()).scalar_one()
