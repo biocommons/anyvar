@@ -178,15 +178,3 @@ class VrsPythonTranslator(Translator):
         except ValueError as e:
             msg = f"{var} isn't supported by the VRS-Python AlleleTranslator."
             raise TranslationError(msg) from e
-
-    def get_sequence_id(self, accession_id: str) -> str:
-        """Get GA4GH sequence identifier for provided accession ID
-
-        :param accession_id: ID to convert
-        :return: equivalent GA4GH sequence ID
-        :raise: KeyError if no equivalent ID is available
-        """
-        result = self.allele_tlr.data_proxy.translate_sequence_identifier(
-            accession_id, "ga4gh"
-        )
-        return result[0]
