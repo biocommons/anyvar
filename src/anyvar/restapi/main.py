@@ -50,8 +50,7 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
         _logger.info("Logging with default configs.")
 
     # Override default service-info parameters
-    # service_info_config_file = os.environ.get("ANYVAR_SERVICE_INFO")
-    service_info_config_file = None
+    service_info_config_file = os.environ.get("ANYVAR_SERVICE_INFO")
     if service_info_config_file and pathlib.Path(service_info_config_file).is_file():
         async with await anyio.open_file(service_info_config_file) as f:
             try:

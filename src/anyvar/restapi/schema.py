@@ -1,12 +1,11 @@
 """Provide response definitions to REST API endpoint."""
 
-import os
 from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum, StrEnum
 from typing import Any
 
-from anyio import Path
+from biocommons.seqrepo import __version__ as seqrepo_version
 from ga4gh.vrs import (
     VRS_VERSION,
     VrsType,
@@ -77,36 +76,10 @@ class ImplMetadata(BaseModel):
     """Define substructure for reporting metadata about internal software dependencies."""
 
     vrs_python_version: str = vrs_python_version
-    seqrepo_version: str | None = Field(
-        default_factory=lambda: ImplMetadata._get_env_var_path_name(
-            "SEQREPO_DATAPROXY_URI"
-        )
+    seqrepo_version: str = seqrepo_version
+    uta_schema: str | None = (
+        None  # must be set in the service info override file specified by the `ANYVAR_SERVICE_INFO` environment variable
     )
-    uta_schema: str | None = Field(
-        default_factory=lambda: ImplMetadata._get_env_var_path_name("UTA_DB_URL")
-    )
-
-    @staticmethod
-    def _get_env_var_path_name(env_var: str) -> str | None:
-        """Extract the name (i.e., final path component) from a path-like environment variable.
-        If the environment variable is unset or empty, returns `None`.
-
-        :param env_var: The path-like environment variable from which a name will be extracted
-        :return: The path name; i.e. the final component of the path
-
-        Example:
-        >>> os.environ.setdefault(
-                "SEQREPO_DATAPROXY_URI",
-                "seqrepo+file:///usr/local/share/seqrepo/2024-12-20"
-            )
-            path_name = _get_env_var_path_name("SEQREPO_DATAPROXY_URI")
-            print(path_name)
-            ---
-            "2024-12-20"
-
-        """
-        path = Path(os.environ.get(env_var) or "")
-        return path.name or None
 
 
 class CapabilitiesMetadata(BaseModel):
@@ -157,9 +130,7 @@ class ServiceInfo(BaseModel):
     )
     version: str = __version__
     spec_metadata: SpecMetadata = SpecMetadata()
-    impl_metadata: ImplMetadata = Field(
-        default_factory=ImplMetadata
-    )  # using Field allows ImplMetadata to set class attributes based on environment variables
+    impl_metadata: ImplMetadata = ImplMetadata()
     capabilities_metadata: CapabilitiesMetadata = CapabilitiesMetadata()
 
 
