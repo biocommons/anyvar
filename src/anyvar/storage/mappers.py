@@ -35,7 +35,7 @@ class SequenceReferenceMapper(
         """Convert DB SequenceReference to VRS SequenceReference."""
         return vrs_models.SequenceReference(
             type="SequenceReference",
-            refgetAccession=db_entity.id,
+            refgetAccession=str(db_entity.id),
             moleculeType=db_entity.molecule_type,
         )
 
@@ -67,10 +67,11 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, orm.Locatio
         end = self._resolve_coordinate_from_db(
             simple=db_entity.end, start=db_entity.end_outer, end=db_entity.end_inner
         )
+        entity_id = str(db_entity.id)
 
         return vrs_models.SequenceLocation(
-            id=db_entity.id,
-            digest=db_entity.id.removeprefix("ga4gh:SL."),
+            id=entity_id,
+            digest=entity_id.removeprefix("ga4gh:SL."),
             type="SequenceLocation",
             sequenceReference=self.seq_ref_mapper.from_db_entity(
                 db_entity.sequence_reference
@@ -164,9 +165,10 @@ class AlleleMapper(BaseMapper[vrs_models.Allele, orm.Allele]):
         state = self._reconstruct_state(db_entity.state)
 
         # Construct orm.Allele and delegate to orm.Location mapper
+        entity_id = str(db_entity.id)
         return vrs_models.Allele(
-            id=db_entity.id,
-            digest=db_entity.id.removeprefix("ga4gh:VA."),
+            id=entity_id,
+            digest=entity_id.removeprefix("ga4gh:VA."),
             type="Allele",
             location=self.location_mapper.from_db_entity(db_entity.location),
             state=state,

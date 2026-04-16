@@ -106,7 +106,7 @@ class PostgresObjectStore(Storage):
 
             object_parts = db_entity.disassemble()
             for entity_type, entity in object_parts.items():
-                vrs_objects[entity_type][entity.id] = entity  # type: ignore (all children of orm.Base have an `id`)
+                vrs_objects[entity_type][str(entity.id)] = entity
 
         with self.session_factory() as session, session.begin():
             # Use ON CONFLICT DO NOTHING to handle duplicates gracefully
@@ -425,6 +425,8 @@ class PostgresObjectStore(Storage):
             items = [mapper_registry.from_db_entity(a) for a in page_db]
             if not page_db:
                 return AlleleSearchPage(items=[], next_cursor=None)
-            last = page_db[-1]
-            next_cursor = self._encode_search_cursor(last.location.start, last.id)
+            last: orm.Allele = page_db[-1]
+            if last.location.start is None:
+                raise ValueError("Search result missing 'location.start'")
+            next_cursor = self._encode_search_cursor(last.location.start, str(last.id))
             return AlleleSearchPage(items=items, next_cursor=next_cursor)

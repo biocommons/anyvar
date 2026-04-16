@@ -70,6 +70,8 @@ def _camel_to_snake(word: str, uppercase: bool = True) -> str:
 class Base(DeclarativeBase):
     """Base class for all AnyVar ORM models."""
 
+    id: Mapped[str | int]
+
     @declared_attr.directive
     def __tablename__(cls) -> str:  # noqa: N805 (param name here should be 'cls', not 'self')
         # Default table name = class name, transformed from PascalCase into snake_case and pluralized.
@@ -125,7 +127,7 @@ class Base(DeclarativeBase):
         objects: dict[str, Base] = {}
         for entity in self.get_disassembler():
             entity_type: str = entity.__class__.__name__
-            objects[entity_type] = entity  # type: ignore (all children of orm.Base have an `id` property)
+            objects[entity_type] = entity
 
         return objects
 
@@ -133,7 +135,7 @@ class Base(DeclarativeBase):
 class VrsObject(Base):
     """AnyVar ORM model for vrs_objects table."""
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id = mapped_column(String, primary_key=True)
     vrs_object: Mapped[dict] = mapped_column(
         JSON()
         .with_variant(JSONB, "postgresql")
@@ -144,7 +146,7 @@ class VrsObject(Base):
 class SequenceReference(Base):
     """AnyVar ORM model for SequenceReferences"""
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id = mapped_column(String, primary_key=True)
     molecule_type: Mapped[MoleculeType | None] = mapped_column(
         Enum(
             MoleculeType,
@@ -159,7 +161,7 @@ class SequenceReference(Base):
 class Location(Base):
     """AnyVar ORM model for Locations"""
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id = mapped_column(String, primary_key=True)
     sequence_reference_id: Mapped[str] = mapped_column(
         String, ForeignKey(SequenceReference.id)
     )
@@ -196,7 +198,7 @@ class Location(Base):
 class Allele(Base):
     """AnyVar ORM model for Alleles"""
 
-    id: Mapped[str] = mapped_column(String, primary_key=True)
+    id = mapped_column(String, primary_key=True)
     location_id: Mapped[str] = mapped_column(String, ForeignKey(Location.id))
     location: Mapped[Location] = relationship()
     state: Mapped[dict] = mapped_column(
@@ -214,7 +216,7 @@ class Allele(Base):
 class Annotation(Base):
     """AnyVar ORM model for annotations table."""
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id = mapped_column(Integer, primary_key=True, autoincrement=True)
     object_id: Mapped[str] = mapped_column(String)
     annotation_type: Mapped[str] = mapped_column(String)
     annotation_value: Mapped[dict] = mapped_column(
@@ -252,7 +254,7 @@ mapping_type_enum = Enum(
 class VariationMapping(Base):
     """AnyVar ORM model for variation-to-variation mapping"""
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id = mapped_column(Integer, primary_key=True, autoincrement=True)
     source_id: Mapped[str] = mapped_column(String)
     dest_id: Mapped[str] = mapped_column(String)
     mapping_type: Mapped[str] = mapped_column(mapping_type_enum)
