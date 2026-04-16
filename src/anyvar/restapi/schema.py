@@ -181,6 +181,8 @@ class SupportedVariationType(StrEnum):
     """Supported variation types for API input."""
 
     ALLELE = VrsType.ALLELE.value
+    COPY_NUMBER_CHANGE = VrsType.CN_CHANGE.value
+    COPY_NUMBER_COUNT = VrsType.CN_COUNT.value
 
 
 class VariationRequest(BaseModel):
