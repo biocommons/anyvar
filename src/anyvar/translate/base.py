@@ -33,7 +33,7 @@ class Translator(ABC):
     dp: _DataProxy
 
     @abstractmethod
-    def translate_variation(self, var: str, **kwargs) -> VrsVariation:
+    def translate_variation(self, var: str, **kwargs) -> VrsVariation | None:
         """Translate provided variation text into a VRS Variation object.
 
         :param var: user-provided string describing or referencing a variation.
@@ -55,16 +55,6 @@ class Translator(ABC):
 
     @abstractmethod
     def translate_allele(self, var: str) -> VrsVariation | None:
-        """Translate provided variation text into a normalized VRS object.
-
-        :param var: user-provided string describing or referencing a variation.
-        :returns: VRS variation object if able to normalize
-        :raises TranslatorConnectionError: if translation request returns error
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def translate_cnv(self, var: str) -> VrsVariation | None:
         """Translate provided variation text into a normalized VRS object.
 
         :param var: user-provided string describing or referencing a variation.
