@@ -12,7 +12,3 @@ documentationUrl: https://github.com/biocommons/anyvar
 createdAt: 2025-06-01T00:00:00Z
 updatedAt: 2025-06-01T00:00:00Z
 environment: dev
-impl_metadata:
-  vrs_python_version: "2.3.1"
-  seqrepo_version: "2024-12-20"
-  uta_schema: "uta_20241220"
