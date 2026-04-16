@@ -336,7 +336,7 @@ class GetObjectResponse(BaseModel):
 class SearchResponse(BaseModel):
     """Describe response for the GET /search endpoint"""
 
-    variations: list[objects.VrsVariation]
+    variations: list[models.Variation]
     next_cursor: str | None
 
 

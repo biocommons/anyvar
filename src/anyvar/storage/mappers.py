@@ -79,31 +79,14 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, orm.Locatio
             end=end,
         )
 
-    def _check_required_properties(
-        self, anyvar_entity: vrs_models.SequenceLocation
-    ) -> None:
-        missing_properties: list[str] = []
-
-        if not anyvar_entity.id:
-            missing_properties.append("id")
-
-        if not anyvar_entity.sequenceReference:
-            missing_properties.append("sequenceReference")
-        elif not anyvar_entity.sequenceReference.refgetAccession:  # pyright: ignore[reportAttributeAccessIssue]
-            missing_properties.append("sequenceReference.refgetAccession")
-
-        if len(missing_properties) > 0:
-            error_msg: str = "The following properties are required: " + ", ".join(
-                missing_properties
-            )
-            raise AttributeError(error_msg)
-
     def to_db_entity(self, anyvar_entity: vrs_models.SequenceLocation) -> orm.Location:
         """Convert VRS SequenceLocation to DB Location.
 
         :raise AttributeError: if `.id` field is missing
         """
-        self._check_required_properties(anyvar_entity)
+        if not anyvar_entity.id:
+            msg = "`.id` property is required for storing in DB"
+            raise AttributeError(msg)
 
         # Convert VRS int/Range coordinates to DB fields
         start_simple, start_outer, start_inner = self._resolve_coordinate_to_db(
@@ -116,9 +99,9 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, orm.Locatio
         # Construct orm.Location and delegate to orm.SequenceReference mapper
         return orm.Location(
             id=anyvar_entity.id,
-            sequence_reference_id=anyvar_entity.sequenceReference.refgetAccession,  # type: ignore
+            sequence_reference_id=anyvar_entity.sequenceReference.refgetAccession,
             sequence_reference=self.seq_ref_mapper.to_db_entity(
-                anyvar_entity.sequenceReference  # type: ignore
+                anyvar_entity.sequenceReference
             ),
             start=start_simple,
             end=end_simple,

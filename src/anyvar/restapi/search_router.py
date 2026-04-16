@@ -7,7 +7,6 @@ from fastapi import APIRouter, HTTPException, Query, Request
 
 from anyvar.anyvar import AnyVar
 from anyvar.restapi.schema import SearchResponse
-from anyvar.storage.base import AlleleSearchPage
 
 search_router = APIRouter()
 
@@ -58,7 +57,7 @@ def search_variations(
 
     try:
         refget_accession = ga4gh_id.split("ga4gh:")[-1]
-        page: AlleleSearchPage = av.object_store.search_alleles(
+        page = av.object_store.search_alleles(
             refget_accession, start, end, page_size=page_size, cursor=cursor
         )
     except NotImplementedError as e:

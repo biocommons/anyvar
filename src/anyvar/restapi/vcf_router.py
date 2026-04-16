@@ -69,7 +69,7 @@ async def write_vcf_and_count_sites(
     newline = b"\n"
     remainder = b""
 
-    async with aiofiles.open(input_file_path, mode="wb") as fd:  # pyright: ignore[reportOptionalMemberAccess]
+    async with aiofiles.open(input_file_path, mode="wb") as fd:
         while chunk := await vcf.read(1024 * 1024):
             await fd.write(chunk)
 
@@ -323,7 +323,7 @@ async def annotate_vcf(
         raise
 
 
-def _working_file_cleanup(file_path: pathlib.Path, missing_ok: bool = False) -> None:
+def _working_file_cleanup(file_path: str, missing_ok: bool = False) -> None:
     """Cleanup working files after successful completion of async task.
 
     :param input_file_path: path to VCF file
@@ -389,7 +389,7 @@ async def _ingest_annotated_vcf_async(
 
     # if run_id is provided, validate it does not already exist
     if run_id:
-        existing_result = AsyncResult(id=run_id)  # type: ignore
+        existing_result = AsyncResult(id=run_id)
         existing_result_status = existing_result.status
 
         # explicitly delete to limit chances of deadlocks in the Redis client
@@ -632,7 +632,7 @@ async def get_vcf_run_status(
                         str(input_file_path),
                     )
                     bg_tasks.add_task(
-                        _working_file_cleanup, input_file_path, missing_ok=True
+                        _working_file_cleanup, str(input_file_path), missing_ok=True
                     )
                 output_file_path = pathlib.Path(f"{input_file_path_str}_outputvcf")
                 if output_file_path.is_file():
@@ -642,7 +642,7 @@ async def get_vcf_run_status(
                         str(output_file_path),
                     )
                     bg_tasks.add_task(
-                        _working_file_cleanup, output_file_path, missing_ok=True
+                        _working_file_cleanup, str(output_file_path), missing_ok=True
                     )
 
         # forget the run and return the response
