@@ -1,11 +1,10 @@
 """Central registry for all object mappers."""
 
-from typing import TypeAlias, TypeVar, overload
+from typing import TypeVar, overload
 
 from ga4gh.vrs import models as vrs_models
 
 from anyvar.core import metadata
-from anyvar.core.objects import VrsObject
 from anyvar.storage import orm
 from anyvar.storage.mappers import (
     AlleleMapper,
@@ -17,16 +16,6 @@ from anyvar.storage.mappers import (
 )
 
 T = TypeVar("T")
-
-AnyVarEntity: TypeAlias = VrsObject | metadata.VariationMapping | metadata.Annotation
-
-DbEntity: TypeAlias = (
-    orm.Allele
-    | orm.Location
-    | orm.SequenceReference
-    | orm.VariationMapping
-    | orm.Annotation
-)
 
 
 class MapperRegistry:
@@ -57,9 +46,6 @@ class MapperRegistry:
             raise ValueError(f"No mapper registered for type: {entity_type}")
         return mapper
 
-    #######################################################
-    ## Translate FROM a database entity TO an anyvar one ##
-    #######################################################
     @overload
     def from_db_entity(self, db_entity: orm.Allele) -> vrs_models.Allele: ...
 
@@ -83,15 +69,18 @@ class MapperRegistry:
 
     def from_db_entity(
         self,
-        db_entity: DbEntity,
-    ) -> AnyVarEntity:
+        db_entity: (
+            orm.Allele
+            | orm.Location
+            | orm.SequenceReference
+            | orm.VariationMapping
+            | orm.Annotation
+        ),
+    ):
         """Convert any DB entity to its corresponding VRS model."""
         mapper = self.get_mapper(type(db_entity))
         return mapper.from_db_entity(db_entity)
 
-    #######################################################
-    ## Translate FROM an anyvar entity TO a database one ##
-    #######################################################
     @overload
     def to_db_entity(self, anyvar_entity: vrs_models.Allele) -> orm.Allele: ...
 
@@ -115,8 +104,14 @@ class MapperRegistry:
 
     def to_db_entity(
         self,
-        anyvar_entity: AnyVarEntity,
-    ) -> DbEntity:
+        anyvar_entity: (
+            vrs_models.Allele
+            | vrs_models.SequenceLocation
+            | vrs_models.SequenceReference
+            | metadata.VariationMapping
+            | metadata.Annotation
+        ),
+    ) -> orm.Base:
         """Convert any VRS model to its corresponding DB entity."""
         # Map VRS model types to DB entity types
 
