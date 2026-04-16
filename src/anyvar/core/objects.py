@@ -5,15 +5,14 @@ from typing import TypeVar, get_args
 from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import models, vrs_deref, vrs_enref
 
+VrsObject = models.Allele | models.SequenceLocation | models.SequenceReference
+
 VrsVariation = models.Allele
 """
 Any time VrsVariation is updated, a corresponding member MUST be added to ``anyvar.restapi.schema.SupportedVariationType``.
 
 ``tests/unit/restapi/test_schema.py`` will fail if you don't.
 """
-
-
-VrsObject = VrsVariation | models.SequenceLocation | models.SequenceReference
 
 
 vrs_object_class_map: dict[str, type[VrsObject]] = {
