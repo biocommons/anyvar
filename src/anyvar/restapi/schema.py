@@ -97,12 +97,11 @@ class ImplMetadata(BaseModel):
         Example:
         >>> os.environ.setdefault(
         ...     "SEQREPO_DATAPROXY_URI",
-        ...     "seqrepo+file:///usr/local/share/seqrepo/2024-12-20",
+        ...     "seqrepo+file:///usr/local/share/seqrepo/2024-12-20"
         ... )
         >>> path_name = ImplMetadata._get_env_var_path_name("SEQREPO_DATAPROXY_URI")
         >>> print(path_name)
         "2024-12-20"
-
         """
         path = Path(os.environ.get(env_var) or "")
         return path.name or None
