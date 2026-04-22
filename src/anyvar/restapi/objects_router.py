@@ -355,7 +355,6 @@ def delete_object_by_id(
         av.delete_object(vrs_id)
     except ObjectNotFoundError as e:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND) from e
-    raise NotImplementedError
 
 
 @objects_router.post(

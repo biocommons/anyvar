@@ -218,7 +218,8 @@ def test_delete_object_and_mappings(restapi_client: TestClient, alleles: dict):
     response.raise_for_status()
 
     # attempt deletion
-    response = restapi_client.delete(f"/objects/{allele_id}")
+    response = restapi_client.delete(f"/object/{allele_id}")
+    response.raise_for_status()
 
     # check that everything's gone
     response = restapi_client.get(f"/object/{allele_id}")
@@ -226,12 +227,20 @@ def test_delete_object_and_mappings(restapi_client: TestClient, alleles: dict):
     response = restapi_client.get(
         f"/object/{allele_id}/mappings/liftover_to?as_source=true"
     )
-    assert response.json() == []
+    assert response.json() == {
+        "detail": "VRS Object ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb not found"
+    }
     response = restapi_client.get(
         f"/object/{allele_id}/mappings/liftover_to?as_source=false"
     )
-    assert response.json() == []
+
+    assert response.json() == {
+        "detail": "VRS Object ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb not found"
+    }
     response = restapi_client.get(
         f"/object/{allele_id}/annotations/clinvar_somatic_classification"
     )
-    assert response.json() == []
+
+    assert response.json() == {
+        "detail": "VRS Object ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb not found"
+    }
