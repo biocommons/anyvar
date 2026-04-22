@@ -194,3 +194,44 @@ def test_post_variation_invalid_request(
     resp = restapi_client.post("/variation", json={"definition": definition})
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     assert resp.json() == {"detail": err_msg}
+
+
+def test_simple_delete_object(restapi_client: TestClient, alleles: dict):
+    for allele_fixture in alleles.values():
+        restapi_client.put("/vrs_variation", json=allele_fixture["variation"])
+    for allele_id in alleles:
+        restapi_client.delete(f"/objects/{allele_id}")
+
+
+def test_delete_object_and_mappings(restapi_client: TestClient, alleles: dict):
+    allele_id = "ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb"
+    allele = alleles[allele_id]["variation"]
+    response = restapi_client.put("/vrs_variation", json=allele)
+    response.raise_for_status()
+    response = restapi_client.post(
+        f"/object/{allele_id}/annotations",
+        json={
+            "annotation_type": "clinvar_somatic_classification",
+            "annotation_value": "Oncogenic",
+        },
+    )
+    response.raise_for_status()
+
+    # attempt deletion
+    response = restapi_client.delete(f"/objects/{allele_id}")
+
+    # check that everything's gone
+    response = restapi_client.get(f"/object/{allele_id}")
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    response = restapi_client.get(
+        f"/object/{allele_id}/mappings/liftover_to?as_source=true"
+    )
+    assert response.json() == []
+    response = restapi_client.get(
+        f"/object/{allele_id}/mappings/liftover_to?as_source=false"
+    )
+    assert response.json() == []
+    response = restapi_client.get(
+        f"/object/{allele_id}/annotations/clinvar_somatic_classification"
+    )
+    assert response.json() == []
