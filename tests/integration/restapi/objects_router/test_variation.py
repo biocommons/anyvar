@@ -224,23 +224,12 @@ def test_delete_object_and_mappings(restapi_client: TestClient, alleles: dict):
     # check that everything's gone
     response = restapi_client.get(f"/object/{allele_id}")
     assert response.status_code == HTTPStatus.NOT_FOUND
-    response = restapi_client.get(
-        f"/object/{allele_id}/mappings/liftover_to?as_source=true"
-    )
-    assert response.json() == {
-        "detail": "VRS Object ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb not found"
-    }
-    response = restapi_client.get(
-        f"/object/{allele_id}/mappings/liftover_to?as_source=false"
-    )
-
-    assert response.json() == {
-        "detail": "VRS Object ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb not found"
-    }
-    response = restapi_client.get(
-        f"/object/{allele_id}/annotations/clinvar_somatic_classification"
-    )
-
-    assert response.json() == {
-        "detail": "VRS Object ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb not found"
-    }
+    for request_path in (
+        f"/object/{allele_id}/mappings/liftover_to?as_source=true",
+        f"/object/{allele_id}/mappings/liftover_to?as_source=false",
+        f"/object/{allele_id}/annotations/clinvar_somatic_classification",
+    ):
+        response = restapi_client.get(request_path)
+        assert response.json() == {
+            "detail": "VRS Object ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb not found"
+        }
