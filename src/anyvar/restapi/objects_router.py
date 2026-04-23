@@ -342,8 +342,8 @@ def get_object_by_id(
     "/object/{vrs_id}",
     response_model_exclude_none=True,
     operation_id="deleteObject",
-    summary="Delete a VRS object",
-    description="Attempt deletion of a VRS object by its ID.",
+    summary="Delete a VRS object and any associated mappings and annotations",
+    description="Attempt deletion of a VRS object by its ID. Mappings and annotations that reference this object will also be deleted.",
 )
 def delete_object_by_id(
     request: Request,
