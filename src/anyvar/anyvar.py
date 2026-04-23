@@ -178,16 +178,16 @@ class AnyVar:
         :param object_id: ID of object to delete
         :raise ObjectNotFoundError: if no stored object matches given ID
         """
+        try:
+            vrs_object = self._get_object_polymorphic(object_id)
+        except KeyError as e:
+            raise ObjectNotFoundError from e
         for annotation in self.object_store.get_annotations(object_id):
             self.object_store.delete_annotation(annotation)
         for mapping in self.object_store.get_mappings(object_id, as_source=True):
             self.object_store.delete_mapping(mapping)
         for mapping in self.object_store.get_mappings(object_id, as_source=False):
             self.object_store.delete_mapping(mapping)
-        try:
-            vrs_object = self._get_object_polymorphic(object_id)
-        except KeyError as e:
-            raise ObjectNotFoundError from e
         object_type = objects.vrs_object_class_map[vrs_object.type]
         self.object_store.delete_objects(object_type, [object_id])
 
