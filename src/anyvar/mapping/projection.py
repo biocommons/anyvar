@@ -10,6 +10,7 @@ import logging
 import threading
 
 from cool_seq_tool import CoolSeqTool
+from cool_seq_tool.mappers.mane_transcript import CdnaRepresentation
 from cool_seq_tool.schemas import CoordinateType
 from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import models
@@ -87,6 +88,15 @@ def _build_allele(
         _logger.warning("Could not resolve refget accession for %s", refseq_accession)
         return None
 
+    if start < 0 or end < 0:
+        _logger.warning(
+            "Skipping allele construction for %s:%d-%d",
+            refseq_accession,
+            start,
+            end,
+        )
+        return None
+
     # Fetch the reference sequence at the projected position
     try:
         ref_sequence = dp.get_sequence(
@@ -122,13 +132,33 @@ def _build_allele(
     return allele
 
 
+def _is_utr_variant(cdna: CdnaRepresentation) -> str | None:
+    """Check if a cDNA variant extends into a UTR region.
+
+    cdna.pos is CDS-relative (0 = CDS start). The CDS spans positions
+    [0, coding_end_site - coding_start_site) in these coordinates. A variant
+    is flagged if ANY part extends outside the CDS, including boundary-spanning
+    variants.
+
+    :param cdna: CdnaRepresentation with pos, coding_start_site, coding_end_site
+    :return: "5_prime" if any part extends into the 5' UTR, "3_prime" if any
+        part extends into the 3' UTR, or None if entirely within the CDS
+    """
+    if cdna.pos[0] < 0:
+        return "5_prime"
+    cds_length = cdna.coding_end_site - cdna.coding_start_site
+    if cdna.pos[1] > cds_length:
+        return "3_prime"
+    return None
+
+
 def _store_projected_variant(
     storage: Storage,
     source_id: str,
     projected_variant: models.Allele,
     mapping_type: VariationMappingType,
 ) -> None:
-    """Store a projected variant and create bidirectional mappings.
+    """Store a projected variant and create a forward mapping.
 
     :param storage: Storage instance
     :param source_id: VRS ID of the source variant
@@ -136,18 +166,17 @@ def _store_projected_variant(
     :param mapping_type: type of mapping (TRANSCRIBE_TO or TRANSLATE_TO)
     """
     projected_id: str = projected_variant.id  # type: ignore
+    _logger.debug(
+        "Persisting projected variant mapping_type=%s source_id=%s dest_id=%s",
+        mapping_type.value,
+        source_id,
+        projected_id,
+    )
     storage.add_objects([projected_variant])
     storage.add_mapping(
         VariationMapping(
             source_id=source_id,
             dest_id=projected_id,
-            mapping_type=mapping_type,
-        )
-    )
-    storage.add_mapping(
-        VariationMapping(
-            source_id=projected_id,
-            dest_id=source_id,
             mapping_type=mapping_type,
         )
     )
@@ -200,13 +229,21 @@ class VariantProjector:
         if not isinstance(start, int) or not isinstance(end, int):
             return ["Projection unsupported for variants with Range positions"]
 
+        input_vrs_id: str = variation.id  # type: ignore
+
         # Get the RefSeq genomic accession (NC_xxx)
         alt_ac = _get_refseq_accession(self.dp, refget_accession)
         if not alt_ac or not alt_ac.startswith("NC_"):
             _logger.debug("Skipping projection: %s is not a genomic accession", alt_ac)
             return None  # silently skip non-genomic variants
 
-        input_vrs_id: str = variation.id  # type: ignore
+        _logger.debug(
+            "Attempting projection for %s using %s:%d-%d",
+            input_vrs_id,
+            alt_ac,
+            start,
+            end,
+        )
 
         # Use cool-seq-tool to get MANE c. and p. representations
         try:
@@ -216,6 +253,7 @@ class VariantProjector:
                     start_pos=start,
                     end_pos=end,
                     coordinate_type=CoordinateType.INTER_RESIDUE,
+                    # TODO set try_longest_compatible to True
                 ),
                 self._loop,
             )
@@ -227,16 +265,32 @@ class VariantProjector:
             return ["Projection failed: error during coordinate mapping"]
 
         if result is None:
-            _logger.debug("No MANE transcript found for %s:%d-%d", alt_ac, start, end)
+            _logger.info(
+                "Projection skipped for %s: no MANE transcript found at %s:%d-%d",
+                input_vrs_id,
+                alt_ac,
+                start,
+                end,
+            )
             return None  # no MANE data — not an error
 
         messages: list[str] = []
+        cdna_id: str | None = None
+        protein_id: str | None = None
 
         # Build and store coding (c.) variant
         cdna = result.cdna
         if cdna.refseq:
-            cdna_allele = _build_allele(self.dp, cdna.refseq, cdna.pos[0], cdna.pos[1])
+            cdna_start = cdna.pos[0] + cdna.coding_start_site
+            cdna_end = cdna.pos[1] + cdna.coding_start_site
+            cdna_allele = _build_allele(
+                self.dp,
+                cdna.refseq,
+                cdna_start,
+                cdna_end,
+            )
             if cdna_allele:
+                cdna_id = cdna_allele.id  # type: ignore[assignment]
                 _store_projected_variant(
                     storage,
                     input_vrs_id,
@@ -244,26 +298,37 @@ class VariantProjector:
                     VariationMappingType.TRANSCRIBE_TO,
                 )
 
-                # Build and store protein (p.) variant from c. variant
-                protein = result.protein
-                if protein and protein.refseq:
-                    protein_allele = _build_allele(
-                        self.dp, protein.refseq, protein.pos[0], protein.pos[1]
+                # Skip protein mapping for UTR variants
+                utr_region = _is_utr_variant(cdna)
+                if utr_region:
+                    _logger.info(
+                        "Skipping protein projection for %s: variant in %s UTR",
+                        cdna.refseq,
+                        utr_region.replace("_", "' "),
                     )
-                    if protein_allele:
-                        cdna_id: str = cdna_allele.id  # type: ignore
-                        _store_projected_variant(
-                            storage,
-                            cdna_id,
-                            protein_allele,
-                            VariationMappingType.TRANSLATE_TO,
-                        )
-                    else:
-                        messages.append(
-                            f"Could not build protein variant for {protein.refseq}"
-                        )
                 else:
-                    _logger.debug("No protein representation returned for %s", alt_ac)
+                    # Build and store protein (p.) variant from c. variant
+                    protein = result.protein
+                    if protein and protein.refseq:
+                        protein_allele = _build_allele(
+                            self.dp, protein.refseq, protein.pos[0], protein.pos[1]
+                        )
+                        if protein_allele:
+                            protein_id = protein_allele.id  # type: ignore[assignment]
+                            _store_projected_variant(
+                                storage,
+                                cdna_id,
+                                protein_allele,
+                                VariationMappingType.TRANSLATE_TO,
+                            )
+                        else:
+                            messages.append(
+                                f"Could not build protein variant for {protein.refseq}"
+                            )
+                    else:
+                        _logger.debug(
+                            "No protein representation returned for %s", alt_ac
+                        )
             else:
                 messages.append(f"Could not build coding variant for {cdna.refseq}")
         else:
@@ -271,6 +336,13 @@ class VariantProjector:
                 "No RefSeq cDNA accession in projection result for %s", alt_ac
             )
 
+        _logger.debug(
+            "Projection finished for %s transcript_id=%s protein_id=%s message_count=%d",
+            input_vrs_id,
+            cdna_id,
+            protein_id,
+            len(messages),
+        )
         return messages if messages else None
 
     def add_mappings(
