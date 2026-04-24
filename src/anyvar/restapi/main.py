@@ -3,11 +3,11 @@
 import logging
 import logging.config
 import os
-import pathlib
 from contextlib import asynccontextmanager
 
 import anyio
 import yaml
+from cool_seq_tool.sources import UtaDatabase
 from dotenv import load_dotenv
 from fastapi import (
     Depends,
@@ -35,37 +35,39 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
     """Perform resource initialization/teardown"""
     # Configure logging from file or use default
     logging_config_file = os.environ.get("ANYVAR_LOGGING_CONFIG", None)
-    if logging_config_file and pathlib.Path(logging_config_file).is_file():
-        async with await anyio.open_file(logging_config_file) as f:
-            try:
+
+    if logging_config_file and await anyio.Path(logging_config_file).is_file():
+        try:
+            async with await anyio.open_file(logging_config_file) as f:
                 contents = await f.read()
-                config = yaml.safe_load(contents)
-                logging.config.dictConfig(config)
-                _logger.info("Logging using configs set from %s", logging_config_file)
-            except Exception:
-                _logger.exception(
-                    "Error in Logging Configuration. Using default configs"
-                )
+            config = yaml.safe_load(contents)
+            logging.config.dictConfig(config)
+            _logger.info("Logging using configs set from %s", logging_config_file)
+        except Exception:
+            _logger.exception("Error in Logging Configuration. Using default configs")
     else:
         _logger.info("Logging with default configs.")
 
     # Override default service-info parameters
     service_info_config_file = os.environ.get("ANYVAR_SERVICE_INFO")
-    if service_info_config_file and pathlib.Path(service_info_config_file).is_file():
-        async with await anyio.open_file(service_info_config_file) as f:
-            try:
+    if (
+        service_info_config_file
+        and await anyio.Path(service_info_config_file).is_file()
+    ):
+        try:
+            async with await anyio.open_file(service_info_config_file) as f:
                 contents = await f.read()
-                service_info = yaml.safe_load(contents)
-                param_app.state.service_info = ServiceInfo(**service_info)
-                _logger.info(
-                    "Assigning service info values from %s", service_info_config_file
-                )
-            except Exception:
-                _logger.exception(
-                    "Error loading from service info description at %s. Using default configs",
-                    service_info_config_file,
-                )
-                param_app.state.service_info = ServiceInfo()
+            service_info = yaml.safe_load(contents)
+            param_app.state.service_info = ServiceInfo(**service_info)
+            _logger.info(
+                "Assigning service info values from %s", service_info_config_file
+            )
+        except Exception:
+            _logger.exception(
+                "Error loading from service info description at %s. Using default configs",
+                service_info_config_file,
+            )
+            param_app.state.service_info = ServiceInfo()
     else:
         _logger.warning("Falling back on default service description.")
         param_app.state.service_info = ServiceInfo()
@@ -77,6 +79,12 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
 
     # associate anyvar with the app state
     param_app.state.anyvar = anyvar_instance
+
+    # initialize UTA connection
+    uta = await UtaDatabase.create()
+    await uta.create_pool()
+    param_app.state.uta = uta
+
     yield
 
     # close storage connector on shutdown

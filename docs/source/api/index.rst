@@ -71,3 +71,13 @@ Mapping
    :template: module_summary.rst
 
    anyvar.mapping.liftover
+
+Genomic Features
+================
+
+.. autosummary::
+   :nosignatures:
+   :toctree: api/features
+   :template: module_summary.rst
+
+   anyvar.features.genes

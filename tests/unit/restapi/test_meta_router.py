@@ -54,8 +54,16 @@ def test_fastapi_lifespan(mocker):
     create_storage_mock = mocker.patch("anyvar.anyvar.create_storage")
     storage_mock = mocker.Mock(spec=Storage)
     create_storage_mock.return_value = storage_mock
+
     create_translator_mock = mocker.patch("anyvar.anyvar.create_translator")
     create_translator_mock.return_value = {}
+
+    uta_mock = mocker.AsyncMock()
+    create_uta_mock = mocker.patch(
+        "anyvar.restapi.main.UtaDatabase.create",
+        new=mocker.AsyncMock(return_value=uta_mock),
+    )
+
     app = FastAPI(
         title="AnyVarTest",
         docs_url="/",
@@ -63,10 +71,15 @@ def test_fastapi_lifespan(mocker):
         description="Test app",
         lifespan=app_lifespan,
     )
+
     with TestClient(app):
         create_storage_mock.assert_called_once()
         create_translator_mock.assert_called_once()
+        create_uta_mock.assert_awaited_once()
+        uta_mock.create_pool.assert_awaited_once()
+
         assert app.state.anyvar is not None
         assert app.state.service_info
+        assert app.state.uta is uta_mock
 
     storage_mock.close.assert_called_once()

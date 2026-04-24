@@ -30,6 +30,7 @@ dependencies = [
     "anyio",
     "bioutils",
     "biocommons.seqrepo",
+    "cool-seq-tool",
 ]
 dynamic = ["version"]
 
