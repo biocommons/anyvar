@@ -78,6 +78,7 @@ test:
 cqa:
 	ruff format --check
 	ruff check
+	basedpyright
 
 #=> reformat: reformat code
 .PHONY: reformat

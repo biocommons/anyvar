@@ -44,6 +44,12 @@ Tests are invoked with the ``pytest`` command. The project Makefile includes an 
 
    make test
 
+Static analysis and formatting checks are available through the ``cqa`` Makefile target:
+
+.. code-block:: shell
+
+   make cqa
+
 Documentation
 =============
 

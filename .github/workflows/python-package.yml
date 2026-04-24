@@ -28,7 +28,7 @@ jobs:
         run: uv sync --extra dev
 
       - name: Check style
-        run: uv run ruff check && uv run ruff format --check
+        run: uv run ruff check && uv run ruff format --check && uv run basedpyright
   test:
     name: test
     runs-on: ubuntu-latest
