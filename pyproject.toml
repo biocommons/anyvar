@@ -50,6 +50,7 @@ test = [
     "pyyaml",
 ]
 dev = [
+    "pyright",
     "ruff==0.12.8",
     "pre-commit>=4.2.0",
     "ipykernel",
@@ -93,6 +94,20 @@ markers = [
     "postgresql: tests safe to run when test db is Postgres",
     "snowflake: tests safe to run when test db is Snowflake",
 ]
+
+[tool.pyright]
+include = ["."]
+exclude = [
+    "**/__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+    "build",
+    "docs/build",
+    "venv",
+    "*.egg-info",
+]
+extraPaths = ["src"]
+pythonVersion = "3.11"
 
 [tool.coverage.run]
 branch = true
