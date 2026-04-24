@@ -38,11 +38,16 @@ class FakeFuture:
         return self._result
 
 
-def test_build_allele_uses_explicit_projected_state():
+def test_build_allele_normalizes_projected_literal_state(mocker):
     dp = FakeDataProxy()
     state = models.LiteralSequenceExpression(
         type="LiteralSequenceExpression",
         sequence="T",
+    )
+    normalize_mock = mocker.patch.object(
+        projection,
+        "normalize",
+        side_effect=lambda allele, **_kwargs: allele,
     )
 
     allele = projection._build_allele(
@@ -53,6 +58,8 @@ def test_build_allele_uses_explicit_projected_state():
         state,
     )
 
+    normalize_mock.assert_called_once()
+    assert normalize_mock.call_args.kwargs == {"data_proxy": dp}
     assert dp.sequence_calls == []
     assert allele.type == "Allele"
     assert allele.location.type == "SequenceLocation"
@@ -62,7 +69,8 @@ def test_build_allele_uses_explicit_projected_state():
     assert allele.state == state
 
 
-def test_project_cdna_state_reverse_complements_negative_strand_literal_state():
+def test_project_cdna_literal_state_reverse_complements_negative_strand_literal_state():
+    dp = FakeDataProxy()
     variation = SimpleNamespace(
         id="ga4gh:VA.input",
         state=models.LiteralSequenceExpression(
@@ -72,7 +80,7 @@ def test_project_cdna_state_reverse_complements_negative_strand_literal_state():
     )
     cdna = SimpleNamespace(strand=SimpleNamespace(value=-1))
 
-    state = projection._project_cdna_state(variation, cdna)
+    state = projection._project_cdna_literal_state(dp, variation, cdna)
 
     assert state == models.LiteralSequenceExpression(
         type="LiteralSequenceExpression",
@@ -80,7 +88,8 @@ def test_project_cdna_state_reverse_complements_negative_strand_literal_state():
     )
 
 
-def test_project_cdna_state_preserves_positive_strand_reference_length_state():
+def test_project_cdna_literal_state_expands_positive_strand_reference_length_state():
+    dp = FakeDataProxy()
     variation = SimpleNamespace(
         id="ga4gh:VA.input",
         state=models.ReferenceLengthExpression(
@@ -92,12 +101,16 @@ def test_project_cdna_state_preserves_positive_strand_reference_length_state():
     )
     cdna = SimpleNamespace(strand=SimpleNamespace(value=1))
 
-    state = projection._project_cdna_state(variation, cdna)
+    state = projection._project_cdna_literal_state(dp, variation, cdna)
 
-    assert state == variation.state
+    assert state == models.LiteralSequenceExpression(
+        type="LiteralSequenceExpression",
+        sequence="CTC",
+    )
 
 
-def test_project_cdna_state_reverse_complements_negative_strand_reference_length_state():
+def test_project_cdna_literal_state_reverse_complements_negative_strand_rle_sequence():
+    dp = FakeDataProxy()
     variation = SimpleNamespace(
         id="ga4gh:VA.input",
         state=models.ReferenceLengthExpression(
@@ -109,17 +122,49 @@ def test_project_cdna_state_reverse_complements_negative_strand_reference_length
     )
     cdna = SimpleNamespace(strand=SimpleNamespace(value=-1))
 
-    state = projection._project_cdna_state(variation, cdna)
+    state = projection._project_cdna_literal_state(dp, variation, cdna)
 
-    assert state == models.ReferenceLengthExpression(
-        type="ReferenceLengthExpression",
-        length=3,
+    assert state == models.LiteralSequenceExpression(
+        type="LiteralSequenceExpression",
         sequence="GAG",
-        repeatSubunitLength=2,
     )
 
 
-def test_project_cdna_state_raises_projection_error_when_helper_fails(mocker):
+def test_project_cdna_literal_state_expands_rle_without_embedded_sequence(mocker):
+    dp = FakeDataProxy()
+    dp.get_sequence = mocker.Mock(return_value="CTCTC")
+    denormalize_mock = mocker.patch.object(
+        projection,
+        "denormalize_reference_length_expression",
+        return_value="CTC",
+    )
+    variation = SimpleNamespace(
+        id="ga4gh:VA.input",
+        state=models.ReferenceLengthExpression(
+            type="ReferenceLengthExpression",
+            length=3,
+            repeatSubunitLength=2,
+        ),
+        location=SimpleNamespace(
+            sequenceReference=SimpleNamespace(refgetAccession="SQ.genomic"),
+            start=10,
+            end=15,
+        ),
+    )
+    cdna = SimpleNamespace(strand=SimpleNamespace(value=1))
+
+    state = projection._project_cdna_literal_state(dp, variation, cdna)
+
+    dp.get_sequence.assert_called_once_with("ga4gh:SQ.genomic", start=10, end=15)
+    denormalize_mock.assert_called_once_with("CTCTC", 2, 3)
+    assert state == models.LiteralSequenceExpression(
+        type="LiteralSequenceExpression",
+        sequence="CTC",
+    )
+
+
+def test_project_cdna_literal_state_raises_projection_error_when_helper_fails(mocker):
+    dp = FakeDataProxy()
     variation = SimpleNamespace(
         id="ga4gh:VA.input",
         state=models.LiteralSequenceExpression(
@@ -135,7 +180,7 @@ def test_project_cdna_state_raises_projection_error_when_helper_fails(mocker):
     )
 
     with pytest.raises(projection.ProjectionError):
-        projection._project_cdna_state(variation, cdna)
+        projection._project_cdna_literal_state(dp, variation, cdna)
 
 
 def test_derive_protein_substitution_state_uses_bioutils_translate_cds(mocker):

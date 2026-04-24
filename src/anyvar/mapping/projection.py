@@ -8,14 +8,16 @@ variants and their mappings.
 import asyncio
 import logging
 import threading
+from typing import Protocol
 
 from bioutils import sequences as bioutils_sequences
 from cool_seq_tool import CoolSeqTool
 from cool_seq_tool.mappers.mane_transcript import CdnaRepresentation
 from cool_seq_tool.schemas import CoordinateType
 from ga4gh.core import ga4gh_identify
-from ga4gh.vrs import models
+from ga4gh.vrs import models, normalize
 from ga4gh.vrs.dataproxy import _DataProxy
+from ga4gh.vrs.normalize import denormalize_reference_length_expression
 
 from anyvar.core.metadata import VariationMapping, VariationMappingType
 from anyvar.core.objects import VrsVariation
@@ -26,6 +28,13 @@ _logger = logging.getLogger(__name__)
 
 class ProjectionError(Exception):
     """Indicates a failure during variant projection."""
+
+
+class _ProteinRepresentation(Protocol):
+    """Protein projection result shape used by projection helpers."""
+
+    refseq: str | None
+    pos: tuple[int, int]
 
 
 def _get_refseq_accession(dp: _DataProxy, refget_accession: str) -> str | None:
@@ -75,16 +84,16 @@ def _build_allele(
     refseq_accession: str,
     start: int,
     end: int,
-    state: models.LiteralSequenceExpression | models.ReferenceLengthExpression,
+    state: models.LiteralSequenceExpression,
 ) -> models.Allele | None:
-    """Construct a VRS Allele from a RefSeq accession and inter-residue coordinates.
+    """Construct and normalize a VRS Allele.
 
     :param dp: SeqRepo DataProxy instance
     :param refseq_accession: RefSeq accession (e.g. "NM_004333.6")
     :param start: inter-residue start position
     :param end: inter-residue end position
-    :param state: projected replacement state
-    :return: VRS Allele with computed GA4GH ID, or None if construction fails
+    :param state: literal projected replacement state
+    :return: normalized VRS Allele with computed GA4GH ID, or None if construction fails
     """
     refget_accession = _get_refget_accession(dp, refseq_accession)
     if not refget_accession:
@@ -117,8 +126,10 @@ def _build_allele(
         location=location,
         state=state,
     )
-    ga4gh_identify(allele, in_place="always")
-    return allele
+    normalized_allele = normalize(allele, data_proxy=dp)
+    ga4gh_identify(normalized_allele.location, in_place="always")
+    ga4gh_identify(normalized_allele, in_place="always")
+    return normalized_allele
 
 
 def _is_negative_strand(representation: object) -> bool:
@@ -161,35 +172,58 @@ def _project_literal_sequence_state(
         raise ProjectionError(msg) from exc
 
 
-def _project_cdna_state(
+def _reference_length_state_to_literal_sequence(
+    dp: _DataProxy,
+    variation: VrsVariation,
+    state: models.ReferenceLengthExpression,
+) -> str:
+    """Return a literal alternate sequence for a source RLE state."""
+    state_sequence = getattr(state, "sequence", None)
+    if state_sequence is not None:
+        return _sequence_to_str(state_sequence)
+
+    # This code is only reachable for RLE states, which have int start/end, not Range
+    ref_sequence = dp.get_sequence(
+        f"ga4gh:{variation.location.sequenceReference.refgetAccession}",
+        start=variation.location.start,
+        end=variation.location.end,
+    )
+    return denormalize_reference_length_expression(
+        ref_sequence,
+        state.repeatSubunitLength,
+        state.length,
+    )
+
+
+def _project_cdna_literal_state(
+    dp: _DataProxy,
     variation: VrsVariation,
     cdna: CdnaRepresentation,
-) -> models.LiteralSequenceExpression | models.ReferenceLengthExpression:
-    """Derive projected cDNA allele state from the source genomic allele state.
+) -> models.LiteralSequenceExpression:
+    """Derive projected cDNA literal state from the source genomic allele state.
 
     cool-seq-tool returns projected coordinates, not replacement sequence. VRS
-    Allele state must be the alternate state, so this derives it from the source
-    variant rather than fetching reference sequence at the projected location.
+    Allele state must be the alternate state, so projection first derives a
+    target literal sequence. Later normalization decides whether the
+    final Allele should remain LSE or compact to RLE.
     """
     state = getattr(variation, "state", None)
-    state_sequence = getattr(state, "sequence", None)
-    if state_sequence is None:
-        msg = f"Cannot project cDNA state for {variation.id} without sequence"
-        raise ProjectionError(msg)
-    sequence = _sequence_to_str(state_sequence)
 
     if isinstance(state, models.LiteralSequenceExpression):
+        state_sequence = getattr(state, "sequence", None)
+        if state_sequence is None:
+            msg = f"Cannot project cDNA state for {variation.id} without sequence"
+            raise ProjectionError(msg)
+        sequence = _sequence_to_str(state_sequence)
         return _project_literal_sequence_state(sequence, cdna)
 
     if isinstance(state, models.ReferenceLengthExpression):
-        state_data = state.model_dump(exclude_none=True)
-        if _is_negative_strand(cdna):
-            state_data["sequence"] = _reverse_complement(sequence)
         try:
-            return models.ReferenceLengthExpression(**state_data)
+            sequence = _reference_length_state_to_literal_sequence(dp, variation, state)
         except Exception as exc:
-            msg = "Could not build projected reference-length sequence state"
+            msg = f"Cannot project cDNA state for {variation.id} from RLE state"
             raise ProjectionError(msg) from exc
+        return _project_literal_sequence_state(sequence, cdna)
 
     msg = (
         f"Cannot project cDNA state for {variation.id} from unsupported state type "
@@ -198,7 +232,7 @@ def _project_cdna_state(
     raise ProjectionError(msg)
 
 
-def _protein_projection_error(protein: object) -> ProjectionError:
+def _protein_projection_error(protein: _ProteinRepresentation) -> ProjectionError:
     """Build a consistent expected-failure error for protein projection."""
     return ProjectionError(
         "Projection skipped: could not derive alternate protein state for "
@@ -209,10 +243,10 @@ def _protein_projection_error(protein: object) -> ProjectionError:
 def _derive_protein_substitution_state(
     dp: _DataProxy,
     cdna: CdnaRepresentation,
-    protein: object,
+    protein: _ProteinRepresentation,
     cdna_start: int,
     cdna_end: int,
-    cdna_state: models.LiteralSequenceExpression | models.ReferenceLengthExpression,
+    cdna_state: models.LiteralSequenceExpression,
 ) -> models.LiteralSequenceExpression:
     """Derive protein state for simple single-codon substitutions.
 
@@ -220,9 +254,6 @@ def _derive_protein_substitution_state(
     cool-seq-tool's coordinate-only response provides, so this raises
     ``ProjectionError`` rather than constructing a reference protein allele.
     """
-    if not isinstance(cdna_state, models.LiteralSequenceExpression):
-        raise _protein_projection_error(protein)
-
     alt_sequence = _sequence_to_str(cdna_state.sequence)
     if len(alt_sequence) != cdna_end - cdna_start:
         raise _protein_projection_error(protein)
@@ -424,7 +455,7 @@ class VariantProjector:
         if cdna.refseq:
             cdna_start = cdna.pos[0] + cdna.coding_start_site
             cdna_end = cdna.pos[1] + cdna.coding_start_site
-            cdna_state = _project_cdna_state(variation, cdna)
+            cdna_state = _project_cdna_literal_state(self.dp, variation, cdna)
             cdna_allele = _build_allele(
                 self.dp,
                 cdna.refseq,
