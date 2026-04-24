@@ -9,6 +9,7 @@ import asyncio
 import logging
 import threading
 
+from bioutils import sequences as bioutils_sequences
 from cool_seq_tool import CoolSeqTool
 from cool_seq_tool.mappers.mane_transcript import CdnaRepresentation
 from cool_seq_tool.schemas import CoordinateType
@@ -74,6 +75,7 @@ def _build_allele(
     refseq_accession: str,
     start: int,
     end: int,
+    state: models.LiteralSequenceExpression | models.ReferenceLengthExpression,
 ) -> models.Allele | None:
     """Construct a VRS Allele from a RefSeq accession and inter-residue coordinates.
 
@@ -81,6 +83,7 @@ def _build_allele(
     :param refseq_accession: RefSeq accession (e.g. "NM_004333.6")
     :param start: inter-residue start position
     :param end: inter-residue end position
+    :param state: projected replacement state
     :return: VRS Allele with computed GA4GH ID, or None if construction fails
     """
     refget_accession = _get_refget_accession(dp, refseq_accession)
@@ -94,17 +97,6 @@ def _build_allele(
             refseq_accession,
             start,
             end,
-        )
-        return None
-
-    # Fetch the reference sequence at the projected position
-    try:
-        ref_sequence = dp.get_sequence(
-            f"ga4gh:{refget_accession}", start=start, end=end
-        )
-    except Exception:
-        _logger.exception(
-            "Failed to fetch sequence for %s:%d-%d", refseq_accession, start, end
         )
         return None
 
@@ -123,13 +115,162 @@ def _build_allele(
     allele = models.Allele(
         type="Allele",
         location=location,
-        state=models.LiteralSequenceExpression(
-            type="LiteralSequenceExpression",
-            sequence=models.sequenceString(ref_sequence),
-        ),
+        state=state,
     )
     ga4gh_identify(allele, in_place="always")
     return allele
+
+
+def _is_negative_strand(representation: object) -> bool:
+    """Return whether a cool-seq-tool representation maps to the negative strand."""
+    strand = getattr(representation, "strand", None)
+    return getattr(strand, "value", strand) == -1
+
+
+def _sequence_to_str(sequence: object) -> str:
+    """Return string value from plain strings or VRS constrained string root models."""
+    return str(getattr(sequence, "root", sequence))
+
+
+def _reverse_complement(sequence: str) -> str:
+    """Return the reverse-complement of a nucleotide sequence."""
+    try:
+        projected_sequence = bioutils_sequences.reverse_complement(sequence)
+    except Exception as exc:
+        msg = f"Could not reverse-complement projected sequence {sequence!r}"
+        raise ProjectionError(msg) from exc
+    if not isinstance(projected_sequence, str):
+        msg = f"Could not reverse-complement projected sequence {sequence!r}"
+        raise ProjectionError(msg)
+    return projected_sequence.upper()
+
+
+def _project_literal_sequence_state(
+    sequence: str, representation: object
+) -> models.LiteralSequenceExpression:
+    """Project a literal nucleotide state into transcript orientation."""
+    if _is_negative_strand(representation):
+        sequence = _reverse_complement(sequence)
+    try:
+        return models.LiteralSequenceExpression(
+            type="LiteralSequenceExpression",
+            sequence=models.sequenceString(sequence),
+        )
+    except Exception as exc:
+        msg = f"Could not build projected literal sequence state from {sequence!r}"
+        raise ProjectionError(msg) from exc
+
+
+def _project_cdna_state(
+    variation: VrsVariation,
+    cdna: CdnaRepresentation,
+) -> models.LiteralSequenceExpression | models.ReferenceLengthExpression:
+    """Derive projected cDNA allele state from the source genomic allele state.
+
+    cool-seq-tool returns projected coordinates, not replacement sequence. VRS
+    Allele state must be the alternate state, so this derives it from the source
+    variant rather than fetching reference sequence at the projected location.
+    """
+    state = getattr(variation, "state", None)
+    state_sequence = getattr(state, "sequence", None)
+    if state_sequence is None:
+        msg = f"Cannot project cDNA state for {variation.id} without sequence"
+        raise ProjectionError(msg)
+    sequence = _sequence_to_str(state_sequence)
+
+    if isinstance(state, models.LiteralSequenceExpression):
+        return _project_literal_sequence_state(sequence, cdna)
+
+    if isinstance(state, models.ReferenceLengthExpression):
+        state_data = state.model_dump(exclude_none=True)
+        if _is_negative_strand(cdna):
+            state_data["sequence"] = _reverse_complement(sequence)
+        try:
+            return models.ReferenceLengthExpression(**state_data)
+        except Exception as exc:
+            msg = "Could not build projected reference-length sequence state"
+            raise ProjectionError(msg) from exc
+
+    msg = (
+        f"Cannot project cDNA state for {variation.id} from unsupported state type "
+        f"{getattr(state, 'type', type(state).__name__)}"
+    )
+    raise ProjectionError(msg)
+
+
+def _protein_projection_error(protein: object) -> ProjectionError:
+    """Build a consistent expected-failure error for protein projection."""
+    return ProjectionError(
+        "Projection skipped: could not derive alternate protein state for "
+        f"{protein.refseq}"
+    )
+
+
+def _derive_protein_substitution_state(
+    dp: _DataProxy,
+    cdna: CdnaRepresentation,
+    protein: object,
+    cdna_start: int,
+    cdna_end: int,
+    cdna_state: models.LiteralSequenceExpression | models.ReferenceLengthExpression,
+) -> models.LiteralSequenceExpression:
+    """Derive protein state for simple single-codon substitutions.
+
+    Frameshifts and indels generally need richer consequence modeling than
+    cool-seq-tool's coordinate-only response provides, so this raises
+    ``ProjectionError`` rather than constructing a reference protein allele.
+    """
+    if not isinstance(cdna_state, models.LiteralSequenceExpression):
+        raise _protein_projection_error(protein)
+
+    alt_sequence = _sequence_to_str(cdna_state.sequence)
+    if len(alt_sequence) != cdna_end - cdna_start:
+        raise _protein_projection_error(protein)
+    if len(alt_sequence) != 1 or protein.pos[1] - protein.pos[0] != 1:
+        raise _protein_projection_error(protein)
+
+    codon_start = cdna.coding_start_site + (protein.pos[0] * 3)
+    codon_end = codon_start + 3
+    if not codon_start <= cdna_start < cdna_end <= codon_end:
+        raise _protein_projection_error(protein)
+
+    refget_accession = _get_refget_accession(dp, cdna.refseq)
+    if not refget_accession:
+        raise _protein_projection_error(protein)
+    try:
+        ref_codon = dp.get_sequence(
+            f"ga4gh:{refget_accession}", start=codon_start, end=codon_end
+        )
+    except Exception as exc:
+        _logger.exception(
+            "Failed to fetch coding codon for %s:%d-%d",
+            cdna.refseq,
+            codon_start,
+            codon_end,
+        )
+        raise _protein_projection_error(protein) from exc
+
+    alt_codon = (
+        ref_codon[: cdna_start - codon_start]
+        + alt_sequence
+        + ref_codon[cdna_end - codon_start :]
+    )
+    try:
+        alt_amino_acid = bioutils_sequences.translate_cds(
+            alt_codon, full_codons=True, ter_symbol="*"
+        )
+    except Exception as exc:
+        raise _protein_projection_error(protein) from exc
+    if not isinstance(alt_amino_acid, str) or len(alt_amino_acid) != 1:
+        raise _protein_projection_error(protein)
+
+    try:
+        return models.LiteralSequenceExpression(
+            type="LiteralSequenceExpression",
+            sequence=models.sequenceString(alt_amino_acid),
+        )
+    except Exception as exc:
+        raise _protein_projection_error(protein) from exc
 
 
 def _is_utr_variant(cdna: CdnaRepresentation) -> str | None:
@@ -283,11 +424,13 @@ class VariantProjector:
         if cdna.refseq:
             cdna_start = cdna.pos[0] + cdna.coding_start_site
             cdna_end = cdna.pos[1] + cdna.coding_start_site
+            cdna_state = _project_cdna_state(variation, cdna)
             cdna_allele = _build_allele(
                 self.dp,
                 cdna.refseq,
                 cdna_start,
                 cdna_end,
+                cdna_state,
             )
             if cdna_allele:
                 cdna_id = cdna_allele.id  # type: ignore[assignment]
@@ -310,8 +453,25 @@ class VariantProjector:
                     # Build and store protein (p.) variant from c. variant
                     protein = result.protein
                     if protein and protein.refseq:
+                        try:
+                            protein_state = _derive_protein_substitution_state(
+                                self.dp,
+                                cdna,
+                                protein,
+                                cdna_start,
+                                cdna_end,
+                                cdna_state,
+                            )
+                        except ProjectionError as exc:
+                            _logger.info("%s", exc)
+                            messages.append(str(exc))
+                            return messages
                         protein_allele = _build_allele(
-                            self.dp, protein.refseq, protein.pos[0], protein.pos[1]
+                            self.dp,
+                            protein.refseq,
+                            protein.pos[0],
+                            protein.pos[1],
+                            protein_state,
                         )
                         if protein_allele:
                             protein_id = protein_allele.id  # type: ignore[assignment]
@@ -366,6 +526,9 @@ class VariantProjector:
         # Future: add coding→genomic and coding→protein paths
         try:
             return self._project_genomic_variant(variation, storage)
+        except ProjectionError as exc:
+            _logger.info("Projection failed for %s: %s", variation.id, exc)
+            return [str(exc)]
         except Exception:
             _logger.exception("Unexpected error during projection of %s", variation.id)
             return ["Projection failed: unexpected error"]

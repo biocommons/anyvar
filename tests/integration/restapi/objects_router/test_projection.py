@@ -13,6 +13,7 @@ PROJECTION_CASES = [
         "spdi": "NC_000001.11:62513551:T:A",
         "clinvar_cdna": "NM_001367561.1:c.4174A>T",
         "clinvar_protein": "NP_001354490.1:p.Met1392Leu",
+        "messages": [],
         "genomic": {
             "id": "ga4gh:VA.XKjKAlr0tojSt610fYjibQpMjaXWA2lv",
             "type": "Allele",
@@ -31,26 +32,26 @@ PROJECTION_CASES = [
             "state": {"type": "LiteralSequenceExpression", "sequence": "A"},
         },
         "transcript": {
-            "id": "ga4gh:VA.n-wWzF-kMURasSsyes3FgPdc4dlnx-FG",
+            "id": "ga4gh:VA.qFzKDWrAh-CDHyOpQu2k1YuXfGng8q3k",
             "type": "Allele",
-            "digest": "n-wWzF-kMURasSsyes3FgPdc4dlnx-FG",
+            "digest": "qFzKDWrAh-CDHyOpQu2k1YuXfGng8q3k",
             "location": {
-                "id": "ga4gh:SL.YIUcAivtOGIXtaabU87iTlE_epbuKzi6",
+                "id": "ga4gh:SL.z_Qf_Ihm8JNCmzcvd-mKTyRMzn7tx-Pf",
                 "type": "SequenceLocation",
-                "digest": "YIUcAivtOGIXtaabU87iTlE_epbuKzi6",
+                "digest": "z_Qf_Ihm8JNCmzcvd-mKTyRMzn7tx-Pf",
                 "sequenceReference": {
                     "type": "SequenceReference",
                     "refgetAccession": "SQ.RNFGe-eUOd_q881jYK-brz9fYVzjFg_d",
                 },
-                "start": 4173,
-                "end": 4174,
+                "start": 4295,
+                "end": 4296,
             },
             "state": {"type": "LiteralSequenceExpression", "sequence": "T"},
         },
         "protein": {
-            "id": "ga4gh:VA.IIG2D2JRFsjPizlLhKivXH_vURRA-RoO",
+            "id": "ga4gh:VA.Ak5dd7_Rwi_Xc0qJw5CC5rk-OBsPZnsb",
             "type": "Allele",
-            "digest": "IIG2D2JRFsjPizlLhKivXH_vURRA-RoO",
+            "digest": "Ak5dd7_Rwi_Xc0qJw5CC5rk-OBsPZnsb",
             "location": {
                 "id": "ga4gh:SL.QRYu_fqKBiz3Y-7bbOOszev68ICDn1n2",
                 "type": "SequenceLocation",
@@ -62,7 +63,7 @@ PROJECTION_CASES = [
                 "start": 1391,
                 "end": 1392,
             },
-            "state": {"type": "LiteralSequenceExpression", "sequence": "M"},
+            "state": {"type": "LiteralSequenceExpression", "sequence": "L"},
         },
     },
     {
@@ -71,6 +72,10 @@ PROJECTION_CASES = [
         "spdi": "NC_000001.11:94014685::T",
         "clinvar_cdna": "NM_001425324.1:c.5095_5096insA",
         "clinvar_protein": "NP_001412253.1:p.Ala1699Aspfs",
+        "messages": [
+            "Projection skipped: could not derive alternate protein state for "
+            "NP_000341.2"
+        ],
         "genomic": {
             "id": "ga4gh:VA.pePyWtQvzIyNEMJhzwZz4cnRtLTT_Xr-",
             "type": "Allele",
@@ -89,39 +94,23 @@ PROJECTION_CASES = [
             "state": {"type": "LiteralSequenceExpression", "sequence": "T"},
         },
         "transcript": {
-            "id": "ga4gh:VA.2l493d4rySbUfXKXq0SNuFzVr1GYG1pt",
+            "id": "ga4gh:VA.hj68d4XmQVOYyuj-dD5npjCk7LPF46gC",
             "type": "Allele",
-            "digest": "2l493d4rySbUfXKXq0SNuFzVr1GYG1pt",
+            "digest": "hj68d4XmQVOYyuj-dD5npjCk7LPF46gC",
             "location": {
-                "id": "ga4gh:SL.jjJT6M7H5ixVGf3vda1CSlOe4b3qxdaI",
+                "id": "ga4gh:SL.g9ummqlWoSCdUWomhGqqVyLqvk7-9Xp2",
                 "type": "SequenceLocation",
-                "digest": "jjJT6M7H5ixVGf3vda1CSlOe4b3qxdaI",
+                "digest": "g9ummqlWoSCdUWomhGqqVyLqvk7-9Xp2",
                 "sequenceReference": {
                     "type": "SequenceReference",
                     "refgetAccession": "SQ.vNQGF2g2py-LVs0TWiB2rqXioyDC4Ww3",
                 },
-                "start": 5317,
-                "end": 5317,
-            },
-            "state": {"type": "LiteralSequenceExpression", "sequence": ""},
-        },
-        "protein": {
-            "id": "ga4gh:VA.gScs5Ld_cITNvXEScoeTSdoXC2iHqw_Q",
-            "type": "Allele",
-            "digest": "gScs5Ld_cITNvXEScoeTSdoXC2iHqw_Q",
-            "location": {
-                "id": "ga4gh:SL.3MNmQqhvf-_zq_RKRgUNvzPolnkK8tZ3",
-                "type": "SequenceLocation",
-                "digest": "3MNmQqhvf-_zq_RKRgUNvzPolnkK8tZ3",
-                "sequenceReference": {
-                    "type": "SequenceReference",
-                    "refgetAccession": "SQ.oDZvJQ_32FAyXfTikofXgJ-9JlQAoDy3",
-                },
-                "start": 1772,
-                "end": 1773,
+                "start": 5420,
+                "end": 5420,
             },
             "state": {"type": "LiteralSequenceExpression", "sequence": "A"},
         },
+        "protein": None,
     },
     {
         "label": "deletion",
@@ -129,6 +118,10 @@ PROJECTION_CASES = [
         "spdi": "NC_000001.11:150509934:CTCTC:CTC",
         "clinvar_cdna": "NM_022664.3:c.240_241del",
         "clinvar_protein": "NP_073155.2:p.Gln81fs",
+        "messages": [
+            "Projection skipped: could not derive alternate protein state for "
+            "NP_004416.2"
+        ],
         "genomic": {
             "id": "ga4gh:VA.mkLU2yL862kqFSvsTsB_JhSg8Cvg88BG",
             "type": "Allele",
@@ -152,39 +145,28 @@ PROJECTION_CASES = [
             },
         },
         "transcript": {
-            "id": "ga4gh:VA.nGq5sQoLo3pN-qLh3DaOqr99c2lT8IwW",
+            "id": "ga4gh:VA.OFy3vDHLxHgxFCVRXt2e8j8C_yFVrnpX",
             "type": "Allele",
-            "digest": "nGq5sQoLo3pN-qLh3DaOqr99c2lT8IwW",
+            "digest": "OFy3vDHLxHgxFCVRXt2e8j8C_yFVrnpX",
             "location": {
-                "id": "ga4gh:SL.UTI7Wc7ekU8YSIfSnWyOA_pGa6T1bHjD",
+                "id": "ga4gh:SL.B-EDJvWA8CAbJFu2GDgbpmjX0hh0JCQp",
                 "type": "SequenceLocation",
-                "digest": "UTI7Wc7ekU8YSIfSnWyOA_pGa6T1bHjD",
+                "digest": "B-EDJvWA8CAbJFu2GDgbpmjX0hh0JCQp",
                 "sequenceReference": {
                     "type": "SequenceReference",
                     "refgetAccession": "SQ.eGUZSUd48UdQAzYgnsEW9ljTfx45zdpk",
                 },
-                "start": 236,
-                "end": 241,
+                "start": 337,
+                "end": 342,
             },
-            "state": {"type": "LiteralSequenceExpression", "sequence": "CCCCC"},
-        },
-        "protein": {
-            "id": "ga4gh:VA.dyIi2GbBFtbGvHfZrImDspbsJZLnMyZS",
-            "type": "Allele",
-            "digest": "dyIi2GbBFtbGvHfZrImDspbsJZLnMyZS",
-            "location": {
-                "id": "ga4gh:SL.7GGkds8AKxUFraVDnmekV1UnxRF2D2dd",
-                "type": "SequenceLocation",
-                "digest": "7GGkds8AKxUFraVDnmekV1UnxRF2D2dd",
-                "sequenceReference": {
-                    "type": "SequenceReference",
-                    "refgetAccession": "SQ.Q_zhCQ0Hcoi0jjOTIarjTnXLDLLqvXKr",
-                },
-                "start": 78,
-                "end": 81,
+            "state": {
+                "type": "ReferenceLengthExpression",
+                "length": 3,
+                "sequence": "CTC",
+                "repeatSubunitLength": 2,
             },
-            "state": {"type": "LiteralSequenceExpression", "sequence": "PSQ"},
         },
+        "protein": None,
     },
 ]
 
@@ -350,6 +332,7 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
     genomic = projection_case["genomic"]
     transcript = projection_case["transcript"]
     protein = projection_case["protein"]
+    expected_messages = projection_case["messages"]
 
     response = projected_restapi_client.put(
         "/variation", json={"definition": projection_case["spdi"]}
@@ -362,7 +345,7 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
         },
         "object": genomic,
         "object_id": genomic["id"],
-        "messages": [],
+        "messages": expected_messages,
     }
 
     _assert_forward_mapping(
@@ -376,16 +359,23 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"data": transcript, "messages": []}
 
-    _assert_forward_mapping(
-        projected_restapi_client,
-        transcript["id"],
-        metadata.VariationMappingType.TRANSLATE_TO,
-        protein["id"],
-    )
+    if protein:
+        _assert_forward_mapping(
+            projected_restapi_client,
+            transcript["id"],
+            metadata.VariationMappingType.TRANSLATE_TO,
+            protein["id"],
+        )
 
-    response = projected_restapi_client.get(f"/object/{protein['id']}")
-    assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"data": protein, "messages": []}
+        response = projected_restapi_client.get(f"/object/{protein['id']}")
+        assert response.status_code == HTTPStatus.OK
+        assert response.json() == {"data": protein, "messages": []}
+    else:
+        _assert_no_forward_mapping(
+            projected_restapi_client,
+            transcript["id"],
+            metadata.VariationMappingType.TRANSLATE_TO,
+        )
 
     response = projected_restapi_client.post(
         "/variation", json={"definition": projection_case["spdi"]}
@@ -399,12 +389,19 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
         metadata.VariationMappingType.TRANSCRIBE_TO,
         transcript["id"],
     )
-    _assert_forward_mapping(
-        projected_restapi_client,
-        transcript["id"],
-        metadata.VariationMappingType.TRANSLATE_TO,
-        protein["id"],
-    )
+    if protein:
+        _assert_forward_mapping(
+            projected_restapi_client,
+            transcript["id"],
+            metadata.VariationMappingType.TRANSLATE_TO,
+            protein["id"],
+        )
+    else:
+        _assert_no_forward_mapping(
+            projected_restapi_client,
+            transcript["id"],
+            metadata.VariationMappingType.TRANSLATE_TO,
+        )
 
 
 @pytest.mark.parametrize(
