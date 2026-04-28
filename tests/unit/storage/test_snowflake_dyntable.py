@@ -25,7 +25,7 @@ def snowflake_storage_with_dyn_tables(monkeymodule):
     # first create the storage connector and drop any existing db state
     storage = SnowflakeObjectStore(db_url=os.environ.get("ANYVAR_TEST_STORAGE_URI"))
     with storage.engine.connect() as conn:
-        conn.execute(text(f"DROP TABLE IF EXISTS {orm.Annotation.__tablename__}"))
+        conn.execute(text(f"DROP TABLE IF EXISTS {orm.Extension.__tablename__}"))
         conn.execute(text(f"DROP TABLE IF EXISTS {orm.VariationMapping.__tablename__}"))
         conn.execute(text(f"DROP TABLE IF EXISTS {orm.Allele.__tablename__}"))
         conn.execute(text(f"DROP TABLE IF EXISTS {orm.Location.__tablename__}"))
@@ -42,7 +42,7 @@ def snowflake_storage_with_dyn_tables(monkeymodule):
 
     # and finally, drop the tables again
     with storage.engine.connect() as conn:
-        conn.execute(text(f"DROP TABLE IF EXISTS {orm.Annotation.__tablename__}"))
+        conn.execute(text(f"DROP TABLE IF EXISTS {orm.Extension.__tablename__}"))
         conn.execute(text(f"DROP TABLE IF EXISTS {orm.VariationMapping.__tablename__}"))
         conn.execute(text(f"DROP TABLE IF EXISTS {orm.Allele.__tablename__}"))
         conn.execute(text(f"DROP TABLE IF EXISTS {orm.Location.__tablename__}"))

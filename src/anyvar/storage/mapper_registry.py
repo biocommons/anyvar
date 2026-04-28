@@ -8,8 +8,8 @@ from anyvar.core import metadata
 from anyvar.storage import orm
 from anyvar.storage.mappers import (
     AlleleMapper,
-    AnnotationMapper,
     BaseMapper,
+    ExtensionMapper,
     SequenceLocationMapper,
     SequenceReferenceMapper,
     VariationMappingMapper,
@@ -28,7 +28,7 @@ class MapperRegistry:
             vrs_models.SequenceLocation: orm.Location,
             vrs_models.SequenceReference: orm.SequenceReference,
             metadata.VariationMapping: orm.VariationMapping,
-            metadata.Annotation: orm.Annotation,
+            metadata.Extension: orm.Extension,
         }
 
         self._mappers: dict[type, BaseMapper] = {
@@ -36,7 +36,7 @@ class MapperRegistry:
             orm.Location: SequenceLocationMapper(),
             orm.SequenceReference: SequenceReferenceMapper(),
             orm.VariationMapping: VariationMappingMapper(),
-            orm.Annotation: AnnotationMapper(),
+            orm.Extension: ExtensionMapper(),
         }
 
     def get_mapper(self, entity_type: type[T]) -> BaseMapper:

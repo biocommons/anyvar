@@ -295,7 +295,7 @@ class SnowflakeObjectStore(Storage):
 
             # Delete other tables
             session.execute(delete(orm.VrsObject))
-            session.execute(delete(orm.Annotation))
+            session.execute(delete(orm.Extension))
 
     def add_objects(self, objects: Iterable[anyvar_objects.VrsObject]) -> None:
         """Add multiple VRS objects to storage using bulk inserts.
@@ -567,60 +567,60 @@ class SnowflakeObjectStore(Storage):
             mappings = session.scalars(stmt).all()
             return [mapper_registry.from_db_entity(mapping) for mapping in mappings]
 
-    def add_annotation(self, annotation: metadata.Annotation) -> None:
-        """Add an annotation to the database.
+    def add_extension(self, extension: metadata.Extension) -> None:
+        """Add an extension to the database.
 
-        Adding the same annotation repeatedly creates redundant records.
+        Adding the same extension repeatedly creates redundant records.
 
         Todo:
         * Implement insert constraint/MissingVariationReferenceError in #286
 
-        :param annotation: The annotation to add
-        :raise MissingVariationReferenceError: if no object corresponding to the annotation's object ID is present in DB
+        :param extension: The extension to add
+        :raise MissingVariationReferenceError: if no object corresponding to the extension's object ID is present in DB
 
         """
-        db_entity: orm.Annotation = mapper_registry.to_db_entity(annotation)
-        stmt = insert(orm.Annotation)
+        db_entity: orm.Extension = mapper_registry.to_db_entity(extension)
+        stmt = insert(orm.Extension)
         with self.session_factory() as session, session.begin():
             session.execute(stmt, db_entity.to_dict())
 
-    def get_annotations(
-        self, object_id: str, annotation_type: str | None = None
-    ) -> list[metadata.Annotation]:
-        """Get all annotations for the specified object, optionally filtered by type.
+    def get_extensions(
+        self, object_id: str, extension_name: str | None = None
+    ) -> list[metadata.Extension]:
+        """Get all extensions for the specified object, optionally filtered by type.
 
-        :param object_id: The ID of the object to retrieve annotations for
-        :param annotation_type: The type of annotation to retrieve (defaults to `None` to retrieve all annotations for the object)
-        :return: A list of annotations
+        :param object_id: The ID of the object to retrieve extensions for
+        :param extension_type: The type of extension to retrieve (defaults to `None` to retrieve all extensions for the object)
+        :return: A list of extensions
         """
-        stmt = select(orm.Annotation).where(orm.Annotation.object_id == object_id)
+        stmt = select(orm.Extension).where(orm.Extension.object_id == object_id)
 
-        if annotation_type:
-            stmt = stmt.where(orm.Annotation.annotation_type == annotation_type)
+        if extension_name:
+            stmt = stmt.where(orm.Extension.name == extension_name)
 
         stmt = stmt.limit(self.MAX_ROWS)
 
         with self.session_factory() as session, session.begin():
-            db_annotations = session.execute(stmt).scalars().all()
+            db_extensions = session.execute(stmt).scalars().all()
 
             return [
-                mapper_registry.from_db_entity(db_annotation)
-                for db_annotation in db_annotations
+                mapper_registry.from_db_entity(db_extension)
+                for db_extension in db_extensions
             ]
 
-    def delete_annotation(self, annotation: metadata.Annotation) -> None:
-        """Deletes an annotation from the database
+    def delete_extension(self, extension: metadata.Extension) -> None:
+        """Deletes an extension from the database
 
-        * If no such annotation exists, do nothing.
+        * If no such extension exists, do nothing.
         * Deletes do not cascade.
 
-        :param annotation: The annotation object to delete
+        :param extension: The extension object to delete
         """
         stmt = (
-            delete(orm.Annotation)
-            .where(orm.Annotation.object_id == annotation.object_id)
-            .where(orm.Annotation.annotation_type == annotation.annotation_type)
-            .where(orm.Annotation.annotation_value == annotation.annotation_value)
+            delete(orm.Extension)
+            .where(orm.Extension.object_id == extension.object_id)
+            .where(orm.Extension.name == extension.name)
+            .where(orm.Extension.value == extension.value)
         )
         with self.session_factory() as session, session.begin():
             session.execute(stmt)
@@ -731,9 +731,9 @@ def compile_insert_with_parse_json_and_join_for_merge(
     elif insert_stmt.entity_description.get("table", None) == orm.VrsObject.__table__:
         json_col = orm.VrsObject.vrs_object.name
         target_table = orm.VrsObject.__tablename__
-    elif insert_stmt.entity_description.get("table", None) == orm.Annotation.__table__:
-        json_col = orm.Annotation.annotation_value.name
-        target_table = orm.Annotation.__tablename__
+    elif insert_stmt.entity_description.get("table", None) == orm.Extension.__table__:
+        json_col = orm.Extension.extension_value.name
+        target_table = orm.Extension.__tablename__
 
     if target_table:
         # Generate the default insert SQL, usually of the form:

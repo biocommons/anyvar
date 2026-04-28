@@ -31,8 +31,9 @@ def create_storage(uri: str | None = None) -> Storage:
     environment value.
 
     The URI format is as follows:
-        PostgreSQL: `postgresql://[username]:[password]@[domain]/[database]`
-        Snowflake: `snowflake://sf_username:@sf_account_identifier/sf_db_name/sf_schema_name?password=sf_password`
+
+    * PostgreSQL: ``postgresql://[username]:[password]@[domain]/[database]``
+    * Snowflake: ``snowflake://sf_username:@sf_account_identifier/sf_db_name/sf_schema_name?password=sf_password``
 
     For no database (for testing or non-persistent use cases), use an empty string.
 
@@ -66,6 +67,15 @@ def create_translator() -> Translator:
 
     Try to build the VRS-Python wrapper class with default args. In the future, could
     provide assistance constructing other kinds of translators.
+
+    Note that the default factory utilized by the VRS-Python translator that is called
+    here can be configured with the ``SEQREPO_DATAPROXY_URI`` environment variable,
+    with values like the following:
+
+    * ``seqrepo+file:///path/to/seqrepo/root``
+    * ``seqrepo+:../relative/path/to/seqrepo/root``
+    * ``seqrepo+http://localhost:5000/seqrepo``
+    * ``seqrepo+https://somewhere:5000/seqrepo``
 
     :return: instantiated Translator instance
     """
@@ -170,60 +180,58 @@ class AnyVar:
                 continue
         raise KeyError(f"Object {object_id} not found in any table")
 
-    def put_annotation(self, annotation: metadata.Annotation) -> int | None:
-        """Attempt to store an annotation.
+    def put_extension(self, extension: metadata.Extension) -> int | None:
+        """Attempt to store an extension.
 
-        :param annotation: an Annotation object
-        :return: annotation ID if successful, None otherwise
+        :param extension: an Extension object
+        :return: extension ID if successful, None otherwise
         """
-        annotation_id: int | None = None
+        extension_id: int | None = None
         try:
-            annotation_id = self.object_store.add_annotation(annotation)
+            extension_id = self.object_store.add_extension(extension)
         except Exception as e:
-            _logger.exception("Failed to add object: %s", annotation)
+            _logger.exception("Failed to add object: %s", extension)
             raise e  # noqa: TRY201
-        return annotation_id
+        return extension_id
 
-    def get_object_annotations(
-        self, object_id: str, annotation_type: str | None = None
-    ) -> list[metadata.Annotation]:
-        """Get all annotations for the specified object, optionally filtered by type.
+    def get_object_extensions(
+        self, object_id: str, extension_name: str | None = None
+    ) -> list[metadata.Extension]:
+        """Get all extensions for the specified object, optionally filtered by type.
 
-        :param object_id: The ID of the object to retrieve annotations for
-        :param annotation_type: The type of annotation to retrieve (defaults to `None` to retrieve all annotations for the object)
-        :return: A list of Annotations
+        :param object_id: The ID of the object to retrieve extensions for
+        :param extension_type: The type of extension to retrieve (defaults to `None` to retrieve all extensions for the object)
+        :return: A list of extensions
         :raise ObjectNotFoundError: if ``object_id`` can't be found in DB
         """
         try:
-            annotations = self.object_store.get_annotations(object_id, annotation_type)
+            extensions = self.object_store.get_extensions(object_id, extension_name)
         except Exception as e:
-            _logger.exception(
-                "Failed to retrieve annotations for object: %s", object_id
-            )
+            _logger.exception("Failed to retrieve extensions for object: %s", object_id)
             raise e  # noqa: TRY201
-        if not annotations:
+        if not extensions:
             try:
                 _ = self.get_object(object_id)
             except KeyError as e:
                 raise ObjectNotFoundError(object_id) from e
-        return annotations
+        return extensions
 
-    def create_timestamp_annotation_if_missing(self, object_id: str) -> int | None:
-        """Store a 'creation_timestamp' annotation if missing for an object
+    def create_timestamp_if_missing(self, object_id: str) -> int | None:
+        """Store a 'creation_timestamp' extension if missing for an object
 
-        :param object_id: The ID of the object to create a timestamp annotation for
-        :return: ID of newly created annotation. If timestamp annotation exists, will
+        :param object_id: The ID of the object to create a timestamp extension for
+        :return: ID of newly created extension. If timestamp extension exists, will
             return None.
         """
-        timestamp_annotations: list[metadata.Annotation] = self.get_object_annotations(
-            object_id, metadata.AnnotationType.CREATION_TIMESTAMP.value
+        timestamps: list[metadata.Extension] = self.get_object_extensions(
+            object_id, metadata.ExtensionName.CREATION_TIMESTAMP.value
         )
-        if not timestamp_annotations:
-            return self.put_annotation(
-                metadata.Annotation(
+        if not timestamps:
+            return self.put_extension(
+                metadata.Extension(
                     object_id=object_id,
-                    annotation_type=metadata.AnnotationType.CREATION_TIMESTAMP.value,
-                    annotation_value=datetime.datetime.now(tz=datetime.UTC).isoformat(),
+                    name=metadata.ExtensionName.CREATION_TIMESTAMP.value,
+                    value=datetime.datetime.now(tz=datetime.UTC).isoformat(),
                 )
             )
         return None
