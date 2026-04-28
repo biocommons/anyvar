@@ -308,10 +308,29 @@ class TestIsUtrVariant:
         cdna = SimpleNamespace(pos=(0, 1), coding_start_site=200, coding_end_site=2200)
         assert projection._is_utr_variant(cdna) is None
 
+    def test_insertion_before_cds_start(self):
+        """Insertion at the CDS start boundary is in the 5' UTR."""
+        cdna = SimpleNamespace(pos=(0, 0), coding_start_site=200, coding_end_site=2200)
+        assert projection._is_utr_variant(cdna) == "5_prime"
+
     def test_variant_at_cds_end(self):
         """Variant ending exactly at CDS end is NOT UTR (inter-residue end is exclusive)."""
         cdna = SimpleNamespace(
             pos=(1999, 2000), coding_start_site=200, coding_end_site=2200
+        )
+        assert projection._is_utr_variant(cdna) is None
+
+    def test_insertion_after_cds_end(self):
+        """Insertion at the CDS end boundary is in the 3' UTR."""
+        cdna = SimpleNamespace(
+            pos=(2000, 2000), coding_start_site=200, coding_end_site=2200
+        )
+        assert projection._is_utr_variant(cdna) == "3_prime"
+
+    def test_insertion_within_cds(self):
+        """Insertion within CDS is not classified as UTR."""
+        cdna = SimpleNamespace(
+            pos=(1000, 1000), coding_start_site=200, coding_end_site=2200
         )
         assert projection._is_utr_variant(cdna) is None
 

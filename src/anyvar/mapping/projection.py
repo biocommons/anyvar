@@ -250,13 +250,15 @@ def _derive_protein_substitution_state(
 ) -> models.LiteralSequenceExpression:
     """Derive protein state for simple single-codon substitutions.
 
-    Frameshifts and indels generally need richer consequence modeling than
-    cool-seq-tool's coordinate-only response provides, so this raises
-    ``ProjectionError`` rather than constructing a reference protein allele.
+    Frameshifts and indels need richer consequence modeling
+    so this raises ``ProjectionError``.
     """
     alt_sequence = _sequence_to_str(cdna_state.sequence)
     if len(alt_sequence) != cdna_end - cdna_start:
         raise _protein_projection_error(protein)
+    # Only handle single-nucleotide substitutions
+    # which should translate to single amino acid changes.
+    # More complicated scenarios (indels, multibase substitutions, frameshifts) not implemented.
     if len(alt_sequence) != 1 or protein.pos[1] - protein.pos[0] != 1:
         raise _protein_projection_error(protein)
 
@@ -316,10 +318,17 @@ def _is_utr_variant(cdna: CdnaRepresentation) -> str | None:
     :return: "5_prime" if any part extends into the 5' UTR, "3_prime" if any
         part extends into the 3' UTR, or None if entirely within the CDS
     """
-    if cdna.pos[0] < 0:
-        return "5_prime"
+    start, end = cdna.pos
     cds_length = cdna.coding_end_site - cdna.coding_start_site
-    if cdna.pos[1] > cds_length:
+
+    if start == end:
+        if start <= 0:
+            return "5_prime"
+        if start >= cds_length:
+            return "3_prime"
+    elif start < 0:
+        return "5_prime"
+    elif end > cds_length:
         return "3_prime"
     return None
 
