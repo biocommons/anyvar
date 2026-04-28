@@ -11,6 +11,7 @@ import threading
 from typing import Protocol
 
 from bioutils import sequences as bioutils_sequences
+from bioutils.sequences import TranslationTable
 from cool_seq_tool import CoolSeqTool
 from cool_seq_tool.mappers.mane_transcript import CdnaRepresentation
 from cool_seq_tool.schemas import CoordinateType
@@ -24,6 +25,8 @@ from anyvar.core.objects import VrsVariation
 from anyvar.storage.base import Storage
 
 _logger = logging.getLogger(__name__)
+
+_CODON_LENGTH = 3
 
 
 class ProjectionError(Exception):
@@ -240,6 +243,76 @@ def _protein_projection_error(protein: _ProteinRepresentation) -> ProjectionErro
     )
 
 
+def _is_single_residue(amino_acid: object) -> bool:
+    """Return whether a translated amino acid is specific enough to project."""
+    return isinstance(amino_acid, str) and len(amino_acid) == 1 and amino_acid != "X"
+
+
+def _select_translation_table_for_codon(
+    dp: _DataProxy,
+    protein: _ProteinRepresentation,
+    ref_codon: str,
+) -> TranslationTable:
+    """Select a translation table only when the reference codon is validated."""
+    if not isinstance(ref_codon, str) or len(ref_codon) != _CODON_LENGTH:
+        raise _protein_projection_error(protein)
+    if not protein.refseq:
+        raise _protein_projection_error(protein)
+
+    refget_accession = _get_refget_accession(dp, protein.refseq)
+    if not refget_accession:
+        raise _protein_projection_error(protein)
+
+    try:
+        reference_residue = dp.get_sequence(
+            f"ga4gh:{refget_accession}",
+            start=protein.pos[0],
+            end=protein.pos[0] + 1,
+        )
+    except Exception as exc:
+        _logger.exception(
+            "Failed to fetch protein residue for %s:%d-%d",
+            protein.refseq,
+            protein.pos[0],
+            protein.pos[0] + 1,
+        )
+        raise _protein_projection_error(protein) from exc
+
+    if not _is_single_residue(reference_residue):
+        raise _protein_projection_error(protein)
+
+    try:
+        ref_amino_acid = bioutils_sequences.translate_cds(
+            ref_codon,
+            full_codons=True,
+            ter_symbol="*",
+            translation_table=TranslationTable.standard,
+        )
+    except Exception as exc:
+        raise _protein_projection_error(protein) from exc
+
+    if not _is_single_residue(ref_amino_acid):
+        raise _protein_projection_error(protein)
+    if ref_amino_acid == reference_residue:
+        return TranslationTable.standard
+
+    if ref_codon.upper().replace("U", "T") == "TGA" and reference_residue == "U":
+        try:
+            sec_ref_amino_acid = bioutils_sequences.translate_cds(
+                ref_codon,
+                full_codons=True,
+                ter_symbol="*",
+                translation_table=TranslationTable.selenocysteine,
+            )
+        except Exception as exc:
+            raise _protein_projection_error(protein) from exc
+        if sec_ref_amino_acid != "U":
+            raise _protein_projection_error(protein)
+        return TranslationTable.selenocysteine
+
+    raise _protein_projection_error(protein)
+
+
 def _derive_protein_substitution_state(
     dp: _DataProxy,
     cdna: CdnaRepresentation,
@@ -263,7 +336,7 @@ def _derive_protein_substitution_state(
         raise _protein_projection_error(protein)
 
     codon_start = cdna.coding_start_site + (protein.pos[0] * 3)
-    codon_end = codon_start + 3
+    codon_end = codon_start + _CODON_LENGTH
     if not codon_start <= cdna_start < cdna_end <= codon_end:
         raise _protein_projection_error(protein)
 
@@ -283,6 +356,7 @@ def _derive_protein_substitution_state(
         )
         raise _protein_projection_error(protein) from exc
 
+    translation_table = _select_translation_table_for_codon(dp, protein, ref_codon)
     alt_codon = (
         ref_codon[: cdna_start - codon_start]
         + alt_sequence
@@ -290,11 +364,14 @@ def _derive_protein_substitution_state(
     )
     try:
         alt_amino_acid = bioutils_sequences.translate_cds(
-            alt_codon, full_codons=True, ter_symbol="*"
+            alt_codon,
+            full_codons=True,
+            ter_symbol="*",
+            translation_table=translation_table,
         )
     except Exception as exc:
         raise _protein_projection_error(protein) from exc
-    if not isinstance(alt_amino_acid, str) or len(alt_amino_acid) != 1:
+    if not _is_single_residue(alt_amino_acid):
         raise _protein_projection_error(protein)
 
     try:

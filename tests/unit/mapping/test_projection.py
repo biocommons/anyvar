@@ -3,6 +3,7 @@
 # ruff: noqa: SLF001
 
 from types import SimpleNamespace
+from unittest.mock import call
 
 import pytest
 from ga4gh.vrs import models
@@ -27,6 +28,47 @@ class FakeDataProxy:
     def get_sequence(self, identifier: str, start: int, end: int) -> str:
         self.sequence_calls.append((identifier, start, end))
         return "A" * (end - start)
+
+
+class ProteinProjectionDataProxy(FakeDataProxy):
+    """Fake transcript/protein sequence store for protein projection tests."""
+
+    def __init__(
+        self,
+        transcript_sequence: str = "ATG",
+        protein_sequence: str = "M",
+        refget_failures: set[str] | None = None,
+        sequence_failures: set[str] | None = None,
+    ):
+        super().__init__()
+        self.transcript_sequence = transcript_sequence
+        self.protein_sequence = protein_sequence
+        self.refget_failures = refget_failures or set()
+        self.sequence_failures = sequence_failures or set()
+
+    def translate_sequence_identifier(
+        self, accession: str, target_namespace: str
+    ) -> list[str]:
+        if target_namespace != "ga4gh":
+            msg = f"unexpected namespace: {target_namespace}"
+            raise AssertionError(msg)
+        if accession in self.refget_failures:
+            raise KeyError(accession)
+        if accession.startswith("NM_"):
+            return ["ga4gh:SQ.transcript"]
+        if accession.startswith("NP_"):
+            return ["ga4gh:SQ.protein"]
+        return super().translate_sequence_identifier(accession, target_namespace)
+
+    def get_sequence(self, identifier: str, start: int, end: int) -> str:
+        self.sequence_calls.append((identifier, start, end))
+        if identifier in self.sequence_failures:
+            raise KeyError(identifier)
+        if identifier == "ga4gh:SQ.transcript":
+            return self.transcript_sequence
+        if identifier == "ga4gh:SQ.protein":
+            return self.protein_sequence
+        return super().get_sequence(identifier, start, end)
 
 
 class FakeFuture:
@@ -184,12 +226,11 @@ def test_project_cdna_literal_state_raises_projection_error_when_helper_fails(mo
 
 
 def test_derive_protein_substitution_state_uses_bioutils_translate_cds(mocker):
-    dp = FakeDataProxy()
-    mocker.patch.object(dp, "get_sequence", return_value="ATG")
+    dp = ProteinProjectionDataProxy(transcript_sequence="ATG", protein_sequence="M")
     translate_cds = mocker.patch.object(
         projection.bioutils_sequences,
         "translate_cds",
-        return_value="L",
+        side_effect=["M", "L"],
     )
     cdna = SimpleNamespace(refseq="NM_004333.6", coding_start_site=200)
     protein = SimpleNamespace(refseq="NP_004324.2", pos=(0, 1))
@@ -207,11 +248,167 @@ def test_derive_protein_substitution_state_uses_bioutils_translate_cds(mocker):
         cdna_state,
     )
 
-    translate_cds.assert_called_once_with("TTG", full_codons=True, ter_symbol="*")
+    assert translate_cds.mock_calls == [
+        call(
+            "ATG",
+            full_codons=True,
+            ter_symbol="*",
+            translation_table=projection.TranslationTable.standard,
+        ),
+        call(
+            "TTG",
+            full_codons=True,
+            ter_symbol="*",
+            translation_table=projection.TranslationTable.standard,
+        ),
+    ]
     assert state == models.LiteralSequenceExpression(
         type="LiteralSequenceExpression",
         sequence="L",
     )
+
+
+def test_select_translation_table_for_codon_returns_standard_for_reference_match():
+    dp = ProteinProjectionDataProxy(transcript_sequence="ATG", protein_sequence="M")
+    protein = SimpleNamespace(refseq="NP_004324.2", pos=(0, 1))
+
+    table = projection._select_translation_table_for_codon(dp, protein, "ATG")
+
+    assert table == projection.TranslationTable.standard
+    assert dp.sequence_calls == [("ga4gh:SQ.protein", 0, 1)]
+
+
+def test_select_translation_table_for_codon_raises_for_standard_mismatch():
+    dp = ProteinProjectionDataProxy(transcript_sequence="ATG", protein_sequence="L")
+    protein = SimpleNamespace(refseq="NP_004324.2", pos=(0, 1))
+
+    with pytest.raises(projection.ProjectionError):
+        projection._select_translation_table_for_codon(dp, protein, "ATG")
+
+
+def test_select_translation_table_for_codon_returns_selenocysteine_for_tga_to_u():
+    dp = ProteinProjectionDataProxy(transcript_sequence="TGA", protein_sequence="U")
+    protein = SimpleNamespace(refseq="NP_004324.2", pos=(0, 1))
+
+    table = projection._select_translation_table_for_codon(dp, protein, "TGA")
+
+    assert table == projection.TranslationTable.selenocysteine
+
+
+def test_select_translation_table_for_codon_rejects_non_tga_to_u():
+    dp = ProteinProjectionDataProxy(transcript_sequence="ATG", protein_sequence="U")
+    protein = SimpleNamespace(refseq="NP_004324.2", pos=(0, 1))
+
+    with pytest.raises(projection.ProjectionError):
+        projection._select_translation_table_for_codon(dp, protein, "ATG")
+
+
+def test_select_translation_table_for_codon_rejects_tga_to_non_u_mismatch():
+    dp = ProteinProjectionDataProxy(transcript_sequence="TGA", protein_sequence="W")
+    protein = SimpleNamespace(refseq="NP_004324.2", pos=(0, 1))
+
+    with pytest.raises(projection.ProjectionError):
+        projection._select_translation_table_for_codon(dp, protein, "TGA")
+
+
+def test_select_translation_table_for_codon_raises_when_protein_refget_fails():
+    dp = ProteinProjectionDataProxy(refget_failures={"NP_004324.2"})
+    protein = SimpleNamespace(refseq="NP_004324.2", pos=(0, 1))
+
+    with pytest.raises(projection.ProjectionError):
+        projection._select_translation_table_for_codon(dp, protein, "ATG")
+
+
+def test_select_translation_table_for_codon_raises_when_protein_fetch_fails():
+    dp = ProteinProjectionDataProxy(sequence_failures={"ga4gh:SQ.protein"})
+    protein = SimpleNamespace(refseq="NP_004324.2", pos=(0, 1))
+
+    with pytest.raises(projection.ProjectionError):
+        projection._select_translation_table_for_codon(dp, protein, "ATG")
+
+
+def test_select_translation_table_for_codon_rejects_ambiguous_reference_translation():
+    dp = ProteinProjectionDataProxy(transcript_sequence="NNN", protein_sequence="M")
+    protein = SimpleNamespace(refseq="NP_004324.2", pos=(0, 1))
+
+    with pytest.raises(projection.ProjectionError):
+        projection._select_translation_table_for_codon(dp, protein, "NNN")
+
+
+def test_select_translation_table_for_codon_rejects_malformed_reference_codon():
+    dp = ProteinProjectionDataProxy(transcript_sequence="AT", protein_sequence="M")
+    protein = SimpleNamespace(refseq="NP_004324.2", pos=(0, 1))
+
+    with pytest.raises(projection.ProjectionError):
+        projection._select_translation_table_for_codon(dp, protein, "AT")
+
+
+def test_derive_protein_substitution_state_allows_validated_stop_gain():
+    dp = ProteinProjectionDataProxy(transcript_sequence="TGG", protein_sequence="W")
+    cdna = SimpleNamespace(refseq="NM_004333.6", coding_start_site=200)
+    protein = SimpleNamespace(refseq="NP_004324.2", pos=(0, 1))
+    cdna_state = models.LiteralSequenceExpression(
+        type="LiteralSequenceExpression",
+        sequence="A",
+    )
+
+    state = projection._derive_protein_substitution_state(
+        dp,
+        cdna,
+        protein,
+        202,
+        203,
+        cdna_state,
+    )
+
+    assert state == models.LiteralSequenceExpression(
+        type="LiteralSequenceExpression",
+        sequence="*",
+    )
+
+
+def test_derive_protein_substitution_state_allows_validated_selenocysteine():
+    dp = ProteinProjectionDataProxy(transcript_sequence="TGA", protein_sequence="U")
+    cdna = SimpleNamespace(refseq="NM_004333.6", coding_start_site=200)
+    protein = SimpleNamespace(refseq="NP_004324.2", pos=(0, 1))
+    cdna_state = models.LiteralSequenceExpression(
+        type="LiteralSequenceExpression",
+        sequence="T",
+    )
+
+    state = projection._derive_protein_substitution_state(
+        dp,
+        cdna,
+        protein,
+        200,
+        201,
+        cdna_state,
+    )
+
+    assert state == models.LiteralSequenceExpression(
+        type="LiteralSequenceExpression",
+        sequence="U",
+    )
+
+
+def test_derive_protein_substitution_state_rejects_ambiguous_alt_translation():
+    dp = ProteinProjectionDataProxy(transcript_sequence="ATG", protein_sequence="M")
+    cdna = SimpleNamespace(refseq="NM_004333.6", coding_start_site=200)
+    protein = SimpleNamespace(refseq="NP_004324.2", pos=(0, 1))
+    cdna_state = models.LiteralSequenceExpression(
+        type="LiteralSequenceExpression",
+        sequence="N",
+    )
+
+    with pytest.raises(projection.ProjectionError):
+        projection._derive_protein_substitution_state(
+            dp,
+            cdna,
+            protein,
+            202,
+            203,
+            cdna_state,
+        )
 
 
 def test_derive_protein_substitution_state_raises_projection_error_for_indel():
