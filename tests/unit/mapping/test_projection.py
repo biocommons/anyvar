@@ -455,6 +455,20 @@ def test_store_projected_variant_only_persists_forward_mapping(mocker):
     )
 
 
+def test_variant_projector_close_stops_loop_thread():
+    projector = projection.VariantProjector(cst=SimpleNamespace(), dp=object())
+
+    assert projector._thread.is_alive()
+    assert not projector._loop.is_closed()
+
+    projector.close()
+
+    assert not projector._thread.is_alive()
+    assert projector._loop.is_closed()
+
+    projector.close()
+
+
 class TestIsUtrVariant:
     """Tests for _is_utr_variant helper."""
 

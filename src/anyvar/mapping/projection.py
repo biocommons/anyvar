@@ -465,6 +465,21 @@ class VariantProjector:
         )
         self._thread.start()
 
+    def close(self, timeout: float = 5.0) -> None:
+        """Stop the projector event loop thread."""
+        if self._loop.is_closed():
+            return
+
+        if self._thread.is_alive():
+            self._loop.call_soon_threadsafe(self._loop.stop)
+            self._thread.join(timeout=timeout)
+
+            if self._thread.is_alive():
+                _logger.warning("Projector event loop thread did not stop cleanly")
+                return
+
+        self._loop.close()
+
     def _project_genomic_variant(
         self,
         variation: VrsVariation,

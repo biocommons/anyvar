@@ -92,3 +92,4 @@ def projected_restapi_client(storage: Storage, translator: Translator):
         yield client
     finally:
         client.close()
+        projector.close()

@@ -82,7 +82,9 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
     param_app.state.anyvar = anyvar_instance
     yield
 
-    # close storage connector on shutdown
+    # close connectors on shutdown
+    if projector is not None:
+        projector.close()
     storage.close()
 
 
