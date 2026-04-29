@@ -123,6 +123,7 @@ def _build_allele(
         start=start,
         end=end,
     )
+    # Identify child locations explicitly; allele IDs do not fill nested IDs.
     ga4gh_identify(location, in_place="always")
 
     allele = models.Allele(
@@ -131,6 +132,7 @@ def _build_allele(
         state=state,
     )
     normalized_allele = normalize(allele, data_proxy=dp)
+    # Normalization can change location/state, so identify the final objects.
     ga4gh_identify(normalized_allele.location, in_place="always")
     ga4gh_identify(normalized_allele, in_place="always")
     return normalized_allele
@@ -186,6 +188,7 @@ def _reference_length_state_to_literal_sequence(
     if state_sequence is not None:
         return _sequence_to_str(state_sequence)
 
+    # If RLE has no sequence, expand it from the source reference span.
     # This code is only reachable for RLE states, which have int start/end, not Range
     ref_sequence = dp.get_sequence(
         f"ga4gh:{variation.location.sequenceReference.refgetAccession}",
@@ -246,6 +249,7 @@ def _protein_projection_error(protein: _ProteinRepresentation) -> ProjectionErro
 
 def _is_single_residue(amino_acid: object) -> bool:
     """Return whether a translated amino acid is specific enough to project."""
+    # "X" represents an unknown/ambiguous amino acid
     return isinstance(amino_acid, str) and len(amino_acid) == 1 and amino_acid != "X"
 
 
@@ -282,6 +286,7 @@ def _select_translation_table_for_codon(
     if not _is_single_residue(reference_residue):
         raise _protein_projection_error(protein)
 
+    # Try the standard code first; special tables are only fallback validation.
     try:
         ref_amino_acid = bioutils_sequences.translate_cds(
             ref_codon,
@@ -299,6 +304,7 @@ def _select_translation_table_for_codon(
 
     if ref_codon.upper().replace("U", "T") == "TGA" and reference_residue == "U":
         try:
+            # Validate the selected table before using it for the alternate codon.
             sec_ref_amino_acid = bioutils_sequences.translate_cds(
                 ref_codon,
                 full_codons=True,
@@ -336,8 +342,10 @@ def _derive_protein_substitution_state(
     if len(alt_sequence) != 1 or protein.pos[1] - protein.pos[0] != 1:
         raise _protein_projection_error(protein)
 
+    # Simple model: residue i starts at transcript coordinate CDS start + i * 3.
     codon_start = cdna.coding_start_site + (protein.pos[0] * 3)
     codon_end = codon_start + _CODON_LENGTH
+    # Reject effects outside this one codon; they need consequence modeling.
     if not codon_start <= cdna_start < cdna_end <= codon_end:
         raise _protein_projection_error(protein)
 
@@ -358,6 +366,7 @@ def _derive_protein_substitution_state(
         raise _protein_projection_error(protein) from exc
 
     translation_table = _select_translation_table_for_codon(dp, protein, ref_codon)
+    # Build the alternate codon by replacing the affected slice with cDNA state.
     alt_codon = (
         ref_codon[: cdna_start - codon_start]
         + alt_sequence
@@ -550,6 +559,7 @@ class VariantProjector:
             return ["Projection failed: error during coordinate mapping"]
 
         if result is None:
+            # No compatible MANE transcript is an expected no-op, not a failure.
             _logger.info(
                 "Projection skipped for %s: no MANE transcript found at %s:%d-%d",
                 input_vrs_id,
@@ -566,6 +576,7 @@ class VariantProjector:
         # Build and store coding (c.) variant
         cdna = result.cdna
         if cdna.refseq:
+            # cdna.pos is CDS-relative; add coding_start_site for transcript coords.
             cdna_start = cdna.pos[0] + cdna.coding_start_site
             cdna_end = cdna.pos[1] + cdna.coding_start_site
             cdna_state = _project_cdna_literal_state(self.dp, variation, cdna)
@@ -607,6 +618,7 @@ class VariantProjector:
                                 cdna_state,
                             )
                         except ProjectionError as exc:
+                            # Keep the stored transcript mapping; only protein is skipped.
                             _logger.info("%s", exc)
                             messages.append(str(exc))
                             return messages
@@ -619,6 +631,7 @@ class VariantProjector:
                         )
                         if protein_allele:
                             protein_id = protein_allele.id  # type: ignore[assignment]
+                            # Protein mappings start from the projected transcript allele.
                             _store_projected_variant(
                                 storage,
                                 cdna_id,
