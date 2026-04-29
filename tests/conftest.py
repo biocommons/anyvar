@@ -69,25 +69,6 @@ def alleles(test_data_dir: Path):
 
 
 @pytest.fixture(scope="session")
-def copy_number_variations(test_data_dir: Path):
-    class _CopyNumberFixture(BaseModel):
-        """Validate data structure in variations.json"""
-
-        variation: models.CopyNumberChange | models.CopyNumberCount
-        comment: str | None = None
-        register_params: dict[str, str | int] | None = None
-
-    with (test_data_dir / "variations.json").open() as f:
-        data = json.load(f)
-        cns = data["copy_numbers"]
-        for cn in cns.values():
-            assert _CopyNumberFixture(**cn), (
-                f"Not a valid copy number variation fixture: {cn}"
-            )
-        return cns
-
-
-@pytest.fixture(scope="session")
 def celery_config():
     return {
         "broker_url": os.environ.get("CELERY_BROKER_URL", "redis://"),
