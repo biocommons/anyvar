@@ -143,12 +143,12 @@ def restapi_client(anyvar_instance: AnyVar):
 
 
 # variation type: VRS-Python model
-variation_class_map: dict[str, type[objects.VrsVariation]] = {
+variation_class_map: dict[str, type[objects.SupportedVrsVariation]] = {
     "Allele": models.Allele,
 }
 
 
-def build_vrs_variant_from_dict(variant_dict: dict) -> objects.VrsVariation:
+def build_vrs_variant_from_dict(variant_dict: dict) -> objects.SupportedVrsVariation:
     """Construct a `VrsVariation` class instance from a dictionary representation of one
 
     :param variant_dict: a dictionary representation of a `VrsVariation` object

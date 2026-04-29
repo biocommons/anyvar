@@ -12,7 +12,7 @@ from ga4gh.vrs.dataproxy import _DataProxy
 from ga4gh.vrs.extras.annotator.vcf import FieldName, VcfAnnotator
 
 from anyvar import AnyVar
-from anyvar.core.objects import VrsObject
+from anyvar.core.objects import SupportedVrsObject
 
 _logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class VrsObjectRegistrationBatcher:
     """Handles bulk registration of a large number of VrsObjects in batches"""
 
     BATCH_SIZE = 10000
-    batch_collection: list[VrsObject]
+    batch_collection: list[SupportedVrsObject]
     anyvar_instance: AnyVar
 
     def __init__(self, anyvar_instance: AnyVar) -> None:
@@ -33,7 +33,7 @@ class VrsObjectRegistrationBatcher:
         self.batch_collection = []
         self.anyvar_instance: AnyVar = anyvar_instance
 
-    def add_to_batch(self, vrs_object: VrsObject) -> None:
+    def add_to_batch(self, vrs_object: SupportedVrsObject) -> None:
         """Adds a VRS Object to the current batch. If batch size limit is now met, register the whole batch.
 
         :param vrs_object: The VrsObject to add to the batch

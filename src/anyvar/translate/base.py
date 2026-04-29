@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 
 from ga4gh.vrs.dataproxy import _DataProxy
 
-from anyvar.core.objects import VrsVariation
+from anyvar.core.objects import SupportedVrsVariation
 
 
 class TranslatorSetupError(Exception):
@@ -33,7 +33,7 @@ class Translator(ABC):
     dp: _DataProxy
 
     @abstractmethod
-    def translate_variation(self, var: str, **kwargs) -> VrsVariation:
+    def translate_variation(self, var: str, **kwargs) -> SupportedVrsVariation:
         """Translate provided variation text into a VRS Variation object.
 
         :param var: user-provided string describing or referencing a variation.
@@ -54,7 +54,7 @@ class Translator(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def translate_allele(self, var: str) -> VrsVariation | None:
+    def translate_allele(self, var: str) -> SupportedVrsVariation | None:
         """Translate provided variation text into a normalized VRS object.
 
         :param var: user-provided string describing or referencing a variation.
