@@ -145,8 +145,6 @@ def restapi_client(anyvar_instance: AnyVar):
 # variation type: VRS-Python model
 variation_class_map: dict[str, type[objects.VrsVariation]] = {
     "Allele": models.Allele,
-    "CopyNumberCount": models.CopyNumberCount,
-    "CopyNumberChange": models.CopyNumberChange,
 }
 
 

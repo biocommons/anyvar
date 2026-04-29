@@ -1,16 +1,12 @@
 """Provide types, classes, and functions for objects stored by AnyVar."""
 
-from typing import TypeVar, get_args
+from typing import TypeAlias, TypeVar, get_args
 
 from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import models, vrs_deref, vrs_enref
 
-VrsObject = (
-    models.Allele
-    | models.CopyNumberChange
-    | models.CopyNumberCount
-    | models.SequenceLocation
-    | models.SequenceReference
+VrsObject: TypeAlias = (
+    models.Allele | models.SequenceLocation | models.SequenceReference
 )
 
 """
@@ -18,7 +14,7 @@ Any time this is updated, a corresponding member MUST be added to ``anyvar.resta
 
 ``tests/unit/restapi/test_schema.py`` will fail if you don't.
 """
-VrsVariation = models.Allele | models.CopyNumberChange | models.CopyNumberCount
+VrsVariation: TypeAlias = models.Allele
 
 
 """
