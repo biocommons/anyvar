@@ -50,6 +50,7 @@ test = [
     "pyyaml",
 ]
 dev = [
+    "basedpyright",
     "ruff==0.12.8",
     "pre-commit>=4.2.0",
     "ipykernel",

@@ -161,9 +161,7 @@ class ServiceInfo(BaseModel):
     )
     version: str = __version__
     spec_metadata: SpecMetadata = SpecMetadata()
-    impl_metadata: ImplMetadata = Field(
-        default_factory=ImplMetadata
-    )  # using Field allows ImplMetadata to set class attributes based on environment variables
+    impl_metadata: ImplMetadata = ImplMetadata()
     capabilities_metadata: CapabilitiesMetadata = CapabilitiesMetadata()
 
 

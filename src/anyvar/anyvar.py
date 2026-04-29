@@ -3,10 +3,12 @@ biological sequence variation
 
 """
 
+from anyvar.core.objects import VrsObject
 import datetime
 import importlib.util
 import logging
 import os
+from typing import Iterable
 import warnings
 from collections.abc import Iterable
 from urllib.parse import urlparse
@@ -131,8 +133,10 @@ class AnyVar:
         """
         if object_type is not None:
             # Search specific object type
-            found = self.object_store.get_objects(
-                object_type=object_type, object_ids=[object_id]
+            found: list[VrsObject] = list(
+                self.object_store.get_objects(
+                    object_type=object_type, object_ids=[object_id]
+                )
             )
             if not found:
                 raise KeyError(f"Object {object_id} not found")
