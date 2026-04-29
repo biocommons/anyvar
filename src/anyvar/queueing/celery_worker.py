@@ -312,11 +312,10 @@ def update_sent_state(sender: str | None, headers: dict | None, **kwargs) -> Non
     :param sender: the name of the task
     :param headers: the task message headers
     """
-    task_id = headers.get("id") if headers else ""
-    _logger.info("%s - after publish changing status to SENT", task_id)
+    _logger.info("%s - after publish changing status to SENT", headers["id"])
     task = celery_app.tasks.get(sender)
     backend = task.backend if task else celery_app.backend
 
-    result = AsyncResult(id=task_id)
+    result = AsyncResult(id=headers["id"])
     if result.status == "PENDING":
-        backend.store_result(task_id, None, "SENT")
+        backend.store_result(headers["id"], None, "SENT")

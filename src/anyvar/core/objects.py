@@ -5,26 +5,32 @@ from typing import TypeVar, get_args
 from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import models, vrs_deref, vrs_enref
 
-VrsVariation = models.Allele
+VrsObject = (
+    models.Allele
+    | models.CopyNumberChange
+    | models.CopyNumberCount
+    | models.SequenceLocation
+    | models.SequenceReference
+)
+
 """
-Any time VrsVariation is updated, a corresponding member MUST be added to ``anyvar.restapi.schema.SupportedVariationType``.
+Any time this is updated, a corresponding member MUST be added to ``anyvar.restapi.schema.SupportedVariationType``.
 
 ``tests/unit/restapi/test_schema.py`` will fail if you don't.
 """
+VrsVariation = models.Allele | models.CopyNumberChange | models.CopyNumberCount
 
 
-VrsObject = VrsVariation | models.SequenceLocation | models.SequenceReference
-
-
-vrs_object_class_map: dict[str, type[VrsObject]] = {
-    cls.__name__: cls for cls in get_args(VrsObject)
-}
 """
 Builds a dict in the form of `"ModelName": models.ModelName` for every class listed in the `VrsObject` type union
 
 For example:
+
 >>> vrs_object_class_map["Allele"] = models.Allele
 """
+vrs_object_class_map: dict[str, type[VrsObject]] = {
+    cls.__name__: cls for cls in get_args(VrsObject)
+}
 
 
 Type_VrsObject = TypeVar("Type_VrsObject", bound=VrsObject)

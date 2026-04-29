@@ -6,9 +6,11 @@ writes are discarded and reads always miss.
 
 from collections.abc import Iterable
 
+from ga4gh.vrs import models as vrs_models
+
 from anyvar.core import metadata
 from anyvar.core import objects as anyvar_objects
-from anyvar.storage.base import AlleleSearchPage, Storage
+from anyvar.storage.base import Storage
 
 
 class NoObjectStore(Storage):
@@ -50,8 +52,7 @@ class NoObjectStore(Storage):
 
     def get_mappings(
         self,
-        object_id: str,
-        as_source: bool,
+        source_object_id: str,
         mapping_type: metadata.VariationMappingType | None = None,
     ) -> Iterable[metadata.VariationMapping]:
         """(No-op) Return an iterable of mappings from the source ID"""
@@ -74,8 +75,6 @@ class NoObjectStore(Storage):
         refget_accession: str,
         start: int,
         stop: int,
-        page_size: int = 1000,
-        cursor: str | None = None,
-    ) -> AlleleSearchPage:
+    ) -> list[vrs_models.Allele]:
         """(No-op) Find all Alleles within the specified interval."""
-        return AlleleSearchPage(items=[], next_cursor=None)
+        return []
