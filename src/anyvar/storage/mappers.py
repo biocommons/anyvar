@@ -97,11 +97,12 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, orm.Locatio
         )
 
         # Construct orm.Location and delegate to orm.SequenceReference mapper
+        # Note: this purposefully trip attribute/type errors
         return orm.Location(
             id=anyvar_entity.id,
-            sequence_reference_id=anyvar_entity.sequenceReference.refgetAccession,
+            sequence_reference_id=anyvar_entity.sequenceReference.refgetAccession,  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
             sequence_reference=self.seq_ref_mapper.to_db_entity(
-                anyvar_entity.sequenceReference
+                anyvar_entity.sequenceReference  # pyright: ignore[reportArgumentType]
             ),
             start=start_simple,
             end=end_simple,
