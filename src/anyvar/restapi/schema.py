@@ -168,7 +168,7 @@ class ServiceInfo(BaseModel):
 class TranslationResult(BaseModel):
     """Describe structure for translation success or failure"""
 
-    variation: objects.VrsVariation | None = None
+    variation: objects.SupportedVrsVariation | None = None
     error: str | None = None
 
 
@@ -193,7 +193,7 @@ class VariationRequest(BaseModel):
 class AddAnnotationResponse(BaseModel):
     """Response for the POST /variation/{vrs_id}/annotations endpoint"""
 
-    object: objects.VrsObject | None
+    object: objects.SupportedVrsObject | None
     object_id: str | None
     annotation_type: str | None
     annotation_value: Any | None
@@ -221,9 +221,9 @@ class AddMappingResponse(BaseModel):
 
     model_config = ConfigDict(use_enum_values=True)
 
-    source_object: objects.VrsObject | None
+    source_object: objects.SupportedVrsObject | None
     source_object_id: str
-    dest_object: objects.VrsObject | None
+    dest_object: objects.SupportedVrsObject | None
     dest_object_id: str
     mapping_type: metadata.VariationMappingType
 
@@ -286,9 +286,9 @@ class RegisterVariationResponse(BaseModel):
         }
     )
 
-    input_variation: VariationRequest | objects.VrsVariation
+    input_variation: VariationRequest | objects.SupportedVrsVariation
     messages: list[str] = []
-    object: objects.VrsVariation | None = None
+    object: objects.SupportedVrsVariation | None = None
     object_id: str | None = None
 
 
@@ -323,7 +323,7 @@ class GetObjectResponse(BaseModel):
     )
 
     messages: list[StrictStr]
-    data: objects.VrsObject | None = None
+    data: objects.SupportedVrsObject | None = None
 
 
 class SearchResponse(BaseModel):

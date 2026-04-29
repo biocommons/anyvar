@@ -67,7 +67,7 @@ class Storage(ABC):
         """Wipe all data from the storage backend."""
 
     @abstractmethod
-    def add_objects(self, objects: Iterable[anyvar_objects.VrsObject]) -> None:
+    def add_objects(self, objects: Iterable[anyvar_objects.SupportedVrsObject]) -> None:
         """Add multiple VRS objects to storage.
 
         If an object ID conflicts with an existing object, skip it.
@@ -86,8 +86,10 @@ class Storage(ABC):
 
     @abstractmethod
     def get_objects(
-        self, object_type: type[anyvar_objects.VrsObject], object_ids: Iterable[str]
-    ) -> Iterable[anyvar_objects.VrsObject]:
+        self,
+        object_type: type[anyvar_objects.SupportedVrsObject],
+        object_ids: Iterable[str],
+    ) -> Iterable[anyvar_objects.SupportedVrsObject]:
         """Retrieve multiple VRS objects from storage by their IDs.
 
         If no object matches a given ID, that ID is skipped
@@ -99,7 +101,9 @@ class Storage(ABC):
 
     @abstractmethod
     def delete_objects(
-        self, object_type: type[anyvar_objects.VrsObject], object_ids: Iterable[str]
+        self,
+        object_type: type[anyvar_objects.SupportedVrsObject],
+        object_ids: Iterable[str],
     ) -> None:
         """Delete all objects of a specific type from storage.
 
