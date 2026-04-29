@@ -6,6 +6,7 @@ variants and their mappings.
 """
 
 import asyncio
+import concurrent.futures
 import logging
 import threading
 from typing import Protocol
@@ -519,6 +520,7 @@ class VariantProjector:
         )
 
         # Use cool-seq-tool to get MANE c. and p. representations
+        future: concurrent.futures.Future | None = None
         try:
             future = asyncio.run_coroutine_threadsafe(
                 self.cst.mane_transcript.grch38_to_mane_c_p(
@@ -531,6 +533,16 @@ class VariantProjector:
                 self._loop,
             )
             result = future.result(timeout=30)
+        except concurrent.futures.TimeoutError:
+            if future is not None:
+                future.cancel()
+            _logger.warning(
+                "cool-seq-tool projection timed out for %s:%d-%d",
+                alt_ac,
+                start,
+                end,
+            )
+            return ["Projection failed: coordinate mapping timed out"]
         except Exception:
             _logger.exception(
                 "cool-seq-tool projection failed for %s:%d-%d", alt_ac, start, end

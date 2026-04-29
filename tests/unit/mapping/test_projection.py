@@ -80,6 +80,20 @@ class FakeFuture:
         return self._result
 
 
+class TimeoutFuture:
+    def __init__(self):
+        self.cancelled = False
+        self.timeout: int | None = None
+
+    def result(self, timeout: int):
+        self.timeout = timeout
+        raise projection.concurrent.futures.TimeoutError
+
+    def cancel(self):
+        self.cancelled = True
+        return True
+
+
 def test_build_allele_normalizes_projected_literal_state(mocker):
     dp = FakeDataProxy()
     state = models.LiteralSequenceExpression(
@@ -810,6 +824,45 @@ def test_add_mappings_returns_projection_error_message(mocker):
     messages = projector.add_mappings(variation, mocker.Mock())
 
     assert messages == ["Projection failed: expected failure"]
+
+
+def test_project_genomic_variant_cancels_timed_out_projection(mocker):
+    """Timed-out cool-seq-tool work is cancelled and reported as a timeout."""
+    mocker.patch.object(
+        projection,
+        "_get_refseq_accession",
+        return_value="NC_000007.14",
+    )
+    future = TimeoutFuture()
+    # Return a fake scheduled future so no event loop or background thread is needed.
+    mocker.patch.object(
+        projection.asyncio,
+        "run_coroutine_threadsafe",
+        return_value=future,
+    )
+
+    # Bypass __init__ to avoid starting VariantProjector's real event-loop thread.
+    projector = object.__new__(projection.VariantProjector)
+    projector.cst = SimpleNamespace(
+        mane_transcript=SimpleNamespace(grch38_to_mane_c_p=lambda **kw: None)
+    )
+    projector.dp = object()
+    projector._loop = object()
+
+    variation = SimpleNamespace(
+        id="ga4gh:VA.input",
+        location=SimpleNamespace(
+            sequenceReference=SimpleNamespace(refgetAccession="SQ.genomic"),
+            start=140753336,
+            end=140753337,
+        ),
+    )
+
+    messages = projector._project_genomic_variant(variation, mocker.Mock())
+
+    assert messages == ["Projection failed: coordinate mapping timed out"]
+    assert future.timeout == 30
+    assert future.cancelled is True
 
 
 def test_project_genomic_variant_applies_cdna_coding_start_site_before_build(mocker):
