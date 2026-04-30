@@ -1,0 +1,24 @@
+name: Requirement
+description: Add a new requirement to the project
+body:
+  - type: textarea
+    attributes:
+      label: Overview
+      description: Provide a concise high-level overview of the requirement.
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Acceptance Criteria
+      description: |
+        A checklist of criteria needed to complete this requirement. Include scenarios that cover expected behavior, negative criteria (i.e., what we DON'T want to do), and edge cases. The "Given/Then/When" format is encouraged.
+        Example: "- [ ] Given a valid VCF file containing one or more variants, when the user uploads the file to the `/vcf` endpoint, then AnyVar registers each variant contained in the VCF"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Decision Log
+      description: |
+        Document key decisions (including rationale). ⚠️ Remember to update Acceptance Criteria if needed!
+        Example: "04/29/26 - Decided to narrow scope by NOT handling cases where liftover results in a negative-stranded variant, so that we can meet our 1.0 release deadline. Will revisit this at a later date."
+      required: false
