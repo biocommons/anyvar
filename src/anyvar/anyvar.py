@@ -93,7 +93,7 @@ def has_queueing_enabled() -> bool:
 
 
 class ObjectNotFoundError(Exception):
-    """Raised when a related object is requested for a primary entity that does not exist."""
+    """Raised when an ID is given for a non-existent object."""
 
 
 class AnyVar:
@@ -193,6 +193,27 @@ class AnyVar:
             _logger.exception("Failed to add object: %s", extension)
             raise e  # noqa: TRY201
         return extension_id
+
+    def delete_object(self, object_id: str) -> None:
+        """Delete an object and associated mappings/extensions by ID
+
+        Doesn't delete wrapped objects (e.g. deleting a variant won't delete the associated location)
+
+        :param object_id: ID of object to delete
+        :raise ObjectNotFoundError: if no stored object matches given ID
+        """
+        try:
+            vrs_object = self._get_object_polymorphic(object_id)
+        except KeyError as e:
+            raise ObjectNotFoundError from e
+        for extension in self.object_store.get_extensions(object_id):
+            self.object_store.delete_extension(extension)
+        for mapping in self.object_store.get_mappings(object_id, as_source=True):
+            self.object_store.delete_mapping(mapping)
+        for mapping in self.object_store.get_mappings(object_id, as_source=False):
+            self.object_store.delete_mapping(mapping)
+        object_type = objects.vrs_object_class_map[vrs_object.type]
+        self.object_store.delete_objects(object_type, [object_id])
 
     def get_object_extensions(
         self, object_id: str, extension_name: str | None = None
