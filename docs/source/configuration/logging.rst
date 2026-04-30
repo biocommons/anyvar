@@ -55,11 +55,6 @@ Here's a comprehensive logging configuration example: ::
       propagate: yes
 
     loggers:
-      uvicorn:
-        level: INFO
-        handlers: [console, file]
-        propagate: no
-
       anyvar.restapi.main:
         level: INFO
         handlers: [console, file]
@@ -69,6 +64,3 @@ Here's a comprehensive logging configuration example: ::
         level: DEBUG
         handlers: [console, file]
         propagate: no
-
-When ``disable_existing_loggers: true`` is used, include ``uvicorn`` in the config
-so server diagnostics such as bind failures are still emitted.
