@@ -118,20 +118,8 @@ class PostgresObjectStore(Storage):
                 if objects_by_id:
                     dicts = [entity.to_dict() for entity in objects_by_id.values()]
                     orm_model = getattr(orm, vrs_object_type)
-                    stmt = (
-                        insert(orm_model)
-                        .returning(orm_model.id)
-                        .on_conflict_do_nothing()
-                    )
-                    result = session.execute(stmt, dicts)
-                    inserted_count = len(result.scalars().all())
-                    _logger.debug(
-                        "add_objects type=%s requested=%d inserted=%d skipped=%d",
-                        vrs_object_type,
-                        len(dicts),
-                        inserted_count,
-                        len(dicts) - inserted_count,
-                    )
+                    stmt = insert(orm_model).on_conflict_do_nothing()
+                    session.execute(stmt, dicts)
 
     def get_objects(
         self, object_type: type[anyvar_objects.VrsObject], object_ids: Iterable[str]
@@ -248,20 +236,11 @@ class PostgresObjectStore(Storage):
                     }
                 ]
             )
-            .returning(orm.VariationMapping.id)
             .on_conflict_do_nothing()
         )
         try:
             with self.session_factory() as session, session.begin():
-                result = session.execute(stmt)
-                inserted = result.scalar_one_or_none() is not None
-                _logger.debug(
-                    "add_mapping source_id=%s dest_id=%s mapping_type=%s inserted=%s",
-                    mapping.source_id,
-                    mapping.dest_id,
-                    mapping.mapping_type,
-                    inserted,
-                )
+                session.execute(stmt)
         except IntegrityError as e:
             raise KeyError from e
 
