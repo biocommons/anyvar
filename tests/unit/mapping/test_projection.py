@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import call
 
 import pytest
+from cool_seq_tool.schemas import Strand
 from ga4gh.vrs import models
 
 from anyvar.mapping import projection
@@ -483,6 +484,259 @@ def test_variant_projector_close_stops_loop_thread():
     projector.close()
 
 
+def test_add_mappings_dispatches_genomic_accession(mocker):
+    projector = object.__new__(projection.VariantProjector)
+    projector.dp = object()
+    project_genomic = mocker.patch.object(
+        projector,
+        "_project_genomic_variant",
+        return_value=["genomic"],
+    )
+    project_transcript = mocker.patch.object(projector, "_project_transcript_variant")
+    mocker.patch.object(
+        projection,
+        "_get_refseq_accession",
+        return_value="NC_000007.14",
+    )
+    variation = SimpleNamespace(
+        id="ga4gh:VA.input",
+        location=SimpleNamespace(
+            sequenceReference=SimpleNamespace(refgetAccession="SQ.genomic")
+        ),
+    )
+    storage = mocker.Mock()
+
+    messages = projector.add_mappings(variation, storage)
+
+    assert messages == ["genomic"]
+    project_genomic.assert_called_once_with(variation, storage, "NC_000007.14")
+    project_transcript.assert_not_called()
+
+
+def test_add_mappings_dispatches_transcript_accession(mocker):
+    projector = object.__new__(projection.VariantProjector)
+    projector.dp = object()
+    project_genomic = mocker.patch.object(projector, "_project_genomic_variant")
+    project_transcript = mocker.patch.object(
+        projector,
+        "_project_transcript_variant",
+        return_value=["transcript"],
+    )
+    mocker.patch.object(
+        projection,
+        "_get_refseq_accession",
+        return_value="NM_004333.6",
+    )
+    variation = SimpleNamespace(
+        id="ga4gh:VA.input",
+        location=SimpleNamespace(
+            sequenceReference=SimpleNamespace(refgetAccession="SQ.transcript")
+        ),
+    )
+    storage = mocker.Mock()
+
+    messages = projector.add_mappings(variation, storage)
+
+    assert messages == ["transcript"]
+    project_genomic.assert_not_called()
+    project_transcript.assert_called_once_with(variation, storage, "NM_004333.6")
+
+
+def test_resolve_transcript_to_protein_metadata_skips_without_cds_metadata():
+    class FakeUtaDb:
+        async def get_cds_start_end(self, transcript_ac):
+            _ = transcript_ac
+
+    projector = object.__new__(projection.VariantProjector)
+    projector.cst = SimpleNamespace(mane_transcript=SimpleNamespace(uta_db=FakeUtaDb()))
+
+    result = projection.asyncio.run(
+        projector._resolve_transcript_to_protein_metadata("NR_000001.1", 10, 11)
+    )
+
+    assert result == projection._DirectTranscriptProjection(
+        cdna=None,
+        message="Projection skipped: no CDS metadata for transcript NR_000001.1",
+    )
+
+
+def test_resolve_transcript_to_protein_metadata_resolves_exact_protein_accession():
+    class FakeTranscripts:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def is_empty(self):
+            return not self.rows
+
+        def iter_rows(self, named=False):
+            assert named is True
+            return iter(self.rows)
+
+    class FakeUtaDb:
+        def __init__(self):
+            self.genomic_tx_data_calls = []
+            self.get_transcripts_calls = []
+
+        async def get_cds_start_end(self, transcript_ac):
+            _ = transcript_ac
+            return 200, 2200
+
+        async def get_genomic_tx_data(self, tx_ac, pos, annotation_layer):
+            self.genomic_tx_data_calls.append((tx_ac, pos, annotation_layer))
+            return SimpleNamespace(
+                gene="BRAF",
+                alt_ac="NC_000007.14",
+                strand=Strand.NEGATIVE,
+            )
+
+        async def get_transcripts(
+            self,
+            start_pos,
+            end_pos,
+            gene,
+            use_tx_pos,
+            alt_ac,
+        ):
+            self.get_transcripts_calls.append(
+                {
+                    "start_pos": start_pos,
+                    "end_pos": end_pos,
+                    "gene": gene,
+                    "use_tx_pos": use_tx_pos,
+                    "alt_ac": alt_ac,
+                }
+            )
+            return FakeTranscripts(
+                [
+                    {"tx_ac": "NM_other.1", "pro_ac": "NP_other.1"},
+                    {"tx_ac": "NM_004333.6", "pro_ac": "NP_004324.2"},
+                ]
+            )
+
+    uta_db = FakeUtaDb()
+    projector = object.__new__(projection.VariantProjector)
+    projector.cst = SimpleNamespace(mane_transcript=SimpleNamespace(uta_db=uta_db))
+
+    result = projection.asyncio.run(
+        projector._resolve_transcript_to_protein_metadata("NM_004333.6", 300, 301)
+    )
+
+    assert result.message is None
+    assert result.cdna.refseq == "NM_004333.6"
+    assert result.cdna.pos == (100, 101)
+    assert result.cdna.strand == Strand.NEGATIVE
+    assert result.cdna.coding_start_site == 200
+    assert result.cdna.coding_end_site == 2200
+    assert result.protein == projection._ProteinProjection(
+        refseq="NP_004324.2",
+        pos=(33, 34),
+    )
+    assert uta_db.genomic_tx_data_calls == [
+        ("NM_004333.6", (300, 301), projection.AnnotationLayer.CDNA)
+    ]
+    assert uta_db.get_transcripts_calls == [
+        {
+            "start_pos": 100,
+            "end_pos": 101,
+            "gene": "BRAF",
+            "use_tx_pos": True,
+            "alt_ac": "NC_000007.14",
+        }
+    ]
+
+
+def test_project_transcript_variant_creates_translate_mapping(mocker):
+    cdna = SimpleNamespace(
+        refseq="NM_004333.6",
+        pos=(100, 101),
+        coding_start_site=200,
+        coding_end_site=2200,
+    )
+    protein = SimpleNamespace(refseq="NP_004324.2", pos=(33, 34))
+    result = projection._DirectTranscriptProjection(cdna=cdna, protein=protein)
+
+    projector = object.__new__(projection.VariantProjector)
+    projector.dp = object()
+    mocker.patch.object(
+        projector,
+        "_resolve_transcript_to_protein_metadata",
+        new=mocker.Mock(return_value=result),
+    )
+    mocker.patch.object(projector, "_run_async_projection", return_value=(result, None))
+    mocker.patch.object(
+        projection,
+        "_derive_protein_substitution_state",
+        return_value=models.LiteralSequenceExpression(
+            type="LiteralSequenceExpression",
+            sequence="L",
+        ),
+    )
+
+    build_calls = []
+
+    def fake_build_allele(_dp, refseq_accession, _start, _end, _state):
+        build_calls.append(refseq_accession)
+        return SimpleNamespace(id=f"ga4gh:VA.{refseq_accession}")
+
+    mocker.patch.object(projection, "_build_allele", side_effect=fake_build_allele)
+    store_mock = mocker.patch.object(projection, "_store_projected_variant")
+    variation = SimpleNamespace(
+        id="ga4gh:VA.input",
+        state=models.LiteralSequenceExpression(
+            type="LiteralSequenceExpression",
+            sequence="A",
+        ),
+        location=SimpleNamespace(start=300, end=301),
+    )
+
+    messages = projector._project_transcript_variant(
+        variation, mocker.Mock(), "NM_004333.6"
+    )
+
+    assert messages is None
+    assert build_calls == ["NP_004324.2"]
+    store_mock.assert_called_once()
+    assert store_mock.call_args.args[1] == "ga4gh:VA.input"
+    assert store_mock.call_args.args[3] == projection.VariationMappingType.TRANSLATE_TO
+
+
+def test_project_transcript_variant_skips_utr_without_protein_mapping(mocker):
+    cdna = SimpleNamespace(
+        refseq="NM_001184880.2",
+        pos=(-1143, -1112),
+        coding_start_site=2000,
+        coding_end_site=4000,
+    )
+    result = projection._DirectTranscriptProjection(cdna=cdna, protein=None)
+
+    projector = object.__new__(projection.VariantProjector)
+    projector.dp = object()
+    mocker.patch.object(
+        projector,
+        "_resolve_transcript_to_protein_metadata",
+        new=mocker.Mock(return_value=result),
+    )
+    mocker.patch.object(projector, "_run_async_projection", return_value=(result, None))
+    store_mock = mocker.patch.object(projection, "_store_projected_variant")
+    build_mock = mocker.patch.object(projection, "_build_allele")
+    variation = SimpleNamespace(
+        id="ga4gh:VA.input",
+        state=models.LiteralSequenceExpression(
+            type="LiteralSequenceExpression",
+            sequence="T",
+        ),
+        location=SimpleNamespace(start=857, end=888),
+    )
+
+    messages = projector._project_transcript_variant(
+        variation, mocker.Mock(), "NM_001184880.2"
+    )
+
+    assert messages is None
+    build_mock.assert_not_called()
+    store_mock.assert_not_called()
+
+
 class TestIsUtrVariant:
     """Tests for _is_utr_variant helper."""
 
@@ -748,6 +1002,73 @@ def test_project_genomic_variant_creates_protein_for_cds_variant(mocker):
     assert store_mock.call_count == 2
 
 
+def test_project_genomic_variant_uses_shared_transcript_to_protein_helper(mocker):
+    """Genomic projection stores cDNA then delegates cDNA->protein."""
+    cdna = SimpleNamespace(
+        refseq="NM_004333.6",
+        pos=(100, 101),
+        coding_start_site=200,
+        coding_end_site=2200,
+    )
+    protein = SimpleNamespace(refseq="NP_004324.2", pos=(33, 34))
+    result = SimpleNamespace(cdna=cdna, protein=protein)
+
+    mocker.patch.object(
+        projection, "_get_refseq_accession", return_value="NC_000007.14"
+    )
+    mocker.patch.object(
+        projection.asyncio,
+        "run_coroutine_threadsafe",
+        return_value=FakeFuture(result),
+    )
+    mocker.patch.object(
+        projection,
+        "_build_allele",
+        return_value=SimpleNamespace(id="ga4gh:VA.cdna"),
+    )
+    store_mock = mocker.patch.object(projection, "_store_projected_variant")
+
+    projector = object.__new__(projection.VariantProjector)
+    projector.cst = SimpleNamespace(
+        mane_transcript=SimpleNamespace(grch38_to_mane_c_p=lambda **kw: None)
+    )
+    projector.dp = object()
+    projector._loop = object()
+    protein_helper = mocker.patch.object(
+        projector, "_project_transcript_to_protein", return_value=None
+    )
+    variation = SimpleNamespace(
+        id="ga4gh:VA.input",
+        state=models.LiteralSequenceExpression(
+            type="LiteralSequenceExpression",
+            sequence="A",
+        ),
+        location=SimpleNamespace(
+            sequenceReference=SimpleNamespace(refgetAccession="SQ.genomic"),
+            start=140753336,
+            end=140753337,
+        ),
+    )
+    storage = mocker.Mock()
+
+    messages = projector._project_genomic_variant(variation, storage)
+
+    assert messages is None
+    store_mock.assert_called_once()
+    protein_helper.assert_called_once_with(
+        storage,
+        "ga4gh:VA.cdna",
+        cdna,
+        protein,
+        300,
+        301,
+        models.LiteralSequenceExpression(
+            type="LiteralSequenceExpression",
+            sequence="A",
+        ),
+    )
+
+
 def test_project_genomic_variant_reports_unsupported_protein_state(mocker):
     """Unsupported protein derivation stores transcript mapping with a message."""
     result = SimpleNamespace(
@@ -814,12 +1135,23 @@ def test_project_genomic_variant_reports_unsupported_protein_state(mocker):
 
 def test_add_mappings_returns_projection_error_message(mocker):
     projector = object.__new__(projection.VariantProjector)
+    projector.dp = object()
+    mocker.patch.object(
+        projection,
+        "_get_refseq_accession",
+        return_value="NC_000007.14",
+    )
     mocker.patch.object(
         projector,
         "_project_genomic_variant",
         side_effect=projection.ProjectionError("Projection failed: expected failure"),
     )
-    variation = SimpleNamespace(id="ga4gh:VA.input")
+    variation = SimpleNamespace(
+        id="ga4gh:VA.input",
+        location=SimpleNamespace(
+            sequenceReference=SimpleNamespace(refgetAccession="SQ.genomic")
+        ),
+    )
 
     messages = projector.add_mappings(variation, mocker.Mock())
 
