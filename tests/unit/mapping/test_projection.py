@@ -126,7 +126,7 @@ def test_build_allele_normalizes_projected_literal_state(mocker):
     assert allele.state == state
 
 
-def test_project_cdna_literal_state_reverse_complements_negative_strand_literal_state():
+def test_project_genomic_state_to_cdna_literal_reverse_complements_negative_strand_literal_state():
     dp = FakeDataProxy()
     variation = SimpleNamespace(
         id="ga4gh:VA.input",
@@ -137,7 +137,7 @@ def test_project_cdna_literal_state_reverse_complements_negative_strand_literal_
     )
     cdna = SimpleNamespace(strand=SimpleNamespace(value=-1))
 
-    state = projection._project_cdna_literal_state(dp, variation, cdna)
+    state = projection._project_genomic_state_to_cdna_literal(dp, variation, cdna)
 
     assert state == models.LiteralSequenceExpression(
         type="LiteralSequenceExpression",
@@ -145,7 +145,7 @@ def test_project_cdna_literal_state_reverse_complements_negative_strand_literal_
     )
 
 
-def test_project_cdna_literal_state_expands_positive_strand_reference_length_state():
+def test_project_genomic_state_to_cdna_literal_expands_positive_strand_reference_length_state():
     dp = FakeDataProxy()
     variation = SimpleNamespace(
         id="ga4gh:VA.input",
@@ -158,7 +158,7 @@ def test_project_cdna_literal_state_expands_positive_strand_reference_length_sta
     )
     cdna = SimpleNamespace(strand=SimpleNamespace(value=1))
 
-    state = projection._project_cdna_literal_state(dp, variation, cdna)
+    state = projection._project_genomic_state_to_cdna_literal(dp, variation, cdna)
 
     assert state == models.LiteralSequenceExpression(
         type="LiteralSequenceExpression",
@@ -166,7 +166,7 @@ def test_project_cdna_literal_state_expands_positive_strand_reference_length_sta
     )
 
 
-def test_project_cdna_literal_state_reverse_complements_negative_strand_rle_sequence():
+def test_project_genomic_state_to_cdna_literal_reverse_complements_negative_strand_rle_sequence():
     dp = FakeDataProxy()
     variation = SimpleNamespace(
         id="ga4gh:VA.input",
@@ -179,7 +179,7 @@ def test_project_cdna_literal_state_reverse_complements_negative_strand_rle_sequ
     )
     cdna = SimpleNamespace(strand=SimpleNamespace(value=-1))
 
-    state = projection._project_cdna_literal_state(dp, variation, cdna)
+    state = projection._project_genomic_state_to_cdna_literal(dp, variation, cdna)
 
     assert state == models.LiteralSequenceExpression(
         type="LiteralSequenceExpression",
@@ -187,7 +187,9 @@ def test_project_cdna_literal_state_reverse_complements_negative_strand_rle_sequ
     )
 
 
-def test_project_cdna_literal_state_expands_rle_without_embedded_sequence(mocker):
+def test_project_genomic_state_to_cdna_literal_expands_rle_without_embedded_sequence(
+    mocker,
+):
     dp = FakeDataProxy()
     dp.get_sequence = mocker.Mock(return_value="CTCTC")
     denormalize_mock = mocker.patch.object(
@@ -210,7 +212,7 @@ def test_project_cdna_literal_state_expands_rle_without_embedded_sequence(mocker
     )
     cdna = SimpleNamespace(strand=SimpleNamespace(value=1))
 
-    state = projection._project_cdna_literal_state(dp, variation, cdna)
+    state = projection._project_genomic_state_to_cdna_literal(dp, variation, cdna)
 
     dp.get_sequence.assert_called_once_with("ga4gh:SQ.genomic", start=10, end=15)
     denormalize_mock.assert_called_once_with("CTCTC", 2, 3)
@@ -220,7 +222,9 @@ def test_project_cdna_literal_state_expands_rle_without_embedded_sequence(mocker
     )
 
 
-def test_project_cdna_literal_state_raises_projection_error_when_helper_fails(mocker):
+def test_project_genomic_state_to_cdna_literal_raises_projection_error_when_helper_fails(
+    mocker,
+):
     dp = FakeDataProxy()
     variation = SimpleNamespace(
         id="ga4gh:VA.input",
@@ -237,7 +241,7 @@ def test_project_cdna_literal_state_raises_projection_error_when_helper_fails(mo
     )
 
     with pytest.raises(projection.ProjectionError):
-        projection._project_cdna_literal_state(dp, variation, cdna)
+        projection._project_genomic_state_to_cdna_literal(dp, variation, cdna)
 
 
 def test_derive_protein_substitution_state_uses_bioutils_translate_cds(mocker):
@@ -554,9 +558,42 @@ def test_resolve_transcript_to_protein_metadata_skips_without_cds_metadata():
         projector._resolve_transcript_to_protein_metadata("NR_000001.1", 10, 11)
     )
 
-    assert result == projection._DirectTranscriptProjection(
+    assert result == projection._TranscriptToProteinMetadata(
         cdna=None,
         message="Projection skipped: no CDS metadata for transcript NR_000001.1",
+    )
+
+
+def test_resolve_transcript_to_protein_metadata_skips_utr_without_alignment_lookup():
+    class FakeUtaDb:
+        async def get_cds_start_end(self, transcript_ac):
+            _ = transcript_ac
+            return 200, 2200
+
+        async def get_genomic_tx_data(self, *args, **kwargs):
+            _ = args, kwargs
+            msg = "UTR variants should not need transcript alignment metadata"
+            raise AssertionError(msg)
+
+        async def get_transcripts(self, *args, **kwargs):
+            _ = args, kwargs
+            msg = "UTR variants should not need protein metadata"
+            raise AssertionError(msg)
+
+    projector = object.__new__(projection.VariantProjector)
+    projector.cst = SimpleNamespace(mane_transcript=SimpleNamespace(uta_db=FakeUtaDb()))
+
+    result = projection.asyncio.run(
+        projector._resolve_transcript_to_protein_metadata("NM_001184880.2", 10, 11)
+    )
+
+    assert result == projection._TranscriptToProteinMetadata(
+        cdna=projection._TranscriptProjection(
+            refseq="NM_001184880.2",
+            pos=(-190, -189),
+            coding_start_site=200,
+            coding_end_site=2200,
+        )
     )
 
 
@@ -653,7 +690,7 @@ def test_project_transcript_variant_creates_translate_mapping(mocker):
         coding_end_site=2200,
     )
     protein = SimpleNamespace(refseq="NP_004324.2", pos=(33, 34))
-    result = projection._DirectTranscriptProjection(cdna=cdna, protein=protein)
+    result = projection._TranscriptToProteinMetadata(cdna=cdna, protein=protein)
 
     projector = object.__new__(projection.VariantProjector)
     projector.dp = object()
@@ -700,6 +737,73 @@ def test_project_transcript_variant_creates_translate_mapping(mocker):
     assert store_mock.call_args.args[3] == projection.VariationMappingType.TRANSLATE_TO
 
 
+def test_project_transcript_variant_skips_missing_metadata_before_state_derivation(
+    mocker,
+):
+    result = projection._TranscriptToProteinMetadata(
+        cdna=None,
+        message="Projection skipped: no CDS metadata for transcript NR_000001.1",
+    )
+    projector = object.__new__(projection.VariantProjector)
+    projector.dp = object()
+    mocker.patch.object(
+        projector,
+        "_resolve_transcript_to_protein_metadata",
+        new=mocker.Mock(return_value=result),
+    )
+    mocker.patch.object(projector, "_run_async_projection", return_value=(result, None))
+    state_mock = mocker.patch.object(projection, "_get_transcript_literal_state")
+    variation = SimpleNamespace(
+        id="ga4gh:VA.input",
+        state=SimpleNamespace(type="UnsupportedState"),
+        location=SimpleNamespace(start=10, end=11),
+    )
+
+    messages = projector._project_transcript_variant(
+        variation, mocker.Mock(), "NR_000001.1"
+    )
+
+    assert messages == [
+        "Projection skipped: no CDS metadata for transcript NR_000001.1"
+    ]
+    state_mock.assert_not_called()
+
+
+def test_project_transcript_variant_skips_missing_protein_before_state_derivation(
+    mocker,
+):
+    cdna = SimpleNamespace(
+        refseq="NM_004333.6",
+        pos=(100, 101),
+        coding_start_site=200,
+        coding_end_site=2200,
+    )
+    result = projection._TranscriptToProteinMetadata(cdna=cdna, protein=None)
+    projector = object.__new__(projection.VariantProjector)
+    projector.dp = object()
+    mocker.patch.object(
+        projector,
+        "_resolve_transcript_to_protein_metadata",
+        new=mocker.Mock(return_value=result),
+    )
+    mocker.patch.object(projector, "_run_async_projection", return_value=(result, None))
+    state_mock = mocker.patch.object(projection, "_get_transcript_literal_state")
+    variation = SimpleNamespace(
+        id="ga4gh:VA.input",
+        state=SimpleNamespace(type="UnsupportedState"),
+        location=SimpleNamespace(start=300, end=301),
+    )
+
+    messages = projector._project_transcript_variant(
+        variation, mocker.Mock(), "NM_004333.6"
+    )
+
+    assert messages == [
+        "Projection skipped: no associated protein accession for transcript NM_004333.6"
+    ]
+    state_mock.assert_not_called()
+
+
 def test_project_transcript_variant_skips_utr_without_protein_mapping(mocker):
     cdna = SimpleNamespace(
         refseq="NM_001184880.2",
@@ -707,7 +811,7 @@ def test_project_transcript_variant_skips_utr_without_protein_mapping(mocker):
         coding_start_site=2000,
         coding_end_site=4000,
     )
-    result = projection._DirectTranscriptProjection(cdna=cdna, protein=None)
+    result = projection._TranscriptToProteinMetadata(cdna=cdna, protein=None)
 
     projector = object.__new__(projection.VariantProjector)
     projector.dp = object()
@@ -1055,17 +1159,18 @@ def test_project_genomic_variant_uses_shared_transcript_to_protein_helper(mocker
 
     assert messages is None
     store_mock.assert_called_once()
-    protein_helper.assert_called_once_with(
+    protein_helper.assert_called_once()
+    assert protein_helper.call_args.args[:6] == (
         storage,
         "ga4gh:VA.cdna",
         cdna,
         protein,
         300,
         301,
-        models.LiteralSequenceExpression(
-            type="LiteralSequenceExpression",
-            sequence="A",
-        ),
+    )
+    assert protein_helper.call_args.args[6]() == models.LiteralSequenceExpression(
+        type="LiteralSequenceExpression",
+        sequence="A",
     )
 
 
