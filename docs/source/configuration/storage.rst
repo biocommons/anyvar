@@ -29,8 +29,8 @@ For cases where AnyVar storage is shared with other applications and an addition
      - Default Value
    * - ``ANYVAR_ALLELES_TABLE_NAME``
      - ``"alleles"``
-   * - ``ANYVAR_ANNOTATIONS_TABLE_NAME``
-     - ``"annotations"``
+   * - ``ANYVAR_EXTENSIONS_TABLE_NAME``
+     - ``"extensions"``
    * - ``ANYVAR_LOCATIONS_TABLE_NAME``
      - ``"locations"``
    * - ``ANYVAR_SEQUENCE_REFERENCES_TABLE_NAME``

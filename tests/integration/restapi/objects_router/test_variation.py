@@ -209,10 +209,10 @@ def test_delete_object_and_mappings(restapi_client: TestClient, alleles: dict):
     response = restapi_client.put("/vrs_variation", json=allele)
     response.raise_for_status()
     response = restapi_client.post(
-        f"/object/{allele_id}/annotations",
+        f"/object/{allele_id}/extensions",
         json={
-            "annotation_type": "clinvar_somatic_classification",
-            "annotation_value": "Oncogenic",
+            "name": "clinvar_somatic_classification",
+            "value": "Oncogenic",
         },
     )
     response.raise_for_status()
@@ -227,7 +227,7 @@ def test_delete_object_and_mappings(restapi_client: TestClient, alleles: dict):
     for request_path in (
         f"/object/{allele_id}/mappings/liftover_to?as_source=true",
         f"/object/{allele_id}/mappings/liftover_to?as_source=false",
-        f"/object/{allele_id}/annotations/clinvar_somatic_classification",
+        f"/object/{allele_id}/extensions/clinvar_somatic_classification",
     ):
         response = restapi_client.get(request_path)
         assert response.json() == {

@@ -16,11 +16,11 @@ from anyvar.anyvar import AnyVar, ObjectNotFoundError
 from anyvar.core import metadata, objects
 from anyvar.mapping import liftover
 from anyvar.restapi.schema import (
-    AddAnnotationRequest,
-    AddAnnotationResponse,
+    AddExtensionRequest,
+    AddExtensionResponse,
     AddMappingRequest,
     AddMappingResponse,
-    GetAnnotationResponse,
+    GetExtensionResponse,
     GetMappingResponse,
     GetObjectResponse,
     RegisterVariationResponse,
@@ -190,7 +190,7 @@ def _register_variations(
             continue
 
         # add variant metadata
-        av.create_timestamp_annotation_if_missing(translation_result.variation.id)  # type: ignore (ID guaranteed to be present)
+        av.create_timestamp_if_missing(translation_result.variation.id)  # type: ignore (ID guaranteed to be present)
         messages: list[str] = (
             liftover.add_liftover_mapping(
                 variation=translation_result.variation,
@@ -342,8 +342,8 @@ def get_object_by_id(
     "/object/{vrs_id}",
     response_model_exclude_none=True,
     operation_id="deleteObject",
-    summary="Delete a VRS object and any associated mappings and annotations",
-    description="Attempt deletion of a VRS object by its ID. Mappings and annotations that reference this object will also be deleted.",
+    summary="Delete a VRS object and any associated mappings and extensions",
+    description="Attempt deletion of a VRS object by its ID. Mappings and Extensions that reference this object will also be deleted.",
 )
 def delete_object_by_id(
     request: Request,
@@ -358,78 +358,76 @@ def delete_object_by_id(
 
 
 @objects_router.post(
-    "/object/{vrs_id}/annotations",
+    "/object/{vrs_id}/extensions",
     response_model_exclude_none=True,
-    summary="Add annotation to a VRS Object",
-    description="Provide an annotation to associate with a VRS object. The object MUST be registered with AnyVar before it can be annotated.",
+    summary="Add an extension to a VRS Object",
+    description="Provide an extension to associate with a VRS object. The object MUST already be registered with AnyVar.",
 )
-def add_object_annotation(
+def add_object_extension(
     request: Request,
     vrs_id: Annotated[
         StrictStr, Path(..., description="VRS ID of variation to annotate")
     ],
-    annotation_request: Annotated[
-        AddAnnotationRequest,
+    extension_request: Annotated[
+        AddExtensionRequest,
         Body(
-            description="Annotation to associate with the variation",
+            description="Extension to associate with the variation",
         ),
     ],
-) -> AddAnnotationResponse:
-    """Store an annotation for a VRS Object."""
-    # Look up the VRS Object from the AnyVar store
+) -> AddExtensionResponse:
+    """Store an extension for a VRS Object."""
     av: AnyVar = request.app.state.anyvar
     vrs_object: objects.VrsObject = _get_vrs_object(av, vrs_id)
 
-    # Add the annotation to the database
-    annotation_id: int | None = None
+    extension_id: int | None = None
     try:
-        annotation = metadata.Annotation(
+        extension = metadata.Extension(
             object_id=vrs_object.id,  # pyright: ignore[reportArgumentType] - VRS Objects from the DB will never NOT have an ID
-            annotation_type=annotation_request.annotation_type,
-            annotation_value=annotation_request.annotation_value,
+            name=extension_request.name,
+            value=extension_request.value,
         )
-        annotation_id = av.put_annotation(annotation)
+        extension_id = av.put_extension(extension)
     except ValueError as e:
         _logger.exception(
-            "Failed to add annotation `%s` on VRS Object `%s`",
-            annotation_request,
+            "Failed to add Extension `%s` on VRS Object `%s`",
+            extension_request,
             vrs_id,
         )
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail=f"Failed to add annotation: {annotation_request}",
+            detail=f"Failed to add extension: {extension_request}",
         ) from e
 
-    return AddAnnotationResponse(
+    return AddExtensionResponse(
         object=vrs_object,
         object_id=vrs_id,
-        annotation_type=annotation_request.annotation_type,
-        annotation_value=annotation_request.annotation_value,
-        annotation_id=annotation_id,
+        extension_name=extension_request.name,
+        extension_value=extension_request.value,
+        extension_id=extension_id,
     )
 
 
 @objects_router.get(
-    "/object/{vrs_id}/annotations/{annotation_type}",
+    "/object/{vrs_id}/extensions/{extension_name}",
     response_model_exclude_none=True,
-    summary="Retrieve annotations for a VRS Object",
-    description="Retrieve annotations for a VRS Object by VRS ID and annotation type",
+    summary="Retrieve extensions for a VRS Object",
+    description="Retrieve extensions for a VRS Object by VRS ID and extension type",
 )
-def get_object_annotations(
+def get_object_extensions(
     request: Request,
     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for VRS Object")],
-    annotation_type: Annotated[StrictStr, Path(..., description="Annotation type")],
-) -> GetAnnotationResponse:
-    """Retrieve annotations for a VRS Object."""
+    extension_name: Annotated[StrictStr, Path(..., description="Extension name")],
+) -> GetExtensionResponse:
+    """Retrieve extensions for a VRS Object."""
     av: AnyVar = request.app.state.anyvar
     try:
-        annotations = av.get_object_annotations(vrs_id, annotation_type)
+        extensions = av.get_object_extensions(vrs_id, extension_name)
     except ObjectNotFoundError as e:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail=f"VRS Object {vrs_id} not found",
         ) from e
-    return GetAnnotationResponse(annotations=annotations)
+    return GetExtensionResponse(extensions=extensions)
 
 
 @objects_router.put(
@@ -467,7 +465,7 @@ def add_object_mapping(
         )
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-            detail=f"Failed to add annotation: {mapping_request}. {e}",
+            detail=f"Failed to add mapping: {mapping_request}. {e}",
         ) from e
 
     return AddMappingResponse(

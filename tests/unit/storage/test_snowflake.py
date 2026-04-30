@@ -9,8 +9,8 @@ from anyvar.storage.snowflake import SnowflakeObjectStore
 
 from .storage_test_funcs import (
     run_alleles_crud,
-    run_annotations_crud,
     run_db_lifecycle,
+    run_extensions_crud,
     run_incomplete_objects_error,
     run_mappings_crud,
     run_query_max_rows,
@@ -93,11 +93,11 @@ def test_mappings_crud(
     run_mappings_crud(snowflake_storage_with_cleanup, validated_vrs_alleles)
 
 
-def test_annotations_crud(
+def test_extensions_crud(
     snowflake_storage_with_cleanup: SnowflakeObjectStore,
     focus_alleles: tuple[models.Allele, models.Allele, models.Allele],
 ):
-    run_annotations_crud(snowflake_storage_with_cleanup, focus_alleles)
+    run_extensions_crud(snowflake_storage_with_cleanup, focus_alleles)
 
 
 def test_search_alleles(

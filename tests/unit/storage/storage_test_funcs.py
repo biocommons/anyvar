@@ -17,11 +17,11 @@ def run_db_lifecycle(storage: Storage, validated_vrs_alleles: dict[str, models.A
     allele_38 = validated_vrs_alleles["ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU"]
     allele_37 = validated_vrs_alleles["ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf"]
     storage.add_objects([allele_38, allele_37])
-    storage.add_annotation(
-        metadata.Annotation(
+    storage.add_extension(
+        metadata.Extension(
             object_id=allele_38.id,
-            annotation_type="classification",
-            annotation_value="uncertain",
+            name="classification",
+            value="uncertain",
         )
     )
     storage.add_mapping(
@@ -347,7 +347,7 @@ def run_mappings_crud(
     assert storage.get_mappings(allele_38.id, as_source=True) == []
 
 
-def run_annotations_crud(
+def run_extensions_crud(
     storage: Storage,
     focus_alleles: tuple[models.Allele, models.Allele, models.Allele],
 ):
@@ -356,60 +356,60 @@ def run_annotations_crud(
     storage.add_objects(focus_alleles)
 
     # add arbitrary annotations
-    ann1 = metadata.Annotation(
+    ann1 = metadata.Extension(
         object_id=focus_alleles[0].id,
-        annotation_type="classification",
-        annotation_value="pathogenic",
+        name="classification",
+        value="pathogenic",
     )
-    storage.add_annotation(ann1)
-    ann2 = metadata.Annotation(
+    storage.add_extension(ann1)
+    ann2 = metadata.Extension(
         object_id=focus_alleles[1].id,
-        annotation_type="sample_count",
-        annotation_value=5,
+        name="sample_count",
+        value=5,
     )
-    storage.add_annotation(ann2)
-    ann3 = metadata.Annotation(
+    storage.add_extension(ann2)
+    ann3 = metadata.Extension(
         object_id=focus_alleles[2].id,
-        annotation_type="classification",
-        annotation_value="likely_benign",
+        name="classification",
+        value="likely_benign",
     )
-    storage.add_annotation(ann3)
-    ann4 = metadata.Annotation(
+    storage.add_extension(ann3)
+    ann4 = metadata.Extension(
         object_id=focus_alleles[2].id,
-        annotation_type="reference",
-        annotation_value={"type": "article", "value": "pmid:123456"},
+        name="reference",
+        value={"type": "article", "value": "pmid:123456"},
     )
-    storage.add_annotation(ann4)
+    storage.add_extension(ann4)
 
     # get annotations back
-    result = storage.get_annotations(focus_alleles[0].id, "classification")
+    result = storage.get_extensions(focus_alleles[0].id, "classification")
     assert result == [ann1]
 
-    result = storage.get_annotations(focus_alleles[2].id, "reference")
+    result = storage.get_extensions(focus_alleles[2].id, "reference")
     assert result == [ann4]
 
-    result = storage.get_annotations(focus_alleles[2].id)
-    sorted(result, key=lambda i: (i.annotation_type, i.annotation_value))
+    result = storage.get_extensions(focus_alleles[2].id)
+    sorted(result, key=lambda i: (i.name, i.value))
     assert result == [ann3, ann4]
 
     # adding the same annotation multiple times creates redundant rows
-    storage.add_annotation(ann4)
-    result = storage.get_annotations(focus_alleles[2].id, "reference")
+    storage.add_extension(ann4)
+    result = storage.get_extensions(focus_alleles[2].id, "reference")
     assert result == [ann4, ann4]
 
     # test optional type
-    assert storage.get_annotations(focus_alleles[0].id) == storage.get_annotations(
-        focus_alleles[0].id, annotation_type="classification"
+    assert storage.get_extensions(focus_alleles[0].id) == storage.get_extensions(
+        focus_alleles[0].id, extension_name="classification"
     )
 
     # fetch nonexistent annotation
-    result = storage.get_annotations("ga4gh:VA.ZZZZZZZ")
+    result = storage.get_extensions("ga4gh:VA.ZZZZZZZ")
     assert result == []
 
     # delete annotations
-    result = storage.get_annotations(focus_alleles[0].id, "classification")
-    storage.delete_annotation(result[0])
-    result = storage.get_annotations(focus_alleles[0].id, "classification")
+    result = storage.get_extensions(focus_alleles[0].id, "classification")
+    storage.delete_extension(result[0])
+    result = storage.get_extensions(focus_alleles[0].id, "classification")
     assert result == []
 
 

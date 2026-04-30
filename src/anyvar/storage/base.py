@@ -21,7 +21,7 @@ class DataIntegrityError(StorageError):
 
 
 class MissingVariationReferenceError(StorageError):
-    """Raise for attempts to insert an annotation or mapping that references a non-existent variation"""
+    """Raise for attempts to insert an extension or mapping that references a non-existent variation"""
 
 
 class IncompleteVrsObjectError(StorageError):
@@ -154,34 +154,34 @@ class Storage(ABC):
         """
 
     @abstractmethod
-    def add_annotation(self, annotation: metadata.Annotation) -> None:
-        """Adds an annotation to the database.
+    def add_extension(self, extension: metadata.Extension) -> None:
+        """Adds an extension to the database.
 
-        Adding the same annotation repeatedly creates redundant records.
+        Adding the same extension repeatedly creates redundant records.
 
-        :param annotation: The annotation to add
-        :raise MissingVariationReferenceError: if no object corresponding to the annotation's object ID is present in DB
+        :param extension: The extension to add
+        :raise MissingVariationReferenceError: if no object corresponding to the extension's object ID is present in DB
         """
 
     @abstractmethod
-    def get_annotations(
-        self, object_id: str, annotation_type: str | None = None
-    ) -> list[metadata.Annotation]:
-        """Get all annotations for the specified object, optionally filtered by type.
+    def get_extensions(
+        self, object_id: str, extension_name: str | None = None
+    ) -> list[metadata.Extension]:
+        """Get all extensions for the specified object, optionally filtered by type.
 
-        :param object_id: The ID of the object to retrieve annotations for
-        :param annotation_type: The type of annotation to retrieve (defaults to `None` to retrieve all annotations for the object)
-        :return: A list of annotations
+        :param object_id: The ID of the object to retrieve extensions for
+        :param extension_type: The type of extension to retrieve (defaults to `None` to retrieve all extensions for the object)
+        :return: A list of extensions
         """
 
     @abstractmethod
-    def delete_annotation(self, annotation: metadata.Annotation) -> None:
-        """Deletes an annotation from the database
+    def delete_extension(self, extension: metadata.Extension) -> None:
+        """Deletes an extension from the database
 
-        * If no such annotation exists, do nothing.
+        * If no such extension exists, do nothing.
         * Deletes do not cascade.
 
-        :param annotation: The annotation object to delete
+        :param extension: The extension object to delete
         :raise DataIntegrityError: if attempting to delete an object which is
             depended upon by another object
         """

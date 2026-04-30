@@ -30,7 +30,7 @@ A ``GET`` request to ``/variation/<ID>`` can be used to retrieve the same object
 
 .. code-block:: pycon
 
-   >>> response = requests.get(f"http://localhost:8000/variation/{allele_id}")
+   >>> response = requests.get(f"http://localhost:8000/object/{allele_id}")
    >>> response.json()["data"]
    {'id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', 'type': 'Allele', 'digest': 'K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', 'location': {'id': 'ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8', 'type': 'SequenceLocation', 'digest': 'aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8', 'sequenceReference': {'type': 'SequenceReference', 'refgetAccession': 'SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB'}, 'start': 87894076, 'end': 87894077}, 'state': {'type': 'LiteralSequenceExpression', 'sequence': 'T'}}
 
@@ -39,7 +39,7 @@ Variant registration also registered contained VRS objects, like SequenceLocatio
 .. code-block:: pycon
 
    >>> location_id = "ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy"
-   >>> response = requests.get(f"http://localhost:8000/variation/{location_id}")
+   >>> response = requests.get(f"http://localhost:8000/object/{location_id}")
    >>> response.json()["data"]
    {'id': 'ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy', 'type': 'SequenceLocation', 'digest': '01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy', 'sequenceReference': {'type': 'SequenceReference', 'refgetAccession': 'SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB'}, 'start': 87894076, 'end': 87894077}
 
@@ -50,21 +50,21 @@ The ``/search`` endpoint enables retrieval of all variants that overlap a provid
 
 .. code-block:: pycon
 
-   >>> sequence_accession_id = "ga4gh:SQ.8_liLu1aycC0tPQPFmUaGXJLDs5SbPZ5"
-   >>> start, end = 2781631, 2783993
+   >>> sequence_accession_id = "ga4gh:SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB"
+   >>> start, end = 87894070, 87894080
    >>> response = requests.get(f"http://localhost:8000/search?accession={sequence_accession_id}&start={start}&end={end}")
    >>> response.json()["variations"][0]
-   {'id': 'ga4gh:VA.YL9lyrf_GqBKJuZ2fkbonTSjdGexxim7',
+   {'id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU',
     'type': 'Allele',
-    'digest': 'YL9lyrf_GqBKJuZ2fkbonTSjdGexxim7',
-    'location': {'id': 'ga4gh:SL.OwQPYW5PvD5oxE-4M4EoshiRlw1g31fP',
+    'digest': 'K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU',
+    'location': {'id': 'ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8',
      'type': 'SequenceLocation',
-     'digest': 'OwQPYW5PvD5oxE-4M4EoshiRlw1g31fP',
+     'digest': 'aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8',
      'sequenceReference': {'type': 'SequenceReference',
-      'refgetAccession': 'SQ.8_liLu1aycC0tPQPFmUaGXJLDs5SbPZ5'},
-     'start': 2781631,
-     'end': 2781632},
-    'state': {'type': 'LiteralSequenceExpression', 'sequence': 'G'}}
+      'refgetAccession': 'SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB'},
+     'start': 87894076,
+     'end': 87894077},
+    'state': {'type': 'LiteralSequenceExpression', 'sequence': 'T'}}
 
 Working With Mappings
 =====================
@@ -79,9 +79,9 @@ To add a :ref:`mapping <mappings>` between previously-registered variation objec
    >>> payload = {"definition": "NM_004333.6:c.1799T>A"}
    >>> response = requests.put("http://localhost:8000/variation", json=payload)
    >>> tx_id = response.json()["object"]["id"]
-   >>> payload = {"dest_id": tx_id, "mapping_type": "transcription"}
+   >>> payload = {"dest_id": tx_id, "mapping_type": "transcribe_to"}
    >>> requests.put(
-   ...     f"http://localhost:8000/variation/{genomic_id}/mappings",
+   ...     f"http://localhost:8000/object/{genomic_id}/mappings",
    ...     json=payload
    ... )
 
@@ -90,12 +90,12 @@ Mappings from an object can be retrieved via ``GET /variations/<vrs_id>/mappings
 .. code-block:: pycon
 
    >>> response = requests.get(
-   ...     f"http://localhost:8000/variation/{genomic_id}/mappings/transcription"
+   ...     f"http://localhost:8000/object/{genomic_id}/mappings/transcribe_to"
    ... )
    >>> response.json()
    {'mappings': [{'source_id': 'ga4gh:VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe',
       'dest_id': 'ga4gh:VA.W6xsV-aFm9yT2Bic5cFAV2j0rll6KK5R',
-      'mapping_type': 'transcription'}]}
+      'mapping_type': 'transcribe_to'}]}
 
 
 By default, when a GRCh37 or GRCh38 variant is registered, the lifted-over equivalent is also registered, and mappings between them are stored.
@@ -106,35 +106,48 @@ By default, when a GRCh37 or GRCh38 variant is registered, the lifted-over equiv
    >>> response = requests.put("http://localhost:8000/variation", json=payload)
    >>> registered_allele_id = response.json()["object_id"]
    >>> response = requests.get(
-   ...     f"http://localhost:8000/variation/{registered_allele_id}/mappings/liftover"
+   ...     f"http://localhost:8000/object/{registered_allele_id}/mappings/liftover_to"
    ... )
    >>> response.json()
    {'mappings': [{'source_id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU',
    'dest_id': 'ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf',
-   'mapping_type': 'liftover'}]}
+   'mapping_type': 'liftover_to'}]}
 
 
-Working With Annotations
+Working With Extensions
 ========================
 
-To add a new :ref:`annotation<annotations>` to a registered variation, send a ``POST`` request to ``/variation/<vrs_id>/annotations`` with a payload containing the annotation type and value:
+To add a new :ref:`extension<extensions>` to a registered variation, send a ``POST`` request to ``/object/<vrs_id>/extensions`` with a payload containing the extension name and value:
 
 .. code-block:: pycon
 
    >>> payload = {
-   ...     "annotation_type": "clinvar_somatic_classification",
-   ...     "annotation_value": "Oncogenic",
+   ...     "name": "clinvar_accession",
+   ...     "value": "VCV000012345.6",
    ... }
    >>> braf_v600e_id = "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU"
-   >>> response = requests.post(f"http://localhost:8000/variation/{braf_v600e_id}/annotations", json=payload)
+   >>> response = requests.post(f"http://localhost:8000/object/{braf_v600e_id}/extensions", json=payload)
 
-Annotations can be retrieved via a GET request for the VRS ID and annotation type:
+Extensions can be retrieved via a GET request for the VRS ID and extension name:
 
 .. code-block:: pycon
 
-   >>> resp = requests.get(f"http://localhost:8000/variation/{braf_v600e_id}/annotations/clinvar_somatic_classification")
+   >>> resp = requests.get(f"http://localhost:8000/object/{braf_v600e_id}/extensions/clinvar_accession")
    >>> response.json()
-   {'annotations': [{'object_id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', 'annotation_type': 'clinvar_somatic_classification', 'annotation_value': 'Oncogenic', 'id': 9}]}
+   {'object': {'id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU',
+     'type': 'Allele',
+     'digest': 'K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU',
+     'location': {'id': 'ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8',
+      'type': 'SequenceLocation',
+      'digest': 'aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8',
+      'sequenceReference': {'type': 'SequenceReference',
+       'refgetAccession': 'SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB'},
+      'start': 87894076,
+      'end': 87894077},
+     'state': {'type': 'LiteralSequenceExpression', 'sequence': 'T'}},
+    'object_id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU',
+    'extension_name': 'clinvar_accession',
+    'extension_value': 'VCV000012345.6'}
 
 VCF Annotation and Ingestion
 ============================

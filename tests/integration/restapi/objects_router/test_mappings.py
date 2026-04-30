@@ -95,7 +95,7 @@ def test_put_mapping_same_source_and_dest(restapi_client, preloaded_allele_pairs
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     assert (
         resp.json()["detail"]
-        == f"Failed to add annotation: dest_id='{source_vrs_id}' mapping_type='liftover_to'. source_id cannot equal dest_id: {source_vrs_id}"
+        == f"Failed to add mapping: dest_id='{source_vrs_id}' mapping_type='liftover_to'. source_id cannot equal dest_id: {source_vrs_id}"
     )
 
 
