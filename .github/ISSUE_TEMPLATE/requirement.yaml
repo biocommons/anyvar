@@ -3,47 +3,22 @@ description: Add a new requirement to the project
 body:
   - type: textarea
     attributes:
-      label: Description
+      label: Overview
       description: Provide a concise high-level overview of the requirement.
     validations:
-      required: true
-  - type: dropdown
-    attributes:
-      label: Priority
-      description: How important is this?
-      multiple: false
-      options:
-        - Critical
-        - High
-        - Medium
-        - Low
-    validations:
-      required: true
+      required: false
   - type: textarea
     attributes:
       label: Acceptance Criteria
       description: |
-        This is the source of truth for this requirement—if it's not defined here, it's not in scope. Include scenarios that cover expected behavior as well as edge cases.
-        Example: "Given a valid VCF file containing one or more variants, when the user uploads the file to the `/vcf` endpoint, then AnyVar registers each variant contained in the VCF"
+        A checklist of criteria needed to complete this requirement. Include scenarios that cover expected behavior, negative criteria (i.e., what we DON'T want to do), and edge cases. The "Given/Then/When" format is encouraged.
+        Example: "- [ ] Given a valid VCF file containing one or more variants, when the user uploads the file to the `/vcf` endpoint, then AnyVar registers each variant contained in the VCF"
     validations:
       required: true
   - type: textarea
     attributes:
-      label: Out of Scope
-      description: Is there anything we DON'T want in this requirement? Document that here.
-    validations:
-      required: false
-  - type: textarea
-    attributes:
-      label: Open Questions
+      label: Decision Log
       description: |
-        Are there questions that need to be resolved before this requirement can be implemented? List them here.
-        ⚠️ Note: Once questions have been resolved, remove them and update Acceptance Criteria and other relevant sections accordingly.
-      required: false
-  - type: textarea
-    attributes:
-      label: Changelog
-      description: |
-        If this requirement has changed over time, document what changed and why. ⚠️ Remember to update Acceptance Criteria and other relevant sections accordingly!
+        Document key decisions (including rationale). ⚠️ Remember to update Acceptance Criteria if needed!
         Example: "04/29/26 - Decided to narrow scope by NOT handling cases where liftover results in a negative-stranded variant, so that we can meet our 1.0 release deadline. Will revisit this at a later date."
       required: false
