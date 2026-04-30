@@ -44,6 +44,6 @@ body:
     attributes:
       label: Changelog
       description: |
-        If this requirement has changed over time, document what changed and why. ⚠️ Remember to update Acceptance Criteria accordingly!
-        Example: "04/29/26 - Decided NOT to save original input expression (e.g., HGVS expression, etc.) during variant registration to encourage VRS usage"
+        If this requirement has changed over time, document what changed and why. ⚠️ Remember to update Acceptance Criteria and other relevant sections accordingly!
+        Example: "04/29/26 - Decided to narrow scope by NOT handling cases where liftover results in a negative-stranded variant, so that we can meet our 1.0 release deadline. Will revisit this at a later date."
       required: false
