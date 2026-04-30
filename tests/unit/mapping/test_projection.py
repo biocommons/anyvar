@@ -1174,6 +1174,49 @@ def test_project_genomic_variant_uses_shared_transcript_to_protein_helper(mocker
     )
 
 
+def test_project_genomic_variant_requests_longest_compatible_fallback(mocker):
+    """Genomic projection opts into cool-seq-tool transcript fallback."""
+    projection_kwargs = {}
+
+    def fake_grch38_to_mane_c_p(**kwargs):
+        projection_kwargs.update(kwargs)
+        return object()
+
+    mocker.patch.object(
+        projection.asyncio,
+        "run_coroutine_threadsafe",
+        return_value=FakeFuture(None),
+    )
+
+    projector = object.__new__(projection.VariantProjector)
+    projector.cst = SimpleNamespace(
+        mane_transcript=SimpleNamespace(grch38_to_mane_c_p=fake_grch38_to_mane_c_p)
+    )
+    projector.dp = object()
+    projector._loop = object()
+    variation = SimpleNamespace(
+        id="ga4gh:VA.input",
+        location=SimpleNamespace(
+            sequenceReference=SimpleNamespace(refgetAccession="SQ.genomic"),
+            start=10117252,
+            end=10117253,
+        ),
+    )
+
+    messages = projector._project_genomic_variant(
+        variation, mocker.Mock(), "NC_000023.11"
+    )
+
+    assert messages is None
+    assert projection_kwargs == {
+        "alt_ac": "NC_000023.11",
+        "start_pos": 10117252,
+        "end_pos": 10117253,
+        "coordinate_type": projection.CoordinateType.INTER_RESIDUE,
+        "try_longest_compatible": True,
+    }
+
+
 def test_project_genomic_variant_reports_unsupported_protein_state(mocker):
     """Unsupported protein derivation stores transcript mapping with a message."""
     result = SimpleNamespace(

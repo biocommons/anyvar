@@ -1,8 +1,8 @@
 """Project variants across the central dogma: genomic (g.) ↔ coding (c.) ↔ protein (p.)
 
-Uses cool-seq-tool to resolve MANE transcripts and map coordinates between
-molecule types. Follows the same pattern as liftover.py for storing projected
-variants and their mappings.
+Uses cool-seq-tool to resolve MANE transcripts with longest-compatible
+transcript fallback and map coordinates between molecule types. Follows the
+same pattern as liftover.py for storing projected variants and their mappings.
 """
 
 import asyncio
@@ -605,7 +605,7 @@ def _store_projected_variant(
 
 
 class VariantProjector:
-    """Projects variants across the central dogma using MANE transcript selection.
+    """Projects variants across the central dogma using cool-seq-tool selection.
 
     Holds references to CoolSeqTool and DataProxy so callers only need to
     provide the variation and storage.
@@ -904,14 +904,16 @@ class VariantProjector:
             location.end,
         )
 
-        # Use cool-seq-tool to get MANE c. and p. representations
+        # Use cool-seq-tool to get MANE c./p. representations, falling back to
+        # the longest compatible remaining transcript when MANE is unavailable
+        # or incompatible.
         result, async_messages = self._run_async_projection(
             self.cst.mane_transcript.grch38_to_mane_c_p(
                 alt_ac=alt_ac,
                 start_pos=location.start,
                 end_pos=location.end,
                 coordinate_type=CoordinateType.INTER_RESIDUE,
-                # TODO set try_longest_compatible to True
+                try_longest_compatible=True,
             ),
             timeout_message="Projection failed: coordinate mapping timed out",
             failure_message="Projection failed: error during coordinate mapping",
@@ -923,15 +925,15 @@ class VariantProjector:
             return async_messages
 
         if result is None:
-            # No compatible MANE transcript is an expected no-op, not a failure.
+            # No compatible transcript is an expected no-op, not a failure.
             _logger.info(
-                "Projection skipped for %s: no MANE transcript found at %s:%d-%d",
+                "Projection skipped for %s: no compatible transcript found at %s:%d-%d",
                 input_vrs_id,
                 alt_ac,
                 location.start,
                 location.end,
             )
-            return None  # no MANE data — not an error
+            return None  # no compatible transcript data -- not an error
 
         messages: list[str] = []
 
@@ -1028,8 +1030,9 @@ class VariantProjector:
         """Project a variant to other molecule types and store mappings.
 
         For genomic variants, projects to coding (TRANSCRIBE_TO) and protein
-        (TRANSLATE_TO) representations using MANE transcript selection. For
-        transcript variants, projects directly to the associated protein.
+        (TRANSLATE_TO) representations using cool-seq-tool transcript selection
+        with longest-compatible fallback. For transcript variants, projects
+        directly to the associated protein.
 
         This method catches and suppresses major error cases and communicates
         results as warning messages.

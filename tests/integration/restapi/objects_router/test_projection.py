@@ -218,29 +218,6 @@ NO_MANE_PROJECTION_CASES = [
         },
     },
     {
-        "label": "utr_5_prime",
-        "variation_id": "297591",
-        "clinvar_name": "NM_000098.2(CPT2):c.-477C>T",
-        "spdi": "NC_000001.11:53196466:C:T",
-        "genomic": {
-            "id": "ga4gh:VA.CgioVWTSxp4Uh9JhXqG8gkQsViL4Q6uI",
-            "type": "Allele",
-            "digest": "CgioVWTSxp4Uh9JhXqG8gkQsViL4Q6uI",
-            "location": {
-                "id": "ga4gh:SL.yxI6fXQ-b9uO16rUFxLwB1M-Y639iosS",
-                "type": "SequenceLocation",
-                "digest": "yxI6fXQ-b9uO16rUFxLwB1M-Y639iosS",
-                "sequenceReference": {
-                    "type": "SequenceReference",
-                    "refgetAccession": "SQ.Ya6Rs7DHhDeg7YaOSg1EoNi3U_nQ9SvO",
-                },
-                "start": 53196466,
-                "end": 53196467,
-            },
-            "state": {"type": "LiteralSequenceExpression", "sequence": "T"},
-        },
-    },
-    {
         "label": "non_mane_no_compatible",
         "variation_id": "450976",
         "clinvar_name": "NM_001372044.2(SHANK3):c.1112+1G>A",
@@ -263,6 +240,9 @@ NO_MANE_PROJECTION_CASES = [
             "state": {"type": "LiteralSequenceExpression", "sequence": "A"},
         },
     },
+]
+
+LONGEST_COMPATIBLE_PROJECTION_CASES = [
     {
         "label": "non_mane_has_longest_compatible",
         "variation_id": "726125",
@@ -285,10 +265,25 @@ NO_MANE_PROJECTION_CASES = [
             },
             "state": {"type": "LiteralSequenceExpression", "sequence": "A"},
         },
+        "transcript_refseq": "NM_015691.5",
+        "transcript_start": 1893,
+        "transcript_end": 1894,
+        "transcript_state": "A",
+        "protein_refseq": "NP_056506.3",
+        "protein_start": 522,
+        "protein_end": 523,
+        "protein_state": "P",
     },
 ]
 
 UTR_PROJECTION_CASES = [
+    {
+        "label": "longest_compatible_utr_5_prime",
+        "spdi": "NC_000001.11:53196466:C:T",
+        "expected_transcript_accession": "NM_001330589.1",
+        "expected_transcript_start": 38,
+        "expected_transcript_end": 39,
+    },
     {
         "label": "utr_5_prime",
         "spdi": "NC_000023.11:100408638:T:",
@@ -324,6 +319,12 @@ def _assert_no_forward_mapping(restapi_client, source_id, mapping_type):
     response = restapi_client.get(f"/object/{source_id}/mappings/{mapping_type}")
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"mappings": []}
+
+
+def _refget(translator, refseq: str) -> str:
+    aliases = translator.dp.translate_sequence_identifier(refseq, "ga4gh")
+    assert aliases
+    return aliases[0].removeprefix("ga4gh:")
 
 
 @pytest.mark.parametrize("projection_case", PROJECTION_CASES, ids=lambda c: c["label"])
@@ -405,12 +406,64 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
 
 
 @pytest.mark.parametrize(
+    "projection_case", LONGEST_COMPATIBLE_PROJECTION_CASES, ids=lambda c: c["label"]
+)
+def test_spdi_projection_uses_longest_compatible_transcript(
+    projected_restapi_client, translator, projection_case
+):
+    """Register a genomic SPDI that falls back to a non-MANE compatible transcript."""
+    response = projected_restapi_client.put(
+        "/variation", json={"definition": projection_case["spdi"]}
+    )
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload["messages"] == []
+
+    genomic_id = payload["object_id"]
+    mapping_response = projected_restapi_client.get(
+        f"/object/{genomic_id}/mappings/{metadata.VariationMappingType.TRANSCRIBE_TO}"
+    )
+    assert mapping_response.status_code == HTTPStatus.OK
+    transcript_mappings = mapping_response.json()["mappings"]
+    assert len(transcript_mappings) == 1
+
+    transcript_id = transcript_mappings[0]["dest_id"]
+    transcript_response = projected_restapi_client.get(f"/object/{transcript_id}")
+    assert transcript_response.status_code == HTTPStatus.OK
+    transcript = transcript_response.json()["data"]
+    assert transcript["location"]["sequenceReference"]["refgetAccession"] == _refget(
+        translator, projection_case["transcript_refseq"]
+    )
+    assert transcript["location"]["start"] == projection_case["transcript_start"]
+    assert transcript["location"]["end"] == projection_case["transcript_end"]
+    assert transcript["state"]["sequence"] == projection_case["transcript_state"]
+
+    protein_mapping_response = projected_restapi_client.get(
+        f"/object/{transcript_id}/mappings/{metadata.VariationMappingType.TRANSLATE_TO}"
+    )
+    assert protein_mapping_response.status_code == HTTPStatus.OK
+    protein_mappings = protein_mapping_response.json()["mappings"]
+    assert len(protein_mappings) == 1
+
+    protein_id = protein_mappings[0]["dest_id"]
+    protein_response = projected_restapi_client.get(f"/object/{protein_id}")
+    assert protein_response.status_code == HTTPStatus.OK
+    protein = protein_response.json()["data"]
+    assert protein["location"]["sequenceReference"]["refgetAccession"] == _refget(
+        translator, projection_case["protein_refseq"]
+    )
+    assert protein["location"]["start"] == projection_case["protein_start"]
+    assert protein["location"]["end"] == projection_case["protein_end"]
+    assert protein["state"]["sequence"] == projection_case["protein_state"]
+
+
+@pytest.mark.parametrize(
     "projection_case", NO_MANE_PROJECTION_CASES, ids=lambda c: c["label"]
 )
-def test_spdi_projection_skips_cases_without_mane_transcripts(
+def test_spdi_projection_skips_cases_without_compatible_transcripts(
     projected_restapi_client, projection_case
 ):
-    """Register logged ClinVar SPDI cases that do not resolve to MANE transcripts."""
+    """Register logged ClinVar SPDI cases that do not resolve to compatible transcripts."""
     genomic = projection_case["genomic"]
 
     response = projected_restapi_client.put(
@@ -446,7 +499,7 @@ def test_spdi_projection_skips_cases_without_mane_transcripts(
 
 @pytest.mark.parametrize("utr_case", UTR_PROJECTION_CASES, ids=lambda c: c["label"])
 def test_spdi_projection_persists_utr_transcript_without_protein_mapping(
-    projected_restapi_client, utr_case
+    projected_restapi_client, translator, utr_case
 ):
     """UTR variants get a transcript mapping but no protein mapping."""
     spdi = utr_case["spdi"]
@@ -474,6 +527,9 @@ def test_spdi_projection_persists_utr_transcript_without_protein_mapping(
     transcript_response = projected_restapi_client.get(f"/object/{transcript_id}")
     assert transcript_response.status_code == HTTPStatus.OK
     transcript = transcript_response.json()["data"]
+    assert transcript["location"]["sequenceReference"]["refgetAccession"] == _refget(
+        translator, expected_accession
+    )
     assert transcript["location"]["start"] == expected_start
     assert transcript["location"]["end"] == expected_end
 
