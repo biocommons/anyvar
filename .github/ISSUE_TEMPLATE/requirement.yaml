@@ -38,7 +38,7 @@ body:
       label: Open Questions
       description: |
         Are there questions that need to be resolved before this requirement can be implemented? List them here.
-        ⚠️ Note: Once questions have been resolved, remove them and add relevant info to the Acceptance Criteria and Changelog.
+        ⚠️ Note: Once questions have been resolved, remove them and update Acceptance Criteria and other relevant sections accordingly.
       required: false
   - type: textarea
     attributes:
