@@ -1044,8 +1044,20 @@ class VariantProjector:
         :return: list of warning messages, or None if completely successful
         """
         try:
-            refget_accession = variation.location.sequenceReference.refgetAccession
-            refseq_accession = _get_refseq_accession(self.dp, refget_accession)
+            if not isinstance(variation, models.Allele):
+                return ["Projection unsupported: only Allele variations are supported"]
+
+            location, location_messages = _get_variation_location(
+                variation, require_refget=True
+            )
+            if location_messages:
+                return location_messages
+            if location is None or location.refget_accession is None:
+                return [
+                    "Projection unsupported: variant lacks sequence location details"
+                ]
+
+            refseq_accession = _get_refseq_accession(self.dp, location.refget_accession)
             if not refseq_accession:
                 return None
             if refseq_accession.startswith("NC_"):
@@ -1065,8 +1077,6 @@ class VariantProjector:
         except ProjectionError as exc:
             _logger.info("Projection failed for %s: %s", variation.id, exc)
             return [str(exc)]
-        except AttributeError:
-            return ["Projection unsupported: variant lacks sequence location details"]
         except Exception:
             _logger.exception("Unexpected error during projection of %s", variation.id)
             return ["Projection failed: unexpected error"]

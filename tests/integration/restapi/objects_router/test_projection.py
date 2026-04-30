@@ -405,6 +405,42 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
         )
 
 
+def test_transcript_spdi_projection_persists_protein_mapping(projected_restapi_client):
+    """Register a transcript SPDI and verify the persisted protein projection."""
+    projection_case = PROJECTION_CASES[0]
+    transcript = projection_case["transcript"]
+    protein = projection_case["protein"]
+    spdi = "NM_001367561.1:4295:A:T"
+
+    response = projected_restapi_client.put("/variation", json={"definition": spdi})
+    assert response.status_code == HTTPStatus.OK
+    payload = response.json()
+    assert payload == {
+        "input_variation": {
+            "definition": spdi,
+            "assembly_name": "GRCh38",
+        },
+        "object": transcript,
+        "object_id": transcript["id"],
+        "messages": [
+            "Unable to complete liftover: Could not resolve reference assembly - "
+            "accession not found in any supported assembly"
+        ],
+    }
+    assert not any(message.startswith("Projection") for message in payload["messages"])
+
+    _assert_forward_mapping(
+        projected_restapi_client,
+        transcript["id"],
+        metadata.VariationMappingType.TRANSLATE_TO,
+        protein["id"],
+    )
+
+    response = projected_restapi_client.get(f"/object/{protein['id']}")
+    assert response.status_code == HTTPStatus.OK
+    assert response.json() == {"data": protein, "messages": []}
+
+
 @pytest.mark.parametrize(
     "projection_case", LONGEST_COMPATIBLE_PROJECTION_CASES, ids=lambda c: c["label"]
 )

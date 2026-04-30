@@ -95,6 +95,28 @@ class TimeoutFuture:
         return True
 
 
+def _allele(
+    refget_accession: str = FakeDataProxy._REFGET_ACCESSION,
+) -> models.Allele:
+    return models.Allele(
+        type="Allele",
+        id="ga4gh:VA.input",
+        location=models.SequenceLocation(
+            type="SequenceLocation",
+            sequenceReference=models.SequenceReference(
+                type="SequenceReference",
+                refgetAccession=refget_accession,
+            ),
+            start=140753336,
+            end=140753337,
+        ),
+        state=models.LiteralSequenceExpression(
+            type="LiteralSequenceExpression",
+            sequence="T",
+        ),
+    )
+
+
 def test_build_allele_normalizes_projected_literal_state(mocker):
     dp = FakeDataProxy()
     state = models.LiteralSequenceExpression(
@@ -502,12 +524,7 @@ def test_add_mappings_dispatches_genomic_accession(mocker):
         "_get_refseq_accession",
         return_value="NC_000007.14",
     )
-    variation = SimpleNamespace(
-        id="ga4gh:VA.input",
-        location=SimpleNamespace(
-            sequenceReference=SimpleNamespace(refgetAccession="SQ.genomic")
-        ),
-    )
+    variation = _allele()
     storage = mocker.Mock()
 
     messages = projector.add_mappings(variation, storage)
@@ -531,12 +548,7 @@ def test_add_mappings_dispatches_transcript_accession(mocker):
         "_get_refseq_accession",
         return_value="NM_004333.6",
     )
-    variation = SimpleNamespace(
-        id="ga4gh:VA.input",
-        location=SimpleNamespace(
-            sequenceReference=SimpleNamespace(refgetAccession="SQ.transcript")
-        ),
-    )
+    variation = _allele("SQ.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT")
     storage = mocker.Mock()
 
     messages = projector.add_mappings(variation, storage)
@@ -544,6 +556,19 @@ def test_add_mappings_dispatches_transcript_accession(mocker):
     assert messages == ["transcript"]
     project_genomic.assert_not_called()
     project_transcript.assert_called_once_with(variation, storage, "NM_004333.6")
+
+
+def test_add_mappings_skips_non_alleles(mocker):
+    projector = object.__new__(projection.VariantProjector)
+    projector.dp = object()
+    get_refseq = mocker.patch.object(projection, "_get_refseq_accession")
+    storage = mocker.Mock()
+    variation = SimpleNamespace(id="ga4gh:CN.input", type="CopyNumberCount")
+
+    messages = projector.add_mappings(variation, storage)
+
+    assert messages == ["Projection unsupported: only Allele variations are supported"]
+    get_refseq.assert_not_called()
 
 
 def test_resolve_transcript_to_protein_metadata_skips_without_cds_metadata():
@@ -1294,16 +1319,30 @@ def test_add_mappings_returns_projection_error_message(mocker):
         "_project_genomic_variant",
         side_effect=projection.ProjectionError("Projection failed: expected failure"),
     )
-    variation = SimpleNamespace(
-        id="ga4gh:VA.input",
-        location=SimpleNamespace(
-            sequenceReference=SimpleNamespace(refgetAccession="SQ.genomic")
-        ),
-    )
+    variation = _allele()
 
     messages = projector.add_mappings(variation, mocker.Mock())
 
     assert messages == ["Projection failed: expected failure"]
+
+
+def test_add_mappings_reports_internal_attribute_errors_as_unexpected(mocker):
+    projector = object.__new__(projection.VariantProjector)
+    projector.dp = object()
+    mocker.patch.object(
+        projection,
+        "_get_refseq_accession",
+        return_value="NC_000007.14",
+    )
+    mocker.patch.object(
+        projector,
+        "_project_genomic_variant",
+        side_effect=AttributeError("unexpected response shape"),
+    )
+
+    messages = projector.add_mappings(_allele(), mocker.Mock())
+
+    assert messages == ["Projection failed: unexpected error"]
 
 
 def test_project_genomic_variant_cancels_timed_out_projection(mocker):
