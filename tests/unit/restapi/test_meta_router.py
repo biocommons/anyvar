@@ -56,6 +56,8 @@ def test_fastapi_lifespan(mocker):
     create_storage_mock.return_value = storage_mock
     create_translator_mock = mocker.patch("anyvar.anyvar.create_translator")
     create_translator_mock.return_value = {}
+    create_projector_mock = mocker.patch("anyvar.anyvar.create_projector")
+    create_projector_mock.return_value = None
     app = FastAPI(
         title="AnyVarTest",
         docs_url="/",
@@ -66,6 +68,7 @@ def test_fastapi_lifespan(mocker):
     with TestClient(app):
         create_storage_mock.assert_called_once()
         create_translator_mock.assert_called_once()
+        create_projector_mock.assert_called_once_with({})
         assert app.state.anyvar is not None
         assert app.state.service_info
 

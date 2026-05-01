@@ -35,6 +35,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 postgres = ["psycopg[binary]"]
+projection = ["cool-seq-tool"]
 queueing = [
     "celery[redis]~=5.5.0",
     "aiofiles",
@@ -48,6 +49,7 @@ test = [
     "celery[pytest]",
     "jsonschema",
     "pyyaml",
+    "cool-seq-tool",
 ]
 dev = [
     "ruff==0.12.8",

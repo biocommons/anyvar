@@ -179,6 +179,11 @@ def _register_variations(
         variation_requests, translation_results, strict=True
     ):
         if not translation_result.variation:
+            _logger.warning(
+                'Variation registration failed during translation: definition="%s" error="%s"',
+                variation_request.definition,
+                translation_result.error,
+            )
             responses.append(
                 RegisterVariationResponse(
                     input_variation=variation_request,
@@ -189,8 +194,29 @@ def _register_variations(
             )
             continue
 
+        variation_id: str = translation_result.variation.id  # type: ignore[assignment]
+        _logger.info(
+            'Registering variation: definition="%s" object_id=%s projector_enabled=%s',
+            variation_request.definition,
+            variation_id,
+            av.projector is not None,
+        )
+
         # add variant metadata
-        av.create_timestamp_annotation_if_missing(translation_result.variation.id)  # type: ignore (ID guaranteed to be present)
+        timestamp_annotation_id = av.create_timestamp_annotation_if_missing(
+            variation_id
+        )
+        if timestamp_annotation_id is None:
+            _logger.info(
+                "Creation timestamp already present for %s",
+                variation_id,
+            )
+        else:
+            _logger.info(
+                "Stored creation timestamp annotation id=%s for %s",
+                timestamp_annotation_id,
+                variation_id,
+            )
         messages: list[str] = (
             liftover.add_liftover_mapping(
                 variation=translation_result.variation,
@@ -199,6 +225,20 @@ def _register_variations(
             )
             or []
         )
+        if av.projector is not None:
+            projection_messages = av.projector.add_mappings(
+                variation=translation_result.variation,
+                storage=av.object_store,
+            )
+            if projection_messages:
+                messages.extend(projection_messages)
+            _logger.info(
+                "Projection completed for %s with %d message(s)",
+                variation_id,
+                len(projection_messages or []),
+            )
+        else:
+            _logger.info("Projection disabled for %s", variation_id)
 
         responses.append(
             RegisterVariationResponse(
@@ -294,12 +334,21 @@ def register_vrs_variation(
     liftover_messages = liftover.add_liftover_mapping(
         variation, av.object_store, av.translator.dp
     )
+    messages: list[str] = liftover_messages or []
+
+    if av.projector is not None:
+        projection_messages = av.projector.add_mappings(
+            variation=variation,
+            storage=av.object_store,
+        )
+        if projection_messages:
+            messages.extend(projection_messages)
 
     return RegisterVariationResponse(
         input_variation=input_variation,
         object=variation,
         object_id=variation.id,
-        messages=liftover_messages or [],
+        messages=messages,
     )
 
 

@@ -5,12 +5,17 @@ import shutil
 import pytest
 from celery.contrib.testing.worker import start_worker
 from celery.result import AsyncResult
+from fastapi.testclient import TestClient
 from pytest_mock import MockerFixture
 from tests.conftest import build_vrs_variant_from_dict
 
 import anyvar.anyvar
+from anyvar.anyvar import AnyVar, create_projector
 from anyvar.queueing.celery_worker import celery_app
+from anyvar.restapi.main import app as anyvar_restapi
+from anyvar.restapi.schema import ServiceInfo
 from anyvar.storage.base import Storage
+from anyvar.translate.base import Translator
 
 
 @pytest.fixture
@@ -65,3 +70,26 @@ def celery_context(mocker: MockerFixture, vcf_run_id: str, storage_uri: str):
     with contextlib.suppress(FileNotFoundError):
         # a test probably failed early
         shutil.rmtree("tests/tmp_async_work_dir")
+
+
+@pytest.fixture
+def projected_restapi_client(storage: Storage, translator: Translator):
+    """Provide a REST client with genomic-to-transcript/protein projection enabled."""
+    storage.wipe_db()
+    projector = create_projector(translator)
+    if projector is None:
+        pytest.skip(
+            "projection integration tests require ANYVAR_ENABLE_PROJECTION=true "
+            "and the projection dependencies to be available"
+        )
+
+    anyvar_restapi.state.anyvar = AnyVar(
+        object_store=storage, translator=translator, projector=projector
+    )
+    anyvar_restapi.state.service_info = ServiceInfo()
+    client = TestClient(app=anyvar_restapi)
+    try:
+        yield client
+    finally:
+        client.close()
+        projector.close()
