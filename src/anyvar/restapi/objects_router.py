@@ -387,6 +387,25 @@ def get_object_by_id(
     return GetObjectResponse(messages=[], data=vrs_object)
 
 
+@objects_router.delete(
+    "/object/{vrs_id}",
+    response_model_exclude_none=True,
+    operation_id="deleteObject",
+    summary="Delete a VRS object and any associated mappings and annotations",
+    description="Attempt deletion of a VRS object by its ID. Mappings and annotations that reference this object will also be deleted.",
+)
+def delete_object_by_id(
+    request: Request,
+    vrs_id: Annotated[StrictStr, Path(..., description="ID of object to delete")],
+) -> None:
+    """Delete a VRS object."""
+    av: AnyVar = request.app.state.anyvar
+    try:
+        av.delete_object(vrs_id)
+    except ObjectNotFoundError as e:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND) from e
+
+
 @objects_router.post(
     "/object/{vrs_id}/annotations",
     response_model_exclude_none=True,
