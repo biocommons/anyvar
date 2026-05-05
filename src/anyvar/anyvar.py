@@ -88,7 +88,7 @@ class VariantProjectorProtocol(Protocol):
 
     def add_mappings(  # noqa: D102
         self, variation: objects.VrsVariation, storage: Storage
-    ) -> list[str] | None: ...
+    ) -> None: ...
 
 
 class ObjectNotFoundError(Exception):

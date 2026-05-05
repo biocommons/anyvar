@@ -148,6 +148,28 @@ def _handle_translation_request(
     return translation_result.variation  # type: ignore
 
 
+def _add_projection_mappings(
+    av: AnyVar,
+    variation: objects.VrsVariation,
+    messages: list[str],
+) -> int:
+    """Attempt projection and append user-facing projection messages."""
+    if av.projector is None:
+        return 0
+
+    from anyvar.mapping.projection import ProjectionError  # noqa: PLC0415
+
+    try:
+        av.projector.add_mappings(
+            variation=variation,
+            storage=av.object_store,
+        )
+    except ProjectionError as exc:
+        messages.append(str(exc))
+        return 1
+    return 0
+
+
 def _register_variations(
     av: AnyVar, variation_requests: list[VariationRequest]
 ) -> list[RegisterVariationResponse]:
@@ -226,16 +248,15 @@ def _register_variations(
             or []
         )
         if av.projector is not None:
-            projection_messages = av.projector.add_mappings(
-                variation=translation_result.variation,
-                storage=av.object_store,
+            projection_message_count = _add_projection_mappings(
+                av,
+                translation_result.variation,
+                messages,
             )
-            if projection_messages:
-                messages.extend(projection_messages)
             _logger.info(
                 "Projection completed for %s with %d message(s)",
                 variation_id,
-                len(projection_messages or []),
+                projection_message_count,
             )
         else:
             _logger.info("Projection disabled for %s", variation_id)
@@ -337,12 +358,7 @@ def register_vrs_variation(
     messages: list[str] = liftover_messages or []
 
     if av.projector is not None:
-        projection_messages = av.projector.add_mappings(
-            variation=variation,
-            storage=av.object_store,
-        )
-        if projection_messages:
-            messages.extend(projection_messages)
+        _add_projection_mappings(av, variation, messages)
 
     return RegisterVariationResponse(
         input_variation=input_variation,

@@ -26,6 +26,15 @@ class FakeDataProxy:
             raise AssertionError(msg)
         return [f"ga4gh:{self._REFGET_ACCESSION}"]
 
+    def derive_refget_accession(self, accession: str) -> str | None:
+        try:
+            aliases = self.translate_sequence_identifier(accession, "ga4gh")
+        except KeyError:
+            return None
+        if not aliases:
+            return None
+        return aliases[0].removeprefix("ga4gh:")
+
     def get_sequence(self, identifier: str, start: int, end: int) -> str:
         self.sequence_calls.append((identifier, start, end))
         return "A" * (end - start)
@@ -117,6 +126,42 @@ def _allele(
     )
 
 
+def test_get_variation_location_returns_inter_residue_location():
+    location = projection._get_variation_location(_allele(), require_refget=True)
+
+    assert location == projection._ProjectionLocation(
+        start=140753336,
+        end=140753337,
+        refget_accession=FakeDataProxy._REFGET_ACCESSION,
+    )
+
+
+def test_get_variation_location_raises_for_missing_location():
+    variation = SimpleNamespace(id="ga4gh:VA.input")
+
+    with pytest.raises(
+        projection.ProjectionError,
+        match="Projection unsupported: variant lacks sequence location details",
+    ):
+        projection._get_variation_location(variation)
+
+
+def test_get_variation_location_raises_for_range_positions():
+    variation = SimpleNamespace(
+        location=SimpleNamespace(
+            sequenceReference=SimpleNamespace(refgetAccession="SQ.genomic"),
+            start=SimpleNamespace(type="Range", start=1, end=2),
+            end=3,
+        )
+    )
+
+    with pytest.raises(
+        projection.ProjectionError,
+        match="Projection unsupported for variants with Range positions",
+    ):
+        projection._get_variation_location(variation, require_refget=True)
+
+
 def test_build_allele_normalizes_projected_literal_state(mocker):
     dp = FakeDataProxy()
     state = models.LiteralSequenceExpression(
@@ -146,6 +191,46 @@ def test_build_allele_normalizes_projected_literal_state(mocker):
     assert allele.location.start == 857
     assert allele.location.end == 888
     assert allele.state == state
+
+
+def test_build_allele_raises_projection_error_when_refget_resolution_fails():
+    dp = ProteinProjectionDataProxy(refget_failures={"NM_001184880.2"})
+    state = models.LiteralSequenceExpression(
+        type="LiteralSequenceExpression",
+        sequence="T",
+    )
+
+    with pytest.raises(
+        projection.ProjectionError,
+        match="Could not resolve refget accession for NM_001184880.2",
+    ):
+        projection._build_allele(
+            dp,
+            "NM_001184880.2",
+            857,
+            888,
+            state,
+        )
+
+
+def test_build_allele_raises_projection_error_for_negative_coordinates():
+    dp = FakeDataProxy()
+    state = models.LiteralSequenceExpression(
+        type="LiteralSequenceExpression",
+        sequence="T",
+    )
+
+    with pytest.raises(
+        projection.ProjectionError,
+        match="negative coordinates",
+    ):
+        projection._build_allele(
+            dp,
+            "NM_001184880.2",
+            -1,
+            888,
+            state,
+        )
 
 
 def test_project_genomic_state_to_cdna_literal_reverse_complements_negative_strand_literal_state():
@@ -516,20 +601,20 @@ def test_add_mappings_dispatches_genomic_accession(mocker):
     project_genomic = mocker.patch.object(
         projector,
         "_project_genomic_variant",
-        return_value=["genomic"],
+        return_value=None,
     )
     project_transcript = mocker.patch.object(projector, "_project_transcript_variant")
     mocker.patch.object(
         projection,
-        "_get_refseq_accession",
+        "_refget_to_refseq_accession",
         return_value="NC_000007.14",
     )
     variation = _allele()
     storage = mocker.Mock()
 
-    messages = projector.add_mappings(variation, storage)
+    result = projector.add_mappings(variation, storage)
 
-    assert messages == ["genomic"]
+    assert result is None
     project_genomic.assert_called_once_with(variation, storage, "NC_000007.14")
     project_transcript.assert_not_called()
 
@@ -541,33 +626,39 @@ def test_add_mappings_dispatches_transcript_accession(mocker):
     project_transcript = mocker.patch.object(
         projector,
         "_project_transcript_variant",
-        return_value=["transcript"],
+        return_value=None,
     )
     mocker.patch.object(
         projection,
-        "_get_refseq_accession",
+        "_refget_to_refseq_accession",
         return_value="NM_004333.6",
     )
     variation = _allele("SQ.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT")
     storage = mocker.Mock()
 
-    messages = projector.add_mappings(variation, storage)
+    result = projector.add_mappings(variation, storage)
 
-    assert messages == ["transcript"]
+    assert result is None
     project_genomic.assert_not_called()
     project_transcript.assert_called_once_with(variation, storage, "NM_004333.6")
 
 
-def test_add_mappings_skips_non_alleles(mocker):
+def test_add_mappings_raises_for_non_alleles(mocker):
     projector = object.__new__(projection.VariantProjector)
     projector.dp = object()
-    get_refseq = mocker.patch.object(projection, "_get_refseq_accession")
+    get_refseq = mocker.patch.object(projection, "_refget_to_refseq_accession")
     storage = mocker.Mock()
     variation = SimpleNamespace(id="ga4gh:CN.input", type="CopyNumberCount")
 
-    messages = projector.add_mappings(variation, storage)
+    with pytest.raises(
+        projection.ProjectionError,
+        match="Projection unsupported: only Allele variations are supported",
+    ) as exc_info:
+        projector.add_mappings(variation, storage)
 
-    assert messages == ["Projection unsupported: only Allele variations are supported"]
+    assert str(exc_info.value) == (
+        "Projection unsupported: only Allele variations are supported"
+    )
     get_refseq.assert_not_called()
 
 
@@ -579,14 +670,34 @@ def test_resolve_transcript_to_protein_metadata_skips_without_cds_metadata():
     projector = object.__new__(projection.VariantProjector)
     projector.cst = SimpleNamespace(mane_transcript=SimpleNamespace(uta_db=FakeUtaDb()))
 
-    result = projection.asyncio.run(
-        projector._resolve_transcript_to_protein_metadata("NR_000001.1", 10, 11)
-    )
+    with pytest.raises(
+        projection.ProjectionError,
+        match="Projection skipped: no CDS metadata for transcript NR_000001.1",
+    ):
+        projection.asyncio.run(
+            projector._resolve_transcript_to_protein_metadata("NR_000001.1", 10, 11)
+        )
 
-    assert result == projection._TranscriptToProteinMetadata(
-        cdna=None,
-        message="Projection skipped: no CDS metadata for transcript NR_000001.1",
-    )
+
+def test_resolve_transcript_to_protein_metadata_skips_without_alignment_metadata():
+    class FakeUtaDb:
+        async def get_cds_start_end(self, transcript_ac):
+            _ = transcript_ac
+            return 200, 2200
+
+        async def get_genomic_tx_data(self, *args, **kwargs):
+            _ = args, kwargs
+
+    projector = object.__new__(projection.VariantProjector)
+    projector.cst = SimpleNamespace(mane_transcript=SimpleNamespace(uta_db=FakeUtaDb()))
+
+    with pytest.raises(
+        projection.ProjectionError,
+        match=("Projection skipped: no transcript alignment metadata for NM_004333.6"),
+    ):
+        projection.asyncio.run(
+            projector._resolve_transcript_to_protein_metadata("NM_004333.6", 300, 301)
+        )
 
 
 def test_resolve_transcript_to_protein_metadata_skips_utr_without_alignment_lookup():
@@ -612,13 +723,14 @@ def test_resolve_transcript_to_protein_metadata_skips_utr_without_alignment_look
         projector._resolve_transcript_to_protein_metadata("NM_001184880.2", 10, 11)
     )
 
-    assert result == projection._TranscriptToProteinMetadata(
-        cdna=projection._TranscriptProjection(
+    assert result == (
+        projection._TranscriptProjection(
             refseq="NM_001184880.2",
             pos=(-190, -189),
             coding_start_site=200,
             coding_end_site=2200,
-        )
+        ),
+        None,
     )
 
 
@@ -683,13 +795,13 @@ def test_resolve_transcript_to_protein_metadata_resolves_exact_protein_accession
         projector._resolve_transcript_to_protein_metadata("NM_004333.6", 300, 301)
     )
 
-    assert result.message is None
-    assert result.cdna.refseq == "NM_004333.6"
-    assert result.cdna.pos == (100, 101)
-    assert result.cdna.strand == Strand.NEGATIVE
-    assert result.cdna.coding_start_site == 200
-    assert result.cdna.coding_end_site == 2200
-    assert result.protein == projection._ProteinProjection(
+    cdna, protein = result
+    assert cdna.refseq == "NM_004333.6"
+    assert cdna.pos == (100, 101)
+    assert cdna.strand == Strand.NEGATIVE
+    assert cdna.coding_start_site == 200
+    assert cdna.coding_end_site == 2200
+    assert protein == projection._ProteinProjection(
         refseq="NP_004324.2",
         pos=(33, 34),
     )
@@ -715,7 +827,7 @@ def test_project_transcript_variant_creates_translate_mapping(mocker):
         coding_end_site=2200,
     )
     protein = SimpleNamespace(refseq="NP_004324.2", pos=(33, 34))
-    result = projection._TranscriptToProteinMetadata(cdna=cdna, protein=protein)
+    result = (cdna, protein)
 
     projector = object.__new__(projection.VariantProjector)
     projector.dp = object()
@@ -724,7 +836,7 @@ def test_project_transcript_variant_creates_translate_mapping(mocker):
         "_resolve_transcript_to_protein_metadata",
         new=mocker.Mock(return_value=result),
     )
-    mocker.patch.object(projector, "_run_async_projection", return_value=(result, None))
+    mocker.patch.object(projector, "_run_async_projection", return_value=result)
     mocker.patch.object(
         projection,
         "_derive_protein_substitution_state",
@@ -762,21 +874,23 @@ def test_project_transcript_variant_creates_translate_mapping(mocker):
     assert store_mock.call_args.args[3] == projection.VariationMappingType.TRANSLATE_TO
 
 
-def test_project_transcript_variant_skips_missing_metadata_before_state_derivation(
+def test_project_transcript_variant_raises_missing_metadata_before_state_derivation(
     mocker,
 ):
-    result = projection._TranscriptToProteinMetadata(
-        cdna=None,
-        message="Projection skipped: no CDS metadata for transcript NR_000001.1",
-    )
     projector = object.__new__(projection.VariantProjector)
     projector.dp = object()
     mocker.patch.object(
         projector,
         "_resolve_transcript_to_protein_metadata",
-        new=mocker.Mock(return_value=result),
+        new=mocker.Mock(return_value=object()),
     )
-    mocker.patch.object(projector, "_run_async_projection", return_value=(result, None))
+    mocker.patch.object(
+        projector,
+        "_run_async_projection",
+        side_effect=projection.ProjectionError(
+            "Projection skipped: no CDS metadata for transcript NR_000001.1"
+        ),
+    )
     state_mock = mocker.patch.object(projection, "_get_transcript_literal_state")
     variation = SimpleNamespace(
         id="ga4gh:VA.input",
@@ -784,13 +898,12 @@ def test_project_transcript_variant_skips_missing_metadata_before_state_derivati
         location=SimpleNamespace(start=10, end=11),
     )
 
-    messages = projector._project_transcript_variant(
-        variation, mocker.Mock(), "NR_000001.1"
-    )
+    with pytest.raises(
+        projection.ProjectionError,
+        match="Projection skipped: no CDS metadata for transcript NR_000001.1",
+    ):
+        projector._project_transcript_variant(variation, mocker.Mock(), "NR_000001.1")
 
-    assert messages == [
-        "Projection skipped: no CDS metadata for transcript NR_000001.1"
-    ]
     state_mock.assert_not_called()
 
 
@@ -803,7 +916,7 @@ def test_project_transcript_variant_skips_missing_protein_before_state_derivatio
         coding_start_site=200,
         coding_end_site=2200,
     )
-    result = projection._TranscriptToProteinMetadata(cdna=cdna, protein=None)
+    result = (cdna, None)
     projector = object.__new__(projection.VariantProjector)
     projector.dp = object()
     mocker.patch.object(
@@ -811,7 +924,7 @@ def test_project_transcript_variant_skips_missing_protein_before_state_derivatio
         "_resolve_transcript_to_protein_metadata",
         new=mocker.Mock(return_value=result),
     )
-    mocker.patch.object(projector, "_run_async_projection", return_value=(result, None))
+    mocker.patch.object(projector, "_run_async_projection", return_value=result)
     state_mock = mocker.patch.object(projection, "_get_transcript_literal_state")
     variation = SimpleNamespace(
         id="ga4gh:VA.input",
@@ -819,13 +932,15 @@ def test_project_transcript_variant_skips_missing_protein_before_state_derivatio
         location=SimpleNamespace(start=300, end=301),
     )
 
-    messages = projector._project_transcript_variant(
-        variation, mocker.Mock(), "NM_004333.6"
-    )
+    with pytest.raises(
+        projection.ProjectionError,
+        match=(
+            "Projection skipped: no associated protein accession for transcript "
+            "NM_004333.6"
+        ),
+    ):
+        projector._project_transcript_variant(variation, mocker.Mock(), "NM_004333.6")
 
-    assert messages == [
-        "Projection skipped: no associated protein accession for transcript NM_004333.6"
-    ]
     state_mock.assert_not_called()
 
 
@@ -836,7 +951,7 @@ def test_project_transcript_variant_skips_utr_without_protein_mapping(mocker):
         coding_start_site=2000,
         coding_end_site=4000,
     )
-    result = projection._TranscriptToProteinMetadata(cdna=cdna, protein=None)
+    result = (cdna, None)
 
     projector = object.__new__(projection.VariantProjector)
     projector.dp = object()
@@ -845,7 +960,7 @@ def test_project_transcript_variant_skips_utr_without_protein_mapping(mocker):
         "_resolve_transcript_to_protein_metadata",
         new=mocker.Mock(return_value=result),
     )
-    mocker.patch.object(projector, "_run_async_projection", return_value=(result, None))
+    mocker.patch.object(projector, "_run_async_projection", return_value=result)
     store_mock = mocker.patch.object(projection, "_store_projected_variant")
     build_mock = mocker.patch.object(projection, "_build_allele")
     variation = SimpleNamespace(
@@ -959,7 +1074,7 @@ def test_project_genomic_variant_skips_protein_for_5_prime_utr(mocker):
     )
 
     mocker.patch.object(
-        projection, "_get_refseq_accession", return_value="NC_000023.11"
+        projection, "_refget_to_refseq_accession", return_value="NC_000023.11"
     )
     mocker.patch.object(
         projection.asyncio,
@@ -1019,7 +1134,7 @@ def test_project_genomic_variant_skips_protein_for_3_prime_utr(mocker):
     )
 
     mocker.patch.object(
-        projection, "_get_refseq_accession", return_value="NC_000002.12"
+        projection, "_refget_to_refseq_accession", return_value="NC_000002.12"
     )
     mocker.patch.object(
         projection.asyncio,
@@ -1079,7 +1194,7 @@ def test_project_genomic_variant_creates_protein_for_cds_variant(mocker):
     )
 
     mocker.patch.object(
-        projection, "_get_refseq_accession", return_value="NC_000007.14"
+        projection, "_refget_to_refseq_accession", return_value="NC_000007.14"
     )
     mocker.patch.object(
         projection.asyncio,
@@ -1143,7 +1258,7 @@ def test_project_genomic_variant_uses_shared_transcript_to_protein_helper(mocker
     result = SimpleNamespace(cdna=cdna, protein=protein)
 
     mocker.patch.object(
-        projection, "_get_refseq_accession", return_value="NC_000007.14"
+        projection, "_refget_to_refseq_accession", return_value="NC_000007.14"
     )
     mocker.patch.object(
         projection.asyncio,
@@ -1242,8 +1357,8 @@ def test_project_genomic_variant_requests_longest_compatible_fallback(mocker):
     }
 
 
-def test_project_genomic_variant_reports_unsupported_protein_state(mocker):
-    """Unsupported protein derivation stores transcript mapping with a message."""
+def test_project_genomic_variant_raises_unsupported_protein_state(mocker):
+    """Unsupported protein derivation stores transcript mapping before raising."""
     result = SimpleNamespace(
         cdna=SimpleNamespace(
             refseq="NM_004333.6",
@@ -1258,7 +1373,7 @@ def test_project_genomic_variant_reports_unsupported_protein_state(mocker):
     )
 
     mocker.patch.object(
-        projection, "_get_refseq_accession", return_value="NC_000007.14"
+        projection, "_refget_to_refseq_accession", return_value="NC_000007.14"
     )
     mocker.patch.object(
         projection.asyncio,
@@ -1297,21 +1412,25 @@ def test_project_genomic_variant_reports_unsupported_protein_state(mocker):
         ),
     )
 
-    messages = projector._project_genomic_variant(variation, mocker.Mock())
+    with pytest.raises(
+        projection.ProjectionError,
+        match=(
+            "Projection skipped: could not derive alternate protein state for "
+            "NP_004324.2"
+        ),
+    ):
+        projector._project_genomic_variant(variation, mocker.Mock())
 
-    assert messages == [
-        "Projection skipped: could not derive alternate protein state for NP_004324.2"
-    ]
     assert build_calls == ["NM_004333.6"]
     store_mock.assert_called_once()
 
 
-def test_add_mappings_returns_projection_error_message(mocker):
+def test_add_mappings_raises_projection_error(mocker):
     projector = object.__new__(projection.VariantProjector)
     projector.dp = object()
     mocker.patch.object(
         projection,
-        "_get_refseq_accession",
+        "_refget_to_refseq_accession",
         return_value="NC_000007.14",
     )
     mocker.patch.object(
@@ -1321,17 +1440,21 @@ def test_add_mappings_returns_projection_error_message(mocker):
     )
     variation = _allele()
 
-    messages = projector.add_mappings(variation, mocker.Mock())
+    with pytest.raises(
+        projection.ProjectionError,
+        match="Projection failed: expected failure",
+    ) as exc_info:
+        projector.add_mappings(variation, mocker.Mock())
 
-    assert messages == ["Projection failed: expected failure"]
+    assert str(exc_info.value) == "Projection failed: expected failure"
 
 
-def test_add_mappings_reports_internal_attribute_errors_as_unexpected(mocker):
+def test_add_mappings_raises_internal_attribute_errors_as_unexpected(mocker):
     projector = object.__new__(projection.VariantProjector)
     projector.dp = object()
     mocker.patch.object(
         projection,
-        "_get_refseq_accession",
+        "_refget_to_refseq_accession",
         return_value="NC_000007.14",
     )
     mocker.patch.object(
@@ -1340,16 +1463,20 @@ def test_add_mappings_reports_internal_attribute_errors_as_unexpected(mocker):
         side_effect=AttributeError("unexpected response shape"),
     )
 
-    messages = projector.add_mappings(_allele(), mocker.Mock())
+    with pytest.raises(
+        projection.ProjectionError,
+        match="Projection failed: unexpected error",
+    ) as exc_info:
+        projector.add_mappings(_allele(), mocker.Mock())
 
-    assert messages == ["Projection failed: unexpected error"]
+    assert str(exc_info.value) == "Projection failed: unexpected error"
 
 
 def test_project_genomic_variant_cancels_timed_out_projection(mocker):
     """Timed-out cool-seq-tool work is cancelled and reported as a timeout."""
     mocker.patch.object(
         projection,
-        "_get_refseq_accession",
+        "_refget_to_refseq_accession",
         return_value="NC_000007.14",
     )
     future = TimeoutFuture()
@@ -1377,9 +1504,12 @@ def test_project_genomic_variant_cancels_timed_out_projection(mocker):
         ),
     )
 
-    messages = projector._project_genomic_variant(variation, mocker.Mock())
+    with pytest.raises(
+        projection.ProjectionError,
+        match="Projection failed: coordinate mapping timed out",
+    ):
+        projector._project_genomic_variant(variation, mocker.Mock())
 
-    assert messages == ["Projection failed: coordinate mapping timed out"]
     assert future.timeout == 30
     assert future.cancelled is True
 
@@ -1402,7 +1532,7 @@ def test_project_genomic_variant_applies_cdna_coding_start_site_before_build(moc
 
     mocker.patch.object(
         projection,
-        "_get_refseq_accession",
+        "_refget_to_refseq_accession",
         return_value="NC_000001.11",
     )
     mocker.patch.object(
