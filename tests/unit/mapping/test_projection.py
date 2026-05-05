@@ -595,7 +595,7 @@ def test_variant_projector_close_stops_loop_thread():
     projector.close()
 
 
-def test_add_mappings_dispatches_genomic_accession(mocker):
+def test_add_projections_dispatches_genomic_accession(mocker):
     projector = object.__new__(projection.VariantProjector)
     projector.dp = object()
     project_genomic = mocker.patch.object(
@@ -612,14 +612,14 @@ def test_add_mappings_dispatches_genomic_accession(mocker):
     variation = _allele()
     storage = mocker.Mock()
 
-    result = projector.add_mappings(variation, storage)
+    result = projector.add_projections(variation, storage)
 
     assert result is None
     project_genomic.assert_called_once_with(variation, storage, "NC_000007.14")
     project_transcript.assert_not_called()
 
 
-def test_add_mappings_dispatches_transcript_accession(mocker):
+def test_add_projections_dispatches_transcript_accession(mocker):
     projector = object.__new__(projection.VariantProjector)
     projector.dp = object()
     project_genomic = mocker.patch.object(projector, "_project_genomic_variant")
@@ -636,14 +636,14 @@ def test_add_mappings_dispatches_transcript_accession(mocker):
     variation = _allele("SQ.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT")
     storage = mocker.Mock()
 
-    result = projector.add_mappings(variation, storage)
+    result = projector.add_projections(variation, storage)
 
     assert result is None
     project_genomic.assert_not_called()
     project_transcript.assert_called_once_with(variation, storage, "NM_004333.6")
 
 
-def test_add_mappings_raises_for_non_alleles(mocker):
+def test_add_projections_raises_for_non_alleles(mocker):
     projector = object.__new__(projection.VariantProjector)
     projector.dp = object()
     get_refseq = mocker.patch.object(projection, "_refget_to_refseq_accession")
@@ -654,7 +654,7 @@ def test_add_mappings_raises_for_non_alleles(mocker):
         projection.ProjectionError,
         match="Projection unsupported: only Allele variations are supported",
     ) as exc_info:
-        projector.add_mappings(variation, storage)
+        projector.add_projections(variation, storage)
 
     assert str(exc_info.value) == (
         "Projection unsupported: only Allele variations are supported"
@@ -1433,7 +1433,7 @@ def test_project_genomic_variant_raises_unsupported_protein_state(mocker):
     store_mock.assert_called_once()
 
 
-def test_add_mappings_raises_projection_error(mocker):
+def test_add_projections_raises_projection_error(mocker):
     projector = object.__new__(projection.VariantProjector)
     projector.dp = object()
     mocker.patch.object(
@@ -1452,12 +1452,12 @@ def test_add_mappings_raises_projection_error(mocker):
         projection.ProjectionError,
         match="Projection failed: expected failure",
     ) as exc_info:
-        projector.add_mappings(variation, mocker.Mock())
+        projector.add_projections(variation, mocker.Mock())
 
     assert str(exc_info.value) == "Projection failed: expected failure"
 
 
-def test_add_mappings_raises_internal_attribute_errors_as_unexpected(mocker):
+def test_add_projections_raises_internal_attribute_errors_as_unexpected(mocker):
     projector = object.__new__(projection.VariantProjector)
     projector.dp = object()
     mocker.patch.object(
@@ -1475,7 +1475,7 @@ def test_add_mappings_raises_internal_attribute_errors_as_unexpected(mocker):
         projection.ProjectionError,
         match="Projection failed: unexpected error",
     ) as exc_info:
-        projector.add_mappings(_allele(), mocker.Mock())
+        projector.add_projections(_allele(), mocker.Mock())
 
     assert str(exc_info.value) == "Projection failed: unexpected error"
 

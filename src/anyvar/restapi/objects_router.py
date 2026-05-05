@@ -160,7 +160,7 @@ def _add_projection_mappings(
     from anyvar.mapping.projection import ProjectionError  # noqa: PLC0415
 
     try:
-        av.projector.add_mappings(
+        av.projector.add_projections(
             variation=variation,
             storage=av.object_store,
         )

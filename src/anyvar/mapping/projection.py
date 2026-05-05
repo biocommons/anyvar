@@ -980,7 +980,7 @@ class VariantProjector:
             ),
         )
 
-    def _add_mappings_for_refseq_accession(
+    def _add_projections_for_refseq_accession(
         self,
         variation: VrsVariation,
         storage: Storage,
@@ -1000,7 +1000,7 @@ class VariantProjector:
             refseq_accession,
         )
 
-    def add_mappings(
+    def add_projections(
         self,
         variation: VrsVariation,
         storage: Storage,
@@ -1038,7 +1038,7 @@ class VariantProjector:
             )
             if not refseq_accession:
                 return
-            self._add_mappings_for_refseq_accession(
+            self._add_projections_for_refseq_accession(
                 variation, storage, refseq_accession
             )
         except ProjectionError as exc:

@@ -86,7 +86,7 @@ def has_queueing_enabled() -> bool:
 class VariantProjectorProtocol(Protocol):
     """Protocol for variant projection across the central dogma."""
 
-    def add_mappings(  # noqa: D102
+    def add_projections(  # noqa: D102
         self, variation: objects.VrsVariation, storage: Storage
     ) -> None: ...
 
