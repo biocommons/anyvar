@@ -10,7 +10,7 @@ import concurrent.futures
 import logging
 import math
 import threading
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -760,7 +760,7 @@ class VariantProjector:
         protein: _RefSeqPositionLike | None,
         cdna_start: int,
         cdna_end: int,
-        cdna_state_factory: Callable[[], models.LiteralSequenceExpression],
+        cdna_state: models.LiteralSequenceExpression,
         *,
         missing_protein_message: str | None = None,
     ) -> None:
@@ -786,7 +786,7 @@ class VariantProjector:
             protein,
             cdna_start,
             cdna_end,
-            cdna_state_factory(),
+            cdna_state,
         )
 
         protein_allele = _build_allele(
@@ -920,7 +920,7 @@ class VariantProjector:
                 result.protein,
                 transcript_projection.start,
                 transcript_projection.end,
-                lambda: transcript_projection.state,
+                transcript_projection.state,
             )
 
         _logger.debug(
@@ -964,6 +964,7 @@ class VariantProjector:
                 f"{transcript_ac}"
             )
             raise ProjectionError(msg)
+        cdna_state = _get_transcript_literal_state(self.dp, variation)
 
         self._project_transcript_to_protein(
             storage,
@@ -972,7 +973,7 @@ class VariantProjector:
             protein,
             location.start,
             location.end,
-            lambda: _get_transcript_literal_state(self.dp, variation),
+            cdna_state,
             missing_protein_message=(
                 "Projection skipped: no associated protein accession for transcript "
                 f"{transcript_ac}"

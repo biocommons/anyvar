@@ -907,7 +907,7 @@ def test_project_transcript_variant_raises_missing_metadata_before_state_derivat
     state_mock.assert_not_called()
 
 
-def test_project_transcript_variant_skips_missing_protein_before_state_derivation(
+def test_project_transcript_variant_raises_missing_protein_after_state_derivation(
     mocker,
 ):
     cdna = SimpleNamespace(
@@ -925,7 +925,15 @@ def test_project_transcript_variant_skips_missing_protein_before_state_derivatio
         new=mocker.Mock(return_value=result),
     )
     mocker.patch.object(projector, "_run_async_projection", return_value=result)
-    state_mock = mocker.patch.object(projection, "_get_transcript_literal_state")
+    state = models.LiteralSequenceExpression(
+        type="LiteralSequenceExpression",
+        sequence="A",
+    )
+    state_mock = mocker.patch.object(
+        projection,
+        "_get_transcript_literal_state",
+        return_value=state,
+    )
     variation = SimpleNamespace(
         id="ga4gh:VA.input",
         state=SimpleNamespace(type="UnsupportedState"),
@@ -941,7 +949,7 @@ def test_project_transcript_variant_skips_missing_protein_before_state_derivatio
     ):
         projector._project_transcript_variant(variation, mocker.Mock(), "NM_004333.6")
 
-    state_mock.assert_not_called()
+    state_mock.assert_called_once_with(projector.dp, variation)
 
 
 def test_project_transcript_variant_skips_utr_without_protein_mapping(mocker):
@@ -1308,7 +1316,7 @@ def test_project_genomic_variant_uses_shared_transcript_to_protein_helper(mocker
         300,
         301,
     )
-    assert protein_helper.call_args.args[6]() == models.LiteralSequenceExpression(
+    assert protein_helper.call_args.args[6] == models.LiteralSequenceExpression(
         type="LiteralSequenceExpression",
         sequence="A",
     )
