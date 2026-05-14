@@ -40,19 +40,32 @@ VCF Ingestion and Annotation
 
 AnyVar can ingest and register all variants (and reference alleles) contained within a Variant Call Format (VCF) file, and return a file copy with variation IDs included as INFO field properties.
 
-.. _annotations:
+.. _extensions:
 
-Object Annotations
-==================
+Object Extensions
+=================
 
-Registered variation objects can be associated with **annotations**. Annotations consist of a **type**, of type ``str``, and a **value**, which can be any JSON-serializable object or value. Annotations may be used to link to external references, indicate variant classifications, or otherwise adjoin genomic knowledge to a variation.
+Registered variation objects can be associated with **extensions**, which provide a flexible mechanism for attaching additional, lightweight metadata to a variation. An extension consists of: a **name** (``str``), describing the type of metadata, and a **value**, which may be any JSON-serializable object.
 
-.. autoclass:: anyvar.core.metadata.Annotation
-   :no-index:
-   :members:
-   :undoc-members:
-   :special-members: __init__
-   :exclude-members: model_fields, model_config
+Extensions are intended to mirror the concept of extensions in VRS: they capture auxiliary information that is closely associated with the variation itself, but not part of its core, identity-defining representation. Extensions are deliberately unstructured and permissive in order to support a wide range of use cases without requiring schema changes.
+
+Examples of appropriate uses include:
+
+- registration metadata (e.g., timestamps, provenance identifiers)
+- cross-references to external resources
+- links to associated samples, patients, or datasets
+- simple flags or attributes relevant to the stored object
+
+.. note::
+
+   Extensions are **not** intended for storing large, complex, or highly
+   interpretive data. In particular, they should not be used for:
+
+   - detailed evidence or annotation records
+   - clinical interpretations or assertions
+   - large structured payloads or documents
+
+   Such information is better represented in dedicated data models or external systems.
 
 .. _mappings:
 

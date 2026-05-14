@@ -222,25 +222,25 @@ class VariationMappingMapper(
         )
 
 
-class AnnotationMapper(BaseMapper[metadata.Annotation, orm.Annotation]):
-    """Maps between Annotations entities."""
+class ExtensionMapper(BaseMapper[metadata.Extension, orm.Extension]):
+    """Maps between Extension entities."""
 
-    def from_db_entity(self, db_entity: orm.Annotation) -> metadata.Annotation:
-        """Convert DB Annotation to AnyVar Annotation.
+    def from_db_entity(self, db_entity: orm.Extension) -> metadata.Extension:
+        """Convert DB Extension to AnyVar Extension.
 
-        :param db_entity: An ORM Annotation instance
-        :return: An Anyvar Annotation instance
+        :param db_entity: An ORM Extension instance
+        :return: An Anyvar Extension instance
         """
-        return metadata.Annotation(
+        return metadata.Extension(
             object_id=db_entity.object_id,
-            annotation_type=db_entity.annotation_type,
-            annotation_value=db_entity.annotation_value,
+            name=db_entity.name,
+            value=db_entity.value,
         )
 
-    def to_db_entity(self, anyvar_entity: metadata.Annotation) -> orm.Annotation:
-        """Convert AnyVar Annotation into DB Annotation.
+    def to_db_entity(self, anyvar_entity: metadata.Extension) -> orm.Extension:
+        """Convert AnyVar Extension into DB Extension.
 
-        :param anyvar_entity: An Anyvar Annotation instance
-        :return: An ORM model Annotation instance
+        :param anyvar_entity: An Anyvar Extension instance
+        :return: An ORM model Extension instance
         """
-        return orm.Annotation(**anyvar_entity.model_dump())
+        return orm.Extension(**anyvar_entity.model_dump())

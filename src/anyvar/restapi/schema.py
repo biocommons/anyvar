@@ -3,7 +3,7 @@
 import os
 from collections.abc import Iterable
 from datetime import datetime
-from enum import Enum, StrEnum
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -22,7 +22,7 @@ from anyvar.core import metadata, objects
 from anyvar.mapping.liftover import ReferenceAssembly
 
 
-class EndpointTag(str, Enum):
+class EndpointTag(StrEnum):
     """Denote endpoint group membership"""
 
     META = "Service Metadata"
@@ -31,7 +31,7 @@ class EndpointTag(str, Enum):
     SEARCH = "Search Operations"
 
 
-class ServiceEnvironment(str, Enum):
+class ServiceEnvironment(StrEnum):
     """Define current runtime environment."""
 
     DEV = "dev"
@@ -133,7 +133,7 @@ class ServiceInfo(BaseModel):
         default=ServiceType(), description="Type of a GA4GH service"
     )
     description: str = Field(
-        default="Register and retrieve variations and associated annotations.",
+        default="Register and retrieve variations and associated extensions.",
         description="Description of the service. Should be human readable and provide information about the service.",
     )
     organization: ServiceOrganization = Field(
@@ -194,30 +194,30 @@ class VariationRequest(BaseModel):
     assembly_name: ReferenceAssembly | None = ReferenceAssembly.GRCH38
 
 
-class AddAnnotationResponse(BaseModel):
-    """Response for the POST /variation/{vrs_id}/annotations endpoint"""
+class AddExtensionResponse(BaseModel):
+    """Response for the POST /variation/{vrs_id}/extensions endpoint"""
 
     object: objects.VrsObject | None
     object_id: str | None
-    annotation_type: str | None
-    annotation_value: Any | None
-    annotation_id: int | None
+    extension_name: str | None
+    extension_value: Any | None
+    extension_id: int | None
 
 
-class AddAnnotationRequest(BaseModel):
-    """Request for the POST /variation/{vrs_id}/annotations endpoint.
+class AddExtensionRequest(BaseModel):
+    """Request for the POST /variation/{vrs_id}/extensions endpoint.
 
-    Used when the annotation is identified through the request path.
+    Used when the extension is identified through the request path.
     """
 
-    annotation_type: str
-    annotation_value: Any
+    name: str
+    value: Any
 
 
-class GetAnnotationResponse(BaseModel):
-    """Response for the GET /variation/{vrs_id}/annotations/{annotation_type} endpoint"""
+class GetExtensionResponse(BaseModel):
+    """Response for the GET /variation/{vrs_id}/extensions/{extension_name} endpoint"""
 
-    annotations: list[metadata.Annotation]
+    extensions: list[metadata.Extension]
 
 
 class AddMappingResponse(BaseModel):

@@ -211,13 +211,13 @@ class Allele(Base):
         yield from self.location.get_disassembler()
 
 
-class Annotation(Base):
-    """AnyVar ORM model for annotations table."""
+class Extension(Base):
+    """AnyVar ORM model for extensions table."""
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     object_id: Mapped[str] = mapped_column(String)
-    annotation_type: Mapped[str] = mapped_column(String)
-    annotation_value: Mapped[dict] = mapped_column(
+    name: Mapped[str] = mapped_column(String)
+    value: Mapped[dict] = mapped_column(
         JSON()
         .with_variant(JSONB, "postgresql")
         .with_variant(SnowflakeVARIANT, "snowflake")
@@ -232,9 +232,9 @@ class Annotation(Base):
             return ()
         return (
             Index(
-                "idx_annotations_object_id_annotation_type",
+                "idx_extensions_object_id_name",
                 "object_id",
-                "annotation_type",
+                "name",
             ),
         )
 

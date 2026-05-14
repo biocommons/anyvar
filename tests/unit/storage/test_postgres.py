@@ -9,8 +9,8 @@ from anyvar.storage.postgres import PostgresObjectStore
 
 from .storage_test_funcs import (
     run_alleles_crud,
-    run_annotations_crud,
     run_db_lifecycle,
+    run_extensions_crud,
     run_incomplete_objects_error,
     run_mappings_crud,
     run_objects_raises_integrityerror,
@@ -97,11 +97,11 @@ def test_mappings_crud(
 
 
 @pytest.mark.ci_ok
-def test_annotations_crud(
+def test_extensions_crud(
     postgres_storage: PostgresObjectStore,
     focus_alleles: tuple[models.Allele, models.Allele, models.Allele],
 ):
-    run_annotations_crud(postgres_storage, focus_alleles)
+    run_extensions_crud(postgres_storage, focus_alleles)
 
 
 def test_search_alleles(

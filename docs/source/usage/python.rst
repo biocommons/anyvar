@@ -120,36 +120,36 @@ See :ref:`here <mappings>` for more information about object mappings in AnyVar.
 
 The :py:mod:`~anyvar.mapping.liftover` module provides the :py:func:`~anyvar.mapping.liftover.add_liftover_mapping` function as a convenient way to find the lifted-over equivalent of a variation, register it, and add mappings of type ``liftover`` between them.
 
-Object Annotations
+Object Extensions
 ==================
 
-AnyVar can apply basic annotations on objects with :py:meth:`AnyVar.put_annotation() <anyvar.anyvar.AnyVar.put_annotation>`.
+AnyVar can append basic extensions on objects with :py:meth:`AnyVar.put_extension() <anyvar.anyvar.AnyVar.put_extension>`.
 
 .. code-block:: pycon
 
-   >>> from anyvar.core.metadata import Annotation
-   >>> av.put_annotation(Annotation(
+   >>> from anyvar.core.metadata import Extension
+   >>> av.put_extension(Extension(
    ...     object_id=genomic_allele.id,
-   ...     annotation_type="clinvar_somatic_classification",
-   ...     annotation_value="Oncogenic"
+   ...     name="clinvar_accession",
+   ...     value="VCV000012345.6"
    ... ))
-   >>> av.put_annotation(Annotation(
+   >>> av.put_extension(Extension(
    ...     object_id=genomic_allele.id,
-   ...     annotation_type="associated_pmids",
-   ...     annotation_value=["21639808", "31566309", "27283860"]
+   ...     name="sample_id",
+   ...     value="SAMPLE-001"
    ... ))
 
-Annotations can be retrieved with :py:meth:`AnyVar.get_object_annotations <anyvar.anyvar.AnyVar.get_object_annotations>` using the object ID, and optionally the provided annotation type.
+Extensions can be retrieved with :py:meth:`AnyVar.get_object_extensions <anyvar.anyvar.AnyVar.get_object_extensions>` using the object ID, and optionally the provided extension name.
 
 .. code-block:: pycon
 
-   >>> av.get_object_annotations(genomic_allele.id)
-   [Annotation(object_id='ga4gh:VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe', annotation_type='clinvar_somatic_classification', annotation_value='Oncogenic'),
-    Annotation(object_id='ga4gh:VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe', annotation_type='associated_pmids', annotation_value=['21639808', '31566309', '27283860'])]
-   >>> av.get_object_annotations(genomic_allele.id, "associated_pmids")
-   [Annotation(object_id='ga4gh:VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe', annotation_type='associated_pmids', annotation_value=['21639808', '31566309', '27283860'])]
+   >>> av.get_object_extensions(genomic_allele.id)
+   [Extension(object_id='ga4gh:VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe', name='clinvar_accession', value='VCV000012345.6'),
+   Extension(object_id='ga4gh:VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe', name='sample_id', value='SAMPLE-001')]
+   >>> av.get_object_extensions(genomic_allele.id, "sample_id")
+   [Extension(object_id='ga4gh:VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe', name='sample_id', value='SAMPLE-001')]
 
-See :ref:`here <annotations>` for more information about object annotations in AnyVar.
+See :ref:`here <extensions>` for more information about object extensions in AnyVar.
 
 VCF Ingest and Annotation
 =========================

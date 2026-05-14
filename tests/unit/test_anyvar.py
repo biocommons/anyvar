@@ -2,42 +2,43 @@
 
 from unittest.mock import Mock
 
+from anyvar.anyvar import AnyVar
 from anyvar.core import metadata
 
 
-def test_create_timestamp_annotation_missing(anyvar_instance):
-    """Test that create_timestamp_annotation_if_missing works correctly, if annotation is missing"""
-    expected_annotation_id = 1
+def test_create_timestamp_missing(anyvar_instance: AnyVar):
+    """Test that timestamp creation works correctly, if timestamp is missing"""
+    expected_ext_id = 1
     object_id = "ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf"
 
-    anyvar_instance.get_object_annotations = Mock(return_value=[])
-    anyvar_instance.put_annotation = Mock(return_value=expected_annotation_id)
+    anyvar_instance.get_object_extensions = Mock(return_value=[])
+    anyvar_instance.put_extension = Mock(return_value=expected_ext_id)
 
-    result = anyvar_instance.create_timestamp_annotation_if_missing(object_id)
+    result = anyvar_instance.create_timestamp_if_missing(object_id)
 
-    assert result == expected_annotation_id
-    anyvar_instance.get_object_annotations.assert_called_once_with(
-        object_id, metadata.AnnotationType.CREATION_TIMESTAMP
+    assert result == expected_ext_id
+    anyvar_instance.get_object_extensions.assert_called_once_with(
+        object_id, metadata.ExtensionName.CREATION_TIMESTAMP
     )
-    anyvar_instance.put_annotation.assert_called_once()
+    anyvar_instance.put_extension.assert_called_once()
 
 
-def test_create_timestamp_annotation_exists(anyvar_instance):
-    """Test that create_timestamp_annotation_if_missing works correctly, if annotation exists"""
+def test_create_timestamp_exists(anyvar_instance: AnyVar):
+    """Test that create_timestamp_extension_if_missing works correctly, if extension exists"""
     object_id = "ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf"
 
-    anyvar_instance.get_object_annotations = Mock(
+    anyvar_instance.get_object_extensions = Mock(
         return_value=[
-            metadata.Annotation(
+            metadata.Extension(
                 object_id=object_id,
-                annotation_type=metadata.AnnotationType.CREATION_TIMESTAMP,
-                annotation_value="2025-12-04T14:13:41.521791+00:00",
+                name=metadata.ExtensionName.CREATION_TIMESTAMP,
+                value="2025-12-04T14:13:41.521791+00:00",
             )
         ]
     )
-    anyvar_instance.put_annotation = Mock(return_value=None)
+    anyvar_instance.put_extension = Mock(return_value=None)
 
-    result = anyvar_instance.create_timestamp_annotation_if_missing(object_id)
+    result = anyvar_instance.create_timestamp_if_missing(object_id)
 
     assert result is None
-    anyvar_instance.put_annotation.assert_not_called()
+    anyvar_instance.put_extension.assert_not_called()
