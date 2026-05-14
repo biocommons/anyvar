@@ -146,9 +146,9 @@ def get_liftover_variant(input_variant: SupportedVrsVariation) -> SupportedVrsVa
     :raises AccessionConversionError: If unable to lift over the variant's refget accession
     """
     try:
-        refget_accession = input_variant.location.sequenceReference.refgetAccession  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
-        start_position = input_variant.location.start  # pyright: ignore[reportAttributeAccessIssue]
-        end_position = input_variant.location.end  # pyright: ignore[reportAttributeAccessIssue]
+        refget_accession = input_variant.location.sequenceReference.refgetAccession
+        start_position = input_variant.location.start
+        end_position = input_variant.location.end
     except AttributeError as err:
         raise UnsupportedVariantLocationTypeError from err
 

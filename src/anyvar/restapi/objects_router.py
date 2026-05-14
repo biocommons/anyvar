@@ -386,7 +386,7 @@ def add_object_annotation(
     annotation_id: int | None = None
     try:
         annotation = metadata.Annotation(
-            object_id=vrs_object.id,  # pyright: ignore[reportArgumentType] - VRS Objects from the DB will never NOT have an ID
+            object_id=vrs_object.id,
             annotation_type=annotation_request.annotation_type,
             annotation_value=annotation_request.annotation_value,
         )
