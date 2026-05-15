@@ -850,29 +850,22 @@ class VariantProjector:
         self,
         variation: VrsVariation,
         storage: Storage,
-        alt_ac: str | None = None,
+        genomic_ac: str,
     ) -> None:
         """Project a genomic variant to coding and protein representations.
 
         :param variation: genomic VRS variation
         :param storage: Storage instance
-        :param alt_ac: optional pre-resolved genomic RefSeq accession
+        :param genomic_ac: pre-resolved genomic RefSeq accession
         """
         location = _get_variation_location(variation, require_refget=True)
 
         input_vrs_id: str = variation.id  # type: ignore
 
-        # Get the RefSeq genomic accession (NC_xxx)
-        if alt_ac is None:
-            alt_ac = _refget_to_refseq_accession(self.dp, location.refget_accession)
-        if not alt_ac or not alt_ac.startswith("NC_"):
-            _logger.debug("Skipping projection: %s is not a genomic accession", alt_ac)
-            return  # silently skip non-genomic variants
-
         _logger.debug(
             "Attempting projection for %s using %s:%d-%d",
             input_vrs_id,
-            alt_ac,
+            genomic_ac,
             location.start,
             location.end,
         )
@@ -882,7 +875,7 @@ class VariantProjector:
         # or incompatible.
         result = self._run_async_projection(
             self.cst.mane_transcript.grch38_to_mane_c_p(
-                alt_ac=alt_ac,
+                alt_ac=genomic_ac,
                 start_pos=location.start,
                 end_pos=location.end,
                 coordinate_type=CoordinateType.INTER_RESIDUE,
@@ -891,7 +884,8 @@ class VariantProjector:
             timeout_message="Projection failed: coordinate mapping timed out",
             failure_message="Projection failed: error during coordinate mapping",
             log_context=(
-                f"cool-seq-tool projection for {alt_ac}:{location.start}-{location.end}"
+                "cool-seq-tool projection for "
+                f"{genomic_ac}:{location.start}-{location.end}"
             ),
         )
 
@@ -900,7 +894,7 @@ class VariantProjector:
             _logger.info(
                 "Projection skipped for %s: no compatible transcript found at %s:%d-%d",
                 input_vrs_id,
-                alt_ac,
+                genomic_ac,
                 location.start,
                 location.end,
             )
@@ -911,7 +905,7 @@ class VariantProjector:
             input_vrs_id,
             variation,
             result.cdna,
-            alt_ac,
+            genomic_ac,
         )
         if transcript_projection:
             self._project_transcript_to_protein(
@@ -1034,6 +1028,12 @@ class VariantProjector:
                 self.dp, location.refget_accession
             )
             if not refseq_accession:
+                _logger.info(
+                    "Projection skipped for %s: could not resolve RefSeq accession "
+                    "for %s",
+                    variation.id,
+                    location.refget_accession,
+                )
                 return
             self._add_projections_for_refseq_accession(
                 variation, storage, refseq_accession
