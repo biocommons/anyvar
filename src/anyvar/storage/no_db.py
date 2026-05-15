@@ -59,17 +59,17 @@ class NoObjectStore(Storage):
         """(No-op) Return an iterable of mappings from the source ID"""
         return []
 
-    def add_annotation(self, annotation: metadata.Annotation) -> None:
-        """(No-op) Adds an annotation to the database."""
+    def add_extension(self, extension: metadata.Extension) -> None:
+        """(No-op) Adds an extension to the database."""
 
-    def get_annotations(
-        self, object_id: str, annotation_type: str | None = None
-    ) -> list[metadata.Annotation]:
-        """(No-op) Get all annotations for the specified object, optionally filtered by type."""
+    def get_extensions(
+        self, object_id: str, extension_name: str | None = None
+    ) -> list[metadata.Extension]:
+        """(No-op) Get all extensions for the specified object, optionally filtered by type."""
         return []
 
-    def delete_annotation(self, annotation: metadata.Annotation) -> None:
-        """(No-op) Deletes an annotation from the database"""
+    def delete_extension(self, extension: metadata.Extension) -> None:
+        """(No-op) Deletes an extension from the database"""
 
     def search_alleles(
         self,
