@@ -118,6 +118,10 @@ def _get_variation_location(
         msg = "Projection unsupported for variants with Range positions"
         raise ProjectionError(msg)
 
+    if require_refget and refget_accession is None:
+        msg = "Projection unsupported: variant lacks sequence location details"
+        raise ProjectionError(msg)
+
     return _ProjectionLocation(start, end, refget_accession)
 
 
@@ -855,9 +859,6 @@ class VariantProjector:
         :param alt_ac: optional pre-resolved genomic RefSeq accession
         """
         location = _get_variation_location(variation, require_refget=True)
-        if location.refget_accession is None:
-            msg = "Projection unsupported: variant lacks sequence location details"
-            raise ProjectionError(msg)
 
         input_vrs_id: str = variation.id  # type: ignore
 
@@ -1027,10 +1028,6 @@ class VariantProjector:
             )
 
         location = _get_variation_location(variation, require_refget=True)
-        if location.refget_accession is None:
-            raise ProjectionError(
-                "Projection unsupported: variant lacks sequence location details"
-            )
 
         try:
             refseq_accession = _refget_to_refseq_accession(
