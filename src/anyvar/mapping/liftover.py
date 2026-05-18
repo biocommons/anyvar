@@ -203,7 +203,7 @@ def get_liftover_variant(input_variant: VrsVariation) -> VrsVariation:
 
 def add_liftover_mapping(
     variation: VrsVariation, storage: Storage, dataproxy: _DataProxy
-) -> list[str] | None:
+) -> tuple[list[str], VrsVariation]:
     """Perform liftover between GRCh37 <-> GRCh38. Store mappings between the original and lifted-over variants.
 
     Don't register lifted-over variant or mappings if
@@ -220,7 +220,7 @@ def add_liftover_mapping(
     :param variation: variation to attempt liftover upon
     :param storage: Storage instance
     :param dataproxy: SeqRepo DataProxy instance, for normalizing lifted-over alleles
-    :return: list of messages describing warnings or failures, or ``None`` if completely successful
+    :return: tuple containing a list of messages describing warnings or failures, and the normalized lifted-over variant
     """
     input_vrs_id: str = variation.id  # type: ignore
     try:
@@ -231,12 +231,15 @@ def add_liftover_mapping(
             "Encountered error during liftover of variation `%s`",
             variation,
         )
-        return [e.get_error_message()]
+        return ([e.get_error_message()], None)
 
     if reverse_liftover_variant.id != variation.id:
-        return [
-            f"{LiftoverError.base_error_message}: Roundtripped lifted-over id `{reverse_liftover_variant.id}` does not match initial value of {input_vrs_id}"
-        ]
+        return (
+            [
+                f"{LiftoverError.base_error_message}: Roundtripped lifted-over id `{reverse_liftover_variant.id}` does not match initial value of {input_vrs_id}"
+            ],
+            None,
+        )
 
     normalized_lifted_over_variant = normalize(
         lifted_over_variant, data_proxy=dataproxy
@@ -257,4 +260,4 @@ def add_liftover_mapping(
             mapping_type=VariationMappingType.LIFTOVER_TO,
         )
     )
-    return None
+    return (None, normalized_lifted_over_variant)

@@ -149,12 +149,15 @@ def _handle_translation_request(
 
 
 def _register_variations(
-    av: AnyVar, variation_requests: list[VariationRequest]
+    av: AnyVar,
+    variation_requests: list[VariationRequest],
+    do_liftover: bool = True,
 ) -> list[RegisterVariationResponse]:
     """Bulk register variations
 
     :param av: AnyVar instance
     :param variation_requests: Input variation requests to register
+    :param do_liftover: Whether to perform liftover and store liftover mappings for successfully translated variants. Defaults to True.
     :return: List of RegisterVariationResponse objects in the same order as the input.
         Variations that fail translation are not registered and are returned with null
         `object` and `object_id` fields. Registration or liftover failure messages may
@@ -191,14 +194,13 @@ def _register_variations(
 
         # add variant metadata
         av.create_timestamp_if_missing(translation_result.variation.id)  # type: ignore (ID guaranteed to be present)
-        messages: list[str] = (
-            liftover.add_liftover_mapping(
+        messages = lifted_over_variant = None
+        if do_liftover:
+            messages, lifted_over_variant = liftover.add_liftover_mapping(
                 variation=translation_result.variation,
                 storage=av.object_store,
                 dataproxy=av.translator.dp,
             )
-            or []
-        )
 
         responses.append(
             RegisterVariationResponse(
@@ -207,7 +209,8 @@ def _register_variations(
                 object_id=translation_result.variation.id
                 if translation_result.variation
                 else None,
-                messages=messages,
+                lifted_over_to=lifted_over_variant,
+                messages=messages or [],
             )
         )
 
@@ -223,11 +226,20 @@ def _register_variations(
 def register_variation(
     request: Request,
     variation: Annotated[VariationRequest, _variation_request_body],
+    do_liftover: Annotated[
+        bool,
+        Query(
+            ...,
+            description="Whether to perform liftover and store liftover mappings for the registered variation",
+        ),
+    ] = True,
 ) -> RegisterVariationResponse:
     """Register a variation based on a provided description or reference."""
     av: AnyVar = request.app.state.anyvar
 
-    responses: list[RegisterVariationResponse] = _register_variations(av, [variation])
+    responses: list[RegisterVariationResponse] = _register_variations(
+        av, [variation], do_liftover=do_liftover
+    )
     return responses[0]
 
 
@@ -242,10 +254,17 @@ def register_variations(
     variations: Annotated[
         list[VariationRequest], Body(description="List of variations to register")
     ],
+    do_liftover: Annotated[
+        bool,
+        Query(
+            ...,
+            description="Whether to perform liftover and store liftover mappings for the registered variation",
+        ),
+    ] = True,
 ) -> list[RegisterVariationResponse]:
     """Register multiple variations based on provided descriptions or references."""
     av: AnyVar = request.app.state.anyvar
-    return _register_variations(av, variations)
+    return _register_variations(av, variations, do_liftover=do_liftover)
 
 
 PUT_VRS_VARIATION_EXAMPLE_PAYLOAD = {
