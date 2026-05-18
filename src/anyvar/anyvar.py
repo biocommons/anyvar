@@ -16,6 +16,7 @@ from ga4gh.vrs import models as vrs_models
 from anyvar.core import metadata, objects
 from anyvar.storage import DEFAULT_STORAGE_URI
 from anyvar.storage.base import Storage
+from anyvar.storage.no_db import NoObjectStore
 from anyvar.translate.base import Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
 
@@ -230,7 +231,7 @@ class AnyVar:
         except Exception as e:
             _logger.exception("Failed to retrieve extensions for object: %s", object_id)
             raise e  # noqa: TRY201
-        if not extensions:
+        if not extensions and not isinstance(self.object_store, NoObjectStore):
             try:
                 _ = self.get_object(object_id)
             except KeyError as e:
