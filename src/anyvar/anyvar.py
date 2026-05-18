@@ -93,6 +93,14 @@ def has_queueing_enabled() -> bool:
     )
 
 
+def has_variations_queueing_enabled() -> bool:
+    """Determine whether or not asynchronous task queueing is enabled for variations"""
+    return (
+        importlib.util.find_spec("celery") is not None
+        and os.environ.get("CELERY_BROKER_URL", "") != ""
+    )
+
+
 class ObjectNotFoundError(Exception):
     """Raised when an ID is given for a non-existent object."""
 
