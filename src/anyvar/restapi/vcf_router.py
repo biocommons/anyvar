@@ -1,6 +1,5 @@
 """Define routes for VCF annotation and ingestion."""
 
-import asyncio
 import datetime
 import logging
 import os
@@ -24,6 +23,11 @@ from fastapi.responses import FileResponse
 
 import anyvar
 from anyvar.anyvar import AnyVar
+from anyvar.restapi.async_utils import (
+    check_async_enabled,
+    resolve_async_task_status,
+    validate_run_id_available,
+)
 from anyvar.restapi.schema import ErrorResponse, RunStatusResponse
 from anyvar.translate.base import TranslatorConnectionError
 from anyvar.vcf.ingest import (
@@ -32,18 +36,15 @@ from anyvar.vcf.ingest import (
     register_existing_annotations,
 )
 
+_has_async_imports = True
 try:
     import aiofiles  # noqa: I001
     from anyvar.queueing import celery_worker
-    from billiard.exceptions import TimeLimitExceeded
-    from celery.exceptions import WorkerLostError
+    from billiard.exceptions import TimeLimitExceeded  # noqa: F401
+    from celery.exceptions import WorkerLostError  # noqa: F401
     from celery.result import AsyncResult
 except ImportError:
-    aiofiles = None
-    celery_worker = None
-    TimeLimitExceeded = None
-    WorkerLostError = None
-    AsyncResult = None
+    _has_async_imports = False
 
 _logger = logging.getLogger(__name__)
 
@@ -106,18 +107,11 @@ async def _annotate_vcf_async(
 ) -> RunStatusResponse | ErrorResponse:
     """Annotate with VRS IDs asynchronously.  See `annotate_vcf()` for parameter definitions."""
     # if run_id is provided, validate it does not already exist
-    if (
-        not anyvar.anyvar.has_queueing_enabled()
-        or not AsyncResult
-        or not aiofiles
-        or not celery_worker
-    ):
+    if not anyvar.anyvar.has_queueing_enabled() or not _has_async_imports:
         _logger.warning(
-            "Async VCF annotation requested but not enabled (has_queueing_enabled=%s, AsyncResult=%s, aiofiles=%s, celery_worker=%s)",
+            "Async VCF annotation requested but not enabled (has_queueing_enabled=%s, _has_async_imports=%s)",
             anyvar.anyvar.has_queueing_enabled(),
-            AsyncResult,
-            aiofiles,
-            celery_worker,
+            _has_async_imports,
             stack_info=True,
         )
         response.status_code = status.HTTP_400_BAD_REQUEST
@@ -126,12 +120,9 @@ async def _annotate_vcf_async(
         )
 
     if run_id:
-        existing_result = AsyncResult(id=run_id)
-        if existing_result.status != "PENDING":
-            response.status_code = status.HTTP_400_BAD_REQUEST
-            return ErrorResponse(
-                error=f"An existing run with id {run_id} is {existing_result.status}. Fetch the completed run result before submitting with the same run_id."
-            )
+        error = validate_run_id_available(run_id, response)
+        if error:
+            return error
 
     # write file to shared storage area with a directory for each day and a random file name
     async_work_dir = os.environ.get("ANYVAR_VCF_ASYNC_WORK_DIR", None)
@@ -375,11 +366,11 @@ async def _ingest_annotated_vcf_async(
     run_id: str | None,
 ) -> RunStatusResponse | ErrorResponse:
     """Ingest annotated VCF asynchronously.  See `annotated_vcf()` for parameter definitions."""
-    if not anyvar.anyvar.has_queueing_enabled() or not aiofiles:
+    if not anyvar.anyvar.has_queueing_enabled() or not _has_async_imports:
         _logger.warning(
-            "Async VCF annotation requested but not enabled (has_queueing_enabled=%s, aiofiles=%s)",
+            "Async VCF annotation requested but not enabled (has_queueing_enabled=%s, _has_async_imports=%s)",
             anyvar.anyvar.has_queueing_enabled(),
-            aiofiles,
+            _has_async_imports,
             stack_info=True,
         )
         response.status_code = status.HTTP_400_BAD_REQUEST
@@ -389,17 +380,9 @@ async def _ingest_annotated_vcf_async(
 
     # if run_id is provided, validate it does not already exist
     if run_id:
-        existing_result = AsyncResult(id=run_id)
-        existing_result_status = existing_result.status
-
-        # explicitly delete to limit chances of deadlocks in the Redis client
-        del existing_result
-
-        if existing_result_status != "PENDING":
-            response.status_code = status.HTTP_400_BAD_REQUEST
-            return ErrorResponse(
-                error=f"An existing run with id {run_id} is {existing_result_status}.  Fetch the completed run result before submitting with the same run_id."
-            )
+        error = validate_run_id_available(run_id, response)
+        if error:
+            return error
 
     async_work_dir = os.environ.get("ANYVAR_VCF_ASYNC_WORK_DIR", None)
     utc_now = datetime.datetime.now(tz=datetime.UTC)
@@ -493,11 +476,14 @@ async def annotated_vcf(
 ) -> FileResponse | RunStatusResponse | ErrorResponse | None:
     """Register alleles from a VCF and return a file annotated with VRS IDs."""
     # If async requested but not enabled, return an error
-    if (run_async and not anyvar.anyvar.has_queueing_enabled()) or not AsyncResult:
+    if (
+        run_async and not anyvar.anyvar.has_queueing_enabled()
+    ) or not _has_async_imports:
         _logger.warning(
-            "Async VCF annotation requested but not enabled (run_async=%s, has_queueing_enabled=%s)",
+            "Async VCF annotation requested but not enabled (run_async=%s, has_queueing_enabled=%s, _has_async_imports=%s)",
             run_async,
             anyvar.anyvar.has_queueing_enabled(),
+            _has_async_imports,
             stack_info=True,
         )
         response.status_code = status.HTTP_400_BAD_REQUEST
@@ -562,65 +548,36 @@ async def get_vcf_run_status(
 ) -> RunStatusResponse | FileResponse | ErrorResponse:
     """Return the status or result of an asynchronous registration of alleles from a VCF file."""
     # Asynchronous VCF annotation not enabled, return error
-    if (
-        not anyvar.anyvar.has_queueing_enabled()
-        or not AsyncResult
-        or not TimeLimitExceeded
-        or not WorkerLostError
-    ):
+    enabled = bool(anyvar.anyvar.has_queueing_enabled() and _has_async_imports)
+    if not enabled:
         _logger.warning(
-            "Async VCF annotation requested but not enabled (has_queueing_enabled=%s, AsyncResult=%s, TimeLimitExceeded=%s, WorkerLostError=%s)",
+            "Async VCF annotation requested but not enabled (has_queueing_enabled=%s, _has_async_imports=%s)",
             anyvar.anyvar.has_queueing_enabled(),
-            AsyncResult,
-            TimeLimitExceeded,
-            WorkerLostError,
+            _has_async_imports,
             stack_info=True,
         )
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return ErrorResponse(
-            error="Required modules and/or configurations for asynchronous VCF annotation are missing"
-        )
+    error = check_async_enabled(
+        enabled,
+        response,
+        "Required modules and/or configurations for asynchronous VCF annotation are missing",
+    )
+    if error:
+        return error
 
-    # get the async result
-    async_result = AsyncResult(id=run_id)
-    _logger.debug("%s - status is %s", run_id, async_result.status)
-
-    # completed successfully
-    if async_result.status == "SUCCESS":
+    def on_success(async_result: AsyncResult) -> FileResponse | RunStatusResponse:
         response.status_code = status.HTTP_200_OK
         output_file_path = async_result.result
-        async_result.forget()
         if output_file_path:
             _logger.debug("%s - output file path is %s", run_id, output_file_path)
             bg_tasks.add_task(_working_file_cleanup, output_file_path)
             return FileResponse(path=output_file_path)
-        # for tasks that don't need to return a file, just send a success notification
         return RunStatusResponse(
             run_id=run_id,
             status="SUCCESS",
             status_message="VCF registration complete",
         )
 
-    # failed - return an error response
-    elif (  # noqa: RET505
-        async_result.status == "FAILURE"
-        and async_result.result
-        and isinstance(async_result.result, Exception)
-    ):
-        # get error message and code
-        error_msg = str(async_result.result)
-        error_code = (
-            "TIME_LIMIT_EXCEEDED"
-            if isinstance(async_result.result, TimeLimitExceeded)
-            else (
-                "WORKER_LOST_ERROR"
-                if isinstance(async_result.result, WorkerLostError)
-                else "RUN_FAILURE"
-            )
-        )
-        _logger.debug("%s - failed with error %s", run_id, error_msg)
-
-        # cleanup working files
+    def on_failure_cleanup(async_result: AsyncResult) -> None:
         if async_result.kwargs:
             input_file_path_str = async_result.kwargs.get("input_file_path", None)
             if input_file_path_str:
@@ -645,45 +602,11 @@ async def get_vcf_run_status(
                         _working_file_cleanup, str(output_file_path), missing_ok=True
                     )
 
-        # forget the run and return the response
-        async_result.forget()
-        response.status_code = int(
-            os.environ.get("ANYVAR_VCF_ASYNC_FAILURE_STATUS_CODE", "500")
-        )
-        return ErrorResponse(error_code=error_code, error=error_msg)
-
-    # status here is either "SENT" or "PENDING"
-    else:
-        # the after_task_publish handler sets the state to "SENT"
-        #  so a status of PENDING is actually unknown task
-        # but there can be a race condition, so if status is pending
-        #  pause half a second at a time up to 5 seconds
-        if async_result.status == "PENDING":
-            for _ in range(10):
-                await asyncio.sleep(0.5)
-                _logger.debug(
-                    "%s - after 0.5 second wait, status is %s",
-                    run_id,
-                    async_result.status,
-                )
-                if async_result.status != "PENDING":
-                    break
-
-        # status is "PENDING" - unknown run id
-        if async_result.status == "PENDING":
-            response.status_code = status.HTTP_404_NOT_FOUND
-            return RunStatusResponse(
-                run_id=run_id,
-                status="NOT_FOUND",
-                status_message="Run not found",
-            )
-        # status is "SENT" - return 202
-        #  with retry after 2 seconds
-        else:  # noqa: RET505
-            response.status_code = status.HTTP_202_ACCEPTED
-            response.headers["Retry-After"] = "2"
-            return RunStatusResponse(
-                run_id=run_id,
-                status="PENDING",
-                status_message=f"Run not completed. Check status at /vcf/{run_id}",
-            )
+    return await resolve_async_task_status(
+        run_id,
+        response,
+        on_success=on_success,
+        on_failure_cleanup=on_failure_cleanup,
+        failure_status_env_var="ANYVAR_VCF_ASYNC_FAILURE_STATUS_CODE",
+        status_path_prefix="/vcf",
+    )

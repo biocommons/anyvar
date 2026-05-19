@@ -1,6 +1,5 @@
 """Provide router for operations on stored objects"""
 
-import asyncio
 import json
 import logging
 import os
@@ -16,6 +15,11 @@ import anyvar
 from anyvar.anyvar import AnyVar, ObjectNotFoundError
 from anyvar.core import metadata, objects
 from anyvar.mapping import liftover
+from anyvar.restapi.async_utils import (
+    check_async_enabled,
+    resolve_async_task_status,
+    validate_run_id_available,
+)
 from anyvar.restapi.schema import (
     AddExtensionRequest,
     AddExtensionResponse,
@@ -38,17 +42,15 @@ from anyvar.translate.register import (
     translate_variation as _translate_variation,
 )
 
+_async_imports_available = True
 try:
-    from billiard.exceptions import TimeLimitExceeded
-    from celery.exceptions import WorkerLostError
+    from billiard.exceptions import TimeLimitExceeded  # noqa: F401
+    from celery.exceptions import WorkerLostError  # noqa: F401
     from celery.result import AsyncResult
 
     from anyvar.queueing import celery_worker
 except ImportError:
-    celery_worker = None
-    TimeLimitExceeded = None
-    WorkerLostError = None
-    AsyncResult = None
+    _async_imports_available = False
 
 _logger = logging.getLogger(__name__)
 
@@ -200,14 +202,12 @@ async def register_variations(
     if run_async:
         if (
             not anyvar.anyvar.has_variations_queueing_enabled()
-            or not AsyncResult
-            or not celery_worker
+            or not _async_imports_available
         ):
             _logger.warning(
-                "Async variation registration requested but not enabled (has_variations_queueing_enabled=%s, AsyncResult=%s, celery_worker=%s)",
+                "Async variation registration requested but not enabled (has_variations_queueing_enabled=%s, _async_imports_available=%s)",
                 anyvar.anyvar.has_variations_queueing_enabled(),
-                AsyncResult,
-                celery_worker,
+                _async_imports_available,
                 stack_info=True,
             )
             response.status_code = status.HTTP_400_BAD_REQUEST
@@ -216,12 +216,9 @@ async def register_variations(
             )
 
         if run_id:
-            existing_result = AsyncResult(id=run_id)
-            if existing_result.status != "PENDING":
-                response.status_code = status.HTTP_400_BAD_REQUEST
-                return ErrorResponse(
-                    error=f"An existing run with id {run_id} is {existing_result.status}. Fetch the completed run result before submitting with the same run_id."
-                )
+            error = validate_run_id_available(run_id, response)
+            if error:
+                return error
 
         # submit async job
         variation_requests_json = [v.model_dump(mode="json") for v in variations]
@@ -272,85 +269,35 @@ async def get_variations_run_status(
     ],
 ) -> RunStatusResponse | JSONResponse | ErrorResponse:
     """Return the status or result of an asynchronous registration of variations."""
-    if (
-        not anyvar.anyvar.has_variations_queueing_enabled()
-        or not AsyncResult
-        or not TimeLimitExceeded
-        or not WorkerLostError
-    ):
+    enabled = bool(
+        anyvar.anyvar.has_variations_queueing_enabled() and _async_imports_available
+    )
+    if not enabled:
         _logger.warning(
-            "Async variation registration status requested but not enabled (has_variations_queueing_enabled=%s, AsyncResult=%s)",
+            "Async variation registration status requested but not enabled (has_variations_queueing_enabled=%s, _async_imports_available=%s)",
             anyvar.anyvar.has_variations_queueing_enabled(),
-            AsyncResult,
+            _async_imports_available,
             stack_info=True,
         )
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return ErrorResponse(
-            error="Required modules and/or configurations for asynchronous variation registration are missing"
-        )
+    error = check_async_enabled(
+        enabled,
+        response,
+        "Required modules and/or configurations for asynchronous variation registration are missing",
+    )
+    if error:
+        return error
 
-    async_result = AsyncResult(id=run_id)
-    _logger.debug("%s - status is %s", run_id, async_result.status)
-
-    # completed successfully
-    if async_result.status == "SUCCESS":
+    def on_success(async_result: AsyncResult) -> JSONResponse:
         result_data = async_result.result
-        async_result.forget()
         return JSONResponse(content=result_data, status_code=status.HTTP_200_OK)
 
-    # failed
-    elif (  # noqa: RET505
-        async_result.status == "FAILURE"
-        and async_result.result
-        and isinstance(async_result.result, Exception)
-    ):
-        error_msg = str(async_result.result)
-        error_code = (
-            "TIME_LIMIT_EXCEEDED"
-            if isinstance(async_result.result, TimeLimitExceeded)
-            else (
-                "WORKER_LOST_ERROR"
-                if isinstance(async_result.result, WorkerLostError)
-                else "RUN_FAILURE"
-            )
-        )
-        _logger.debug("%s - failed with error %s", run_id, error_msg)
-        async_result.forget()
-        response.status_code = int(
-            os.environ.get("ANYVAR_VARIATIONS_ASYNC_FAILURE_STATUS_CODE", "500")
-        )
-        return ErrorResponse(error_code=error_code, error=error_msg)
-
-    # PENDING or SENT
-    else:
-        if async_result.status == "PENDING":
-            for _ in range(10):
-                await asyncio.sleep(0.5)
-                _logger.debug(
-                    "%s - after 0.5 second wait, status is %s",
-                    run_id,
-                    async_result.status,
-                )
-                if async_result.status != "PENDING":
-                    break
-
-        # still PENDING - unknown run id
-        if async_result.status == "PENDING":
-            response.status_code = status.HTTP_404_NOT_FOUND
-            return RunStatusResponse(
-                run_id=run_id,
-                status="NOT_FOUND",
-                status_message="Run not found",
-            )
-        # SENT - return 202
-        else:  # noqa: RET505
-            response.status_code = status.HTTP_202_ACCEPTED
-            response.headers["Retry-After"] = "2"
-            return RunStatusResponse(
-                run_id=run_id,
-                status="PENDING",
-                status_message=f"Run not completed. Check status at /variations/{run_id}",
-            )
+    return await resolve_async_task_status(
+        run_id,
+        response,
+        on_success=on_success,
+        failure_status_env_var="ANYVAR_VARIATIONS_ASYNC_FAILURE_STATUS_CODE",
+        status_path_prefix="/variations",
+    )
 
 
 PUT_VRS_VARIATION_EXAMPLE_PAYLOAD = {
