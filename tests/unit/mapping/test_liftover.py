@@ -233,6 +233,7 @@ def test_liftover_mapping_failure(
     # ensure input is present in DB
     anyvar_instance.object_store.add_objects([variant_input])
 
-    assert liftover.add_liftover_mapping(variant_input, storage, translator.dp) == [
-        expected_error.get_error_message()
-    ]
+    assert liftover.add_liftover_mapping(variant_input, storage, translator.dp) == (
+        [expected_error.get_error_message()],
+        None,
+    )
