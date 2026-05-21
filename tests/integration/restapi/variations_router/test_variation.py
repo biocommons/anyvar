@@ -6,11 +6,11 @@ import pytest
 from fastapi.testclient import TestClient
 
 from anyvar.mapping.liftover import ReferenceAssembly
-from anyvar.restapi.objects_router import (
+from anyvar.restapi.schema import RegisterVariationResponse, VariationRequest
+from anyvar.restapi.variations_router import (
     PUT_VRS_VARIATION_EXAMPLE_PAYLOAD,
     VARIATION_EXAMPLE_PAYLOAD,
 )
-from anyvar.restapi.schema import RegisterVariationResponse, VariationRequest
 from anyvar.storage.base import Storage
 
 
@@ -133,16 +133,6 @@ def test_put_vrs_variation_example(restapi_client: TestClient, alleles: dict):
     expected_id = "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU"
     assert resp.json()["object"] == alleles[expected_id]["variation"]
     assert resp.json()["messages"] == []
-
-
-def test_get_allele(restapi_client: TestClient, preloaded_alleles):
-    for allele_id, allele_fixture in preloaded_alleles.items():
-        resp = restapi_client.get(f"/object/{allele_id}")
-        assert resp.status_code == HTTPStatus.OK
-        assert resp.json()["data"] == allele_fixture["variation"]
-
-    bad_resp = restapi_client.get("/object/ga4gh:VA.invalid7DSM9KE3Z0LntAukLqm0K2ENn")
-    assert bad_resp.status_code == HTTPStatus.NOT_FOUND
 
 
 def test_post_variation_registered(restapi_client: TestClient, preloaded_alleles):
