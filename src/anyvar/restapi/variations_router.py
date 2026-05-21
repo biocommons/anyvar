@@ -162,7 +162,7 @@ def _register_variations(
     "/variation",
     response_model_exclude_none=True,
     summary="Register a new allele",
-    description="Provide a variation definition  to be normalized and registered with AnyVar. A complete VRS Allele and ID is returned.",
+    description="Provide a variation definition to be normalized and registered with AnyVar. A complete VRS Allele and ID is returned.",
 )
 def register_variation(
     request: Request,
