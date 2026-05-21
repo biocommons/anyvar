@@ -28,7 +28,7 @@ class EndpointTag(StrEnum):
     META = "Service Metadata"
     VCF = "VCF Operations"
     VRS_OBJECTS = "VRS Objects"
-    SEARCH = "Search Operations"
+    VARIATIONS = "Variations"
 
 
 class ServiceEnvironment(StrEnum):

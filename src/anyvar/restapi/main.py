@@ -23,7 +23,7 @@ from anyvar.restapi.schema import (
     EndpointTag,
     ServiceInfo,
 )
-from anyvar.restapi.search_router import search_router
+from anyvar.restapi.variations_router import variations_router
 from anyvar.restapi.vcf_router import vcf_router
 
 load_dotenv()
@@ -95,7 +95,7 @@ app = FastAPI(
 )
 
 
-app.include_router(vcf_router, tags=[EndpointTag.VCF])
-app.include_router(search_router, tags=[EndpointTag.SEARCH])
 app.include_router(meta_router, tags=[EndpointTag.META])
+app.include_router(vcf_router, tags=[EndpointTag.VCF])
+app.include_router(variations_router, tags=[EndpointTag.VARIATIONS])
 app.include_router(objects_router, tags=[EndpointTag.VRS_OBJECTS])
