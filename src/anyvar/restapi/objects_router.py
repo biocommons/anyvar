@@ -170,7 +170,6 @@ def register_variation(
     response_model_exclude_none=True,
     summary="Bulk register alleles or copy number objects",
     description="Provide a list of variation definitions to be normalized and registered with AnyVar. The response contains one result per input, in the same order. Variations that fail translation are not registered and are returned with null `object` and `object_id` fields. Registration or liftover failure messages may also be included in the `messages` field.",
-    response_model=None,
 )
 async def register_variations(
     request: Request,
