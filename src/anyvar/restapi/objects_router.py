@@ -1,13 +1,11 @@
 """Provide router for operations on stored objects"""
 
-import json
 import logging
 from http import HTTPStatus
-from typing import Annotated, cast
+from typing import Annotated
 
-from fastapi import APIRouter, Body, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Body, HTTPException, Query, Request
 from fastapi.params import Path
-from fastapi.responses import JSONResponse, StreamingResponse
 from ga4gh.vrs.dataproxy import DataProxyValidationError
 from hgvs.exceptions import HGVSParseError
 from pydantic import StrictStr
@@ -53,30 +51,6 @@ def _get_vrs_object(
             status_code=HTTPStatus.NOT_FOUND,
             detail=f"VRS Object {vrs_object_id} not found",
         ) from e
-
-
-async def parse_and_rebuild_response(
-    response: StreamingResponse,
-) -> tuple[dict, Response]:
-    """Convert a `Response` object to a dict, then re-build a new Response object (since parsing exhausts the Response `body_iterator`).
-
-    :param response: the `Response` object to parse
-    :return: a tuple with a dictionary representation of the Response and a new `Response` object
-    """
-    response_chunks: list[bytes] = [
-        cast(bytes, chunk) async for chunk in response.body_iterator
-    ]
-    response_body_encoded = b"".join(response_chunks)
-    response_body = response_body_encoded.decode("utf-8")
-    response_json = json.loads(response_body)
-
-    new_response = JSONResponse(
-        content=response_json,
-        status_code=response.status_code,
-        media_type=response.media_type,
-    )
-
-    return (response_json, new_response)
 
 
 VARIATION_EXAMPLE_PAYLOAD = {
