@@ -13,7 +13,7 @@ An AnyVar server hosts Swagger UI documentation at the server root address (e.g.
 Basic Variant Operations
 ========================
 
-Send a ``PUT`` request to ``/variation`` with a payload containing a variant definition using a :ref:`supported variant definition nomenclature<supported-variant-nomenclature>`. If translation and registration are successful, the response will include the variant's `identifier <https://vrs.ga4gh.org/en/stable/conventions/computed_identifiers.html>`_ and the complete `VRS allele object <https://vrs.ga4gh.org/en/stable/concepts/MolecularVariation/Allele.html>`_.
+Send a ``PUT`` request to ``/variation`` with a payload containing a variant definition using a :ref:`supported variant definition nomenclature<supported-variant-nomenclature>`. If translation and registration are successful, the response will include the variant's `identifier <https://vrs.ga4gh.org/en/stable/conventions/computed_identifiers.html>`_ and the complete `VRS allele object <https://vrs.ga4gh.org/en/stable/concepts/MolecularVariation/Allele.html>`_. By default, the response also includes the lifted-over variant in the ``lifted_over_to`` field (see :ref:`controlling_liftover`).
 
 .. code-block:: pycon
 
@@ -25,6 +25,8 @@ Send a ``PUT`` request to ``/variation`` with a payload containing a variant def
    'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU'
    >>> response.json()["object"]
    {'id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', 'type': 'Allele', 'digest': 'K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', 'location': {'id': 'ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy', 'type': 'SequenceLocation', 'digest': '01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy', 'sequenceReference': {'type': 'SequenceReference', 'refgetAccession': 'SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB'}, 'start': 87894076, 'end': 87894077}, 'state': {'type': 'LiteralSequenceExpression', 'sequence': 'T'}}
+   >>> response.json()["lifted_over_to"]
+   {'id': 'ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf', 'type': 'Allele', ...}
 
 A ``GET`` request to ``/variation/<ID>`` can be used to retrieve the same object later.
 
@@ -66,6 +68,98 @@ The ``/search`` endpoint enables retrieval of all variants that overlap a provid
      'end': 87894077},
     'state': {'type': 'LiteralSequenceExpression', 'sequence': 'T'}}
 
+Bulk Variant Registration
+=========================
+
+The ``/variations`` endpoint accepts a list of variation definitions for bulk registration. Each input produces a corresponding result in the response, in the same order. Variations that fail translation are not registered and return ``null`` for the ``object`` and ``object_id`` fields.
+
+.. code-block:: pycon
+
+   >>> payload = [
+   ...     {"definition": "NC_000010.11:g.87894077C>T"},
+   ...     {"definition": "NC_000007.14:g.140753336A>T"},
+   ... ]
+   >>> response = requests.put("http://localhost:8000/variations", json=payload)
+   >>> response.status_code
+   200
+   >>> len(response.json())
+   2
+   >>> response.json()[0]["object_id"]
+   'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU'
+
+Asynchronous Bulk Registration
+------------------------------
+
+For larger batches of variations, the ``/variations`` endpoint supports the same `asynchronous request-response pattern <https://learn.microsoft.com/en-us/azure/architecture/patterns/async-request-reply>`_ used by the ``/vcf`` endpoint (see :ref:`async configuration <async_work_dir_config>`). Set the ``run_async`` query parameter to ``true`` to submit the job asynchronously. The server returns a ``202 Accepted`` response containing a ``run_id``, which can be used to poll for the result at ``GET /variations/{run_id}``.
+
+.. code-block:: pycon
+
+   >>> payload = [{"definition": f"NC_000010.11:g.{pos}C>T"} for pos in range(87894070, 87894080)]
+   >>> response = requests.put("http://localhost:8000/variations?run_async=true", json=payload)
+   >>> response.status_code
+   202
+   >>> run_id = response.json()["run_id"]
+   >>> print(response.json()["status_message"])
+   'Run submitted. Check status at /variations/<run_id>'
+   >>> # poll for status
+   >>> status_response = requests.get(f"http://localhost:8000/variations/{run_id}")
+   >>> status_response.status_code  # 202 while in progress, 200 when complete
+   202
+   >>> # keep requesting until 200 OK
+   >>> status_response = requests.get(f"http://localhost:8000/variations/{run_id}")
+   >>> status_response.status_code
+   200
+   >>> # the response body is the list of registration results
+   >>> len(status_response.json())
+   10
+
+An optional ``run_id`` query parameter can be supplied to use a specific identifier for the run instead of a randomly generated UUID:
+
+.. code-block:: pycon
+
+   >>> response = requests.put(
+   ...     "http://localhost:8000/variations?run_async=true&run_id=my-custom-run-id",
+   ...     json=payload,
+   ... )
+   >>> response.json()["run_id"]
+   'my-custom-run-id'
+
+.. note::
+
+   Asynchronous variation registration requires Celery and a message broker (e.g. Redis). The ``CELERY_BROKER_URL`` environment variable must be set. See :ref:`async configuration <async_work_dir_config>` for details.
+
+.. _controlling_liftover:
+
+Controlling Liftover
+====================
+
+By default, when a GRCh37 or GRCh38 variant is registered via ``/variation`` or ``/variations``, AnyVar performs a liftover between GRCh37 and GRCh38, registers the lifted-over variant, stores bidirectional liftover mappings, and includes the lifted-over variant in the ``lifted_over_to`` response field.
+
+This behavior can be disabled by setting the ``do_liftover`` query parameter to ``false``:
+
+.. code-block:: pycon
+
+   >>> payload = {"definition": "NC_000010.11:g.87894077C>T"}
+   >>> response = requests.put("http://localhost:8000/variation?do_liftover=false", json=payload)
+   >>> response.json()["object_id"]
+   'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU'
+   >>> response.json().get("lifted_over_to") is None
+   True
+
+The ``do_liftover`` parameter is also supported on the ``/variations`` endpoint, including when running asynchronously:
+
+.. code-block:: pycon
+
+   >>> payload = [
+   ...     {"definition": "NC_000010.11:g.87894077C>T"},
+   ...     {"definition": "NC_000007.14:g.140753336A>T"},
+   ... ]
+   >>> response = requests.put("http://localhost:8000/variations?do_liftover=false", json=payload)
+   >>> all(r.get("lifted_over_to") is None for r in response.json())
+   True
+
+When liftover is enabled (the default), the ``lifted_over_to`` field in the response contains the full VRS object for the lifted-over variant. If the liftover fails for a particular variant (e.g. due to ambiguous coordinate mapping), the ``lifted_over_to`` field will be ``null`` and relevant messages will appear in the ``messages`` field of that response entry.
+
 Working With Mappings
 =====================
 
@@ -98,7 +192,7 @@ Mappings from an object can be retrieved via ``GET /variations/<vrs_id>/mappings
       'mapping_type': 'transcribe_to'}]}
 
 
-By default, when a GRCh37 or GRCh38 variant is registered, the lifted-over equivalent is also registered, and mappings between them are stored.
+By default, when a GRCh37 or GRCh38 variant is registered, the lifted-over equivalent is also registered, and mappings between them are stored. This behavior can be disabled with the ``do_liftover`` parameter (see :ref:`controlling_liftover`).
 
 .. code-block:: pycon
 
@@ -165,7 +259,7 @@ Files submitted to the ``/vcf`` endpoint will be parsed for variants, which will
    >>> "VRS_Allele_IDs" in response.text
    True
 
-For larger files, a nontrivial amount of processing time may be required before the annotated file is ready to return. Users are advised to use the ``run_async`` parameter, which employs an `asynchronous request-response pattern <https://learn.microsoft.com/en-us/azure/architecture/patterns/async-request-reply>`_ to support multiple long-running tasks. In this model, when run requests are submitted, a run ID is returned. This ID can then be used to poll the server for the status of the task, responding with ``202 ACCEPTED`` if the task was submitted successfully, but is still in progress, and then returning the annotated file when it's ready.
+For larger files, a nontrivial amount of processing time may be required before the annotated file is ready to return. Users are advised to use the ``run_async`` parameter, which employs an `asynchronous request-response pattern <https://learn.microsoft.com/en-us/azure/architecture/patterns/async-request-reply>`_ to support multiple long-running tasks. The ``/variations`` endpoint supports the same pattern for bulk variant registration (see `Asynchronous Bulk Registration`_). In this model, when run requests are submitted, a run ID is returned. This ID can then be used to poll the server for the status of the task, responding with ``202 ACCEPTED`` if the task was submitted successfully, but is still in progress, and then returning the annotated file when it's ready.
 
 .. code-block:: pycon
 
