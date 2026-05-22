@@ -7,22 +7,7 @@ from anyvar.mapping import liftover
 from anyvar.storage.base import Storage
 from anyvar.translate.base import Translator
 
-
 # Success Cases
-@pytest.fixture(scope="session")
-def copynumber_ranged_positive_grch37_variant(copy_number_variations: dict):
-    return {
-        "grch37": models.CopyNumberCount(
-            **copy_number_variations["ga4gh:CN.CTCgVehH0FEqrlaOMhUsDjKwzavnQegk"][
-                "variation"
-            ]
-        ),
-        "grch38": models.CopyNumberCount(
-            **copy_number_variations["ga4gh:CN.fmrn873tRhAiNLybjHlftgHjcAEExPKQ"][
-                "variation"
-            ]
-        ),
-    }
 
 
 @pytest.fixture(scope="session")

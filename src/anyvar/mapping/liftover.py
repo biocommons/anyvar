@@ -17,7 +17,7 @@ from ga4gh.vrs import models, normalize
 from ga4gh.vrs.dataproxy import _DataProxy
 
 from anyvar.core.metadata import VariationMapping, VariationMappingType
-from anyvar.core.objects import VrsVariation
+from anyvar.core.objects import SupportedVrsVariation
 from anyvar.storage.base import Storage
 
 _logger = logging.getLogger(__name__)
@@ -132,7 +132,7 @@ def convert_position(
     return models.Range([lower_bound, upper_bound])
 
 
-def get_liftover_variant(input_variant: VrsVariation) -> VrsVariation:
+def get_liftover_variant(input_variant: SupportedVrsVariation) -> SupportedVrsVariation:
     """Liftover a variant from GRCh37 or GRCH38 into the opposite assembly, and return the converted variant as a VrsVariation.
 
     If liftover is unsuccessful, raise an Exception.
@@ -202,8 +202,8 @@ def get_liftover_variant(input_variant: VrsVariation) -> VrsVariation:
 
 
 def add_liftover_mapping(
-    variation: VrsVariation, storage: Storage, dataproxy: _DataProxy
-) -> tuple[list[str], VrsVariation]:
+    variation: SupportedVrsVariation, storage: Storage, dataproxy: _DataProxy
+) -> tuple[list[str], SupportedVrsVariation]:
     """Perform liftover between GRCh37 <-> GRCh38. Store mappings between the original and lifted-over variants.
 
     Don't register lifted-over variant or mappings if

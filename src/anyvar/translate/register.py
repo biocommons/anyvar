@@ -65,7 +65,7 @@ def register_variations(
         also be included in the `messages` field.
     """
     translation_results: list[TranslationResult] = []
-    variations_to_store: list[objects.VrsObject] = []
+    variations_to_store: list[objects.SupportedVrsObject] = []
 
     for variation_request in variation_requests:
         translation_result = translate_variation(av.translator, variation_request)

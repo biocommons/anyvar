@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 from ga4gh.vrs import models as vrs_models
 
 from anyvar.core import metadata, objects
+from anyvar.core.objects import SupportedVrsObject
 from anyvar.storage import DEFAULT_STORAGE_URI
 from anyvar.storage.base import Storage
 from anyvar.storage.no_db import NoObjectStore
@@ -123,7 +124,7 @@ class AnyVar:
         self.object_store = object_store
         self.translator = translator
 
-    def put_objects(self, variation_objects: list[objects.VrsObject]) -> None:
+    def put_objects(self, variation_objects: list[objects.SupportedVrsObject]) -> None:
         """Attempt to register variation objects
 
         The provided list may contain any supported variation object -- i.e. not just
@@ -139,8 +140,10 @@ class AnyVar:
             raise e  # noqa: TRY201
 
     def get_object(
-        self, object_id: str, object_type: type[objects.VrsObject] | None = None
-    ) -> objects.VrsObject:
+        self,
+        object_id: str,
+        object_type: type[objects.SupportedVrsObject] | None = None,
+    ) -> objects.SupportedVrsObject:
         """Retrieve registered VRS Object.
 
         :param object_id: object identifier
@@ -150,8 +153,10 @@ class AnyVar:
         """
         if object_type is not None:
             # Search specific object type
-            found = self.object_store.get_objects(
-                object_type=object_type, object_ids=[object_id]
+            found: list[SupportedVrsObject] = list(
+                self.object_store.get_objects(
+                    object_type=object_type, object_ids=[object_id]
+                )
             )
             if not found:
                 raise KeyError(f"Object {object_id} not found")
@@ -162,7 +167,7 @@ class AnyVar:
         # Search all object types
         return self._get_object_polymorphic(object_id)
 
-    def _get_object_polymorphic(self, object_id: str) -> objects.VrsObject:
+    def _get_object_polymorphic(self, object_id: str) -> objects.SupportedVrsObject:
         """Search all object types for the given object ID.
 
         :param object_id: VRS object identifier
