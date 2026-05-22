@@ -34,8 +34,10 @@ objects_router = APIRouter()
 
 
 def _get_vrs_object(
-    av: AnyVar, vrs_object_id: str, object_type: type[objects.VrsObject] | None = None
-) -> objects.VrsObject:
+    av: AnyVar,
+    vrs_object_id: str,
+    object_type: type[objects.SupportedVrsObject] | None = None,
+) -> objects.SupportedVrsObject:
     """Get VRS variation given VRS ID
 
     :param av: AnyVar instance
@@ -101,7 +103,7 @@ def _translate_variation(
 
 def _handle_translation_request(
     tlr: Translator, var_req: VariationRequest
-) -> objects.VrsVariation:
+) -> objects.SupportedVrsVariation:
     """Perform variant translation and convert known exceptions to appropriate HTTP responses
 
     :param tlr: Translator instance
@@ -135,7 +137,7 @@ def _register_variations(
         also be included in the `messages` field.
     """
     translation_results: list[TranslationResult] = []
-    variations_to_store: list[objects.VrsObject] = []
+    variations_to_store: list[objects.SupportedVrsObject] = []
 
     for variation_request in variation_requests:
         translation_result = _translate_variation(av.translator, variation_request)
@@ -246,7 +248,7 @@ PUT_VRS_VARIATION_EXAMPLE_PAYLOAD = {
 def register_vrs_variation(
     request: Request,
     variation: Annotated[
-        objects.VrsVariation,
+        objects.SupportedVrsVariation,
         Body(
             description="Valid VRS object.",
             examples=[PUT_VRS_VARIATION_EXAMPLE_PAYLOAD],
@@ -308,7 +310,7 @@ def get_object_by_id(
 ) -> GetObjectResponse:
     """Get registered VRS object given its VRS ID."""
     av: AnyVar = request.app.state.anyvar
-    vrs_object: objects.VrsObject = _get_vrs_object(av, vrs_id)
+    vrs_object: objects.SupportedVrsObject = _get_vrs_object(av, vrs_id)
     return GetObjectResponse(messages=[], data=vrs_object)
 
 
@@ -351,7 +353,7 @@ def add_object_extension(
 ) -> AddExtensionResponse:
     """Store an extension for a VRS Object."""
     av: AnyVar = request.app.state.anyvar
-    vrs_object: objects.VrsObject = _get_vrs_object(av, vrs_id)
+    vrs_object: objects.SupportedVrsObject = _get_vrs_object(av, vrs_id)
 
     extension_id: int | None = None
     try:
@@ -419,9 +421,9 @@ def add_object_mapping(
 ) -> AddMappingResponse:
     """Store a mapping for a VRS Object"""
     av: AnyVar = request.app.state.anyvar
-    source_vrs_obj: objects.VrsObject = _get_vrs_object(av, vrs_id)
+    source_vrs_obj: objects.SupportedVrsObject = _get_vrs_object(av, vrs_id)
     dest_vrs_id = mapping_request.dest_id
-    dest_vrs_obj: objects.VrsObject = _get_vrs_object(av, dest_vrs_id)
+    dest_vrs_obj: objects.SupportedVrsObject = _get_vrs_object(av, dest_vrs_id)
 
     # Add the mapping to the database
     mapping: metadata.VariationMapping | None = None

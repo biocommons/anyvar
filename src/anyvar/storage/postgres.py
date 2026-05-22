@@ -74,7 +74,7 @@ class PostgresObjectStore(Storage):
             session.execute(delete(orm.VrsObject))
             session.execute(delete(orm.Extension))
 
-    def add_objects(self, objects: Iterable[anyvar_objects.VrsObject]) -> None:
+    def add_objects(self, objects: Iterable[anyvar_objects.SupportedVrsObject]) -> None:
         """Add multiple VRS objects to storage using bulk inserts.
 
         If an object ID conflicts with an existing object, skip it.
@@ -90,7 +90,7 @@ class PostgresObjectStore(Storage):
         :raise IncompleteVrsObjectError: if object is missing required properties or if
             required properties aren't fully dereferenced
         """
-        objects_list: list[anyvar_objects.VrsObject] = list(objects)
+        objects_list: list[anyvar_objects.SupportedVrsObject] = list(objects)
         if not objects_list:
             return
 
@@ -122,8 +122,10 @@ class PostgresObjectStore(Storage):
                     session.execute(stmt, dicts)
 
     def get_objects(
-        self, object_type: type[anyvar_objects.VrsObject], object_ids: Iterable[str]
-    ) -> Iterable[anyvar_objects.VrsObject]:
+        self,
+        object_type: type[anyvar_objects.SupportedVrsObject],
+        object_ids: Iterable[str],
+    ) -> Iterable[anyvar_objects.SupportedVrsObject]:
         """Retrieve multiple VRS objects from storage by their IDs.
 
         If no object matches a given ID, that ID is skipped
@@ -175,7 +177,9 @@ class PostgresObjectStore(Storage):
         return results
 
     def delete_objects(
-        self, object_type: type[anyvar_objects.VrsObject], object_ids: Iterable[str]
+        self,
+        object_type: type[anyvar_objects.SupportedVrsObject],
+        object_ids: Iterable[str],
     ) -> None:
         """Delete all objects of a specific type from storage.
 

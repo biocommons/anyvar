@@ -1,16 +1,12 @@
 """Provide types, classes, and functions for objects stored by AnyVar."""
 
-from typing import TypeVar, get_args
+from typing import TypeAlias, TypeVar, get_args
 
 from ga4gh.core import ga4gh_identify
 from ga4gh.vrs import models, vrs_deref, vrs_enref
 
-VrsObject = (
-    models.Allele
-    | models.CopyNumberChange
-    | models.CopyNumberCount
-    | models.SequenceLocation
-    | models.SequenceReference
+SupportedVrsObject: TypeAlias = (
+    models.Allele | models.SequenceLocation | models.SequenceReference
 )
 
 """
@@ -18,7 +14,7 @@ Any time this is updated, a corresponding member MUST be added to ``anyvar.resta
 
 ``tests/unit/restapi/test_schema.py`` will fail if you don't.
 """
-VrsVariation = models.Allele | models.CopyNumberChange | models.CopyNumberCount
+SupportedVrsVariation: TypeAlias = models.Allele
 
 
 """
@@ -28,15 +24,15 @@ For example:
 
 >>> vrs_object_class_map["Allele"] = models.Allele
 """
-vrs_object_class_map: dict[str, type[VrsObject]] = {
-    cls.__name__: cls for cls in get_args(VrsObject)
+vrs_object_class_map: dict[str, type[SupportedVrsObject]] = {
+    cls.__name__: cls for cls in get_args(SupportedVrsObject)
 }
 
 
-Type_VrsObject = TypeVar("Type_VrsObject", bound=VrsObject)
+Type_SupportedVrsObject = TypeVar("Type_SupportedVrsObject", bound=SupportedVrsObject)
 
 
-def recursive_identify(vrs_object: Type_VrsObject) -> Type_VrsObject:
+def recursive_identify(vrs_object: Type_SupportedVrsObject) -> Type_SupportedVrsObject:
     """Add GA4GH IDs to an object and all GA4GH-identifiable objects contained within.
 
     .. ATTENTION::
