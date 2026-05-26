@@ -846,6 +846,31 @@ class VariantProjector:
             state=cdna_state,
         )
 
+    async def _resolve_genomic_mane_c_p(
+        self,
+        genomic_ac: str,
+        start: int,
+        end: int,
+    ) -> object | None:
+        """Resolve genomic input to GRCh38 MANE c./p. projection metadata."""
+        grch38 = await self.cst.mane_transcript.g_to_grch38(
+            ac=genomic_ac,
+            start_pos=start,
+            end_pos=end,
+            get_mane_genes=False,
+            coordinate_type=CoordinateType.INTER_RESIDUE,
+        )
+        if grch38 is None:
+            return None
+
+        return await self.cst.mane_transcript.grch38_to_mane_c_p(
+            alt_ac=grch38.ac,
+            start_pos=grch38.pos[0],
+            end_pos=grch38.pos[1],
+            coordinate_type=CoordinateType.INTER_RESIDUE,
+            try_longest_compatible=True,
+        )
+
     def _project_genomic_variant(
         self,
         variation: SupportedVrsVariation,
@@ -874,12 +899,10 @@ class VariantProjector:
         # the longest compatible remaining transcript when MANE is unavailable
         # or incompatible.
         result = self._run_async_projection(
-            self.cst.mane_transcript.grch38_to_mane_c_p(
-                alt_ac=genomic_ac,
-                start_pos=location.start,
-                end_pos=location.end,
-                coordinate_type=CoordinateType.INTER_RESIDUE,
-                try_longest_compatible=True,
+            self._resolve_genomic_mane_c_p(
+                genomic_ac,
+                location.start,
+                location.end,
             ),
             timeout_message="Projection failed: coordinate mapping timed out",
             failure_message="Projection failed: error during coordinate mapping",

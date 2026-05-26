@@ -126,6 +126,15 @@ def _allele(
     )
 
 
+def _stub_genomic_mane_lookup(projector, mocker):
+    """Stub CST genomic lookup for tests focused on downstream projection storage."""
+    return mocker.patch.object(
+        projector,
+        "_resolve_genomic_mane_c_p",
+        new=mocker.Mock(return_value=object()),
+    )
+
+
 def test_get_variation_location_returns_inter_residue_location():
     location = projection._get_variation_location(_allele(), require_refget=True)
 
@@ -1143,6 +1152,7 @@ def test_project_genomic_variant_skips_protein_for_5_prime_utr(mocker):
     )
     projector.dp = object()
     projector._loop = object()
+    _stub_genomic_mane_lookup(projector, mocker)
 
     variation = SimpleNamespace(
         id="ga4gh:VA.input",
@@ -1202,6 +1212,7 @@ def test_project_genomic_variant_skips_protein_for_3_prime_utr(mocker):
     )
     projector.dp = object()
     projector._loop = object()
+    _stub_genomic_mane_lookup(projector, mocker)
 
     variation = SimpleNamespace(
         id="ga4gh:VA.input",
@@ -1269,6 +1280,7 @@ def test_project_genomic_variant_creates_protein_for_cds_variant(mocker):
     )
     projector.dp = object()
     projector._loop = object()
+    _stub_genomic_mane_lookup(projector, mocker)
 
     variation = SimpleNamespace(
         id="ga4gh:VA.input",
@@ -1321,6 +1333,7 @@ def test_project_genomic_variant_uses_shared_transcript_to_protein_helper(mocker
     )
     projector.dp = object()
     projector._loop = object()
+    _stub_genomic_mane_lookup(projector, mocker)
     protein_helper = mocker.patch.object(
         projector, "_project_transcript_to_protein", return_value=None
     )
@@ -1357,47 +1370,130 @@ def test_project_genomic_variant_uses_shared_transcript_to_protein_helper(mocker
     )
 
 
-def test_project_genomic_variant_requests_longest_compatible_fallback(mocker):
-    """Genomic projection opts into cool-seq-tool transcript fallback."""
-    projection_kwargs = {}
+def test_resolve_genomic_mane_c_p_canonicalizes_to_grch38_then_projects():
+    result = object()
 
-    def fake_grch38_to_mane_c_p(**kwargs):
-        projection_kwargs.update(kwargs)
-        return object()
+    class FakeManeTranscript:
+        def __init__(self):
+            self.g_to_grch38_calls = []
+            self.grch38_to_mane_c_p_calls = []
 
-    mocker.patch.object(
-        projection.asyncio,
-        "run_coroutine_threadsafe",
-        return_value=FakeFuture(None),
+        async def g_to_grch38(self, **kwargs):
+            self.g_to_grch38_calls.append(kwargs)
+            return SimpleNamespace(
+                ac="NC_000007.14",
+                pos=(55191821, 55191822),
+            )
+
+        async def grch38_to_mane_c_p(self, **kwargs):
+            self.grch38_to_mane_c_p_calls.append(kwargs)
+            return result
+
+    mane_transcript = FakeManeTranscript()
+    projector = object.__new__(projection.VariantProjector)
+    projector.cst = SimpleNamespace(mane_transcript=mane_transcript)
+
+    observed = projection.asyncio.run(
+        projector._resolve_genomic_mane_c_p(
+            "NC_000007.13",
+            55259515,
+            55259516,
+        )
     )
+
+    assert observed is result
+    assert mane_transcript.g_to_grch38_calls == [
+        {
+            "ac": "NC_000007.13",
+            "start_pos": 55259515,
+            "end_pos": 55259516,
+            "get_mane_genes": False,
+            "coordinate_type": projection.CoordinateType.INTER_RESIDUE,
+        }
+    ]
+    assert mane_transcript.grch38_to_mane_c_p_calls == [
+        {
+            "alt_ac": "NC_000007.14",
+            "start_pos": 55191821,
+            "end_pos": 55191822,
+            "coordinate_type": projection.CoordinateType.INTER_RESIDUE,
+            "try_longest_compatible": True,
+        },
+    ]
+
+
+def test_resolve_genomic_mane_c_p_skips_when_cst_cannot_liftover():
+    class FakeManeTranscript:
+        async def g_to_grch38(self, **kwargs):
+            _ = kwargs
+
+        async def grch38_to_mane_c_p(self, **kwargs):
+            _ = kwargs
+            msg = "grch38_to_mane_c_p should not be called"
+            raise AssertionError(msg)
 
     projector = object.__new__(projection.VariantProjector)
-    projector.cst = SimpleNamespace(
-        mane_transcript=SimpleNamespace(grch38_to_mane_c_p=fake_grch38_to_mane_c_p)
+    projector.cst = SimpleNamespace(mane_transcript=FakeManeTranscript())
+
+    observed = projection.asyncio.run(
+        projector._resolve_genomic_mane_c_p("NC_000007.13", 1, 2)
     )
+
+    assert observed is None
+
+
+def test_project_genomic_variant_accepts_projection_with_lifted_alt_ac(mocker):
+    """Genomic projection may use CST's internal GRCh38 coordinate."""
+    cdna = SimpleNamespace(
+        refseq="NM_004333.6",
+        pos=(100, 101),
+        coding_start_site=200,
+        coding_end_site=2200,
+        alt_ac="NC_000007.14",
+    )
+    protein = SimpleNamespace(refseq="NP_004324.2", pos=(33, 34))
+    result = SimpleNamespace(cdna=cdna, protein=protein)
+
+    mocker.patch.object(
+        projection,
+        "_build_allele",
+        return_value=SimpleNamespace(id="ga4gh:VA.cdna"),
+    )
+    store_mock = mocker.patch.object(projection, "_store_projected_variant")
+
+    projector = object.__new__(projection.VariantProjector)
+    projector.cst = SimpleNamespace()
     projector.dp = object()
     projector._loop = object()
+    resolve_genomic = mocker.patch.object(
+        projector,
+        "_resolve_genomic_mane_c_p",
+        new=mocker.Mock(return_value=object()),
+    )
+    mocker.patch.object(projector, "_run_async_projection", return_value=result)
+    protein_helper = mocker.patch.object(
+        projector, "_project_transcript_to_protein", return_value=None
+    )
     variation = SimpleNamespace(
-        id="ga4gh:VA.input",
+        id="ga4gh:VA.input37",
+        state=models.LiteralSequenceExpression(
+            type="LiteralSequenceExpression",
+            sequence="A",
+        ),
         location=SimpleNamespace(
-            sequenceReference=SimpleNamespace(refgetAccession="SQ.genomic"),
-            start=10117252,
-            end=10117253,
+            sequenceReference=SimpleNamespace(refgetAccession="SQ.genomic37"),
+            start=140753336,
+            end=140753337,
         ),
     )
+    storage = mocker.Mock()
 
-    messages = projector._project_genomic_variant(
-        variation, mocker.Mock(), "NC_000023.11"
-    )
+    messages = projector._project_genomic_variant(variation, storage, "NC_000007.13")
 
     assert messages is None
-    assert projection_kwargs == {
-        "alt_ac": "NC_000023.11",
-        "start_pos": 10117252,
-        "end_pos": 10117253,
-        "coordinate_type": projection.CoordinateType.INTER_RESIDUE,
-        "try_longest_compatible": True,
-    }
+    resolve_genomic.assert_called_once_with("NC_000007.13", 140753336, 140753337)
+    store_mock.assert_called_once()
+    protein_helper.assert_called_once()
 
 
 def test_project_genomic_variant_raises_unsupported_protein_state(mocker):
@@ -1436,6 +1532,7 @@ def test_project_genomic_variant_raises_unsupported_protein_state(mocker):
     )
     projector.dp = object()
     projector._loop = object()
+    _stub_genomic_mane_lookup(projector, mocker)
 
     variation = SimpleNamespace(
         id="ga4gh:VA.input",
@@ -1529,6 +1626,7 @@ def test_project_genomic_variant_cancels_timed_out_projection(mocker):
     )
     projector.dp = object()
     projector._loop = object()
+    _stub_genomic_mane_lookup(projector, mocker)
 
     variation = SimpleNamespace(
         id="ga4gh:VA.input",
@@ -1591,6 +1689,7 @@ def test_project_genomic_variant_applies_cdna_coding_start_site_before_build(moc
     )
     projector.dp = object()
     projector._loop = object()
+    _stub_genomic_mane_lookup(projector, mocker)
 
     variation = SimpleNamespace(
         id="ga4gh:VA.input",
