@@ -2,6 +2,7 @@
 
 # ruff: noqa: SLF001
 
+from contextlib import asynccontextmanager
 from types import SimpleNamespace
 from unittest.mock import call
 
@@ -38,6 +39,17 @@ class FakeDataProxy:
     def get_sequence(self, identifier: str, start: int, end: int) -> str:
         self.sequence_calls.append((identifier, start, end))
         return "A" * (end - start)
+
+
+def _fake_uta_db(repository):
+    """Wrap a fake UTA repository in CoolSeqTool's UTA DB context-manager API."""
+
+    class FakeUtaDb:
+        @asynccontextmanager
+        async def repository(self):
+            yield repository
+
+    return FakeUtaDb()
 
 
 class ProteinProjectionDataProxy(FakeDataProxy):
@@ -713,12 +725,14 @@ def test_add_projections_raises_for_non_alleles(mocker):
 
 
 def test_resolve_transcript_to_protein_metadata_skips_without_cds_metadata():
-    class FakeUtaDb:
+    class FakeUtaRepository:
         async def get_cds_start_end(self, transcript_ac):
             _ = transcript_ac
 
     projector = object.__new__(projection.VariantProjector)
-    projector.cst = SimpleNamespace(mane_transcript=SimpleNamespace(uta_db=FakeUtaDb()))
+    projector.cst = SimpleNamespace(
+        mane_transcript=SimpleNamespace(uta_db=_fake_uta_db(FakeUtaRepository()))
+    )
 
     with pytest.raises(
         projection.ProjectionError,
@@ -730,7 +744,7 @@ def test_resolve_transcript_to_protein_metadata_skips_without_cds_metadata():
 
 
 def test_resolve_transcript_to_protein_metadata_skips_without_alignment_metadata():
-    class FakeUtaDb:
+    class FakeUtaRepository:
         async def get_cds_start_end(self, transcript_ac):
             _ = transcript_ac
             return 200, 2200
@@ -739,7 +753,9 @@ def test_resolve_transcript_to_protein_metadata_skips_without_alignment_metadata
             _ = args, kwargs
 
     projector = object.__new__(projection.VariantProjector)
-    projector.cst = SimpleNamespace(mane_transcript=SimpleNamespace(uta_db=FakeUtaDb()))
+    projector.cst = SimpleNamespace(
+        mane_transcript=SimpleNamespace(uta_db=_fake_uta_db(FakeUtaRepository()))
+    )
 
     with pytest.raises(
         projection.ProjectionError,
@@ -751,7 +767,7 @@ def test_resolve_transcript_to_protein_metadata_skips_without_alignment_metadata
 
 
 def test_resolve_transcript_to_protein_metadata_skips_utr_without_alignment_lookup():
-    class FakeUtaDb:
+    class FakeUtaRepository:
         async def get_cds_start_end(self, transcript_ac):
             _ = transcript_ac
             return 200, 2200
@@ -767,7 +783,9 @@ def test_resolve_transcript_to_protein_metadata_skips_utr_without_alignment_look
             raise AssertionError(msg)
 
     projector = object.__new__(projection.VariantProjector)
-    projector.cst = SimpleNamespace(mane_transcript=SimpleNamespace(uta_db=FakeUtaDb()))
+    projector.cst = SimpleNamespace(
+        mane_transcript=SimpleNamespace(uta_db=_fake_uta_db(FakeUtaRepository()))
+    )
 
     result = projection.asyncio.run(
         projector._resolve_transcript_to_protein_metadata("NM_001184880.2", 10, 11)
@@ -796,7 +814,7 @@ def test_resolve_transcript_to_protein_metadata_resolves_exact_protein_accession
             assert named is True
             return iter(self.rows)
 
-    class FakeUtaDb:
+    class FakeUtaRepository:
         def __init__(self):
             self.genomic_tx_data_calls = []
             self.get_transcripts_calls = []
@@ -837,9 +855,11 @@ def test_resolve_transcript_to_protein_metadata_resolves_exact_protein_accession
                 ]
             )
 
-    uta_db = FakeUtaDb()
+    uta_repository = FakeUtaRepository()
     projector = object.__new__(projection.VariantProjector)
-    projector.cst = SimpleNamespace(mane_transcript=SimpleNamespace(uta_db=uta_db))
+    projector.cst = SimpleNamespace(
+        mane_transcript=SimpleNamespace(uta_db=_fake_uta_db(uta_repository))
+    )
 
     result = projection.asyncio.run(
         projector._resolve_transcript_to_protein_metadata("NM_004333.6", 300, 301)
@@ -855,10 +875,10 @@ def test_resolve_transcript_to_protein_metadata_resolves_exact_protein_accession
         refseq="NP_004324.2",
         pos=(33, 34),
     )
-    assert uta_db.genomic_tx_data_calls == [
+    assert uta_repository.genomic_tx_data_calls == [
         ("NM_004333.6", (300, 301), projection.AnnotationLayer.CDNA)
     ]
-    assert uta_db.get_transcripts_calls == [
+    assert uta_repository.get_transcripts_calls == [
         {
             "start_pos": 100,
             "end_pos": 101,

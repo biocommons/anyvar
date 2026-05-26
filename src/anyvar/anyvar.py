@@ -110,17 +110,13 @@ def create_projector(translator: Translator):  # noqa: ANN201
     """Create a VariantProjector if projection is enabled and cool-seq-tool is installed.
 
     Projection is enabled when:
-    - ``ANYVAR_ENABLE_PROJECTION`` env var is set to a truthy value
+    - ``ANYVAR_ENABLE_PROJECTION`` env var is set to ``true``
     - ``cool-seq-tool`` package is installed
 
     :param translator: Translator instance (provides the SeqRepo DataProxy)
     :return: VariantProjector instance, or None if not available/enabled
     """
-    if os.environ.get("ANYVAR_ENABLE_PROJECTION", "").lower() not in (
-        "1",
-        "true",
-        "yes",
-    ):
+    if os.environ.get("ANYVAR_ENABLE_PROJECTION", "").lower() != "true":
         _logger.debug("Projection not enabled (ANYVAR_ENABLE_PROJECTION not set)")
         return None
 
@@ -135,13 +131,12 @@ def create_projector(translator: Translator):  # noqa: ANN201
 
     from anyvar.mapping.projection import VariantProjector  # noqa: PLC0415
 
-    db_url = os.environ.get("UTA_DB_URL")
     kwargs: dict = {}
-    if db_url:
-        kwargs["db_url"] = db_url
     # Share SeqRepo instance with the rest of AnyVar to avoid duplicate initialization
     if hasattr(translator.dp, "sr"):
         kwargs["sr"] = translator.dp.sr
+    # NOTE: UTA_DB_URL is initialized with dotenv in AnyVar, and cool-seq-tool reads
+    # the UTA_DB_URL env var lazily, so it should use the value set in .env
     cst = CoolSeqTool(**kwargs)
     _logger.info("CoolSeqTool initialized for variant projection")
     return VariantProjector(cst=cst, dp=translator.dp)

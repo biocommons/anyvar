@@ -627,6 +627,10 @@ class VariantProjector:
         )
         self._thread.start()
 
+    def _uta_repository(self):  # noqa: ANN202
+        """Return CoolSeqTool's UTA repository context manager."""
+        return self.cst.mane_transcript.uta_db.repository()
+
     def close(self, timeout: float = 5.0) -> None:
         """Stop the projector event loop thread."""
         if self._loop.is_closed():
@@ -634,10 +638,10 @@ class VariantProjector:
 
         if self._thread.is_alive():
             uta_db = getattr(getattr(self.cst, "mane_transcript", None), "uta_db", None)
-            pool = getattr(uta_db, "_connection_pool", None)
-            if pool is not None:
+            close = getattr(uta_db, "close", None)
+            if close is not None:
                 try:
-                    future = asyncio.run_coroutine_threadsafe(pool.close(), self._loop)
+                    future = asyncio.run_coroutine_threadsafe(close(), self._loop)
                     future.result(timeout=timeout)
                 except Exception:  # noqa: BLE001
                     _logger.debug("Failed to close UTA connection pool", exc_info=True)
@@ -682,13 +686,14 @@ class VariantProjector:
         alt_ac: str | None,
     ) -> str | None:
         """Return the protein accession associated with an exact transcript."""
-        transcripts = await self.cst.mane_transcript.uta_db.get_transcripts(
-            start_pos=cdna_pos[0],
-            end_pos=cdna_pos[1],
-            gene=gene,
-            use_tx_pos=True,
-            alt_ac=alt_ac,
-        )
+        async with self._uta_repository() as uta:
+            transcripts = await uta.get_transcripts(
+                start_pos=cdna_pos[0],
+                end_pos=cdna_pos[1],
+                gene=gene,
+                use_tx_pos=True,
+                alt_ac=alt_ac,
+            )
         if transcripts is None or transcripts.is_empty():
             return None
 
@@ -707,9 +712,8 @@ class VariantProjector:
         transcript_end: int,
     ) -> tuple[_CdnaPositionLike, _ProteinProjection | None]:
         """Resolve exact transcript metadata needed for protein projection."""
-        cds_start_end = await self.cst.mane_transcript.uta_db.get_cds_start_end(
-            transcript_ac
-        )
+        async with self._uta_repository() as uta:
+            cds_start_end = await uta.get_cds_start_end(transcript_ac)
         if cds_start_end is None:
             msg = f"Projection skipped: no CDS metadata for transcript {transcript_ac}"
             raise ProjectionError(msg)
@@ -728,11 +732,12 @@ class VariantProjector:
         if _is_utr_variant(transcript_projection):
             return transcript_projection, None
 
-        genomic_tx_data = await self.cst.mane_transcript.uta_db.get_genomic_tx_data(
-            transcript_ac,
-            (transcript_start, transcript_end),
-            annotation_layer=AnnotationLayer.CDNA,
-        )
+        async with self._uta_repository() as uta:
+            genomic_tx_data = await uta.get_genomic_tx_data(
+                transcript_ac,
+                (transcript_start, transcript_end),
+                annotation_layer=AnnotationLayer.CDNA,
+            )
         if genomic_tx_data is None:
             msg = (
                 "Projection skipped: no transcript alignment metadata for "
