@@ -2,7 +2,7 @@
 
 This currently includes
 
-* **Annotations**: free-text key-value descriptions of an object
+* **Extensions**: free-text key-value descriptions of an object
 * **Mappings**: directed associations between objects
 """
 
@@ -21,13 +21,13 @@ class VariationMappingType(StrEnum):
        and may or may not be validated within AnyVar.
 
     * ``LIFTOVER_TO``: Genomic-to-genomic coordinate transformation. Use when mapping
-        a variation between two reference sequences of the same molecule type, typically
-        genomic DNA.
+      a variation between two reference sequences of the same molecule type, typically
+      genomic DNA.
     * ``TRANSCRIBE_TO``: Genomic-to-transcript (RNA/cDNA) projection. Use when projecting
-        a genomic DNA object onto a transcript sequence (RNA or cDNA). This accounts for
-        splicing, transcript strand orientation, and transcript-specific exon structure.
+      a genomic DNA object onto a transcript sequence (RNA or cDNA). This accounts for
+      splicing, transcript strand orientation, and transcript-specific exon structure.
     * ``TRANSLATE_TO``: Transcript-to-protein projection. This entails codon interpretation,
-        amino acid substitution/insertion/deletion/extension, and protein coordinate changes.
+      amino acid substitution/insertion/deletion/extension, and protein coordinate changes.
     """
 
     LIFTOVER_TO = "liftover_to"
@@ -43,15 +43,20 @@ class VariationMapping(BaseModel):
     mapping_type: VariationMappingType
 
 
-class AnnotationType(StrEnum):
-    """Describe commonly used annotation types"""
+class ExtensionName(StrEnum):
+    """Describe commonly used extension names"""
 
     CREATION_TIMESTAMP = "creation_timestamp"
 
 
-class Annotation(BaseModel):
-    """Generic annotation class which attaches any object to an identifier"""
+class Extension(BaseModel):
+    """Generic extension class which attaches any object to an identifier
+
+    This is implemented in addition to the ``Extension`` defined in ``gks-core`` because
+    AnyVar needs additional metadata (like a reference ID) to manage it, but conceptually,
+    they're quite close.
+    """
 
     object_id: str
-    annotation_type: str
-    annotation_value: JsonValue
+    name: str
+    value: JsonValue

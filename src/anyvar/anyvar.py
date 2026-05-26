@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 from ga4gh.vrs import models as vrs_models
 
 from anyvar.core import metadata, objects
+from anyvar.core.objects import SupportedVrsObject
 from anyvar.storage import DEFAULT_STORAGE_URI
 from anyvar.storage.base import Storage
 from anyvar.translate.base import Translator
@@ -32,8 +33,9 @@ def create_storage(uri: str | None = None) -> Storage:
     environment value.
 
     The URI format is as follows:
-        PostgreSQL: `postgresql://[username]:[password]@[domain]/[database]`
-        Snowflake: `snowflake://sf_username:@sf_account_identifier/sf_db_name/sf_schema_name?password=sf_password`
+
+    * PostgreSQL: ``postgresql://[username]:[password]@[domain]/[database]``
+    * Snowflake: ``snowflake://sf_username:@sf_account_identifier/sf_db_name/sf_schema_name?password=sf_password``
 
     For no database (for testing or non-persistent use cases), use an empty string.
 
@@ -68,6 +70,15 @@ def create_translator() -> Translator:
     Try to build the VRS-Python wrapper class with default args. In the future, could
     provide assistance constructing other kinds of translators.
 
+    Note that the default factory utilized by the VRS-Python translator that is called
+    here can be configured with the ``SEQREPO_DATAPROXY_URI`` environment variable,
+    with values like the following:
+
+    * ``seqrepo+file:///path/to/seqrepo/root``
+    * ``seqrepo+:../relative/path/to/seqrepo/root``
+    * ``seqrepo+http://localhost:5000/seqrepo``
+    * ``seqrepo+https://somewhere:5000/seqrepo``
+
     :return: instantiated Translator instance
     """
     return VrsPythonTranslator()
@@ -87,7 +98,7 @@ class VariantProjectorProtocol(Protocol):
     """Protocol for variant projection across the central dogma."""
 
     def add_projections(  # noqa: D102
-        self, variation: objects.VrsVariation, storage: Storage
+        self, variation: objects.SupportedVrsVariation, storage: Storage
     ) -> None: ...
 
 
@@ -157,7 +168,7 @@ class AnyVar:
         self.translator = translator
         self.projector = projector
 
-    def put_objects(self, variation_objects: list[objects.VrsObject]) -> None:
+    def put_objects(self, variation_objects: list[objects.SupportedVrsObject]) -> None:
         """Attempt to register variation objects
 
         The provided list may contain any supported variation object -- i.e. not just
@@ -173,8 +184,10 @@ class AnyVar:
             raise e  # noqa: TRY201
 
     def get_object(
-        self, object_id: str, object_type: type[objects.VrsObject] | None = None
-    ) -> objects.VrsObject:
+        self,
+        object_id: str,
+        object_type: type[objects.SupportedVrsObject] | None = None,
+    ) -> objects.SupportedVrsObject:
         """Retrieve registered VRS Object.
 
         :param object_id: object identifier
@@ -184,8 +197,10 @@ class AnyVar:
         """
         if object_type is not None:
             # Search specific object type
-            found = self.object_store.get_objects(
-                object_type=object_type, object_ids=[object_id]
+            found: list[SupportedVrsObject] = list(
+                self.object_store.get_objects(
+                    object_type=object_type, object_ids=[object_id]
+                )
             )
             if not found:
                 raise KeyError(f"Object {object_id} not found")
@@ -196,7 +211,7 @@ class AnyVar:
         # Search all object types
         return self._get_object_polymorphic(object_id)
 
-    def _get_object_polymorphic(self, object_id: str) -> objects.VrsObject:
+    def _get_object_polymorphic(self, object_id: str) -> objects.SupportedVrsObject:
         """Search all object types for the given object ID.
 
         :param object_id: VRS object identifier
@@ -223,8 +238,22 @@ class AnyVar:
                 continue
         raise KeyError(f"Object {object_id} not found in any table")
 
+    def put_extension(self, extension: metadata.Extension) -> int | None:
+        """Attempt to store an extension.
+
+        :param extension: an Extension object
+        :return: extension ID if successful, None otherwise
+        """
+        extension_id: int | None = None
+        try:
+            extension_id = self.object_store.add_extension(extension)
+        except Exception as e:
+            _logger.exception("Failed to add object: %s", extension)
+            raise e  # noqa: TRY201
+        return extension_id
+
     def delete_object(self, object_id: str) -> None:
-        """Delete an object and associated mappings/annotations by ID
+        """Delete an object and associated mappings/extensions by ID
 
         Doesn't delete wrapped objects (e.g. deleting a variant won't delete the associated location)
 
@@ -235,8 +264,8 @@ class AnyVar:
             vrs_object = self._get_object_polymorphic(object_id)
         except KeyError as e:
             raise ObjectNotFoundError from e
-        for annotation in self.object_store.get_annotations(object_id):
-            self.object_store.delete_annotation(annotation)
+        for extension in self.object_store.get_extensions(object_id):
+            self.object_store.delete_extension(extension)
         for mapping in self.object_store.get_mappings(object_id, as_source=True):
             self.object_store.delete_mapping(mapping)
         for mapping in self.object_store.get_mappings(object_id, as_source=False):
@@ -244,60 +273,44 @@ class AnyVar:
         object_type = objects.vrs_object_class_map[vrs_object.type]
         self.object_store.delete_objects(object_type, [object_id])
 
-    def put_annotation(self, annotation: metadata.Annotation) -> int | None:
-        """Attempt to store an annotation.
+    def get_object_extensions(
+        self, object_id: str, extension_name: str | None = None
+    ) -> list[metadata.Extension]:
+        """Get all extensions for the specified object, optionally filtered by type.
 
-        :param annotation: an Annotation object
-        :return: annotation ID if successful, None otherwise
-        """
-        annotation_id: int | None = None
-        try:
-            annotation_id = self.object_store.add_annotation(annotation)
-        except Exception as e:
-            _logger.exception("Failed to add object: %s", annotation)
-            raise e  # noqa: TRY201
-        return annotation_id
-
-    def get_object_annotations(
-        self, object_id: str, annotation_type: str | None = None
-    ) -> list[metadata.Annotation]:
-        """Get all annotations for the specified object, optionally filtered by type.
-
-        :param object_id: The ID of the object to retrieve annotations for
-        :param annotation_type: The type of annotation to retrieve (defaults to `None` to retrieve all annotations for the object)
-        :return: A list of Annotations
+        :param object_id: The ID of the object to retrieve extensions for
+        :param extension_type: The type of extension to retrieve (defaults to `None` to retrieve all extensions for the object)
+        :return: A list of extensions
         :raise ObjectNotFoundError: if ``object_id`` can't be found in DB
         """
         try:
-            annotations = self.object_store.get_annotations(object_id, annotation_type)
+            extensions = self.object_store.get_extensions(object_id, extension_name)
         except Exception as e:
-            _logger.exception(
-                "Failed to retrieve annotations for object: %s", object_id
-            )
+            _logger.exception("Failed to retrieve extensions for object: %s", object_id)
             raise e  # noqa: TRY201
-        if not annotations:
+        if not extensions:
             try:
                 _ = self.get_object(object_id)
             except KeyError as e:
                 raise ObjectNotFoundError(object_id) from e
-        return annotations
+        return extensions
 
-    def create_timestamp_annotation_if_missing(self, object_id: str) -> int | None:
-        """Store a 'creation_timestamp' annotation if missing for an object
+    def create_timestamp_if_missing(self, object_id: str) -> int | None:
+        """Store a 'creation_timestamp' extension if missing for an object
 
-        :param object_id: The ID of the object to create a timestamp annotation for
-        :return: ID of newly created annotation. If timestamp annotation exists, will
+        :param object_id: The ID of the object to create a timestamp extension for
+        :return: ID of newly created extension. If timestamp extension exists, will
             return None.
         """
-        timestamp_annotations: list[metadata.Annotation] = self.get_object_annotations(
-            object_id, metadata.AnnotationType.CREATION_TIMESTAMP.value
+        timestamps: list[metadata.Extension] = self.get_object_extensions(
+            object_id, metadata.ExtensionName.CREATION_TIMESTAMP.value
         )
-        if not timestamp_annotations:
-            return self.put_annotation(
-                metadata.Annotation(
+        if not timestamps:
+            return self.put_extension(
+                metadata.Extension(
                     object_id=object_id,
-                    annotation_type=metadata.AnnotationType.CREATION_TIMESTAMP.value,
-                    annotation_value=datetime.datetime.now(tz=datetime.UTC).isoformat(),
+                    name=metadata.ExtensionName.CREATION_TIMESTAMP.value,
+                    value=datetime.datetime.now(tz=datetime.UTC).isoformat(),
                 )
             )
         return None

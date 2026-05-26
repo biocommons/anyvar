@@ -29,7 +29,7 @@ from ga4gh.vrs.dataproxy import _DataProxy
 from ga4gh.vrs.normalize import denormalize_reference_length_expression
 
 from anyvar.core.metadata import VariationMapping, VariationMappingType
-from anyvar.core.objects import VrsVariation
+from anyvar.core.objects import SupportedVrsVariation
 from anyvar.storage.base import Storage
 
 _logger = logging.getLogger(__name__)
@@ -97,7 +97,7 @@ class _ProjectedTranscriptAllele:
 
 
 def _get_variation_location(
-    variation: VrsVariation,
+    variation: SupportedVrsVariation,
     *,
     require_refget: bool = False,
 ) -> _ProjectionLocation:
@@ -269,7 +269,7 @@ def _project_literal_sequence_state(
 
 def _reference_length_state_to_literal_sequence(
     dp: _DataProxy,
-    variation: VrsVariation,
+    variation: SupportedVrsVariation,
     state: models.ReferenceLengthExpression,
 ) -> str:
     """Return a literal alternate sequence for a source RLE state."""
@@ -293,7 +293,7 @@ def _reference_length_state_to_literal_sequence(
 
 def _project_genomic_state_to_cdna_literal(
     dp: _DataProxy,
-    variation: VrsVariation,
+    variation: SupportedVrsVariation,
     cdna: CdnaRepresentation,
 ) -> models.LiteralSequenceExpression:
     """Derive projected cDNA literal state from the source genomic allele state.
@@ -330,7 +330,7 @@ def _project_genomic_state_to_cdna_literal(
 
 def _get_transcript_literal_state(
     dp: _DataProxy,
-    variation: VrsVariation,
+    variation: SupportedVrsVariation,
 ) -> models.LiteralSequenceExpression:
     """Return input transcript state as a literal sequence without strand changes."""
     state = getattr(variation, "state", None)
@@ -811,7 +811,7 @@ class VariantProjector:
         self,
         storage: Storage,
         source_id: str,
-        variation: VrsVariation,
+        variation: SupportedVrsVariation,
         cdna: CdnaRepresentation,
         genomic_ac: str,
     ) -> _ProjectedTranscriptAllele | None:
@@ -848,7 +848,7 @@ class VariantProjector:
 
     def _project_genomic_variant(
         self,
-        variation: VrsVariation,
+        variation: SupportedVrsVariation,
         storage: Storage,
         genomic_ac: str,
     ) -> None:
@@ -926,7 +926,7 @@ class VariantProjector:
 
     def _project_transcript_variant(
         self,
-        variation: VrsVariation,
+        variation: SupportedVrsVariation,
         storage: Storage,
         transcript_ac: str,
     ) -> None:
@@ -977,7 +977,7 @@ class VariantProjector:
 
     def _add_projections_for_refseq_accession(
         self,
-        variation: VrsVariation,
+        variation: SupportedVrsVariation,
         storage: Storage,
         refseq_accession: str,
     ) -> None:
@@ -997,7 +997,7 @@ class VariantProjector:
 
     def add_projections(
         self,
-        variation: VrsVariation,
+        variation: SupportedVrsVariation,
         storage: Storage,
     ) -> None:
         """Project a variant to other molecule types and store mappings.

@@ -6,11 +6,9 @@ writes are discarded and reads always miss.
 
 from collections.abc import Iterable
 
-from ga4gh.vrs import models as vrs_models
-
 from anyvar.core import metadata
 from anyvar.core import objects as anyvar_objects
-from anyvar.storage.base import Storage
+from anyvar.storage.base import AlleleSearchPage, Storage
 
 
 class NoObjectStore(Storage):
@@ -28,19 +26,21 @@ class NoObjectStore(Storage):
     def wipe_db(self) -> None:
         """(No-op) Wipe all data from the storage backend."""
 
-    def add_objects(self, objects: Iterable[anyvar_objects.VrsObject]) -> None:
+    def add_objects(self, objects: Iterable[anyvar_objects.SupportedVrsObject]) -> None:
         """(No-op) Add multiple VRS objects to storage."""
 
     def get_objects(
         self,
-        object_type: type[anyvar_objects.VrsObject],
+        object_type: type[anyvar_objects.SupportedVrsObject],
         object_ids: Iterable[str],
-    ) -> Iterable[anyvar_objects.VrsObject]:
+    ) -> Iterable[anyvar_objects.SupportedVrsObject]:
         """(No-op) Retrieve multiple VRS objects from storage by their IDs."""
         return []
 
     def delete_objects(
-        self, object_type: type[anyvar_objects.VrsObject], object_ids: Iterable[str]
+        self,
+        object_type: type[anyvar_objects.SupportedVrsObject],
+        object_ids: Iterable[str],
     ) -> None:
         """(No-op) Delete all objects of a specific type from storage."""
 
@@ -52,29 +52,32 @@ class NoObjectStore(Storage):
 
     def get_mappings(
         self,
-        source_object_id: str,
+        object_id: str,
+        as_source: bool,
         mapping_type: metadata.VariationMappingType | None = None,
     ) -> Iterable[metadata.VariationMapping]:
         """(No-op) Return an iterable of mappings from the source ID"""
         return []
 
-    def add_annotation(self, annotation: metadata.Annotation) -> None:
-        """(No-op) Adds an annotation to the database."""
+    def add_extension(self, extension: metadata.Extension) -> None:
+        """(No-op) Adds an extension to the database."""
 
-    def get_annotations(
-        self, object_id: str, annotation_type: str | None = None
-    ) -> list[metadata.Annotation]:
-        """(No-op) Get all annotations for the specified object, optionally filtered by type."""
+    def get_extensions(
+        self, object_id: str, extension_name: str | None = None
+    ) -> list[metadata.Extension]:
+        """(No-op) Get all extensions for the specified object, optionally filtered by type."""
         return []
 
-    def delete_annotation(self, annotation: metadata.Annotation) -> None:
-        """(No-op) Deletes an annotation from the database"""
+    def delete_extension(self, extension: metadata.Extension) -> None:
+        """(No-op) Deletes an extension from the database"""
 
     def search_alleles(
         self,
         refget_accession: str,
         start: int,
         stop: int,
-    ) -> list[vrs_models.Allele]:
+        page_size: int = 1000,
+        cursor: str | None = None,
+    ) -> AlleleSearchPage:
         """(No-op) Find all Alleles within the specified interval."""
-        return []
+        return AlleleSearchPage(items=[], next_cursor=None)

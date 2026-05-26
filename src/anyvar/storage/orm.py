@@ -176,7 +176,7 @@ class Location(Base):
         yield self
         yield self.sequence_reference
 
-    @declared_attr
+    @declared_attr.directive
     @classmethod
     def __table_args__(cls):  # noqa: ANN206
         uri = os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
@@ -211,19 +211,19 @@ class Allele(Base):
         yield from self.location.get_disassembler()
 
 
-class Annotation(Base):
-    """AnyVar ORM model for annotations table."""
+class Extension(Base):
+    """AnyVar ORM model for extensions table."""
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     object_id: Mapped[str] = mapped_column(String)
-    annotation_type: Mapped[str] = mapped_column(String)
-    annotation_value: Mapped[dict] = mapped_column(
+    name: Mapped[str] = mapped_column(String)
+    value: Mapped[dict] = mapped_column(
         JSON()
         .with_variant(JSONB, "postgresql")
         .with_variant(SnowflakeVARIANT, "snowflake")
     )
 
-    @declared_attr
+    @declared_attr.directive
     @classmethod
     def __table_args__(cls):  # noqa: ANN206
         uri = os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
@@ -232,9 +232,9 @@ class Annotation(Base):
             return ()
         return (
             Index(
-                "idx_annotations_object_id_annotation_type",
+                "idx_extensions_object_id_name",
                 "object_id",
-                "annotation_type",
+                "name",
             ),
         )
 
@@ -257,7 +257,7 @@ class VariationMapping(Base):
     dest_id: Mapped[str] = mapped_column(String)
     mapping_type: Mapped[str] = mapped_column(mapping_type_enum)
 
-    @declared_attr
+    @declared_attr.directive
     @classmethod
     def __table_args__(cls):  # noqa: ANN206
         uri = os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
