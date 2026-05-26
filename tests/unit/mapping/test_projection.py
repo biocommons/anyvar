@@ -146,6 +146,22 @@ def test_get_variation_location_raises_for_missing_location():
         projection._get_variation_location(variation)
 
 
+def test_get_variation_location_raises_for_missing_required_refget():
+    variation = SimpleNamespace(
+        location=SimpleNamespace(
+            sequenceReference=SimpleNamespace(refgetAccession=None),
+            start=1,
+            end=2,
+        )
+    )
+
+    with pytest.raises(
+        projection.ProjectionError,
+        match="Projection unsupported: variant lacks sequence location details",
+    ):
+        projection._get_variation_location(variation, require_refget=True)
+
+
 def test_get_variation_location_raises_for_range_positions():
     variation = SimpleNamespace(
         location=SimpleNamespace(
@@ -643,6 +659,31 @@ def test_add_projections_dispatches_transcript_accession(mocker):
     project_transcript.assert_called_once_with(variation, storage, "NM_004333.6")
 
 
+def test_add_projections_logs_when_refseq_accession_cannot_be_resolved(caplog, mocker):
+    projector = object.__new__(projection.VariantProjector)
+    projector.dp = object()
+    project_genomic = mocker.patch.object(projector, "_project_genomic_variant")
+    project_transcript = mocker.patch.object(projector, "_project_transcript_variant")
+    mocker.patch.object(
+        projection,
+        "_refget_to_refseq_accession",
+        return_value=None,
+    )
+    variation = _allele()
+    storage = mocker.Mock()
+
+    with caplog.at_level("INFO", logger=projection._logger.name):
+        result = projector.add_projections(variation, storage)
+
+    assert result is None
+    project_genomic.assert_not_called()
+    project_transcript.assert_not_called()
+    assert (
+        "Projection skipped for ga4gh:VA.input: could not resolve RefSeq accession "
+        f"for {FakeDataProxy._REFGET_ACCESSION}"
+    ) in caplog.text
+
+
 def test_add_projections_raises_for_non_alleles(mocker):
     projector = object.__new__(projection.VariantProjector)
     projector.dp = object()
@@ -1082,9 +1123,6 @@ def test_project_genomic_variant_skips_protein_for_5_prime_utr(mocker):
     )
 
     mocker.patch.object(
-        projection, "_refget_to_refseq_accession", return_value="NC_000023.11"
-    )
-    mocker.patch.object(
         projection.asyncio,
         "run_coroutine_threadsafe",
         return_value=FakeFuture(result),
@@ -1119,7 +1157,9 @@ def test_project_genomic_variant_skips_protein_for_5_prime_utr(mocker):
         ),
     )
 
-    messages = projector._project_genomic_variant(variation, mocker.Mock())
+    messages = projector._project_genomic_variant(
+        variation, mocker.Mock(), "NC_000023.11"
+    )
 
     assert messages is None
     assert build_calls == ["NM_001184880.2"]
@@ -1141,9 +1181,6 @@ def test_project_genomic_variant_skips_protein_for_3_prime_utr(mocker):
         ),
     )
 
-    mocker.patch.object(
-        projection, "_refget_to_refseq_accession", return_value="NC_000002.12"
-    )
     mocker.patch.object(
         projection.asyncio,
         "run_coroutine_threadsafe",
@@ -1179,7 +1216,9 @@ def test_project_genomic_variant_skips_protein_for_3_prime_utr(mocker):
         ),
     )
 
-    messages = projector._project_genomic_variant(variation, mocker.Mock())
+    messages = projector._project_genomic_variant(
+        variation, mocker.Mock(), "NC_000002.12"
+    )
 
     assert messages is None
     assert build_calls == ["NM_015910.7"]
@@ -1201,9 +1240,6 @@ def test_project_genomic_variant_creates_protein_for_cds_variant(mocker):
         ),
     )
 
-    mocker.patch.object(
-        projection, "_refget_to_refseq_accession", return_value="NC_000007.14"
-    )
     mocker.patch.object(
         projection.asyncio,
         "run_coroutine_threadsafe",
@@ -1247,7 +1283,9 @@ def test_project_genomic_variant_creates_protein_for_cds_variant(mocker):
         ),
     )
 
-    messages = projector._project_genomic_variant(variation, mocker.Mock())
+    messages = projector._project_genomic_variant(
+        variation, mocker.Mock(), "NC_000007.14"
+    )
 
     assert messages is None
     assert build_calls == ["NM_004333.6", "NP_004324.2"]
@@ -1265,9 +1303,6 @@ def test_project_genomic_variant_uses_shared_transcript_to_protein_helper(mocker
     protein = SimpleNamespace(refseq="NP_004324.2", pos=(33, 34))
     result = SimpleNamespace(cdna=cdna, protein=protein)
 
-    mocker.patch.object(
-        projection, "_refget_to_refseq_accession", return_value="NC_000007.14"
-    )
     mocker.patch.object(
         projection.asyncio,
         "run_coroutine_threadsafe",
@@ -1303,7 +1338,7 @@ def test_project_genomic_variant_uses_shared_transcript_to_protein_helper(mocker
     )
     storage = mocker.Mock()
 
-    messages = projector._project_genomic_variant(variation, storage)
+    messages = projector._project_genomic_variant(variation, storage, "NC_000007.14")
 
     assert messages is None
     store_mock.assert_called_once()
@@ -1381,9 +1416,6 @@ def test_project_genomic_variant_raises_unsupported_protein_state(mocker):
     )
 
     mocker.patch.object(
-        projection, "_refget_to_refseq_accession", return_value="NC_000007.14"
-    )
-    mocker.patch.object(
         projection.asyncio,
         "run_coroutine_threadsafe",
         return_value=FakeFuture(result),
@@ -1427,7 +1459,7 @@ def test_project_genomic_variant_raises_unsupported_protein_state(mocker):
             "NP_004324.2"
         ),
     ):
-        projector._project_genomic_variant(variation, mocker.Mock())
+        projector._project_genomic_variant(variation, mocker.Mock(), "NC_000007.14")
 
     assert build_calls == ["NM_004333.6"]
     store_mock.assert_called_once()
@@ -1482,11 +1514,6 @@ def test_add_projections_raises_internal_attribute_errors_as_unexpected(mocker):
 
 def test_project_genomic_variant_cancels_timed_out_projection(mocker):
     """Timed-out cool-seq-tool work is cancelled and reported as a timeout."""
-    mocker.patch.object(
-        projection,
-        "_refget_to_refseq_accession",
-        return_value="NC_000007.14",
-    )
     future = TimeoutFuture()
     # Return a fake scheduled future so no event loop or background thread is needed.
     mocker.patch.object(
@@ -1516,7 +1543,7 @@ def test_project_genomic_variant_cancels_timed_out_projection(mocker):
         projection.ProjectionError,
         match="Projection failed: coordinate mapping timed out",
     ):
-        projector._project_genomic_variant(variation, mocker.Mock())
+        projector._project_genomic_variant(variation, mocker.Mock(), "NC_000007.14")
 
     assert future.timeout == 30
     assert future.cancelled is True
@@ -1538,11 +1565,6 @@ def test_project_genomic_variant_applies_cdna_coding_start_site_before_build(moc
         protein=None,
     )
 
-    mocker.patch.object(
-        projection,
-        "_refget_to_refseq_accession",
-        return_value="NC_000001.11",
-    )
     mocker.patch.object(
         projection.asyncio,
         "run_coroutine_threadsafe",
@@ -1583,7 +1605,9 @@ def test_project_genomic_variant_applies_cdna_coding_start_site_before_build(moc
         ),
     )
 
-    messages = projector._project_genomic_variant(variation, mocker.Mock())
+    messages = projector._project_genomic_variant(
+        variation, mocker.Mock(), "NC_000001.11"
+    )
 
     assert messages is None
     assert captured_build_kwargs == [
