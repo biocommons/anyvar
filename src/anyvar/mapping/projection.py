@@ -633,6 +633,15 @@ class VariantProjector:
             return
 
         if self._thread.is_alive():
+            uta_db = getattr(getattr(self.cst, "mane_transcript", None), "uta_db", None)
+            pool = getattr(uta_db, "_connection_pool", None)
+            if pool is not None:
+                try:
+                    future = asyncio.run_coroutine_threadsafe(pool.close(), self._loop)
+                    future.result(timeout=timeout)
+                except Exception:  # noqa: BLE001
+                    _logger.debug("Failed to close UTA connection pool", exc_info=True)
+
             self._loop.call_soon_threadsafe(self._loop.stop)
             self._thread.join(timeout=timeout)
 
