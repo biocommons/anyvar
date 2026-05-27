@@ -97,6 +97,7 @@ class SequenceLocationMapper(BaseMapper[vrs_models.SequenceLocation, orm.Locatio
         )
 
         # Construct orm.Location and delegate to orm.SequenceReference mapper
+        # Note: this purposefully trips attribute/type errors
         return orm.Location(
             id=anyvar_entity.id,
             sequence_reference_id=anyvar_entity.sequenceReference.refgetAccession,

@@ -1,13 +1,11 @@
 """Provide router for operations on stored objects"""
 
-import json
 import logging
 from http import HTTPStatus
-from typing import Annotated, cast
+from typing import Annotated
 
-from fastapi import APIRouter, Body, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Body, HTTPException, Query, Request
 from fastapi.params import Path
-from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import StrictStr
 
 from anyvar.anyvar import AnyVar, ObjectNotFoundError
@@ -28,30 +26,6 @@ _logger = logging.getLogger(__name__)
 objects_router = APIRouter()
 
 
-async def parse_and_rebuild_response(
-    response: StreamingResponse,
-) -> tuple[dict, Response]:
-    """Convert a `Response` object to a dict, then re-build a new Response object (since parsing exhausts the Response `body_iterator`).
-
-    :param response: the `Response` object to parse
-    :return: a tuple with a dictionary representation of the Response and a new `Response` object
-    """
-    response_chunks: list[bytes] = [
-        cast(bytes, chunk) async for chunk in response.body_iterator
-    ]
-    response_body_encoded = b"".join(response_chunks)
-    response_body = response_body_encoded.decode("utf-8")
-    response_json = json.loads(response_body)
-
-    new_response = JSONResponse(
-        content=response_json,
-        status_code=response.status_code,
-        media_type=response.media_type,
-    )
-
-    return (response_json, new_response)
-
-
 @objects_router.get(
     "/object/{vrs_id}",
     response_model_exclude_none=True,
@@ -65,7 +39,7 @@ def get_object_by_id(
 ) -> GetObjectResponse:
     """Get registered VRS object given its VRS ID."""
     av: AnyVar = request.app.state.anyvar
-    vrs_object: objects.VrsObject = get_vrs_object(av, vrs_id)
+    vrs_object: objects.SupportedVrsObject = get_vrs_object(av, vrs_id)
     return GetObjectResponse(messages=[], data=vrs_object)
 
 
@@ -108,7 +82,7 @@ def add_object_extension(
 ) -> AddExtensionResponse:
     """Store an extension for a VRS Object."""
     av: AnyVar = request.app.state.anyvar
-    vrs_object: objects.VrsObject = get_vrs_object(av, vrs_id)
+    vrs_object: objects.SupportedVrsObject = get_vrs_object(av, vrs_id)
 
     extension_id: int | None = None
     try:
@@ -176,9 +150,9 @@ def add_object_mapping(
 ) -> AddMappingResponse:
     """Store a mapping for a VRS Object"""
     av: AnyVar = request.app.state.anyvar
-    source_vrs_obj: objects.VrsObject = get_vrs_object(av, vrs_id)
+    source_vrs_obj: objects.SupportedVrsObject = get_vrs_object(av, vrs_id)
     dest_vrs_id = mapping_request.dest_id
-    dest_vrs_obj: objects.VrsObject = get_vrs_object(av, dest_vrs_id)
+    dest_vrs_obj: objects.SupportedVrsObject = get_vrs_object(av, dest_vrs_id)
 
     # Add the mapping to the database
     mapping: metadata.VariationMapping | None = None

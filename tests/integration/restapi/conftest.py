@@ -1,6 +1,7 @@
 import contextlib
 import os
 import shutil
+from typing import Any, cast
 
 import pytest
 from celery.contrib.testing.worker import start_worker
@@ -48,12 +49,15 @@ def celery_context(mocker: MockerFixture, vcf_run_id: str, storage_uri: str):
             "ANYVAR_VCF_ASYNC_WORK_DIR": "tests/tmp_async_work_dir",
         },
     )
-    context_manager = start_worker(
-        celery_app,
-        pool="solo",
-        loglevel="info",
-        perform_ping_check=False,
-        shutdown_timeout=30,
+    context_manager = cast(
+        contextlib.AbstractContextManager[Any, bool | None],
+        start_worker(
+            celery_app,
+            pool="solo",
+            loglevel="info",
+            perform_ping_check=False,
+            shutdown_timeout=30,
+        ),
     )
     context_manager.__enter__()
     celery_app.control.purge()

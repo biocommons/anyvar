@@ -33,7 +33,7 @@ VARIATION_EXAMPLE_PAYLOAD = {
 
 
 _variation_request_body = Body(
-    description='Variation description, including (at minimum) a `definition` property. Can provide optional `input_type` if the expected output representation type is known, as well as an assembly_name (e.g.,"GRCh37" or "GRCh38").',
+    description='Variation description, including (at minimum) a `definition` property. Can provide optional `input_type` if the expected output representation type is known, as well as an assembly_name (e.g.,"GRCh37" or "GRCh38"). If representing copy number, provide `copies` or `copy_change`.',
     examples=[VARIATION_EXAMPLE_PAYLOAD],
 )
 
@@ -71,7 +71,7 @@ def _translate_variation(
 
 def _handle_translation_request(
     tlr: Translator, var_req: VariationRequest
-) -> objects.VrsVariation:
+) -> objects.SupportedVrsVariation:
     """Perform variant translation and convert known exceptions to appropriate HTTP responses
 
     :param tlr: Translator instance
@@ -105,7 +105,7 @@ def _register_variations(
         also be included in the `messages` field.
     """
     translation_results: list[TranslationResult] = []
-    variations_to_store: list[objects.VrsObject] = []
+    variations_to_store: list[objects.SupportedVrsObject] = []
 
     for variation_request in variation_requests:
         translation_result = _translate_variation(av.translator, variation_request)
@@ -161,8 +161,8 @@ def _register_variations(
 @variations_router.put(
     "/variation",
     response_model_exclude_none=True,
-    summary="Register a new allele",
-    description="Provide a variation definition to be normalized and registered with AnyVar. A complete VRS Allele and ID is returned.",
+    summary="Register a new allele or copy number object",
+    description="Provide a variation definition  to be normalized and registered with AnyVar. A complete VRS Allele or Copy Number object and ID is returned.",
 )
 def register_variation(
     request: Request,
@@ -178,7 +178,7 @@ def register_variation(
 @variations_router.put(
     "/variations",
     response_model_exclude_none=True,
-    summary="Bulk register alleles objects",
+    summary="Bulk register alleles or copy number objects",
     description="Provide a list of variation definitions to be normalized and registered with AnyVar. The response contains one result per input, in the same order. Variations that fail translation are not registered and are returned with null `object` and `object_id` fields. Registration or liftover failure messages may also be included in the `messages` field.",
 )
 def register_variations(
@@ -216,7 +216,7 @@ PUT_VRS_VARIATION_EXAMPLE_PAYLOAD = {
 def register_vrs_variation(
     request: Request,
     variation: Annotated[
-        objects.VrsVariation,
+        objects.SupportedVrsVariation,
         Body(
             description="Valid VRS object.",
             examples=[PUT_VRS_VARIATION_EXAMPLE_PAYLOAD],
@@ -250,7 +250,7 @@ def register_vrs_variation(
 @variations_router.post(
     "/variation",
     response_model_exclude_none=True,
-    summary="Retrieve a registered VRS allele",
+    summary="Retrieve a registered VRS allele or copy number variation",
     description="Provide a variation definition to be normalized and searched for in AnyVar",
 )
 def get_variation(

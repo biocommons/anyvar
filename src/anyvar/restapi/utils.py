@@ -9,8 +9,10 @@ from anyvar.core import objects
 
 
 def get_vrs_object(
-    av: AnyVar, vrs_object_id: str, object_type: type[objects.VrsObject] | None = None
-) -> objects.VrsObject:
+    av: AnyVar,
+    vrs_object_id: str,
+    object_type: type[objects.SupportedVrsObject] | None = None,
+) -> objects.SupportedVrsObject:
     """Get VRS variation given VRS ID
 
     :param av: AnyVar instance

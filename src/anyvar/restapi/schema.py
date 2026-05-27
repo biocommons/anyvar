@@ -170,7 +170,7 @@ class ServiceInfo(BaseModel):
 class TranslationResult(BaseModel):
     """Describe structure for translation success or failure"""
 
-    variation: objects.VrsVariation | None = None
+    variation: objects.SupportedVrsVariation | None = None
     error: str | None = None
 
 
@@ -178,8 +178,6 @@ class SupportedVariationType(StrEnum):
     """Supported variation types for API input."""
 
     ALLELE = VrsType.ALLELE.value
-    COPY_NUMBER_CHANGE = VrsType.CN_CHANGE.value
-    COPY_NUMBER_COUNT = VrsType.CN_COUNT.value
 
 
 class VariationRequest(BaseModel):
@@ -197,7 +195,7 @@ class VariationRequest(BaseModel):
 class AddExtensionResponse(BaseModel):
     """Response for the POST /variation/{vrs_id}/extensions endpoint"""
 
-    object: objects.VrsObject | None
+    object: objects.SupportedVrsObject | None
     object_id: str | None
     extension_name: str | None
     extension_value: Any | None
@@ -225,9 +223,9 @@ class AddMappingResponse(BaseModel):
 
     model_config = ConfigDict(use_enum_values=True)
 
-    source_object: objects.VrsObject | None
+    source_object: objects.SupportedVrsObject | None
     source_object_id: str
-    dest_object: objects.VrsObject | None
+    dest_object: objects.SupportedVrsObject | None
     dest_object_id: str
     mapping_type: metadata.VariationMappingType
 
@@ -290,9 +288,9 @@ class RegisterVariationResponse(BaseModel):
         }
     )
 
-    input_variation: VariationRequest | objects.VrsVariation
+    input_variation: VariationRequest | objects.SupportedVrsVariation
     messages: list[str] = []
-    object: objects.VrsVariation | None = None
+    object: objects.SupportedVrsVariation | None = None
     object_id: str | None = None
 
 
@@ -327,13 +325,13 @@ class GetObjectResponse(BaseModel):
     )
 
     messages: list[StrictStr]
-    data: objects.VrsObject | None = None
+    data: objects.SupportedVrsObject | None = None
 
 
 class SearchResponse(BaseModel):
     """Describe response for the GET /search endpoint"""
 
-    variations: list[models.Variation]
+    variations: list[objects.SupportedVrsVariation]
     next_cursor: str | None
 
 
