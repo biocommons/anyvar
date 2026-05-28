@@ -150,7 +150,7 @@ class VrsPythonTranslator(Translator):
             its translation.
         """
         try:
-            variation = self.translate_allele(var)
+            variation = self.translate_allele(var, **kwargs)
         except TranslationError as e:
             msg = f"{var} isn't supported by the VRS-Python AlleleTranslator."
             raise TranslationError(msg) from e
@@ -172,7 +172,10 @@ class VrsPythonTranslator(Translator):
             its translation.
         """
         try:
-            return self.allele_tlr.translate_from(var, fmt=None, **kwargs)  # type: ignore (this will always return a models.Allele instance, or raise a ValueError)
+            translator_kwargs = {}
+            if "assembly_name" in kwargs:
+                translator_kwargs["assembly_name"] = kwargs["assembly_name"]
+            return self.allele_tlr.translate_from(var, fmt=None, **translator_kwargs)  # type: ignore (this will always return a models.Allele instance, or raise a ValueError)
         except ValueError as e:
             msg = f"{var} isn't supported by the VRS-Python AlleleTranslator."
             raise TranslationError(msg) from e

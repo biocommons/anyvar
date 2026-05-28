@@ -77,7 +77,7 @@ def test_vcf_registration_vrs_attrs(
     )
     assert resp.status_code == HTTPStatus.OK
     assert (
-        b"VRS_Starts=10329,10330;VRS_Ends=10383,10392;VRS_States=,CCCTAACCC;VRS_Lengths=54,9;VRS_RepeatSubunitLengths=54,53"
+        b"VRS_Starts=10329,10330;VRS_Ends=10383,10392;VRS_States=.,CCCTAACCC;VRS_Lengths=54,9;VRS_RepeatSubunitLengths=54,53"
         in resp.content
     )
 
