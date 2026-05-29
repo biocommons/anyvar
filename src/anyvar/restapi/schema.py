@@ -292,7 +292,6 @@ class RegisterVariationResponse(BaseModel):
     messages: list[str] = []
     object: objects.SupportedVrsVariation | None = None
     object_id: str | None = None
-    lifted_over_to: objects.SupportedVrsVariation | None = None
 
 
 class GetObjectResponse(BaseModel):

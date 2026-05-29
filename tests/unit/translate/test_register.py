@@ -146,53 +146,25 @@ class TestRegisterVariations:
         sample_lifted_allele,
         sample_variation_request,
     ):
-        """Successful registration with liftover populates object, object_id, and lifted_over_to."""
+        """Successful registration calls liftover and populates object, object_id."""
         mock_translate.return_value = TranslationResult(variation=sample_allele)
         mock_liftover_mod.add_liftover_mapping.return_value = (
             None,
             sample_lifted_allele,
         )
 
-        responses = register_variations(
-            mock_anyvar, [sample_variation_request], do_liftover=True
-        )
+        responses = register_variations(mock_anyvar, [sample_variation_request])
 
         assert len(responses) == 1
         resp = responses[0]
         assert resp.object == sample_allele
         assert resp.object_id == sample_allele.id
-        assert resp.lifted_over_to == sample_lifted_allele
         assert resp.messages == []
         mock_anyvar.put_objects.assert_called_once_with([sample_allele])
         mock_anyvar.create_timestamp_if_missing.assert_called_once_with(
             sample_allele.id
         )
         mock_liftover_mod.add_liftover_mapping.assert_called_once()
-
-    @patch("anyvar.translate.register.liftover")
-    @patch("anyvar.translate.register.translate_variation")
-    def test_success_without_liftover(
-        self,
-        mock_translate,
-        mock_liftover_mod,
-        mock_anyvar,
-        sample_allele,
-        sample_variation_request,
-    ):
-        """Registration with do_liftover=False skips liftover and leaves lifted_over_to as None."""
-        mock_translate.return_value = TranslationResult(variation=sample_allele)
-
-        responses = register_variations(
-            mock_anyvar, [sample_variation_request], do_liftover=False
-        )
-
-        assert len(responses) == 1
-        resp = responses[0]
-        assert resp.object == sample_allele
-        assert resp.object_id == sample_allele.id
-        assert resp.lifted_over_to is None
-        assert resp.messages == []
-        mock_liftover_mod.add_liftover_mapping.assert_not_called()
 
     @patch("anyvar.translate.register.liftover")
     @patch("anyvar.translate.register.translate_variation")
@@ -217,22 +189,18 @@ class TestRegisterVariations:
             sample_lifted_allele,
         )
 
-        responses = register_variations(
-            mock_anyvar, [good_req, bad_req], do_liftover=True
-        )
+        responses = register_variations(mock_anyvar, [good_req, bad_req])
 
         assert len(responses) == 2
 
         # Good response
         assert responses[0].object == sample_allele
         assert responses[0].object_id == sample_allele.id
-        assert responses[0].lifted_over_to == sample_lifted_allele
         assert responses[0].messages == []
 
         # Bad response
         assert responses[1].object is None
         assert responses[1].object_id is None
-        assert responses[1].lifted_over_to is None
         assert "Unable to translate" in responses[1].messages[0]
 
         # Only the successful variation should be stored
@@ -248,22 +216,19 @@ class TestRegisterVariations:
         sample_allele,
         sample_variation_request,
     ):
-        """When liftover fails, response includes error messages and lifted_over_to is None."""
+        """When liftover fails, response includes error messages."""
         mock_translate.return_value = TranslationResult(variation=sample_allele)
         mock_liftover_mod.add_liftover_mapping.return_value = (
             ["Unable to complete liftover: some error"],
             None,
         )
 
-        responses = register_variations(
-            mock_anyvar, [sample_variation_request], do_liftover=True
-        )
+        responses = register_variations(mock_anyvar, [sample_variation_request])
 
         assert len(responses) == 1
         resp = responses[0]
         assert resp.object == sample_allele
         assert resp.object_id == sample_allele.id
-        assert resp.lifted_over_to is None
         assert resp.messages == ["Unable to complete liftover: some error"]
 
     @patch("anyvar.translate.register.liftover")
@@ -280,12 +245,11 @@ class TestRegisterVariations:
             error='Unable to translate "bad-variant"'
         )
 
-        responses = register_variations(mock_anyvar, [bad_req], do_liftover=True)
+        responses = register_variations(mock_anyvar, [bad_req])
 
         assert len(responses) == 1
         assert responses[0].object is None
         assert responses[0].object_id is None
-        assert responses[0].lifted_over_to is None
         assert "Unable to translate" in responses[0].messages[0]
 
         # put_objects should not be called when nothing translates

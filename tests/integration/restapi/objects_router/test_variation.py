@@ -72,23 +72,6 @@ def test_put_variation_example(restapi_client: TestClient, alleles: dict):
     assert resp.json()["object_id"] == expected_id
     assert resp.json()["object"] == alleles[expected_id]["variation"]
     assert resp.json()["messages"] == []
-    # GRCh37 variant should have a lifted-over GRCh38 counterpart
-    assert resp.json()["lifted_over_to"] is not None
-    assert resp.json()["lifted_over_to"]["type"] == "Allele"
-    assert resp.json()["lifted_over_to"]["id"] is not None
-
-
-def test_put_variation_no_liftover(restapi_client: TestClient):
-    """PUT /variation with do_liftover=false omits lifted_over_to from the response."""
-    resp = restapi_client.put(
-        "/variation",
-        json=VARIATION_EXAMPLE_PAYLOAD,
-        params={"do_liftover": False},
-    )
-    assert resp.status_code == HTTPStatus.OK
-    expected_id = "ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb"
-    assert resp.json()["object_id"] == expected_id
-    assert resp.json().get("lifted_over_to") is None
 
 
 def test_put_variations(restapi_client: TestClient, alleles: dict):
@@ -128,7 +111,6 @@ def test_put_variations(restapi_client: TestClient, alleles: dict):
         if allele_id == "failure_example":
             assert response.object is None
             assert response.object_id is None
-            assert response.lifted_over_to is None
         else:
             assert response.object is not None
             assert (
@@ -136,36 +118,6 @@ def test_put_variations(restapi_client: TestClient, alleles: dict):
                 == allele_fixture["variation"]
             ), allele_id
             assert response.object_id == allele_id, allele_id
-            # when liftover succeeds (no error messages), lifted_over_to should be populated
-            if not response.messages:
-                assert response.lifted_over_to is not None, (
-                    f"lifted_over_to missing for {allele_id}"
-                )
-                assert response.lifted_over_to.type is not None
-            else:
-                # liftover failed — lifted_over_to should be None
-                assert response.lifted_over_to is None, allele_id
-
-
-def test_put_variations_no_liftover(restapi_client: TestClient, alleles: dict):
-    """PUT /variations with do_liftover=false omits lifted_over_to for all response items."""
-    alleles_to_use = {k: v for k, v in alleles.items() if "register_params" in v}
-    variation_payloads = [
-        allele_fixture["register_params"] for allele_fixture in alleles_to_use.values()
-    ]
-
-    resp = restapi_client.put(
-        "/variations", json=variation_payloads, params={"do_liftover": False}
-    )
-    assert resp.status_code == HTTPStatus.OK
-    resp_json = resp.json()
-    assert len(resp_json) == len(variation_payloads)
-
-    for response_item in resp_json:
-        response = RegisterVariationResponse(**response_item)
-        assert response.lifted_over_to is None, (
-            f"lifted_over_to should be None when do_liftover=false: {response.object_id}"
-        )
 
 
 def test_put_vrs_variation_allele(restapi_client: TestClient, alleles: dict):

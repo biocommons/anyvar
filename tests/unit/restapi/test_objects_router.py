@@ -56,22 +56,6 @@ def sample_allele():
     return allele
 
 
-@pytest.fixture
-def sample_lifted_allele():
-    allele = models.Allele(
-        location=models.SequenceLocation(
-            sequenceReference=models.SequenceReference(
-                refgetAccession="SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
-            ),
-            start=100,
-            end=200,
-        ),
-        state=models.LiteralSequenceExpression(sequence="A"),
-    )
-    allele.id = "ga4gh:VA.lifted123"
-    return allele
-
-
 VARIATION_PAYLOAD = {
     "definition": "NC_000007.13:g.36561662_36561663del",
 }
@@ -200,16 +184,13 @@ class TestPutVariationsAsync:
 @pytest.mark.ci_ok
 class TestPutVariationsSync:
     @patch("anyvar.restapi.objects_router._register_variations")
-    def test_sync_returns_results(
-        self, mock_register, test_client, sample_allele, sample_lifted_allele
-    ):
-        """PUT /variations in sync mode returns 200 with lifted_over_to in each response item."""
+    def test_sync_returns_results(self, mock_register, test_client, sample_allele):
+        """PUT /variations in sync mode returns 200 with results."""
         mock_register.return_value = [
             RegisterVariationResponse(
                 input_variation=VariationRequest(**VARIATION_PAYLOAD),
                 object=sample_allele,
                 object_id=sample_allele.id,
-                lifted_over_to=sample_lifted_allele,
                 messages=[],
             )
         ]
@@ -219,53 +200,23 @@ class TestPutVariationsSync:
         body = resp.json()
         assert len(body) == 1
         assert body[0]["object_id"] == sample_allele.id
-        assert body[0]["lifted_over_to"] is not None
-
-    @patch("anyvar.restapi.objects_router._register_variations")
-    def test_sync_do_liftover_false(self, mock_register, test_client, sample_allele):
-        """PUT /variations with do_liftover=false passes the flag through and omits lifted_over_to."""
-        mock_register.return_value = [
-            RegisterVariationResponse(
-                input_variation=VariationRequest(**VARIATION_PAYLOAD),
-                object=sample_allele,
-                object_id=sample_allele.id,
-                messages=[],
-            )
-        ]
-
-        resp = test_client.put(
-            "/variations",
-            json=[VARIATION_PAYLOAD],
-            params={"do_liftover": False},
-        )
-        assert resp.status_code == HTTPStatus.OK
-        body = resp.json()
-        assert len(body) == 1
-        assert body[0].get("lifted_over_to") is None
-
-        # Verify do_liftover=False was passed through
-        call_args = mock_register.call_args
-        assert call_args.kwargs.get("do_liftover") is False or call_args[0][2] is False
 
 
 # ---------------------------------------------------------------------------
-# PUT /variation with do_liftover parameter
+# PUT /variation
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.ci_ok
 class TestPutVariation:
     @patch("anyvar.restapi.objects_router._register_variations")
-    def test_response_includes_lifted_over_to(
-        self, mock_register, test_client, sample_allele, sample_lifted_allele
-    ):
-        """PUT /variation response includes lifted_over_to with the lifted-over VRS variation."""
+    def test_response(self, mock_register, test_client, sample_allele):
+        """PUT /variation response includes object and object_id."""
         mock_register.return_value = [
             RegisterVariationResponse(
                 input_variation=VariationRequest(**VARIATION_PAYLOAD),
                 object=sample_allele,
                 object_id=sample_allele.id,
-                lifted_over_to=sample_lifted_allele,
                 messages=[],
             )
         ]
@@ -274,33 +225,6 @@ class TestPutVariation:
         assert resp.status_code == HTTPStatus.OK
         body = resp.json()
         assert body["object_id"] == sample_allele.id
-        assert body["lifted_over_to"] is not None
-        assert body["lifted_over_to"]["id"] == sample_lifted_allele.id
-
-    @patch("anyvar.restapi.objects_router._register_variations")
-    def test_do_liftover_false(self, mock_register, test_client, sample_allele):
-        """PUT /variation with do_liftover=false omits lifted_over_to from the response."""
-        mock_register.return_value = [
-            RegisterVariationResponse(
-                input_variation=VariationRequest(**VARIATION_PAYLOAD),
-                object=sample_allele,
-                object_id=sample_allele.id,
-                messages=[],
-            )
-        ]
-
-        resp = test_client.put(
-            "/variation",
-            json=VARIATION_PAYLOAD,
-            params={"do_liftover": False},
-        )
-        assert resp.status_code == HTTPStatus.OK
-        body = resp.json()
-        assert body.get("lifted_over_to") is None
-
-        # Verify do_liftover=False was passed to _register_variations
-        call_kwargs = mock_register.call_args
-        assert call_kwargs.kwargs.get("do_liftover") is False
 
 
 # ---------------------------------------------------------------------------

@@ -52,13 +52,11 @@ def translate_variation(
 def register_variations(
     av: AnyVar,
     variation_requests: list[VariationRequest],
-    do_liftover: bool = True,
 ) -> list[RegisterVariationResponse]:
     """Bulk register variations
 
     :param av: AnyVar instance
     :param variation_requests: Input variation requests to register
-    :param do_liftover: Whether to perform liftover and store liftover mappings for successfully translated variants. Defaults to True.
     :return: List of RegisterVariationResponse objects in the same order as the input.
         Variations that fail translation are not registered and are returned with null
         `object` and `object_id` fields. Registration or liftover failure messages may
@@ -95,13 +93,11 @@ def register_variations(
 
         # add variant metadata
         av.create_timestamp_if_missing(translation_result.variation.id)  # type: ignore (ID guaranteed to be present)
-        messages = lifted_over_variant = None
-        if do_liftover:
-            messages, lifted_over_variant = liftover.add_liftover_mapping(
-                variation=translation_result.variation,
-                storage=av.object_store,
-                dataproxy=av.translator.dp,
-            )
+        messages, _ = liftover.add_liftover_mapping(
+            variation=translation_result.variation,
+            storage=av.object_store,
+            dataproxy=av.translator.dp,
+        )
 
         responses.append(
             RegisterVariationResponse(
@@ -110,7 +106,6 @@ def register_variations(
                 object_id=translation_result.variation.id
                 if translation_result.variation
                 else None,
-                lifted_over_to=lifted_over_variant,
                 messages=messages or [],
             )
         )

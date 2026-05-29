@@ -13,7 +13,7 @@ An AnyVar server hosts Swagger UI documentation at the server root address (e.g.
 Basic Variant Operations
 ========================
 
-Send a ``PUT`` request to ``/variation`` with a payload containing a variant definition using a :ref:`supported variant definition nomenclature<supported-variant-nomenclature>`. If translation and registration are successful, the response will include the variant's `identifier <https://vrs.ga4gh.org/en/stable/conventions/computed_identifiers.html>`_ and the complete `VRS allele object <https://vrs.ga4gh.org/en/stable/concepts/MolecularVariation/Allele.html>`_. By default, the response also includes the lifted-over variant in the ``lifted_over_to`` field (see :ref:`controlling_liftover`).
+Send a ``PUT`` request to ``/variation`` with a payload containing a variant definition using a :ref:`supported variant definition nomenclature<supported-variant-nomenclature>`. If translation and registration are successful, the response will include the variant's `identifier <https://vrs.ga4gh.org/en/stable/conventions/computed_identifiers.html>`_ and the complete `VRS allele object <https://vrs.ga4gh.org/en/stable/concepts/MolecularVariation/Allele.html>`_.
 
 .. code-block:: pycon
 
@@ -25,8 +25,6 @@ Send a ``PUT`` request to ``/variation`` with a payload containing a variant def
    'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU'
    >>> response.json()["object"]
    {'id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', 'type': 'Allele', 'digest': 'K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', 'location': {'id': 'ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy', 'type': 'SequenceLocation', 'digest': '01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy', 'sequenceReference': {'type': 'SequenceReference', 'refgetAccession': 'SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB'}, 'start': 87894076, 'end': 87894077}, 'state': {'type': 'LiteralSequenceExpression', 'sequence': 'T'}}
-   >>> response.json()["lifted_over_to"]
-   {'id': 'ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf', 'type': 'Allele', ...}
 
 A ``GET`` request to ``/variation/<ID>`` can be used to retrieve the same object later.
 
@@ -128,38 +126,6 @@ An optional ``run_id`` query parameter can be supplied to use a specific identif
 
    Asynchronous variation registration requires Celery and a message broker (e.g. Redis). The ``CELERY_BROKER_URL`` environment variable must be set. See :ref:`async configuration <async_work_dir_config>` for details.
 
-.. _controlling_liftover:
-
-Controlling Liftover
-====================
-
-By default, when a GRCh37 or GRCh38 variant is registered via ``/variation`` or ``/variations``, AnyVar performs a liftover between GRCh37 and GRCh38, registers the lifted-over variant, stores bidirectional liftover mappings, and includes the lifted-over variant in the ``lifted_over_to`` response field.
-
-This behavior can be disabled by setting the ``do_liftover`` query parameter to ``false``:
-
-.. code-block:: pycon
-
-   >>> payload = {"definition": "NC_000010.11:g.87894077C>T"}
-   >>> response = requests.put("http://localhost:8000/variation?do_liftover=false", json=payload)
-   >>> response.json()["object_id"]
-   'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU'
-   >>> response.json().get("lifted_over_to") is None
-   True
-
-The ``do_liftover`` parameter is also supported on the ``/variations`` endpoint, including when running asynchronously:
-
-.. code-block:: pycon
-
-   >>> payload = [
-   ...     {"definition": "NC_000010.11:g.87894077C>T"},
-   ...     {"definition": "NC_000007.14:g.140753336A>T"},
-   ... ]
-   >>> response = requests.put("http://localhost:8000/variations?do_liftover=false", json=payload)
-   >>> all(r.get("lifted_over_to") is None for r in response.json())
-   True
-
-When liftover is enabled (the default), the ``lifted_over_to`` field in the response contains the full VRS object for the lifted-over variant. If the liftover fails for a particular variant (e.g. due to ambiguous coordinate mapping), the ``lifted_over_to`` field will be ``null`` and relevant messages will appear in the ``messages`` field of that response entry.
-
 Working With Mappings
 =====================
 
@@ -192,7 +158,7 @@ Mappings from an object can be retrieved via ``GET /variations/<vrs_id>/mappings
       'mapping_type': 'transcribe_to'}]}
 
 
-By default, when a GRCh37 or GRCh38 variant is registered, the lifted-over equivalent is also registered, and mappings between them are stored. This behavior can be disabled with the ``do_liftover`` parameter (see :ref:`controlling_liftover`).
+When a GRCh37 or GRCh38 variant is registered, the lifted-over equivalent is also registered, and mappings between them are stored.
 
 .. code-block:: pycon
 

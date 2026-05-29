@@ -310,12 +310,10 @@ def ingest_annotated_vcf(
 def register_variations(
     self: Task,
     variation_requests_json: list[dict],
-    do_liftover: bool,
 ) -> list[dict]:
     """Register a batch of variations asynchronously.
 
     :param variation_requests_json: list of variation request dicts (serialized VariationRequest)
-    :param do_liftover: whether to perform liftover and store liftover mappings
     :return: list of serialized RegisterVariationResponse dicts
     """
     try:
@@ -333,9 +331,7 @@ def register_variations(
             VariationRequest(**req) for req in variation_requests_json
         ]
 
-        responses = _register_variations(
-            anyvar_app, variation_requests, do_liftover=do_liftover
-        )
+        responses = _register_variations(anyvar_app, variation_requests)
 
         elapsed = datetime.datetime.now(tz=datetime.UTC) - task_start
         _logger.info(

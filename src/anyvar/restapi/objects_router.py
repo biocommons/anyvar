@@ -125,20 +125,11 @@ def _handle_translation_request(
 def register_variation(
     request: Request,
     variation: Annotated[VariationRequest, _variation_request_body],
-    do_liftover: Annotated[
-        bool,
-        Query(
-            ...,
-            description="Whether to perform liftover and store liftover mappings for the registered variation",
-        ),
-    ] = True,
 ) -> RegisterVariationResponse:
     """Register a variation based on a provided description or reference."""
     av: AnyVar = request.app.state.anyvar
 
-    responses: list[RegisterVariationResponse] = _register_variations(
-        av, [variation], do_liftover=do_liftover
-    )
+    responses: list[RegisterVariationResponse] = _register_variations(av, [variation])
     return responses[0]
 
 
@@ -154,13 +145,6 @@ async def register_variations(
     variations: Annotated[
         list[VariationRequest], Body(description="List of variations to register")
     ],
-    do_liftover: Annotated[
-        bool,
-        Query(
-            ...,
-            description="Whether to perform liftover and store liftover mappings for the registered variation",
-        ),
-    ] = True,
     run_async: Annotated[
         bool,
         Query(
@@ -201,7 +185,6 @@ async def register_variations(
         task_result = celery_worker.register_variations.apply_async(
             kwargs={
                 "variation_requests_json": variation_requests_json,
-                "do_liftover": do_liftover,
             },
             task_id=run_id,
         )
@@ -229,7 +212,7 @@ async def register_variations(
         )
 
     av: AnyVar = request.app.state.anyvar
-    return _register_variations(av, variations, do_liftover=do_liftover)
+    return _register_variations(av, variations)
 
 
 @objects_router.get(
