@@ -93,20 +93,25 @@ def register_variations(
 
         # add variant metadata
         av.create_timestamp_if_missing(translation_result.variation.id)  # type: ignore (ID guaranteed to be present)
-        messages, _ = liftover.add_liftover_mapping(
-            variation=translation_result.variation,
-            storage=av.object_store,
-            dataproxy=av.translator.dp,
+        messages = (
+            liftover.add_liftover_mapping(
+                variation=translation_result.variation,
+                storage=av.object_store,
+                dataproxy=av.translator.dp,
+            )
+            or []
         )
 
         responses.append(
             RegisterVariationResponse(
                 input_variation=variation_request,
                 object=translation_result.variation,
-                object_id=translation_result.variation.id
-                if translation_result.variation
-                else None,
-                messages=messages or [],
+                object_id=(
+                    translation_result.variation.id
+                    if translation_result.variation
+                    else None
+                ),
+                messages=messages,
             )
         )
 

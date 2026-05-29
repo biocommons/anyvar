@@ -158,7 +158,7 @@ Mappings from an object can be retrieved via ``GET /variations/<vrs_id>/mappings
       'mapping_type': 'transcribe_to'}]}
 
 
-When a GRCh37 or GRCh38 variant is registered, the lifted-over equivalent is also registered, and mappings between them are stored.
+By default, when a GRCh37 or GRCh38 variant is registered, the lifted-over equivalent is also registered, and mappings between them are stored.
 
 .. code-block:: pycon
 

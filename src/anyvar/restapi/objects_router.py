@@ -302,7 +302,7 @@ def register_vrs_variation(
         variation = objects.recursive_identify(variation)
         av.put_objects([variation])
 
-    liftover_messages, _ = liftover.add_liftover_mapping(
+    liftover_messages = liftover.add_liftover_mapping(
         variation, av.object_store, av.translator.dp
     )
 

@@ -41,23 +41,6 @@ def sample_allele():
 
 
 @pytest.fixture
-def sample_lifted_allele():
-    """Return a mock lifted-over Allele."""
-    allele = models.Allele(
-        location=models.SequenceLocation(
-            sequenceReference=models.SequenceReference(
-                refgetAccession="SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
-            ),
-            start=100,
-            end=200,
-        ),
-        state=models.LiteralSequenceExpression(sequence="A"),
-    )
-    allele.id = "ga4gh:VA.lifted123"
-    return allele
-
-
-@pytest.fixture
 def sample_variation_request():
     return VariationRequest(definition="NC_000007.13:g.36561662_36561663del")
 
@@ -143,15 +126,11 @@ class TestRegisterVariations:
         mock_liftover_mod,
         mock_anyvar,
         sample_allele,
-        sample_lifted_allele,
         sample_variation_request,
     ):
         """Successful registration calls liftover and populates object, object_id."""
         mock_translate.return_value = TranslationResult(variation=sample_allele)
-        mock_liftover_mod.add_liftover_mapping.return_value = (
-            None,
-            sample_lifted_allele,
-        )
+        mock_liftover_mod.add_liftover_mapping.return_value = None
 
         responses = register_variations(mock_anyvar, [sample_variation_request])
 
@@ -174,7 +153,6 @@ class TestRegisterVariations:
         mock_liftover_mod,
         mock_anyvar,
         sample_allele,
-        sample_lifted_allele,
     ):
         """Batch with one valid and one invalid variation: only the valid one is stored and lifted over."""
         good_req = VariationRequest(definition="NC_000007.13:g.36561662_36561663del")
@@ -184,10 +162,7 @@ class TestRegisterVariations:
             TranslationResult(variation=sample_allele),
             TranslationResult(error='Unable to translate "invalid-variant"'),
         ]
-        mock_liftover_mod.add_liftover_mapping.return_value = (
-            None,
-            sample_lifted_allele,
-        )
+        mock_liftover_mod.add_liftover_mapping.return_value = None
 
         responses = register_variations(mock_anyvar, [good_req, bad_req])
 
@@ -218,10 +193,9 @@ class TestRegisterVariations:
     ):
         """When liftover fails, response includes error messages."""
         mock_translate.return_value = TranslationResult(variation=sample_allele)
-        mock_liftover_mod.add_liftover_mapping.return_value = (
-            ["Unable to complete liftover: some error"],
-            None,
-        )
+        mock_liftover_mod.add_liftover_mapping.return_value = [
+            "Unable to complete liftover: some error"
+        ]
 
         responses = register_variations(mock_anyvar, [sample_variation_request])
 
