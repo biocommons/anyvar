@@ -33,6 +33,25 @@ AnyVar implements a :py:mod:`Translator <anyvar.translate.base>` abstraction tha
    * - gnomAD/VCF
      - ``7-140753335-A-T``
 
+.. _variant-projection:
+
+Variant Projection
+==================
+
+AnyVar can optionally project registered alleles across molecule types. When projection is enabled, registering a supported genomic allele also attempts to store a projected transcript allele and a ``TRANSCRIBE_TO`` mapping. When possible, AnyVar also stores a projected protein allele and a ``TRANSLATE_TO`` mapping from the transcript allele.
+
+Projection is performed during variation registration, after the submitted variation has been translated, normalized, and stored. Projection failures do not prevent registration of the submitted variation; warning messages may be returned with the registration response for cases that cannot be projected.
+
+This feature requires the ``projection`` dependency extra and configured UTA and SeqRepo resources:
+
+.. code-block:: console
+
+   % python -m pip install "anyvar[projection]"
+
+Enable automatic projection by setting ``ANYVAR_ENABLE_PROJECTION`` to ``true``. Disable it by leaving ``ANYVAR_ENABLE_PROJECTION`` unset or setting it to any other value, such as ``false``.
+
+Projection uses Cool-Seq-Tool for transcript and protein coordinate mapping, so ``UTA_DB_URL`` and SeqRepo configuration must point to resources compatible with Cool-Seq-Tool.
+
 .. _vcf_ingest:
 
 VCF Ingestion and Annotation

@@ -9,6 +9,7 @@ import logging
 import os
 import warnings
 from collections.abc import Iterable
+from typing import Protocol
 from urllib.parse import urlparse
 
 from ga4gh.vrs import models as vrs_models
@@ -94,8 +95,52 @@ def has_queueing_enabled() -> bool:
     )
 
 
+class VariantProjectorProtocol(Protocol):
+    """Protocol for variant projection across the central dogma."""
+
+    def add_projections(  # noqa: D102
+        self, variation: objects.SupportedVrsVariation, storage: Storage
+    ) -> None: ...
+
+
 class ObjectNotFoundError(Exception):
     """Raised when an ID is given for a non-existent object."""
+
+
+def create_projector(translator: Translator):  # noqa: ANN201
+    """Create a VariantProjector if projection is enabled and cool-seq-tool is installed.
+
+    Projection is enabled when:
+    - ``ANYVAR_ENABLE_PROJECTION`` env var is set to ``true``
+    - ``cool-seq-tool`` package is installed
+
+    :param translator: Translator instance (provides the SeqRepo DataProxy)
+    :return: VariantProjector instance, or None if not available/enabled
+    """
+    if os.environ.get("ANYVAR_ENABLE_PROJECTION", "").lower() != "true":
+        _logger.debug("Projection not enabled (ANYVAR_ENABLE_PROJECTION not set)")
+        return None
+
+    if importlib.util.find_spec("cool_seq_tool") is None:
+        _logger.warning(
+            "ANYVAR_ENABLE_PROJECTION is set but cool-seq-tool is not installed. "
+            "Install with: pip install 'anyvar[projection]'"
+        )
+        return None
+
+    from cool_seq_tool import CoolSeqTool  # noqa: PLC0415
+
+    from anyvar.mapping.projection import VariantProjector  # noqa: PLC0415
+
+    kwargs: dict = {}
+    # Share SeqRepo instance with the rest of AnyVar to avoid duplicate initialization
+    if hasattr(translator.dp, "sr"):
+        kwargs["sr"] = translator.dp.sr
+    # NOTE: UTA_DB_URL is initialized with dotenv in AnyVar, and cool-seq-tool reads
+    # the UTA_DB_URL env var lazily, so it should use the value set in .env
+    cst = CoolSeqTool(**kwargs)
+    _logger.info("CoolSeqTool initialized for variant projection")
+    return VariantProjector(cst=cst, dp=translator.dp)
 
 
 class AnyVar:
@@ -106,15 +151,18 @@ class AnyVar:
         /,
         translator: Translator,
         object_store: Storage,
+        projector: VariantProjectorProtocol | None = None,
     ) -> None:
         """Initialize anyvar instance. It's easiest to use factory methods to create
         translator and object_store instances but manual construction works too.
 
         :param translator: Translator instance
         :param object_store: Object storage instance
+        :param projector: Optional VariantProjector instance for variant projection
         """
         self.object_store = object_store
         self.translator = translator
+        self.projector = projector
 
     def put_objects(self, variation_objects: list[objects.SupportedVrsObject]) -> None:
         """Attempt to register variation objects

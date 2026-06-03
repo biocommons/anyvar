@@ -78,6 +78,7 @@ services:
       - SEQREPO_DATAPROXY_URI=seqrepo+file:///usr/local/share/seqrepo/2024-12-20
       - UTA_DB_URL=postgresql://anonymous:anonymous@uta:5432/uta/uta_20241220
       - ANYVAR_STORAGE_URI=postgresql://anyvar:anyvar-pw@anyvar_db:5432/anyvar
+      - ANYVAR_ENABLE_PROJECTION=true
     ports:
       - 127.0.0.1:8010:8000
 
