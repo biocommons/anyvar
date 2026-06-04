@@ -89,6 +89,23 @@ def _handle_translation_request(
 
 
 @variations_router.put(
+    "/variation",
+    response_model_exclude_none=True,
+    summary="Register a new allele or copy number object",
+    description="Provide a variation definition  to be normalized and registered with AnyVar. A complete VRS Allele or Copy Number object and ID is returned.",
+)
+def register_variation(
+    request: Request,
+    variation: Annotated[VariationRequest, _variation_request_body],
+) -> RegisterVariationResponse:
+    """Register a variation based on a provided description or reference."""
+    av: AnyVar = request.app.state.anyvar
+
+    responses: list[RegisterVariationResponse] = _register_variations(av, [variation])
+    return responses[0]
+
+
+@variations_router.put(
     "/variations",
     response_model_exclude_none=True,
     summary="Bulk register alleles or copy number objects",

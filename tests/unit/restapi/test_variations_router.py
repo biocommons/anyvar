@@ -14,6 +14,7 @@ from anyvar.restapi.schema import (
     ErrorResponse,
     RegisterVariationResponse,
     ServiceInfo,
+    TranslationResult,
     VariationRequest,
 )
 
@@ -207,28 +208,21 @@ class TestPutVariationsSync:
 
 
 # ---------------------------------------------------------------------------
-# PUT /variation
+# POST /variation
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.ci_ok
-class TestPutVariation:
-    @patch("anyvar.restapi.variations_router._register_variations")
-    def test_response(self, mock_register, test_client, sample_allele):
-        """PUT /variation response includes object and object_id."""
-        mock_register.return_value = [
-            RegisterVariationResponse(
-                input_variation=VariationRequest(**VARIATION_PAYLOAD),
-                object=sample_allele,
-                object_id=sample_allele.id,
-                messages=[],
-            )
-        ]
+class TestPostVariation:
+    @patch("anyvar.restapi.variations_router._translate_variation")
+    def test_response(self, mock_translate, test_client, sample_allele):
+        """POST /variation response includes translated variation data."""
+        mock_translate.return_value = TranslationResult(variation=sample_allele)
 
-        resp = test_client.put("/variation", json=VARIATION_PAYLOAD)
+        resp = test_client.post("/variation", json=VARIATION_PAYLOAD)
         assert resp.status_code == HTTPStatus.OK
         body = resp.json()
-        assert body["object_id"] == sample_allele.id
+        assert body["data"]["id"] == sample_allele.id
 
 
 # ---------------------------------------------------------------------------
