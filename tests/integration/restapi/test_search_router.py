@@ -15,7 +15,7 @@ def test_search(restapi_client: TestClient, preloaded_alleles: dict):
         ]
         accession = f"ga4gh:{refget_ac}"
         resp = restapi_client.get(
-            f"/search?accession={accession}&start={start}&end={end}"
+            f"/variations?accession={accession}&start={start}&end={end}"
         )
         assert resp.status_code == HTTPStatus.OK
 
