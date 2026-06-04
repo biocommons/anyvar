@@ -28,6 +28,7 @@ class EndpointTag(StrEnum):
     META = "Service Metadata"
     VCF = "VCF Operations"
     VRS_OBJECTS = "VRS Objects"
+    CATEGORICAL_VARIANTS = "Categorical Variants"
     VARIATIONS = "Variations"
 
 

@@ -66,7 +66,10 @@
           "start": 140753335,
           "end": 140753336
         },
-        "state": { "type": "LiteralSequenceExpression", "sequence": "T" }
+        "state": {
+          "type": "LiteralSequenceExpression",
+          "sequence": "T"
+        }
       },
       "comment": "BRAF V600E (genomic), grch38. liftover to VA.nmp-bzYpO00NYIqr3CaVF0ZH2ZpSj1ly"
     },
@@ -109,7 +112,10 @@
           "start": 140453135,
           "end": 140453136
         },
-        "state": { "type": "LiteralSequenceExpression", "sequence": "T" }
+        "state": {
+          "type": "LiteralSequenceExpression",
+          "sequence": "T"
+        }
       },
       "comment": "BRAF V600E (genomic), grch37. liftover to VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe"
     },
@@ -129,7 +135,10 @@
           "start": 55174014,
           "end": 55174015
         },
-        "state": { "type": "LiteralSequenceExpression", "sequence": "C" }
+        "state": {
+          "type": "LiteralSequenceExpression",
+          "sequence": "C"
+        }
       },
       "comment": "NM_005228.5(EGFR):c.2156G>C (p.Gly719Ala) -- VCV000045225.8"
     },
@@ -149,7 +158,10 @@
           "start": 178921548,
           "end": 178921549
         },
-        "state": { "type": "LiteralSequenceExpression", "sequence": "G" }
+        "state": {
+          "type": "LiteralSequenceExpression",
+          "sequence": "G"
+        }
       },
       "comment": "grch37, lifts over to 9gW_iJbQAIO3SIxJ9ACyAZA1X2lEgO39"
     },
@@ -169,7 +181,10 @@
           "end": 179203761,
           "type": "SequenceLocation"
         },
-        "state": { "sequence": "G", "type": "LiteralSequenceExpression" }
+        "state": {
+          "sequence": "G",
+          "type": "LiteralSequenceExpression"
+        }
       },
       "comment": "allele_int_unknown_grch38_variant, lifts over to VA.J-gW7La8EblIdT1MfqZzhzbO26lkEH7D"
     },
@@ -227,7 +242,9 @@
       "register_params": {
         "definition": "NM_000551.3:c.1A>T"
       },
-      "expected_messages": ["Unable to complete liftover: Could not resolve reference assembly - accession not found in any supported assembly"],
+      "expected_messages": [
+        "Unable to complete liftover: Could not resolve reference assembly - accession not found in any supported assembly"
+      ],
       "variation": {
         "digest": "1FzYrqG-7jB3Wr46eIL_L5BWElQZEB7i",
         "id": "ga4gh:VA.1FzYrqG-7jB3Wr46eIL_L5BWElQZEB7i",
@@ -265,7 +282,10 @@
             "type": "SequenceReference"
           }
         },
-        "state": { "sequence": "T", "type": "LiteralSequenceExpression" }
+        "state": {
+          "sequence": "T",
+          "type": "LiteralSequenceExpression"
+        }
       },
       "comment": "grch36"
     },
@@ -285,7 +305,10 @@
           "start": 47087473,
           "end": 47087474
         },
-        "state": { "type": "LiteralSequenceExpression", "sequence": "T" }
+        "state": {
+          "type": "LiteralSequenceExpression",
+          "sequence": "T"
+        }
       },
       "comment": "grch37 -- cant liftover to grch38"
     },
@@ -417,6 +440,52 @@
         }
       },
       "comment": "gnomad grch38"
+    },
+    "ga4gh:VA.sMA9h8fzDi0RvweMlxtD0_Oi8B-JZ1V-": {
+      "variation": {
+        "id": "ga4gh:VA.sMA9h8fzDi0RvweMlxtD0_Oi8B-JZ1V-",
+        "type": "Allele",
+        "digest": "sMA9h8fzDi0RvweMlxtD0_Oi8B-JZ1V-",
+        "location": {
+          "id": "ga4gh:SL.UOSDv-_5QNbKqgbCf--isFjvNZ5ZST09",
+          "type": "SequenceLocation",
+          "digest": "UOSDv-_5QNbKqgbCf--isFjvNZ5ZST09",
+          "sequenceReference": {
+            "type": "SequenceReference",
+            "refgetAccession": "SQ.vyo55F6mA6n2LgN4cagcdRzOuh38V4mE"
+          },
+          "start": 789,
+          "end": 790
+        },
+        "state": {
+          "type": "LiteralSequenceExpression",
+          "sequence": "M"
+        }
+      },
+      "comment": "EGFR T790M (civic.mpid:34)"
+    },
+    "ga4gh:VA.EEk-kGY1YF1QgGShZ040hl3V5HWXsL4q": {
+      "variation": {
+        "id": "ga4gh:VA.EEk-kGY1YF1QgGShZ040hl3V5HWXsL4q",
+        "type": "Allele",
+        "digest": "EEk-kGY1YF1QgGShZ040hl3V5HWXsL4q",
+        "location": {
+          "id": "ga4gh:SL.BP0NxO71lCOCWwwzfD_Ic19LIoGVG5J7",
+          "type": "SequenceLocation",
+          "digest": "BP0NxO71lCOCWwwzfD_Ic19LIoGVG5J7",
+          "sequenceReference": {
+            "type": "SequenceReference",
+            "refgetAccession": "SQ.2NkFm8HK88MqeNkCgj78KidCAXgnsfV1"
+          },
+          "start": 68032290,
+          "end": 68032291
+        },
+        "state": {
+          "type": "LiteralSequenceExpression",
+          "sequence": "T"
+        }
+      },
+      "comment": "NC_000011.10:g.68032291C>T (clingen.allele:CA321211)"
     }
   },
   "copy_numbers": {

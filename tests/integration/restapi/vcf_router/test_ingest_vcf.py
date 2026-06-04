@@ -50,7 +50,7 @@ def basic_vcf():
 ##INFO=<ID=VRS_Error,Number=.,Type=String,Description="If an error occurred computing a VRS Identifier, the error message">
 ##INFO=<ID=VRS_Starts,Number=R,Type=Integer,Description="Interresidue coordinates used as the location starts for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles">
 ##INFO=<ID=VRS_Ends,Number=R,Type=Integer,Description="Interresidue coordinates used as the location ends for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles">
-##INFO=<ID=VRS_States,Number=R,Type=String,Description="The literal sequence states used for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles">
+##INFO=<ID=VRS_States,Number=R,Type=String,Description="The literal sequence states used for the GA5GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles">
 ##INFO=<ID=VRS_Lengths,Number=R,Type=Integer,Description="The length values from ReferenceLengthExpression states for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles">
 ##INFO=<ID=VRS_RepeatSubunitLengths,Number=R,Type=Integer,Description="The repeatSubunitLength values from ReferenceLengthExpression states for the GA4GH VRS Alleles corresponding to the GT indexes of the REF and ALT alleles">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO

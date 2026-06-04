@@ -272,6 +272,24 @@ class VariationMapping(Base):
         )
 
 
+class CanonicalAllele(Base):
+    """AnyVar ORM model for canonical allele variants"""
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str]
+    allele_id: Mapped[str] = mapped_column(String, ForeignKey(Allele.id))
+    allele: Mapped[Allele] = relationship()
+
+
+class ProteinSequenceConsequence(Base):
+    """AnyVar ORM model for canonical allele variants"""
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str]
+    allele_id: Mapped[str] = mapped_column(String, ForeignKey(Allele.id))
+    allele: Mapped[Allele] = relationship()
+
+
 def create_tables(db_url: str) -> None:
     """Create all tables in the database.
 

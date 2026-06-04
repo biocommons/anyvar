@@ -8,6 +8,7 @@ from collections.abc import Iterable
 
 from anyvar.core import metadata
 from anyvar.core import objects as anyvar_objects
+from anyvar.core.categorical_variants import CanonicalAllele, ProteinSequenceConsequence
 from anyvar.storage.base import AlleleSearchPage, Storage
 
 
@@ -81,3 +82,15 @@ class NoObjectStore(Storage):
     ) -> AlleleSearchPage:
         """(No-op) Find all Alleles within the specified interval."""
         return AlleleSearchPage(items=[], next_cursor=None)
+
+    def add_ca_catvar(self, ca: CanonicalAllele) -> None:
+        """(No-op) Add a Canonical Allele Categorical Variant"""
+
+    def get_ca_catvar(self, ca_id: str) -> CanonicalAllele | None:
+        """(No-op) Fetch a Canonical Allele categorical variant by ID"""
+
+    def add_psq_catvar(self, psq: ProteinSequenceConsequence) -> None:
+        """(No-op) Add a Protein Sequence Consequence Categorical Variant"""
+
+    def get_psq_catvar(self, psq_id: str) -> ProteinSequenceConsequence | None:
+        """(No-op) Fetch a Protein Sequence Consequence categorical variant by ID"""
