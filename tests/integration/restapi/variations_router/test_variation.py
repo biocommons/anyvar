@@ -45,7 +45,7 @@ def test_put_allele(restapi_client: TestClient, alleles: dict):
     [
         (
             "GRCh38/hg38 7p22.3-q36.3(chr7:54185-159282390)x1",
-            'Unable to translate "GRCh38/hg38 7p22.3-q36.3(chr7:54185-159282390)x1"',
+            "Unable to parse data as beacon, gnomad, hgvs, spdi, vrs",
         ),
         (
             "NC_000007.13:g.36561662_36561663deletion",
@@ -83,7 +83,7 @@ def test_put_variations(restapi_client: TestClient, alleles: dict):
             "definition": "GRCh38/hg38 7p22.3-q36.3(chr7:54185-159282390)x1",
         },
         "expected_messages": [
-            'Unable to translate "GRCh38/hg38 7p22.3-q36.3(chr7:54185-159282390)x1"'
+            "Unable to parse data as beacon, gnomad, hgvs, spdi, vrs"
         ],
     }
     variation_payloads = [
@@ -165,7 +165,7 @@ def test_post_variation_not_registered(
     [
         (
             "GRCh38/hg38 7p22.3-q36.3(chr7:54185-159282390)x1",
-            'Unable to translate "GRCh38/hg38 7p22.3-q36.3(chr7:54185-159282390)x1"',
+            "Unable to parse data as beacon, gnomad, hgvs, spdi, vrs",
         ),
         (
             "NC_000007.13:g.36561662_36561663deletion",

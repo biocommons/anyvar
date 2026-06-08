@@ -4,8 +4,6 @@ from http import HTTPStatus
 from typing import Annotated
 
 from fastapi import APIRouter, Body, HTTPException, Query, Request
-from ga4gh.vrs.dataproxy import DataProxyValidationError
-from hgvs.exceptions import HGVSParseError
 
 from anyvar.anyvar import AnyVar
 from anyvar.core import objects
@@ -17,9 +15,9 @@ from anyvar.restapi.schema import (
     TranslationResult,
     VariationRequest,
 )
-from anyvar.restapi.utils import get_vrs_object
+from anyvar.restapi.utils import get_vrs_object, translate_variation
 from anyvar.storage.base import IncompleteVrsObjectError
-from anyvar.translate.base import TranslationError, Translator
+from anyvar.translate.base import Translator
 
 variations_router = APIRouter()
 
@@ -38,37 +36,6 @@ _variation_request_body = Body(
 )
 
 
-def _translate_variation(
-    tlr: Translator, variation_request: VariationRequest
-) -> TranslationResult:
-    """Perform variant translation
-
-    :param tlr: Translator instance
-    :param variation_request: Input variation request to translate
-    :return: TranslationResult object with translated variation, if translation is
-        successful. Otherwise, return error message
-    """
-    definition = variation_request.definition
-
-    try:
-        translated_variation = tlr.translate_variation(
-            definition, **variation_request.model_dump(mode="json")
-        )
-        return TranslationResult(variation=translated_variation)
-    except DataProxyValidationError as e:
-        return TranslationResult(error=str(e))
-    except HGVSParseError:
-        return TranslationResult(
-            error=f'Unable to parse HGVS expression "{definition}"'
-        )
-    except NotImplementedError:
-        return TranslationResult(
-            error=f"Variation class for {definition} is currently unsupported."
-        )
-    except TranslationError:
-        return TranslationResult(error=f'Unable to translate "{definition}"')
-
-
 def _handle_translation_request(
     tlr: Translator, var_req: VariationRequest
 ) -> objects.SupportedVrsVariation:
@@ -82,7 +49,7 @@ def _handle_translation_request(
        * Reference base in gnomad/VCF-style expression fails to validate
        * translator returns not-implemented variation type
     """
-    translation_result = _translate_variation(tlr, var_req)
+    translation_result = translate_variation(tlr, **var_req.model_dump(mode="json"))
     if translation_result.error:
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
@@ -108,7 +75,9 @@ def _register_variations(
     variations_to_store: list[objects.SupportedVrsObject] = []
 
     for variation_request in variation_requests:
-        translation_result = _translate_variation(av.translator, variation_request)
+        translation_result = translate_variation(
+            av.translator, **variation_request.model_dump(mode="json")
+        )
         translation_results.append(translation_result)
 
         if translation_result.variation:

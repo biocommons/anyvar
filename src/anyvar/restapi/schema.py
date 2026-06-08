@@ -29,7 +29,7 @@ class EndpointTag(StrEnum):
     VCF = "VCF Operations"
     VRS_OBJECTS = "VRS Objects"
     VARIATIONS = "Variations"
-    TRANSLATE = "Translate Operations"
+    TRANSLATION = "Translation Operations"
 
 
 class ServiceEnvironment(StrEnum):
@@ -336,20 +336,48 @@ class SearchResponse(BaseModel):
     next_cursor: str | None
 
 
-class TranslateToResponse(BaseModel):
-    """Describe response for the POST /translate_to endpoint"""
+class TranslateToRequest(BaseModel):
+    """Describe request body for the POST /translate/vrs_to_identifiers endpoint"""
+
+    allele: models.Allele
+    namespace: str | None = "refseq"
+    ref_seq_limit: int | None = 0
 
     model_config = ConfigDict(
         json_schema_extra={
-            "examples": [
-                {
-                    "hgvs": [
-                        "ENST00000453660.4:n.718G>T",
-                        "ENSP00000483018.1:p.Gly229Val",
-                    ],
-                    "spdi": ["NC_000009.12:133256041:C:A"],
+            "example": {
+                "allele": {
+                    "type": "Allele",
+                    "location": {
+                        "type": "SequenceLocation",
+                        "sequenceReference": {
+                            "type": "SequenceReference",
+                            "refgetAccession": "SQ.F-LrLMe1SRpfUZHkQmvkVKFEGaoDeHul",
+                        },
+                        "start": 140753335,
+                        "end": 140753336,
+                        "sequence": "A",
+                    },
+                    "state": {"type": "LiteralSequenceExpression", "sequence": "T"},
+                },
+                "namespace": None,
+                "ref_seq_limit": 0,
+            }
+        }
+    )
+
+
+class TranslateToResponse(BaseModel):
+    """Describe response for the POST /translate/vrs_to_identifiers  endpoint"""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "identifiers": {
+                    "hgvs": ["NC_000007.14:g.140753336A>T"],
+                    "spdi": ["NC_000007.14:140753335:A:T"],
                 }
-            ],
+            }
         }
     )
 
@@ -357,9 +385,9 @@ class TranslateToResponse(BaseModel):
 
 
 class TranslateFromResponse(BaseModel):
-    """Describe response for the POST /translate_from endpoint"""
+    """Describe response for the GET /translate/identifier_to_vrs endpoint"""
 
-    object: objects.VrsObject
+    allele: models.Allele
 
 
 class RunStatusResponse(BaseModel):

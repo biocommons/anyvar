@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 
 from ga4gh.vrs.dataproxy import _DataProxy
+from ga4gh.vrs.models import Allele
 
 from anyvar.core.objects import SupportedVrsVariation
 
@@ -36,32 +37,44 @@ class Translator(ABC):
     def translate_variation(self, var: str, **kwargs) -> SupportedVrsVariation:
         """Translate provided variation text into a VRS Variation object.
 
+        At the moment, only VRS Alleles are supported.
+
         :param var: user-provided string describing or referencing a variation.
-        :kwargs:
-           * input_type (types.VrsVariation): The type of variation for `var`. If
-             not provided, will first try to translate to allele and then copy number
-           * copies (int) - The number of copies for VRS Copy Number Count
-           * copy_change (models.CopyChange) - The EFO code for VRS COpy Number Change
-           * assembly_name(str) -> Assembly name for ``var``. Only used when ``var``
-             uses gnomad format. Defaults to "GRCh38". Must be "GRCh38" or "GRCh37".
-             VRS-Python sets a default, but we should set a default just in case VRS-Python
-             ever changes the default.
+        :param kwargs: Additional translation options.
         :returns: VRS variation object
         :raises TranslationError: if translation is unsuccessful, either because
-            the submitted variation is malformed, or because VRS-Python doesn't support
-            its translation.
+            the submitted variation is malformed, uses an unsupported identifier format,
+            fails validation checks, or is not supported by VRS-Python.
         """
         raise NotImplementedError
 
     @abstractmethod
-    def translate_allele(self, var: str) -> SupportedVrsVariation | None:
-        """Translate provided variation text into a normalized VRS object.
+    def translate_allele(self, var: str, **kwargs) -> Allele:
+        """Translate provided variation text into a normalized VRS Allele object.
 
         :param var: user-provided string describing or referencing a variation.
-        :returns: VRS variation object if able to normalize
-        :raises TranslatorConnectionError: if translation request returns error
+        :param kwargs: Additional translation options.
+        :returns: VRS Allele object
+        :raises TranslationError: if translation is unsuccessful, either because
+            the submitted variation is malformed, uses an unsupported identifier format,
+            fails validation checks, or is not supported by VRS-Python.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def translate_allele_to_format(
+        self, allele: Allele, fmt: str, **kwargs
+    ) -> list[str]:
+        """Translate a VRS Allele to one or more identifiers in the requested format.
+
+        :param allele: VRS Allele to translate.
+        :param fmt: Target identifier format (e.g. hgvs, spdi)
+        :param kwargs: Additional translation options.
+        :return: List of translated identifiers in the requested format.
+        :raises TranslationError: If translation is unsuccessful because required
+            reference sequence information cannot be resolved, the allele is invalid,
+            or the requested format is unsupported by VRS-Python.
+        """
 
     @abstractmethod
     def get_sequence_id(self, accession_id: str) -> str:

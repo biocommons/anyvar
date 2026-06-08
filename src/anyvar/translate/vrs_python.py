@@ -1,19 +1,42 @@
 """Normalize incoming variation descriptions with the VRS-Python library."""
 
 import logging
+from enum import StrEnum
 from os import environ
+from typing import Any
 from warnings import warn
 
 from biocommons.seqrepo import SeqRepo
 from bioutils.accessions import coerce_namespace
 from ga4gh.vrs import models
-from ga4gh.vrs.dataproxy import SeqRepoDataProxy, _DataProxy, create_dataproxy
+from ga4gh.vrs.dataproxy import (
+    DataProxyValidationError,
+    SeqRepoDataProxy,
+    _DataProxy,
+    create_dataproxy,
+)
 from ga4gh.vrs.extras.translator import AlleleTranslator, CnvTranslator
+from hgvs.exceptions import HGVSParseError
 
 from anyvar.core.objects import SupportedVrsVariation
 from anyvar.translate.base import TranslationError, Translator
 
 _logger = logging.getLogger(__name__)
+
+
+class TranslatorConfigOption(StrEnum):
+    """Translator configuration options supported by VRS-Python.
+
+    These values are used to filter user-provided keyword arguments before
+    passing them to VRS-Python translation methods.
+    """
+
+    FMT = "fmt"
+    ASSEMBLY_NAME = "assembly_name"
+    REQUIRE_VALIDATION = "require_validation"
+    RLE_SEQ_LIMIT = "rle_seq_limit"
+    REF_SEQ_LIMIT = "ref_seq_limit"
+    NAMESPACE = "namespace"
 
 
 class WindowedSeqRepoDataProxy(SeqRepoDataProxy):
@@ -133,51 +156,132 @@ class VrsPythonTranslator(Translator):
         self.allele_tlr = AlleleTranslator(data_proxy=self.dp)
         self.cnv_tlr = CnvTranslator(data_proxy=self.dp)
 
+    @staticmethod
+    def _filter_translator_kwargs(
+        kwargs: dict[str, Any],
+        allowed_options: tuple[TranslatorConfigOption, ...],
+    ) -> dict[str, Any]:
+        """Filter translator configuration options from user-provided kwargs.
+
+        :param kwargs: User-provided keyword arguments.
+        :param allowed_options: Translator configuration options supported by the
+            translation method being called.
+        :return: Translator keyword arguments supported by the requested
+            translation method.
+        """
+        return {
+            option.value: kwargs[option.value]
+            for option in allowed_options
+            if option.value in kwargs
+        }
+
     def translate_variation(self, var: str, **kwargs) -> SupportedVrsVariation:
         """Translate provided variation text into a VRS Variation object.
 
         :param var: user-provided string describing or referencing a variation.
-        :param input_type: The type of variation for `var`.
-        :keyword types.VrsVariation input_type: The type of variation for `var`. If
-            not provided, will first try to translate to allele and then copy number
-        :keyword int copies: The number of copies for VRS Copy Number Count
-        :keyword models.CopyChange copy_change: The EFO code for VRS COpy Number Change
-        :keyword ReferenceAssembly assembly_name: Assembly name for ``var``.
-            Only used when ``var`` uses gnomad format.
+        :param kwargs: Additional translation options.
+
+            * assembly_name (str): Assembly name for ``var``.
+                Only used when ``var`` uses gnomad format.
+                Defaults to "GRCh38".
+                VRS-Python sets a default, but we should set a default just in case VRS-Python ever changes the default.
+            * require_validation (bool): Whether validation checks must pass in order to
+                return a VRS Allele.
+            * rle_seq_limit (int | None): If RLE is set as the new state after
+                normalization, this sets the limit for the length of the `sequence`.
+                To exclude `sequence` from the response, set to 0.
+                For no limit, set to `None`.
         :returns: VRS variation object
         :raises TranslationError: if translation is unsuccessful, either because
-            the submitted variation is malformed, or because VRS-Python doesn't support
-            its translation.
+            the submitted variation is malformed, uses an unsupported identifier format,
+            fails validation checks, or is not supported by VRS-Python.
         """
         try:
             variation = self.translate_allele(var, **kwargs)
         except TranslationError as e:
-            msg = f"{var} isn't supported by the VRS-Python AlleleTranslator."
-            raise TranslationError(msg) from e
+            raise TranslationError(str(e)) from e
         return variation
 
     def translate_allele(self, var: str, **kwargs) -> models.Allele:
         """Translate provided variation text into a VRS Allele object.
 
         :param var: user-provided string describing or referencing a variation.
-        :kwargs:
-            assembly_name(str) -> Assembly name for ``var``.
-            Only used when ``var`` uses gnomad format.
-            Defaults to "GRCh38". Must be "GRCh38" or "GRCh7"
-            VRS-Python sets a default, but we should set a default just in case
-            VRS-Python ever changes the default.
-        :returns: VRS variation object if able to translate
+        :param kwargs: Additional translation options.
+
+            * fmt (str | TranslateFromIdentifierFormat | None): The format of ``var``. If None, will guess the appropriate format.
+            * assembly_name (str): Assembly name for ``var``.
+                Only used when ``var`` uses gnomad format.
+                Defaults to "GRCh38".
+                VRS-Python sets a default, but we should set a default just in case VRS-Python ever changes the default.
+            * require_validation (bool): Whether validation checks must pass in order to
+                return a VRS Allele.
+            * rle_seq_limit (int | None): If RLE is set as the new state after
+                normalization, this sets the limit for the length of the `sequence`.
+                To exclude `sequence` from the response, set to 0.
+                For no limit, set to `None`.
+        :returns: VRS Allele object if able to translate
         :raises TranslationError: if translation is unsuccessful, either because
-            the submitted variation is malformed, or because VRS-Python doesn't support
-            its translation.
+            the submitted variation is malformed, uses an unsupported identifier format,
+            fails validation checks, or is not supported by VRS-Python.
         """
+        translator_kwargs = self._filter_translator_kwargs(
+            kwargs,
+            (
+                TranslatorConfigOption.FMT,
+                TranslatorConfigOption.ASSEMBLY_NAME,
+                TranslatorConfigOption.REQUIRE_VALIDATION,
+                TranslatorConfigOption.RLE_SEQ_LIMIT,
+            ),
+        )
         try:
-            translator_kwargs = {}
-            if "assembly_name" in kwargs:
-                translator_kwargs["assembly_name"] = kwargs["assembly_name"]
-            return self.allele_tlr.translate_from(var, fmt=None, **translator_kwargs)  # type: ignore (this will always return a models.Allele instance, or raise a ValueError)
+            return self.allele_tlr.translate_from(var, **translator_kwargs)  # type: ignore (this will always return a models.Allele instance, or raise a ValueError)
         except ValueError as e:
-            msg = f"{var} isn't supported by the VRS-Python AlleleTranslator."
+            raise TranslationError(str(e)) from e
+        except DataProxyValidationError as e:
+            raise TranslationError(str(e)) from e
+        except HGVSParseError as e:
+            msg = f'Unable to parse HGVS expression "{var}"'
+            raise TranslationError(msg) from e
+        except NotImplementedError as e:
+            msg = f'Variation class for "{var}" is currently unsupported.'
+            raise TranslationError(msg) from e
+
+    def translate_allele_to_format(
+        self, allele: models.Allele, fmt: str, **kwargs
+    ) -> list[str]:
+        """Translate a VRS Allele to one or more identifiers in the requested format.
+
+        :param allele: VRS Allele to translate.
+        :param fmt: Target identifier format (e.g. hgvs, spdi)
+        :param kwargs: Additional translation options.
+
+            * namespace (str | None): Namespace to return identifiers for. If None,
+                returns all alias translations.
+            * ref_seq_limit (int | None):
+                Only used for SPDI
+                If ``allele.state`` is a ReferenceLengthExpression, and `ref_seq_limit`
+                is specified, the reference sequence is included in the SPDI expression
+                if it is below the limit.
+                Otherwise only the length of the reference sequence is included.
+                If the limit is None, the reference sequence is always included.
+                In all cases, the alt sequence is included.
+                Default is 0 (never include reference sequence).
+        :return: List of translated identifiers in the requested format.
+        :raises TranslationError: If translation is unsuccessful because required
+            reference sequence information cannot be resolved, the allele is invalid,
+            or the requested format is unsupported by VRS-Python.
+        """
+        translator_kwargs = self._filter_translator_kwargs(
+            kwargs,
+            (TranslatorConfigOption.NAMESPACE, TranslatorConfigOption.REF_SEQ_LIMIT),
+        )
+        try:
+            return self.allele_tlr.translate_to(allele, fmt, **translator_kwargs)  # type: ignore
+        except KeyError as e:
+            msg = f"Identifier not found: {e}"
+            raise TranslationError(msg) from e
+        except (ValueError, AssertionError, NotImplementedError) as e:
+            msg = f'Unable to translate allele to "{fmt}": {e}'
             raise TranslationError(msg) from e
 
     def get_sequence_id(self, accession_id: str) -> str:
