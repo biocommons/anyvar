@@ -213,7 +213,7 @@ class AnyVar:
         except KeyError as e:
             raise ObjectNotFoundError from e
         for extension in self.object_store.get_extensions(object_id):
-            self.object_store.delete_extension(extension)
+            self.object_store.delete_extensions(vrs_object.id, extension.name)
         for mapping in self.object_store.get_mappings(object_id, as_source=True):
             self.object_store.delete_mapping(mapping)
         for mapping in self.object_store.get_mappings(object_id, as_source=False):
@@ -242,6 +242,29 @@ class AnyVar:
             except KeyError as e:
                 raise ObjectNotFoundError(object_id) from e
         return extensions
+
+    def delete_object_extensions(
+        self, object_id: str, extension_name: str | None = None
+    ) -> None:
+        """Delete extensions
+
+         * If no ``extension_name`` is given, delete all associated extensions.
+         * Delete all instances of extensions by the given name
+
+        :param object_id: object ID to delete extensions for
+        :param extension_name: optionally, the name of extensions to delete
+        :raise ObjectNotFoundError: if ``object_id`` can't be found in DB
+        """
+        try:
+            rowcount = self.object_store.delete_extensions(object_id, extension_name)
+        except Exception as e:
+            _logger.exception("Failed to retrieve extensions for object: %s", object_id)
+            raise e  # noqa: TRY201
+        if not rowcount:
+            try:
+                _ = self.get_object(object_id)
+            except KeyError as e:
+                raise ObjectNotFoundError(object_id) from e
 
     def create_timestamp_if_missing(self, object_id: str) -> int | None:
         """Store a 'creation_timestamp' extension if missing for an object

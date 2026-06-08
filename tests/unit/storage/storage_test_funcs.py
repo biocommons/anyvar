@@ -351,11 +351,11 @@ def run_extensions_crud(
     storage: Storage,
     focus_alleles: tuple[models.Allele, models.Allele, models.Allele],
 ):
-    """Broad coverage of CRUD methods for annotations"""
+    """Broad coverage of CRUD methods for extensions"""
     # prepopulate
     storage.add_objects(focus_alleles)
 
-    # add arbitrary annotations
+    # add arbitrary extensions
     ann1 = metadata.Extension(
         object_id=focus_alleles[0].id,
         name="classification",
@@ -381,7 +381,7 @@ def run_extensions_crud(
     )
     storage.add_extension(ann4)
 
-    # get annotations back
+    # get extensions back
     result = storage.get_extensions(focus_alleles[0].id, "classification")
     assert result == [ann1]
 
@@ -392,7 +392,7 @@ def run_extensions_crud(
     sorted(result, key=lambda i: (i.name, i.value))
     assert result == [ann3, ann4]
 
-    # adding the same annotation multiple times creates redundant rows
+    # adding the same extension multiple times creates redundant rows
     storage.add_extension(ann4)
     result = storage.get_extensions(focus_alleles[2].id, "reference")
     assert result == [ann4, ann4]
@@ -402,13 +402,13 @@ def run_extensions_crud(
         focus_alleles[0].id, extension_name="classification"
     )
 
-    # fetch nonexistent annotation
+    # fetch nonexistent extension
     result = storage.get_extensions("ga4gh:VA.ZZZZZZZ")
     assert result == []
 
-    # delete annotations
+    # delete extensions
     result = storage.get_extensions(focus_alleles[0].id, "classification")
-    storage.delete_extension(result[0])
+    storage.delete_extensions(result[0].object_id, result[0].name, result[0].value)
     result = storage.get_extensions(focus_alleles[0].id, "classification")
     assert result == []
 
