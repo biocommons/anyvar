@@ -7,6 +7,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 
 from ga4gh.vrs import models as vrs_models
+from pydantic import JsonValue
 
 from anyvar.core import metadata
 from anyvar.core import objects as anyvar_objects
@@ -179,15 +180,22 @@ class Storage(ABC):
         """
 
     @abstractmethod
-    def delete_extension(self, extension: metadata.Extension) -> None:
-        """Deletes an extension from the database
+    def delete_extensions(
+        self,
+        object_id: str,
+        name: str | None = None,
+        value: JsonValue | None = None,
+    ) -> int:
+        """Delete extension(s) for an object
 
-        * If no such extension exists, do nothing.
-        * Deletes do not cascade.
+        Supports gradual specificity -- either delete all extensions,
+        or delete all extensions under a given key/name, or delete all extensions
+        with a given name AND value.
 
-        :param extension: The extension object to delete
-        :raise DataIntegrityError: if attempting to delete an object which is
-            depended upon by another object
+        :param object_id: The object ID
+        :param name: Optional extension key/name to delete
+        :param value: Optional extension value to delete. Ignored if ``name`` is not provided
+        :return: Number of deleted rows
         """
 
     @staticmethod
