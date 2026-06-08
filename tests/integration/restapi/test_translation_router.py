@@ -69,6 +69,7 @@ def stateless_client(stateless_anyvar: AnyVar):
     return TestClient(app=anyvar_restapi)
 
 
+@pytest.mark.ci_ok
 def test_translate_to(
     stateless_client: TestClient,
     clean_storage: Storage,
@@ -92,6 +93,7 @@ def test_translate_to(
     assert clean_storage.get_objects(Allele, HGVS_G_ALLELE_WITH_IDS["id"]) == []
 
 
+@pytest.mark.ci_ok
 def test_translate_to_unknown_identifier(
     stateless_client: TestClient,
 ):
@@ -110,6 +112,7 @@ def test_translate_to_unknown_identifier(
     }
 
 
+@pytest.mark.ci_ok
 def test_translate_to_protein_allele(
     stateless_client: TestClient,
 ):
@@ -140,6 +143,7 @@ def test_translate_to_protein_allele(
     }
 
 
+@pytest.mark.ci_ok
 def test_translate_to_invalid_allele(
     stateless_client: TestClient,
 ):
@@ -159,6 +163,7 @@ def test_translate_to_invalid_allele(
     assert response.json()["detail"]
 
 
+@pytest.mark.ci_ok
 def test_translate_from(
     stateless_client: TestClient,
     clean_storage: Storage,
@@ -182,6 +187,7 @@ def test_translate_from(
     assert clean_storage.get_objects(Allele, vrs_id) == []
 
 
+@pytest.mark.ci_ok
 def test_translate_from_invalid_identifier(
     stateless_client: TestClient,
 ):
@@ -195,6 +201,7 @@ def test_translate_from_invalid_identifier(
     assert response.json() == {"detail": "Unable to parse data as hgvs variation"}
 
 
+@pytest.mark.ci_ok
 def test_translate_from_invalid_hgvs(
     stateless_client: TestClient,
 ):
@@ -211,6 +218,7 @@ def test_translate_from_invalid_hgvs(
     }
 
 
+@pytest.mark.ci_ok
 def test_translate_from_unsupported_format(
     stateless_client: TestClient,
 ):
@@ -226,6 +234,7 @@ def test_translate_from_unsupported_format(
     }
 
 
+@pytest.mark.ci_ok
 def test_translate_from_reference_sequence_mismatch(stateless_client):
     """Test that translate_from returns 422 for reference sequence mismatch"""
     response = stateless_client.get(
