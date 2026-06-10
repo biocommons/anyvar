@@ -1,5 +1,6 @@
 """Provide Snowflake-based storage implementation."""
 
+import json
 import logging
 import os
 from collections import defaultdict
@@ -12,6 +13,7 @@ import snowflake.connector
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from ga4gh.vrs import models as vrs_models
+from pydantic import JsonValue
 from snowflake.sqlalchemy import MergeInto
 from snowflake.sqlalchemy.snowdialect import SnowflakeDialect
 from sqlalchemy import (
@@ -618,6 +620,7 @@ class SnowflakeObjectStore(Storage):
         """Deletes an extension from the database
 
         * If no such extension exists, do nothing.
+        * Deletes all exact match cases (ie can delete multiple redundant extensions)
         * Deletes do not cascade.
 
         :param extension: The extension object to delete
@@ -630,6 +633,35 @@ class SnowflakeObjectStore(Storage):
         )
         with self.session_factory() as session, session.begin():
             session.execute(stmt)
+
+    def delete_extensions(
+        self,
+        object_id: str,
+        name: str | None = None,
+        value: JsonValue | None = None,
+    ) -> int:
+        """Delete extension(s) for an object
+
+        Supports gradual specificity -- either delete all extensions,
+        or delete all extensions under a given key/name, or delete all extensions
+        with a given name AND value.
+
+        If no extension matching given args exists, do nothing.
+
+        :param object_id: The object ID
+        :param name: Optional extension key/name to delete
+        :param value: Optional extension value to delete. Ignored if ``name`` is not provided
+        :return: Number of deleted rows
+        """
+        stmt = delete(orm.Extension).where(orm.Extension.object_id == object_id)
+        if name:
+            stmt = stmt.where(orm.Extension.name == name)
+            if value:
+                stmt = stmt.where(orm.Extension.value == json.dumps(value))
+        with self.session_factory() as session, session.begin():
+            result = session.execute(stmt)
+            # not clear to me that this works but I don't have an easy way of testing
+            return max(result.rowcount or 0, 0)
 
     def search_alleles(
         self,

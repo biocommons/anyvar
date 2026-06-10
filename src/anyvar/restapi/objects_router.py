@@ -4,7 +4,7 @@ import logging
 from http import HTTPStatus
 from typing import Annotated
 
-from fastapi import APIRouter, Body, HTTPException, Query, Request
+from fastapi import APIRouter, Body, HTTPException, Query, Request, Response
 from fastapi.params import Path
 from pydantic import StrictStr
 
@@ -77,6 +77,7 @@ def add_object_extension(
         AddExtensionRequest,
         Body(
             description="Extension to associate with the variation",
+            example={"name": "source_dataset", "value": "gnomAD_v4.1"},
         ),
     ],
 ) -> AddExtensionResponse:
@@ -133,6 +134,29 @@ def get_object_extensions(
             detail=f"VRS Object {vrs_id} not found",
         ) from e
     return GetExtensionResponse(extensions=extensions)
+
+
+@objects_router.delete(
+    "/object/{vrs_id}/extensions/{extension_name}",
+    response_model_exclude_none=True,
+    summary="Delete extensions for a VRS object.",
+    description="Delete all extensions under a given extension name for a VRS object. Returns idempotently regardless of whether there were extensions under that name for the object. Return 404 NOT FOUND if no known object matches given object ID.",
+    status_code=HTTPStatus.NO_CONTENT,
+)
+def delete_object_extensions(
+    request: Request,
+    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for VRS Object")],
+    extension_name: Annotated[StrictStr, Path(..., description="Extension name")],
+) -> Response:
+    """Delete extensions associated with a VRS object."""
+    av: AnyVar = request.app.state.anyvar
+    try:
+        av.delete_object_extensions(vrs_id, extension_name)
+    except ObjectNotFoundError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail=f"Object `{vrs_id}` not found"
+        ) from e
+    return Response(status_code=HTTPStatus.NO_CONTENT)  # blank response if successful
 
 
 @objects_router.put(
