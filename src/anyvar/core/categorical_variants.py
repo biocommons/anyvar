@@ -60,18 +60,18 @@ class _SimpleAlleleCatVar(cat_vrs_models.CategoricalVariant):
     @field_validator("constraints")
     @classmethod
     def validate_constraints(
-        cls, v: list[cat_vrs_models.Constraint]
+        cls, constraints: list[cat_vrs_models.Constraint]
     ) -> list[cat_vrs_models.Constraint]:
         """Validate constraints property
 
-        :param v: Constraints property to validate
+        :param constraints: Constraints property to validate
         :return: Constraints property
         :raises ValueError: If constraints property does not satisfy the requirements
         """
-        constraint = v[0]
+        constraint = constraints[0]  # guaranteed by pydantic to have exactly 1 element
         if not isinstance(constraint.root, cat_vrs_models.DefiningAlleleConstraint):
             raise ValueError("Constraint must be a DefiningAlleleConstraint")  # noqa: TRY004
-        return v
+        return constraints
 
 
 class ProteinSequenceConsequence(_SimpleAlleleCatVar):
