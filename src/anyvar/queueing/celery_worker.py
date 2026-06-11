@@ -31,7 +31,9 @@ celery_app.conf.update(
     task_serializer="json",
     result_serializer="json",
     accept_content=["application/json"],
-    result_backend=os.environ.get("CELERY_BACKEND_URL", None),
+    result_backend=os.environ.get(
+        "CELERY_BACKEND_URL", os.environ.get("CELERY_BROKER_URL", None)
+    ),
     result_backend_transport_options={"global_keyprefix": "anyvar_"},
     broker_url=os.environ.get("CELERY_BROKER_URL", None),
     timezone=os.environ.get("CELERY_TIMEZONE", "UTC"),
