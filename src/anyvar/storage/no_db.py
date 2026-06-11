@@ -6,6 +6,8 @@ writes are discarded and reads always miss.
 
 from collections.abc import Iterable
 
+from pydantic import JsonValue
+
 from anyvar.core import metadata
 from anyvar.core import objects as anyvar_objects
 from anyvar.storage.base import AlleleSearchPage, Storage
@@ -68,8 +70,14 @@ class NoObjectStore(Storage):
         """(No-op) Get all extensions for the specified object, optionally filtered by type."""
         return []
 
-    def delete_extension(self, extension: metadata.Extension) -> None:
-        """(No-op) Deletes an extension from the database"""
+    def delete_extensions(
+        self,
+        object_id: str,
+        name: str | None = None,
+        value: JsonValue | None = None,
+    ) -> int:
+        """(No-op) Delete extension(s) for an object"""
+        return 0
 
     def search_alleles(
         self,

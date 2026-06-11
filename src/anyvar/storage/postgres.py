@@ -6,6 +6,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
+from pydantic import JsonValue
 from sqlalchemy import and_, create_engine, delete, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
@@ -334,22 +335,33 @@ class PostgresObjectStore(Storage):
                 for db_extension in db_extensions
             ]
 
-    def delete_extension(self, extension: metadata.Extension) -> None:
-        """Deletes an extension from the database
+    def delete_extensions(
+        self,
+        object_id: str,
+        name: str | None = None,
+        value: JsonValue | None = None,
+    ) -> int:
+        """Delete extension(s) for an object
 
-        * If no such extension exists, do nothing.
-        * Deletes do not cascade.
+        Supports gradual specificity -- either delete all extensions,
+        or delete all extensions under a given key/name, or delete all extensions
+        with a given name AND value.
 
-        :param extension: The extension object to delete
+        If no extension matching given args exists, do nothing.
+
+        :param object_id: The object ID
+        :param name: Optional extension key/name to delete
+        :param value: Optional extension value to delete. Ignored if ``name`` is not provided
+        :return: Number of deleted rows
         """
-        stmt = (
-            delete(orm.Extension)
-            .where(orm.Extension.object_id == extension.object_id)
-            .where(orm.Extension.name == extension.name)
-            .where(orm.Extension.value == json.dumps(extension.value))
-        )
+        stmt = delete(orm.Extension).where(orm.Extension.object_id == object_id)
+        if name:
+            stmt = stmt.where(orm.Extension.name == name)
+            if value:
+                stmt = stmt.where(orm.Extension.value == json.dumps(value))
         with self.session_factory() as session, session.begin():
-            session.execute(stmt)
+            result = session.execute(stmt)
+            return result.rowcount or 0
 
     def search_alleles(
         self,
