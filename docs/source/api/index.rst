@@ -46,6 +46,8 @@ Object Storage
 
    anyvar.storage.base
    anyvar.storage.postgres
+   anyvar.storage.duckdb
+   anyvar.storage.snowflake
    anyvar.storage.mapper_registry
    anyvar.storage.mappers
    anyvar.storage.orm
