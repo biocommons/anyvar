@@ -44,7 +44,7 @@ class TestCheckAsyncEnabled:
 
 @pytest.mark.ci_ok
 class TestValidateRunIdAvailable:
-    @patch("anyvar.restapi.async_utils._has_async_imports", True)
+    @patch("anyvar.restapi.has_async_imports", True)
     @patch("anyvar.restapi.async_utils.AsyncResult")
     def test_available_returns_none(self, mock_async_result_cls):
         """When run_id has PENDING status (not yet used), returns None."""
@@ -57,7 +57,7 @@ class TestValidateRunIdAvailable:
 
         assert result is None
 
-    @patch("anyvar.restapi.async_utils._has_async_imports", True)
+    @patch("anyvar.restapi.has_async_imports", True)
     @patch("anyvar.restapi.async_utils.AsyncResult")
     def test_in_use_returns_error(self, mock_async_result_cls):
         """When run_id is already active (non-PENDING), returns an ErrorResponse with 400 status."""
@@ -73,7 +73,7 @@ class TestValidateRunIdAvailable:
         assert "SUCCESS" in result.error
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    @patch("anyvar.restapi.async_utils._has_async_imports", False)
+    @patch("anyvar.restapi.has_async_imports", False)
     def test_no_async_imports_returns_none(self):
         """When async imports are unavailable, validation is skipped and returns None."""
         response = Response()

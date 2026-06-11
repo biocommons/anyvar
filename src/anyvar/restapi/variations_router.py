@@ -13,9 +13,9 @@ import anyvar
 from anyvar.anyvar import AnyVar
 from anyvar.core import objects
 from anyvar.mapping import liftover
+from anyvar.restapi import has_async_imports
 from anyvar.restapi.async_utils import (
     check_async_enabled,
-    resolve_async_task_status,
     validate_run_id_available,
 )
 from anyvar.restapi.schema import (
@@ -36,15 +36,11 @@ from anyvar.translate.register import (
     translate_variation as _translate_variation,
 )
 
-_async_imports_available = True
-try:
-    from billiard.exceptions import TimeLimitExceeded  # noqa: F401
-    from celery.exceptions import WorkerLostError  # noqa: F401
+if has_async_imports:
     from celery.result import AsyncResult
 
     from anyvar.queueing import celery_worker
-except ImportError:
-    _async_imports_available = False
+    from anyvar.restapi.async_utils import resolve_async_task_status
 
 _logger = logging.getLogger(__name__)
 
@@ -132,14 +128,11 @@ async def register_variations(
 ) -> list[RegisterVariationResponse] | RunStatusResponse | ErrorResponse:
     """Register multiple variations based on provided descriptions or references."""
     if run_async:
-        if (
-            not anyvar.anyvar.has_variations_queueing_enabled()
-            or not _async_imports_available
-        ):
+        if not anyvar.anyvar.has_variations_queueing_enabled() or not has_async_imports:
             _logger.warning(
-                "Async variation registration requested but not enabled (has_variations_queueing_enabled=%s, _async_imports_available=%s)",
+                "Async variation registration requested but not enabled (has_variations_queueing_enabled=%s, has_async_imports=%s)",
                 anyvar.anyvar.has_variations_queueing_enabled(),
-                _async_imports_available,
+                has_async_imports,
                 stack_info=True,
             )
             response.status_code = status.HTTP_400_BAD_REQUEST
@@ -201,13 +194,13 @@ async def get_variations_run_status(
 ) -> RunStatusResponse | JSONResponse | ErrorResponse:
     """Return the status or result of an asynchronous registration of variations."""
     enabled = bool(
-        anyvar.anyvar.has_variations_queueing_enabled() and _async_imports_available
+        anyvar.anyvar.has_variations_queueing_enabled() and has_async_imports
     )
     if not enabled:
         _logger.warning(
-            "Async variation registration status requested but not enabled (has_variations_queueing_enabled=%s, _async_imports_available=%s)",
+            "Async variation registration status requested but not enabled (has_variations_queueing_enabled=%s, has_async_imports=%s)",
             anyvar.anyvar.has_variations_queueing_enabled(),
-            _async_imports_available,
+            has_async_imports,
             stack_info=True,
         )
     error = check_async_enabled(

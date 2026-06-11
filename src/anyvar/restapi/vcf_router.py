@@ -23,9 +23,9 @@ from fastapi.responses import FileResponse
 
 import anyvar
 from anyvar.anyvar import AnyVar
+from anyvar.restapi import has_async_imports
 from anyvar.restapi.async_utils import (
     check_async_enabled,
-    resolve_async_task_status,
     validate_run_id_available,
 )
 from anyvar.restapi.schema import ErrorResponse, RunStatusResponse
@@ -36,15 +36,12 @@ from anyvar.vcf.ingest import (
     register_existing_annotations,
 )
 
-_has_async_imports = True
-try:
-    import aiofiles  # noqa: I001
-    from anyvar.queueing import celery_worker
-    from billiard.exceptions import TimeLimitExceeded  # noqa: F401
-    from celery.exceptions import WorkerLostError  # noqa: F401
+if has_async_imports:
+    import aiofiles
     from celery.result import AsyncResult
-except ImportError:
-    _has_async_imports = False
+
+    from anyvar.queueing import celery_worker
+    from anyvar.restapi.async_utils import resolve_async_task_status
 
 _logger = logging.getLogger(__name__)
 
@@ -107,11 +104,11 @@ async def _annotate_vcf_async(
 ) -> RunStatusResponse | ErrorResponse:
     """Annotate with VRS IDs asynchronously.  See `annotate_vcf()` for parameter definitions."""
     # if run_id is provided, validate it does not already exist
-    if not anyvar.anyvar.has_queueing_enabled() or not _has_async_imports:
+    if not anyvar.anyvar.has_queueing_enabled() or not has_async_imports:
         _logger.warning(
-            "Async VCF annotation requested but not enabled (has_queueing_enabled=%s, _has_async_imports=%s)",
+            "Async VCF annotation requested but not enabled (has_queueing_enabled=%s, has_async_imports=%s)",
             anyvar.anyvar.has_queueing_enabled(),
-            _has_async_imports,
+            has_async_imports,
             stack_info=True,
         )
         response.status_code = status.HTTP_400_BAD_REQUEST
@@ -366,11 +363,11 @@ async def _ingest_annotated_vcf_async(
     run_id: str | None,
 ) -> RunStatusResponse | ErrorResponse:
     """Ingest annotated VCF asynchronously.  See `annotated_vcf()` for parameter definitions."""
-    if not anyvar.anyvar.has_queueing_enabled() or not _has_async_imports:
+    if not anyvar.anyvar.has_queueing_enabled() or not has_async_imports:
         _logger.warning(
-            "Async VCF annotation requested but not enabled (has_queueing_enabled=%s, _has_async_imports=%s)",
+            "Async VCF annotation requested but not enabled (has_queueing_enabled=%s, has_async_imports=%s)",
             anyvar.anyvar.has_queueing_enabled(),
-            _has_async_imports,
+            has_async_imports,
             stack_info=True,
         )
         response.status_code = status.HTTP_400_BAD_REQUEST
@@ -478,12 +475,12 @@ async def annotated_vcf(
     # If async requested but not enabled, return an error
     if (
         run_async and not anyvar.anyvar.has_queueing_enabled()
-    ) or not _has_async_imports:
+    ) or not has_async_imports:
         _logger.warning(
-            "Async VCF annotation requested but not enabled (run_async=%s, has_queueing_enabled=%s, _has_async_imports=%s)",
+            "Async VCF annotation requested but not enabled (run_async=%s, has_queueing_enabled=%s, has_async_imports=%s)",
             run_async,
             anyvar.anyvar.has_queueing_enabled(),
-            _has_async_imports,
+            has_async_imports,
             stack_info=True,
         )
         response.status_code = status.HTTP_400_BAD_REQUEST
@@ -548,12 +545,12 @@ async def get_vcf_run_status(
 ) -> RunStatusResponse | FileResponse | ErrorResponse:
     """Return the status or result of an asynchronous registration of alleles from a VCF file."""
     # Asynchronous VCF annotation not enabled, return error
-    enabled = bool(anyvar.anyvar.has_queueing_enabled() and _has_async_imports)
+    enabled = bool(anyvar.anyvar.has_queueing_enabled() and has_async_imports)
     if not enabled:
         _logger.warning(
-            "Async VCF annotation requested but not enabled (has_queueing_enabled=%s, _has_async_imports=%s)",
+            "Async VCF annotation requested but not enabled (has_queueing_enabled=%s, has_async_imports=%s)",
             anyvar.anyvar.has_queueing_enabled(),
-            _has_async_imports,
+            has_async_imports,
             stack_info=True,
         )
     error = check_async_enabled(

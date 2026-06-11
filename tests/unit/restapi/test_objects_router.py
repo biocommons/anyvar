@@ -68,7 +68,7 @@ VARIATION_PAYLOAD = {
 
 @pytest.mark.ci_ok
 class TestPutVariationsAsync:
-    @patch("anyvar.restapi.variations_router._async_imports_available", False)
+    @patch("anyvar.restapi.has_async_imports", False)
     @patch(
         "anyvar.restapi.variations_router.anyvar.anyvar.has_variations_queueing_enabled",
         return_value=False,
@@ -86,7 +86,7 @@ class TestPutVariationsAsync:
             or "modules" in resp.json()["error"].lower()
         )
 
-    @patch("anyvar.restapi.variations_router._async_imports_available", True)
+    @patch("anyvar.restapi.has_async_imports", True)
     @patch(
         "anyvar.restapi.variations_router.anyvar.anyvar.has_variations_queueing_enabled",
         return_value=True,
@@ -109,7 +109,7 @@ class TestPutVariationsAsync:
         assert resp.status_code == HTTPStatus.BAD_REQUEST
         assert "dup-id" in resp.json()["error"]
 
-    @patch("anyvar.restapi.variations_router._async_imports_available", True)
+    @patch("anyvar.restapi.has_async_imports", True)
     @patch(
         "anyvar.restapi.variations_router.anyvar.anyvar.has_variations_queueing_enabled",
         return_value=True,
@@ -143,7 +143,7 @@ class TestPutVariationsAsync:
         assert "/variations/async-run-123" in resp.headers["Location"]
         assert "Retry-After" in resp.headers
 
-    @patch("anyvar.restapi.variations_router._async_imports_available", True)
+    @patch("anyvar.restapi.has_async_imports", True)
     @patch(
         "anyvar.restapi.variations_router.anyvar.anyvar.has_variations_queueing_enabled",
         return_value=True,
@@ -238,7 +238,7 @@ class TestPutVariation:
 
 @pytest.mark.ci_ok
 class TestGetVariationsRunStatus:
-    @patch("anyvar.restapi.variations_router._async_imports_available", False)
+    @patch("anyvar.restapi.has_async_imports", False)
     @patch(
         "anyvar.restapi.variations_router.anyvar.anyvar.has_variations_queueing_enabled",
         return_value=False,
@@ -252,7 +252,7 @@ class TestGetVariationsRunStatus:
             or "modules" in resp.json()["error"].lower()
         )
 
-    @patch("anyvar.restapi.variations_router._async_imports_available", True)
+    @patch("anyvar.restapi.has_async_imports", True)
     @patch(
         "anyvar.restapi.variations_router.anyvar.anyvar.has_variations_queueing_enabled",
         return_value=True,
