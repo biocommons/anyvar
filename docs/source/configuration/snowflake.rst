@@ -1,3 +1,5 @@
+.. _snowflake:
+
 Snowflake Data Warehouse Support
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 

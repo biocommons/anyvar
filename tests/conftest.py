@@ -20,7 +20,7 @@ pytest_plugins = ("celery.contrib.pytest",)
 
 def pytest_runtest_setup(item):
     """Skip tests not compatible with the current test database backend"""
-    all_dbs = {"postgresql", "snowflake"}
+    all_dbs = {"postgresql", "snowflake", "duckdb"}
     supported_dbs = all_dbs.intersection(mark.name for mark in item.iter_markers())
     current_db = (
         os.environ.get(
