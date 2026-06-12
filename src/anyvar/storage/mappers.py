@@ -1,11 +1,14 @@
+# ruff: noqa: D101 D102 D107
 """Object mappers for converting between VRS models and database entities."""
 
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar
 
+from ga4gh.cat_vrs import models as cat_vrs_models
 from ga4gh.vrs import models as vrs_models
 
 from anyvar.core import metadata
+from anyvar.core.categorical_variants import CanonicalAllele, ProteinSequenceConsequence
 from anyvar.storage import orm
 
 A = TypeVar("A")  # Anyvar entity type
@@ -245,3 +248,65 @@ class ExtensionMapper(BaseMapper[metadata.Extension, orm.Extension]):
         :return: An ORM model Extension instance
         """
         return orm.Extension(**anyvar_entity.model_dump())
+
+
+class ProteinSequenceConsequenceMapper(
+    BaseMapper[ProteinSequenceConsequence, orm.ProteinSequenceConsequence]
+):
+    def __init__(self) -> None:
+        self.allele_mapper = AlleleMapper()
+
+    def from_db_entity(
+        self, db_entity: orm.ProteinSequenceConsequence
+    ) -> ProteinSequenceConsequence:
+        return ProteinSequenceConsequence(
+            id=db_entity.id,
+            name=db_entity.name,
+            constraints=[
+                cat_vrs_models.Constraint(
+                    root=cat_vrs_models.DefiningAlleleConstraint(
+                        allele=self.allele_mapper.from_db_entity(db_entity.allele)
+                    )
+                )
+            ],
+        )
+
+    def to_db_entity(
+        self, anyvar_entity: ProteinSequenceConsequence
+    ) -> orm.ProteinSequenceConsequence:
+        return orm.ProteinSequenceConsequence(
+            id=anyvar_entity.id,
+            name=anyvar_entity.name,
+            allele_id=anyvar_entity.constraints[0].root.allele.id,
+            allele=self.allele_mapper.to_db_entity(
+                anyvar_entity.constraints[0].root.allele
+            ),
+        )
+
+
+class CanonicalAlleleMapper(BaseMapper[CanonicalAllele, orm.CanonicalAllele]):
+    def __init__(self) -> None:
+        self.allele_mapper = AlleleMapper()
+
+    def from_db_entity(self, db_entity: orm.CanonicalAllele) -> CanonicalAllele:
+        return CanonicalAllele(
+            id=db_entity.id,
+            name=db_entity.name,
+            constraints=[
+                cat_vrs_models.Constraint(
+                    root=cat_vrs_models.DefiningAlleleConstraint(
+                        allele=self.allele_mapper.from_db_entity(db_entity.allele)
+                    )
+                )
+            ],
+        )
+
+    def to_db_entity(self, anyvar_entity: CanonicalAllele) -> orm.CanonicalAllele:
+        return orm.CanonicalAllele(
+            id=anyvar_entity.id,
+            name=anyvar_entity.name,
+            allele_id=anyvar_entity.constraints[0].root.allele.id,
+            allele=self.allele_mapper.to_db_entity(
+                anyvar_entity.constraints[0].root.allele
+            ),
+        )

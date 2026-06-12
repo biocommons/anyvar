@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session, joinedload, sessionmaker
 
 from anyvar.core import metadata
 from anyvar.core import objects as anyvar_objects
+from anyvar.core.categorical_variants import CanonicalAllele, ProteinSequenceConsequence
 from anyvar.storage import orm
 from anyvar.storage.base import (
     AlleleSearchPage,
@@ -47,6 +48,8 @@ class SqlAlchemyStorage(Storage):
     def wipe_db(self) -> None:
         """Wipe all data from the storage backend."""
         with self.session_factory() as session, session.begin():
+            session.execute(delete(orm.CanonicalAllele))
+            session.execute(delete(orm.ProteinSequenceConsequence))
             session.execute(delete(orm.VariationMapping))
             session.execute(delete(orm.Allele))
             session.execute(delete(orm.Location))
@@ -447,3 +450,61 @@ class SqlAlchemyStorage(Storage):
             last = page_db[-1]
             next_cursor = self._encode_search_cursor(last.location.start, last.id)
             return AlleleSearchPage(items=items, next_cursor=next_cursor)
+
+    def add_ca_catvar(self, ca: CanonicalAllele) -> None:
+        """Add a Canonical Allele Categorical Variant
+
+        This method **is not** responsible for validating that the provided catvar meets
+        data requirements to be considered a Canonical Allele instance;
+        passing an object without prior validation may raise unexpected errors
+
+        :param ca: canonical allele catvar
+        """
+        db_entity: orm.CanonicalAllele = mapper_registry.to_db_entity(ca)
+        with self.session_factory() as session, session.begin():
+            session.merge(db_entity.allele)
+            session.flush()
+            session.merge(db_entity)
+
+    def get_ca_catvar(self, ca_id: str) -> CanonicalAllele | None:
+        """Fetch a Canonical Allele categorical variant by ID
+
+        Performs exact match -- case sensitive
+
+        :param ca_id: requested object ID
+        :return: matching canonical allele, if found
+        """
+        with self.session_factory() as session, session.begin():
+            ca = session.get(orm.CanonicalAllele, ca_id)
+            if ca:
+                return mapper_registry.from_db_entity(ca)
+        return None
+
+    def add_psq_catvar(self, psq: ProteinSequenceConsequence) -> None:
+        """Add a Protein Sequence Consequence Categorical Variant
+
+        This method **is not** responsible for validating that the provided catvar meets
+        data requirements to be considered a Protein Sequence Consequence instance;
+        passing an object without prior validation may raise unexpected errors
+
+        :param psq: protein sequence consequence catvar
+        """
+        db_entity: orm.ProteinSequenceConsequence = mapper_registry.to_db_entity(psq)
+        with self.session_factory() as session, session.begin():
+            session.merge(db_entity.allele)
+            session.flush()
+            session.merge(db_entity)
+
+    def get_psq_catvar(self, psq_id: str) -> ProteinSequenceConsequence | None:
+        """Fetch a Protein Sequence Consequence categorical variant by ID
+
+        Performs exact match -- case sensitive
+
+        :param psq_id: requested object ID
+        :return: matching canonical allele, if found
+        """
+        with self.session_factory() as session, session.begin():
+            ca = session.get(orm.ProteinSequenceConsequence, psq_id)
+            if ca:
+                return mapper_registry.from_db_entity(ca)
+        return None
