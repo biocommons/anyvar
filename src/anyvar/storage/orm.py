@@ -13,12 +13,11 @@ from sqlalchemy import (
     Dialect,
     Enum,
     ForeignKey,
-    Index,
     Integer,
+    Sequence,
     String,
     UniqueConstraint,
     create_engine,
-    func,
     inspect,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -176,22 +175,6 @@ class Location(Base):
         yield self
         yield self.sequence_reference
 
-    @declared_attr.directive
-    @classmethod
-    def __table_args__(cls):  # noqa: ANN206
-        uri = os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
-        parsed_uri = urlparse(uri)
-        if parsed_uri.scheme == "snowflake":
-            return ()
-        return (
-            Index(
-                "ix_location_ref_overlap",
-                cls.sequence_reference_id,
-                func.int8range(cls.start, cls.end, "[]"),
-                postgresql_using="gist",
-            ),
-        )
-
 
 class Allele(Base):
     """AnyVar ORM model for Alleles"""
@@ -214,29 +197,18 @@ class Allele(Base):
 class Extension(Base):
     """AnyVar ORM model for extensions table."""
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(
+        Integer,
+        Sequence("extensions_id_seq"),
+        primary_key=True,
+    )
     object_id: Mapped[str] = mapped_column(String)
     name: Mapped[str] = mapped_column(String)
     value: Mapped[dict] = mapped_column(
         JSON()
         .with_variant(JSONB, "postgresql")
-        .with_variant(SnowflakeVARIANT, "snowflake")
+        .with_variant(SnowflakeVARIANT, "snowflake"),
     )
-
-    @declared_attr.directive
-    @classmethod
-    def __table_args__(cls):  # noqa: ANN206
-        uri = os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
-        parsed_uri = urlparse(uri)
-        if parsed_uri.scheme == "snowflake":
-            return ()
-        return (
-            Index(
-                "idx_extensions_object_id_name",
-                "object_id",
-                "name",
-            ),
-        )
 
 
 mapping_type_enum = Enum(
@@ -252,10 +224,9 @@ mapping_type_enum = Enum(
 class VariationMapping(Base):
     """AnyVar ORM model for variation-to-variation mapping"""
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    source_id: Mapped[str] = mapped_column(String)
-    dest_id: Mapped[str] = mapped_column(String)
-    mapping_type: Mapped[str] = mapped_column(mapping_type_enum)
+    source_id: Mapped[str] = mapped_column(String, primary_key=True)
+    dest_id: Mapped[str] = mapped_column(String, primary_key=True)
+    mapping_type: Mapped[str] = mapped_column(mapping_type_enum, primary_key=True)
 
     @declared_attr.directive
     @classmethod
@@ -264,12 +235,7 @@ class VariationMapping(Base):
         parsed_uri = urlparse(uri)
         if parsed_uri.scheme == "snowflake":
             return (UniqueConstraint("source_id", "dest_id", "mapping_type"),)
-        return (
-            Index("idx_mappings_source_id", "source_id"),
-            Index("idx_mappings_dest_id", "dest_id"),
-            Index("idx_mappings_source_id_type", "source_id", "mapping_type"),
-            UniqueConstraint("source_id", "dest_id", "mapping_type"),
-        )
+        return ()
 
 
 class CanonicalAllele(Base):

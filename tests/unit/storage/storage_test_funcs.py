@@ -1,9 +1,11 @@
 """Functions to run common storage tests on different storage backends."""
 
 import pytest
+from ga4gh.cat_vrs.models import Constraint, DefiningAlleleConstraint
 from ga4gh.vrs import models
 
 from anyvar.core import metadata
+from anyvar.core.categorical_variants import ProteinSequenceConsequence
 from anyvar.storage.base import (
     DataIntegrityError,
     IncompleteVrsObjectError,
@@ -516,3 +518,33 @@ def run_search_alleles(
     )
     assert result.items == []
     assert result.next_cursor is None
+
+
+def run_psqs_crud(
+    storage: Storage,
+    validated_vrs_alleles: dict[str, models.Allele],
+):
+    civic_mpid = "civic.mpid:34"
+    allele = validated_vrs_alleles["ga4gh:VA.sMA9h8fzDi0RvweMlxtD0_Oi8B-JZ1V-"]
+    psq_input = ProteinSequenceConsequence(
+        id=civic_mpid,
+        name="EGFR T790M",
+        constraints=[Constraint(root=DefiningAlleleConstraint(allele=allele))],
+    )
+    storage.add_psq_catvar(psq_input)
+
+    result = storage.get_psq_catvar(civic_mpid)
+    assert result == psq_input
+
+    # test idempotency
+    storage.add_psq_catvar(psq_input)
+
+    result = storage.get_psq_catvar(civic_mpid)
+    assert result == psq_input
+
+    # test adding catvar for existing allele
+    storage.wipe_db()
+    storage.add_objects([allele])
+    storage.add_psq_catvar(psq_input)
+    result = storage.get_psq_catvar(civic_mpid)
+    assert result == psq_input

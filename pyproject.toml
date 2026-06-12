@@ -35,6 +35,7 @@ dependencies = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
+duckdb = ["duckdb-engine"]
 postgres = ["psycopg[binary]"]
 queueing = [
     "celery[redis]~=5.5.0",
