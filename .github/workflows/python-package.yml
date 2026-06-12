@@ -35,14 +35,14 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
-        include:
-          - storage-backend: postgres
-            storage-uri: postgresql://postgres:postgres@localhost:5432/postgres
-            uv-extra: queueing
+        storage:
+          - backend: postgres
+            uri: postgresql://postgres:postgres@localhost:5432/postgres
+            deps:
 
-          - storage-backend: duckdb
-            storage-uri: duckdb:///variants.duckdb
-            uv-extra: duckdb
+          - backend: duckdb
+            uri: duckdb:///variants.duckdb
+            deps: '--extra duckdb'
     steps:
       - uses: actions/checkout@v6
 
@@ -90,12 +90,12 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --extra test --extra ${{ matrix.uv-extra }}
+        run: uv sync --extra test --extra queueing ${{ matrix.storage.deps }}
 
       - name: Run tests
         run: uv run pytest -vv -m "ci_ok"
         env:
-          ANYVAR_TEST_STORAGE_URI: ${{ matrix.storage-uri }}
+          ANYVAR_TEST_STORAGE_URI: ${{ matrix.storage.uri }}
 
   precommit_hooks:
     runs-on: ubuntu-latest
