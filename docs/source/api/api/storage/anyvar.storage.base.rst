@@ -1,4 +1,4 @@
-﻿anyvar.storage.base
+anyvar.storage.base
 ===================
 
 .. automodule:: anyvar.storage.base

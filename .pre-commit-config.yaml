@@ -1,21 +1,28 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0  # pre-commit-hooks version
+    rev: v6.0.0  # pre-commit-hooks version
     hooks:
-      - id: check-added-large-files
-      - id: detect-private-key
-      - id: trailing-whitespace
-      - id: end-of-file-fixer
-        exclude: "^docs/source/_templates/.*\\.rst"
-      - id: check-merge-conflict
       - id: detect-aws-credentials
         args: [ --allow-missing-credentials ]
+  - repo: builtin
+    hooks:
+      - id: trailing-whitespace
+      - id: check-added-large-files
+        args: ['--maxkb=1500']
+      - id: check-case-conflict
+      - id: end-of-file-fixer
+      - id: fix-byte-order-marker
+      - id: check-json
+      - id: check-toml
+      - id: check-yaml
       - id: mixed-line-ending
         args: [ --fix=lf ]
+      - id: check-merge-conflict
+      - id: detect-private-key
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.8  # ruff version
+    rev: v0.14.10  # ruff version
     hooks:
       - id: ruff-format
-      - id: ruff
+      - id: ruff-check
         args: [ --fix, --exit-non-zero-on-fix ]
-minimum_pre_commit_version: 4.2.0
+minimum_prek_version: 0.2.23

@@ -52,8 +52,7 @@ test = [
 ]
 dev = [
     "ruff==0.12.8",
-    "pre-commit>=4.2.0",
-    "ipykernel",
+    "prek>=0.2.23",
 ]
 docs = [
     "sphinx==8.2.3",
