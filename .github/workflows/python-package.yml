@@ -47,6 +47,10 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
     steps:
       - uses: actions/checkout@v4
 
@@ -88,6 +92,7 @@ jobs:
         run: uv run pytest -vv -m "ci_ok"
         env:
           ANYVAR_TEST_STORAGE_URI: postgresql://postgres:postgres@localhost:5432/postgres
+          CELERY_BROKER_URL: redis://localhost:6379/0
 
   precommit_hooks:
     runs-on: ubuntu-latest
