@@ -1,4 +1,4 @@
-﻿anyvar.storage.duckdb
+anyvar.storage.duckdb
 =====================
 
 .. automodule:: anyvar.storage.duckdb
