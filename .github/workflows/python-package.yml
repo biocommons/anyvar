@@ -34,13 +34,15 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        - storage-backend: postgres
-          storage-uri: postgresql://postgres:postgres@localhost:5432/postgres
-          uv-extra: "queueing"
+        python-version: ["3.11", "3.12", "3.13"]
+        include:
+          - storage-backend: postgres
+            storage-uri: postgresql://postgres:postgres@localhost:5432/postgres
+            uv-extra: queueing
 
-        - storage-backend: duckdb
-          storage-uri: duckdb:///variants.duckdb
-          uv-extra: "duckdb"
+          - storage-backend: duckdb
+            storage-uri: duckdb:///variants.duckdb
+            uv-extra: duckdb
     steps:
       - uses: actions/checkout@v6
 
