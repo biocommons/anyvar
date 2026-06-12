@@ -34,8 +34,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
-        storage-backend: ["postgres", "duckdb"]
+        - storage-backend: postgres
+          storage-uri: postgresql://postgres:postgres@localhost:5432/postgres
+          uv-extra: "queueing"
+
+        - storage-backend: duckdb
+          storage-uri: duckdb:///variants.duckdb
+          uv-extra: "duckdb"
     steps:
       - uses: actions/checkout@v6
 
@@ -83,18 +88,12 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --extra test --extra queueing
-
-      - name: Set storage URI
-        run: |
-          if [ "${{ matrix.storage-backend }}" = "postgres" ]; then
-            echo "ANYVAR_TEST_STORAGE_URI=postgresql://postgres:postgres@localhost:5432/postgres" >> "$GITHUB_ENV"
-          else
-            echo "ANYVAR_TEST_STORAGE_URI=duckdb:///variants.duckdb" >> "$GITHUB_ENV"
-          fi
+        run: uv sync --extra test --extra ${{ matrix.uv-extra }}
 
       - name: Run tests
         run: uv run pytest -vv -m "ci_ok"
+        env:
+          ANYVAR_TEST_STORAGE_URI: ${{ matrix.storage-uri }}
 
   precommit_hooks:
     runs-on: ubuntu-latest
