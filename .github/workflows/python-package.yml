@@ -35,6 +35,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
+        storage-uri: ["postgresql://postgres:postgres@localhost:5432/anyvar_test", "duckdb:///variants.duckdb"]
     services:
       postgres:
         image: postgres:17
@@ -87,7 +88,7 @@ jobs:
       - name: Run tests
         run: uv run pytest -vv -m "ci_ok"
         env:
-          ANYVAR_TEST_STORAGE_URI: postgresql://postgres:postgres@localhost:5432/postgres
+          ANYVAR_TEST_STORAGE_URI: ${{ matrix.anyvar-storage-uri }}
 
   precommit_hooks:
     runs-on: ubuntu-latest
