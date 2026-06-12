@@ -5,7 +5,7 @@ from ga4gh.cat_vrs.models import Constraint, DefiningAlleleConstraint
 from ga4gh.vrs import models
 
 from anyvar.core import metadata
-from anyvar.core.categorical_variants import ProteinSequenceConsequence
+from anyvar.core.categorical_variants import CanonicalAllele, ProteinSequenceConsequence
 from anyvar.storage.base import (
     DataIntegrityError,
     IncompleteVrsObjectError,
@@ -548,3 +548,33 @@ def run_psqs_crud(
     storage.add_psq_catvar(psq_input)
     result = storage.get_psq_catvar(civic_mpid)
     assert result == psq_input
+
+
+def run_canonical_alleles_crud(
+    storage: Storage,
+    validated_vrs_alleles: dict[str, models.Allele],
+):
+    clingen_id = "clingen.allele:CA321211"
+    allele = validated_vrs_alleles["ga4gh:VA.EEk-kGY1YF1QgGShZ040hl3V5HWXsL4q"]
+    ca_input = CanonicalAllele(
+        id=clingen_id,
+        name="NC_000007.13:g.36561662_36561663del",
+        constraints=[Constraint(root=DefiningAlleleConstraint(allele=allele))],
+    )
+    storage.add_ca_catvar(ca_input)
+
+    result = storage.get_ca_catvar(clingen_id)
+    assert result == ca_input
+
+    # test idempotency
+    storage.add_ca_catvar(ca_input)
+
+    result = storage.get_ca_catvar(clingen_id)
+    assert result == ca_input
+
+    # test adding catvar for existing allele
+    storage.wipe_db()
+    storage.add_objects([allele])
+    storage.add_ca_catvar(ca_input)
+    result = storage.get_ca_catvar(clingen_id)
+    assert result == ca_input

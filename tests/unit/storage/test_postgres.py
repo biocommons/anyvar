@@ -9,6 +9,7 @@ from anyvar.storage.postgres import PostgresObjectStore
 
 from .storage_test_funcs import (
     run_alleles_crud,
+    run_canonical_alleles_crud,
     run_db_lifecycle,
     run_extensions_crud,
     run_incomplete_objects_error,
@@ -114,6 +115,15 @@ def test_search_alleles(
 
 @pytest.mark.ci_ok
 def test_psqs_crud(
-    duckdb_storage: PostgresObjectStore, validated_vrs_alleles: dict[str, models.Allele]
+    postgres_storage: PostgresObjectStore,
+    validated_vrs_alleles: dict[str, models.Allele],
 ):
-    run_psqs_crud(duckdb_storage, validated_vrs_alleles)
+    run_psqs_crud(postgres_storage, validated_vrs_alleles)
+
+
+@pytest.mark.ci_ok
+def test_canonicalalleles_crud(
+    postgres_storage: PostgresObjectStore,
+    validated_vrs_alleles: dict[str, models.Allele],
+):
+    run_canonical_alleles_crud(postgres_storage, validated_vrs_alleles)

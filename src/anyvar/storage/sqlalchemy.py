@@ -48,6 +48,8 @@ class SqlAlchemyStorage(Storage):
     def wipe_db(self) -> None:
         """Wipe all data from the storage backend."""
         with self.session_factory() as session, session.begin():
+            session.execute(delete(orm.CanonicalAllele))
+            session.execute(delete(orm.ProteinSequenceConsequence))
             session.execute(delete(orm.VariationMapping))
             session.execute(delete(orm.Allele))
             session.execute(delete(orm.Location))
