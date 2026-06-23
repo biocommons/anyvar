@@ -1,4 +1,4 @@
-﻿anyvar.storage.snowflake
+anyvar.storage.snowflake
 ========================
 
 .. automodule:: anyvar.storage.snowflake
