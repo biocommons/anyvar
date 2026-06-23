@@ -17,6 +17,9 @@ def test_extension_crud(
     preloaded_alleles: dict,  # noqa: ARG001
     braf_extension_payload: dict,
 ):
+    """``preloaded_alleles`` is imported to trigger the side-effect to load them into the DB,
+    but we don't need to access them once they're loaded
+    """
     braf_v600e_id = "ga4gh:VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe"
 
     # post an extension
@@ -36,6 +39,18 @@ def test_extension_crud(
     assert len(data) == 1
     assert data[0]["name"] == braf_extension_payload["name"]
     assert data[0]["value"] == braf_extension_payload["value"]
+
+    # delete it
+    response = restapi_client.delete(
+        f"/object/{braf_v600e_id}/extensions/{braf_extension_payload['name']}"
+    )
+    response.raise_for_status()
+    response = restapi_client.get(
+        f"/object/{braf_v600e_id}/extensions/{braf_extension_payload['name']}"
+    )
+    response.raise_for_status()
+    data = response.json()["extensions"]
+    assert len(data) == 0
 
 
 def test_get_extension_nonexistent_var(restapi_client: TestClient):

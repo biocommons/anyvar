@@ -18,6 +18,7 @@ from anyvar.core import metadata, objects
 from anyvar.core.objects import SupportedVrsObject
 from anyvar.storage import DEFAULT_STORAGE_URI
 from anyvar.storage.base import Storage
+from anyvar.storage.no_db import NoObjectStore
 from anyvar.translate.base import Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
 
@@ -36,6 +37,7 @@ def create_storage(uri: str | None = None) -> Storage:
 
     * PostgreSQL: ``postgresql://[username]:[password]@[domain]/[database]``
     * Snowflake: ``snowflake://sf_username:@sf_account_identifier/sf_db_name/sf_schema_name?password=sf_password``
+    * DuckDB: ``duckdb:///:memory:` or ``duckdb:///relative/path/to/file``
 
     For no database (for testing or non-persistent use cases), use an empty string.
 
@@ -52,6 +54,10 @@ def create_storage(uri: str | None = None) -> Storage:
         from anyvar.storage.snowflake import SnowflakeObjectStore  # noqa: PLC0415
 
         storage = SnowflakeObjectStore(uri)
+    elif parsed_uri.scheme == "duckdb":
+        from anyvar.storage.duckdb import DuckDbObjectStore  # noqa: PLC0415
+
+        storage = DuckDbObjectStore(uri)
     elif parsed_uri.scheme == "":
         from anyvar.storage.no_db import NoObjectStore  # noqa: PLC0415
 
@@ -260,7 +266,7 @@ class AnyVar:
         except KeyError as e:
             raise ObjectNotFoundError from e
         for extension in self.object_store.get_extensions(object_id):
-            self.object_store.delete_extension(extension)
+            self.object_store.delete_extensions(vrs_object.id, extension.name)
         for mapping in self.object_store.get_mappings(object_id, as_source=True):
             self.object_store.delete_mapping(mapping)
         for mapping in self.object_store.get_mappings(object_id, as_source=False):
@@ -283,12 +289,35 @@ class AnyVar:
         except Exception as e:
             _logger.exception("Failed to retrieve extensions for object: %s", object_id)
             raise e  # noqa: TRY201
-        if not extensions:
+        if not extensions and not isinstance(self.object_store, NoObjectStore):
             try:
                 _ = self.get_object(object_id)
             except KeyError as e:
                 raise ObjectNotFoundError(object_id) from e
         return extensions
+
+    def delete_object_extensions(
+        self, object_id: str, extension_name: str | None = None
+    ) -> None:
+        """Delete extensions
+
+         * If no ``extension_name`` is given, delete all associated extensions.
+         * Delete all instances of extensions by the given name
+
+        :param object_id: object ID to delete extensions for
+        :param extension_name: optionally, the name of extensions to delete
+        :raise ObjectNotFoundError: if ``object_id`` can't be found in DB
+        """
+        try:
+            rowcount = self.object_store.delete_extensions(object_id, extension_name)
+        except Exception as e:
+            _logger.exception("Failed to retrieve extensions for object: %s", object_id)
+            raise e  # noqa: TRY201
+        if not rowcount:
+            try:
+                _ = self.get_object(object_id)
+            except KeyError as e:
+                raise ObjectNotFoundError(object_id) from e
 
     def create_timestamp_if_missing(self, object_id: str) -> int | None:
         """Store a 'creation_timestamp' extension if missing for an object
