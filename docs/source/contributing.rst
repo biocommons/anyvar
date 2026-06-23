@@ -12,7 +12,7 @@ Clone and enter the repo, use the ``devready`` Makefile target to set up a virtu
     cd anyvar
     make devready
     source venv/3.11/bin/activate
-    pre-commit install
+    prek install
 
 Testing
 =======

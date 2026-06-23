@@ -1,4 +1,4 @@
-﻿anyvar.storage.postgres
+anyvar.storage.postgres
 =======================
 
 .. automodule:: anyvar.storage.postgres
