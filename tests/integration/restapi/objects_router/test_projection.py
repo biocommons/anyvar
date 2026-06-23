@@ -405,6 +405,80 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
         )
 
 
+# GRCh37 equivalent of the GRCh38 "snp" case in PROJECTION_CASES.
+# NC_000001.10:62979222 (GRCh37) lifts over to NC_000001.11:62513551 (GRCh38).
+GRCH37_PROJECTION_CASE = {
+    "label": "grch37_snp",
+    "grch37_spdi": "NC_000001.10:62979222:T:A",
+    "grch37_genomic_id": "ga4gh:VA.ahGKoQ9MfCneRKij5svxgfs24Rm5WtvO",
+    "grch37_genomic_accession": "NC_000001.10",
+    "grch38_equivalent_label": "snp",
+}
+
+
+def test_grch37_genomic_input_projects_via_internal_liftover(
+    projected_restapi_client, translator
+):
+    """A GRCh37 genomic input projects to the same MANE c./p. as its GRCh38 twin.
+
+    cool-seq-tool lifts the GRCh37 coordinate to GRCh38 internally to find the
+    MANE transcript, so the projected transcript and protein alleles are
+    identical to those produced by registering the equivalent GRCh38 variant.
+    This projection happens independently of AnyVar's own GRCh37<->GRCh38
+    liftover, which is persisted separately as a LIFTOVER_TO mapping.
+    """
+    case = GRCH37_PROJECTION_CASE
+    grch38_snp = next(
+        c for c in PROJECTION_CASES if c["label"] == case["grch38_equivalent_label"]
+    )
+    expected_transcript_id = grch38_snp["transcript"]["id"]
+    expected_protein_id = grch38_snp["protein"]["id"]
+    expected_grch38_genomic_id = grch38_snp["genomic"]["id"]
+
+    response = projected_restapi_client.put(
+        "/variation", json={"definition": case["grch37_spdi"]}
+    )
+    assert response.status_code == HTTPStatus.OK
+    body = response.json()
+    assert body["messages"] == []
+
+    # The registered genomic variant is on GRCh37 -- a distinct node from the
+    # GRCh38 variant, resolved through SeqRepo's GRCh37 sequence.
+    genomic = body["object"]
+    assert body["object_id"] == case["grch37_genomic_id"]
+    grch37_refget = _refget(translator, case["grch37_genomic_accession"])
+    assert genomic["location"]["sequenceReference"]["refgetAccession"] == grch37_refget
+    assert (
+        genomic["location"]["sequenceReference"]["refgetAccession"]
+        != grch38_snp["genomic"]["location"]["sequenceReference"]["refgetAccession"]
+    )
+
+    # Projection reaches the SAME MANE transcript as the GRCh38 input, proving
+    # cool-seq-tool lifted the GRCh37 coordinate to GRCh38 internally.
+    _assert_forward_mapping(
+        projected_restapi_client,
+        case["grch37_genomic_id"],
+        metadata.VariationMappingType.TRANSCRIBE_TO,
+        expected_transcript_id,
+    )
+    # ...and the transcript translates to the SAME protein.
+    _assert_forward_mapping(
+        projected_restapi_client,
+        expected_transcript_id,
+        metadata.VariationMappingType.TRANSLATE_TO,
+        expected_protein_id,
+    )
+
+    # AnyVar's own GRCh37<->GRCh38 liftover is persisted separately: the GRCh37
+    # node maps via LIFTOVER_TO to the GRCh38 genomic node.
+    _assert_forward_mapping(
+        projected_restapi_client,
+        case["grch37_genomic_id"],
+        metadata.VariationMappingType.LIFTOVER_TO,
+        expected_grch38_genomic_id,
+    )
+
+
 def test_transcript_spdi_projection_persists_protein_mapping(projected_restapi_client):
     """Register a transcript SPDI and verify the persisted protein projection."""
     projection_case = PROJECTION_CASES[0]
