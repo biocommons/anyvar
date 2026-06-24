@@ -12,10 +12,10 @@ jobs:
     name: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
@@ -35,34 +35,43 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
+        storage:
+          - backend: postgres
+            uri: postgresql://postgres:postgres@localhost:5432/postgres
+            deps:
+
+          - backend: duckdb
+            uri: duckdb:///variants.duckdb
+            deps: '--extra duckdb'
     services:
-      postgres:
-        image: postgres:17
-        env:
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
       redis:
         image: redis:alpine
         ports:
           - 6379:6379
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+
+      - name: Start Postgres
+        if: matrix.storage.backend == 'postgres'
+        run: |
+          docker run -d \
+            --name postgres \
+            -e POSTGRES_PASSWORD=postgres \
+            -p 5432:5432 \
+            postgres:17
 
       - name: Wait for Postgres
+        if: matrix.storage.backend == 'postgres'
         run: |
           for i in {1..30}; do
             pg_isready -h localhost -p 5432 -U postgres && exit 0
             sleep 1
           done
+          docker logs postgres
           exit 1
 
       - name: Initialize GiST extension
+        if: matrix.storage.backend == 'postgres'
         env:
           PGPASSWORD: postgres
         run: |
@@ -70,13 +79,13 @@ jobs:
             -c "CREATE EXTENSION IF NOT EXISTS btree_gist;"
 
       - name: Cache chainfiles for liftover
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.local/share/wags_tails
           key: ${{ runner.os }}-test-${{ hashFiles('pyproject.toml') }}
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -86,42 +95,32 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --extra test --extra queueing
+        run: uv sync --extra test --extra queueing ${{ matrix.storage.deps }}
 
       - name: Run tests
         run: uv run pytest -vv -m "ci_ok"
         env:
-          ANYVAR_TEST_STORAGE_URI: postgresql://postgres:postgres@localhost:5432/postgres
+          ANYVAR_TEST_STORAGE_URI: ${{ matrix.storage.uri }}
           CELERY_BROKER_URL: redis://localhost:6379/0
 
   precommit_hooks:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        cmd:
-          - "end-of-file-fixer"
-          - "trailing-whitespace"
-          - "mixed-line-ending"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+      - uses: j178/prek-action@v2
         with:
-          python-version: 3.12
+          extra_args: '--all-files --skip "ruff-format" --skip "ruff-check"'
 
-      - uses: pre-commit/action@v3.0.1
-        with:
-          extra_args: ${{ matrix.cmd }} --all-files
   docs:
     runs-on: ubuntu-latest
     env:
       SPHINX_GITHUB_CHANGELOG_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: 3.11
 

@@ -1,7 +1,7 @@
-anyvar.storage.postgres
-=======================
+anyvar.storage.snowflake
+========================
 
-.. automodule:: anyvar.storage.postgres
+.. automodule:: anyvar.storage.snowflake
    :members:
    :no-inherited-members:
    :undoc-members:

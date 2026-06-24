@@ -1,4 +1,4 @@
-﻿anyvar.translate.vrs_python
+anyvar.translate.vrs_python
 ===========================
 
 .. automodule:: anyvar.translate.vrs_python

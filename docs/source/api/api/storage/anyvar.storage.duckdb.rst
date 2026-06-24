@@ -1,7 +1,7 @@
-anyvar.storage.postgres
-=======================
+anyvar.storage.duckdb
+=====================
 
-.. automodule:: anyvar.storage.postgres
+.. automodule:: anyvar.storage.duckdb
    :members:
    :no-inherited-members:
    :undoc-members:

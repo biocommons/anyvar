@@ -21,6 +21,7 @@ dependencies = [
     "python-multipart",  # required for fastapi file uploads
     "uvicorn",
     "ga4gh.vrs[extras]>=2.3.2,<3.0",
+    "ga4gh.cat_vrs>=0.7.1",
     "sqlalchemy~=2.0.0",
     "snowflake-sqlalchemy~=1.8.2",
     "pyyaml",
@@ -34,6 +35,7 @@ dependencies = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
+duckdb = ["duckdb-engine"]
 postgres = ["psycopg[binary]"]
 queueing = [
     "celery[redis]~=5.5.0",
@@ -51,8 +53,7 @@ test = [
 ]
 dev = [
     "ruff==0.12.8",
-    "pre-commit>=4.2.0",
-    "ipykernel",
+    "prek>=0.2.23",
 ]
 docs = [
     "sphinx==8.2.3",

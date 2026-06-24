@@ -215,8 +215,8 @@ def test_delete_object_and_mappings(restapi_client: TestClient, alleles: dict):
     response = restapi_client.get(f"/object/{allele_id}")
     assert response.status_code == HTTPStatus.NOT_FOUND
     for request_path in (
-        f"/object/{allele_id}/mappings/liftover_to?as_source=true",
-        f"/object/{allele_id}/mappings/liftover_to?as_source=false",
+        f"/object/{allele_id}/mappings?mapping_type=liftover_to&as_source=true",
+        f"/object/{allele_id}/mappings?mapping_type=liftover_to&as_source=false",
         f"/object/{allele_id}/extensions/clinvar_somatic_classification",
     ):
         response = restapi_client.get(request_path)
