@@ -43,6 +43,11 @@ jobs:
           - backend: duckdb
             uri: duckdb:///variants.duckdb
             deps: '--extra duckdb'
+    services:
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
     steps:
       - uses: actions/checkout@v6
 
@@ -96,6 +101,7 @@ jobs:
         run: uv run pytest -vv -m "ci_ok"
         env:
           ANYVAR_TEST_STORAGE_URI: ${{ matrix.storage.uri }}
+          CELERY_BROKER_URL: redis://localhost:6379/0
 
   precommit_hooks:
     runs-on: ubuntu-latest
