@@ -10,6 +10,7 @@ from .storage_test_funcs import (
     run_incomplete_objects_error,
     run_mappings_crud,
     run_objects_raises_integrityerror,
+    run_psqs_crud,
     run_search_alleles,
     run_sequencelocations_crud,
     run_sequencereferences_crud,
@@ -99,3 +100,10 @@ def test_search_alleles(
     validated_vrs_alleles: dict[str, models.Allele],
 ):
     run_search_alleles(duckdb_storage, validated_vrs_alleles)
+
+
+@pytest.mark.ci_ok
+def test_psqs_crud(
+    duckdb_storage: DuckDbObjectStore, validated_vrs_alleles: dict[str, models.Allele]
+):
+    run_psqs_crud(duckdb_storage, validated_vrs_alleles)

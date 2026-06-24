@@ -3,14 +3,7 @@
 import json
 
 from pydantic import JsonValue
-from sqlalchemy import (
-    ColumnElement,
-    Engine,
-    Index,
-    create_engine,
-    delete,
-    func,
-)
+from sqlalchemy import ColumnElement, Engine, Index, create_engine, delete, func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, sessionmaker
 
