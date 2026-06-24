@@ -62,6 +62,10 @@ class DuckDbObjectStore(SqlAlchemyStorage):
         """Wipe all data from the storage backend."""
         # Need a bunch of redundant sessions for DuckDB reasons that I don't totally get
         with self.session_factory() as session, session.begin():
+            session.execute(delete(orm.ProteinSequenceConsequence))
+        with self.session_factory() as session, session.begin():
+            session.execute(delete(orm.CanonicalAllele))
+        with self.session_factory() as session, session.begin():
             session.execute(delete(orm.VariationMapping))
         with self.session_factory() as session, session.begin():
             session.execute(delete(orm.Allele))
