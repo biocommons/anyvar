@@ -134,9 +134,7 @@ def register_variations(
                 projection_message_count,
             )
         else:
-            _logger.info(
-                "Projection disabled for %s", translation_result.variation.id
-            )
+            _logger.info("Projection disabled for %s", translation_result.variation.id)
 
         responses.append(
             RegisterVariationResponse(
