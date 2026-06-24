@@ -305,7 +305,7 @@ class AnyVar:
     def get_object_mappings(
         self,
         object_id: str,
-        mapping_type: metadata.VariationMappingType,
+        mapping_type: metadata.VariationMappingType | None = None,
         as_source: bool = True,
     ) -> Iterable[metadata.VariationMapping]:
         """Get all variation mappings given source object ID and mapping type

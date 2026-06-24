@@ -69,7 +69,7 @@ The ``/search`` endpoint enables retrieval of all variants that overlap a provid
 Working With Mappings
 =====================
 
-To add a :ref:`mapping <mappings>` between previously-registered variation objects issue a ``PUT`` request to ``/variations/<vrs_id>/mappings``, where ``vrs_id`` is the ``source_id`` of the mapping object:
+To add a :ref:`mapping <mappings>` between previously-registered variation objects issue a ``PUT`` request to ``/object/<vrs_id>/mappings``, where ``vrs_id`` is the ``source_id`` of the mapping object:
 
 .. code-block:: pycon
 
@@ -85,12 +85,12 @@ To add a :ref:`mapping <mappings>` between previously-registered variation objec
    ...     json=payload
    ... )
 
-Mappings from an object can be retrieved via ``GET /variations/<vrs_id>/mappings/<mapping_type>``:
+Mappings from an object can be retrieved via ``GET /object/<vrs_id>/mappings?mapping_type=<mapping_type>``:
 
 .. code-block:: pycon
 
    >>> response = requests.get(
-   ...     f"http://localhost:8000/object/{genomic_id}/mappings/transcribe_to"
+   ...     f"http://localhost:8000/object/{genomic_id}/mappings?mapping_type=transcribe_to"
    ... )
    >>> response.json()
    {'mappings': [{'source_id': 'ga4gh:VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe',
@@ -106,7 +106,7 @@ By default, when a GRCh37 or GRCh38 variant is registered, the lifted-over equiv
    >>> response = requests.put("http://localhost:8000/variation", json=payload)
    >>> registered_allele_id = response.json()["object_id"]
    >>> response = requests.get(
-   ...     f"http://localhost:8000/object/{registered_allele_id}/mappings/liftover_to"
+   ...     f"http://localhost:8000/object/{registered_allele_id}/mappings?mapping_type=liftover_to"
    ... )
    >>> response.json()
    {'mappings': [{'source_id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU',
