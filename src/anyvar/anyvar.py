@@ -37,7 +37,6 @@ def create_storage(uri: str | None = None) -> Storage:
     The URI format is as follows:
 
     * PostgreSQL: ``postgresql://[username]:[password]@[domain]/[database]``
-    * Snowflake: ``snowflake://sf_username:@sf_account_identifier/sf_db_name/sf_schema_name?password=sf_password``
     * DuckDB: ``duckdb:///:memory:` or ``duckdb:///relative/path/to/file``
 
     For no database (for testing or non-persistent use cases), use an empty string.
@@ -51,10 +50,6 @@ def create_storage(uri: str | None = None) -> Storage:
         from anyvar.storage.postgres import PostgresObjectStore  # noqa: PLC0415
 
         storage = PostgresObjectStore(uri)
-    elif parsed_uri.scheme == "snowflake":
-        from anyvar.storage.snowflake import SnowflakeObjectStore  # noqa: PLC0415
-
-        storage = SnowflakeObjectStore(uri)
     elif parsed_uri.scheme == "duckdb":
         from anyvar.storage.duckdb import DuckDbObjectStore  # noqa: PLC0415
 
