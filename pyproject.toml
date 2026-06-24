@@ -30,6 +30,7 @@ dependencies = [
     "anyio",
     "bioutils",
     "biocommons.seqrepo",
+    "pyjwt[crypto]",
 ]
 dynamic = ["version"]
 
