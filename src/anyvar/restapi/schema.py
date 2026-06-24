@@ -7,6 +7,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
+from ga4gh.cat_vrs import CATVRS_VERSION
 from ga4gh.vrs import (
     VRS_VERSION,
     VrsType,
@@ -28,6 +29,7 @@ class EndpointTag(StrEnum):
     META = "Service Metadata"
     VCF = "VCF Operations"
     VRS_OBJECTS = "VRS Objects"
+    CATEGORICAL_VARIANTS = "Categorical Variants"
     VARIATIONS = "Variations"
 
 
@@ -71,6 +73,7 @@ class SpecMetadata(BaseModel):
     """Define substructure for reporting specification metadata."""
 
     vrs_version: str = VRS_VERSION
+    cat_vrs_version: str = CATVRS_VERSION
 
 
 class ImplMetadata(BaseModel):

@@ -1,26 +1,49 @@
 """Provide API routes relating to search operations"""
 
 import logging
+import os
 from http import HTTPStatus
 from typing import Annotated
 
-from fastapi import APIRouter, Body, HTTPException, Query, Request
-from ga4gh.vrs.dataproxy import DataProxyValidationError
-from hgvs.exceptions import HGVSParseError
+from fastapi import APIRouter, Body, HTTPException, Query, Request, Response, status
+from fastapi.params import Path
+from fastapi.responses import JSONResponse
 
+import anyvar
 from anyvar.anyvar import AnyVar
 from anyvar.core import objects
 from anyvar.mapping import liftover
+from anyvar.restapi import has_async_imports
+from anyvar.restapi.async_utils import (
+    check_async_enabled,
+    validate_run_id_available,
+)
 from anyvar.restapi.schema import (
+    ErrorResponse,
     GetObjectResponse,
     RegisterVariationResponse,
+    RunStatusResponse,
     SearchResponse,
-    TranslationResult,
     VariationRequest,
 )
 from anyvar.restapi.utils import get_vrs_object
 from anyvar.storage.base import IncompleteVrsObjectError
-from anyvar.translate.base import TranslationError, Translator
+from anyvar.translate.base import Translator
+from anyvar.translate.register import (
+    add_projection_mappings as _add_projection_mappings,
+)
+from anyvar.translate.register import (
+    register_variations as _register_variations,
+)
+from anyvar.translate.register import (
+    translate_variation as _translate_variation,
+)
+
+if has_async_imports:
+    from celery.result import AsyncResult
+
+    from anyvar.queueing import celery_worker
+    from anyvar.restapi.async_utils import resolve_async_task_status
 
 _logger = logging.getLogger(__name__)
 
@@ -39,37 +62,6 @@ _variation_request_body = Body(
     description='Variation description, including (at minimum) a `definition` property. Can provide optional `input_type` if the expected output representation type is known, as well as an assembly_name (e.g.,"GRCh37" or "GRCh38"). If representing copy number, provide `copies` or `copy_change`.',
     examples=[VARIATION_EXAMPLE_PAYLOAD],
 )
-
-
-def _translate_variation(
-    tlr: Translator, variation_request: VariationRequest
-) -> TranslationResult:
-    """Perform variant translation
-
-    :param tlr: Translator instance
-    :param variation_request: Input variation request to translate
-    :return: TranslationResult object with translated variation, if translation is
-        successful. Otherwise, return error message
-    """
-    definition = variation_request.definition
-
-    try:
-        translated_variation = tlr.translate_variation(
-            definition, **variation_request.model_dump(mode="json")
-        )
-        return TranslationResult(variation=translated_variation)
-    except DataProxyValidationError as e:
-        return TranslationResult(error=str(e))
-    except HGVSParseError:
-        return TranslationResult(
-            error=f'Unable to parse HGVS expression "{definition}"'
-        )
-    except NotImplementedError:
-        return TranslationResult(
-            error=f"Variation class for {definition} is currently unsupported."
-        )
-    except TranslationError:
-        return TranslationResult(error=f'Unable to translate "{definition}"')
 
 
 def _handle_translation_request(
@@ -95,131 +87,6 @@ def _handle_translation_request(
     return translation_result.variation  # type: ignore
 
 
-def _add_projection_mappings(
-    av: AnyVar,
-    variation: objects.SupportedVrsVariation,
-    messages: list[str],
-) -> int:
-    """Attempt projection and append user-facing projection messages."""
-    if av.projector is None:
-        return 0
-
-    from anyvar.mapping.projection import ProjectionError  # noqa: PLC0415
-
-    try:
-        av.projector.add_projections(
-            variation=variation,
-            storage=av.object_store,
-        )
-    except ProjectionError as exc:
-        messages.append(str(exc))
-        return 1
-    return 0
-
-
-def _register_variations(
-    av: AnyVar, variation_requests: list[VariationRequest]
-) -> list[RegisterVariationResponse]:
-    """Bulk register variations
-
-    :param av: AnyVar instance
-    :param variation_requests: Input variation requests to register
-    :return: List of RegisterVariationResponse objects in the same order as the input.
-        Variations that fail translation are not registered and are returned with null
-        `object` and `object_id` fields. Registration or liftover failure messages may
-        also be included in the `messages` field.
-    """
-    translation_results: list[TranslationResult] = []
-    variations_to_store: list[objects.SupportedVrsObject] = []
-
-    for variation_request in variation_requests:
-        translation_result = _translate_variation(av.translator, variation_request)
-        translation_results.append(translation_result)
-
-        if translation_result.variation:
-            variations_to_store.append(translation_result.variation)
-
-    if variations_to_store:
-        av.put_objects(variations_to_store)
-
-    responses: list[RegisterVariationResponse] = []
-
-    for variation_request, translation_result in zip(
-        variation_requests, translation_results, strict=True
-    ):
-        if not translation_result.variation:
-            _logger.warning(
-                'Variation registration failed during translation: definition="%s" error="%s"',
-                variation_request.definition,
-                translation_result.error,
-            )
-            responses.append(
-                RegisterVariationResponse(
-                    input_variation=variation_request,
-                    messages=[translation_result.error]
-                    if translation_result.error
-                    else [],
-                )
-            )
-            continue
-
-        variation_id: str = translation_result.variation.id  # type: ignore[assignment]
-        _logger.info(
-            'Registering variation: definition="%s" object_id=%s projector_enabled=%s',
-            variation_request.definition,
-            variation_id,
-            av.projector is not None,
-        )
-
-        # add variant metadata
-        timestamp_id = av.create_timestamp_if_missing(variation_id)
-        if timestamp_id is None:
-            _logger.info(
-                "Creation timestamp already present for %s",
-                variation_id,
-            )
-        else:
-            _logger.info(
-                "Stored creation timestamp extension id=%s for %s",
-                timestamp_id,
-                variation_id,
-            )
-        messages: list[str] = (
-            liftover.add_liftover_mapping(
-                variation=translation_result.variation,
-                storage=av.object_store,
-                dataproxy=av.translator.dp,
-            )
-            or []
-        )
-        if av.projector is not None:
-            projection_message_count = _add_projection_mappings(
-                av,
-                translation_result.variation,
-                messages,
-            )
-            _logger.info(
-                "Projection completed for %s with %d message(s)",
-                variation_id,
-                projection_message_count,
-            )
-        else:
-            _logger.info("Projection disabled for %s", variation_id)
-
-        responses.append(
-            RegisterVariationResponse(
-                input_variation=variation_request,
-                object=translation_result.variation,
-                object_id=translation_result.variation.id
-                if translation_result.variation
-                else None,
-                messages=messages,
-            )
-        )
-
-    return responses
-
-
 @variations_router.put(
     "/variation",
     response_model_exclude_none=True,
@@ -243,15 +110,121 @@ def register_variation(
     summary="Bulk register alleles or copy number objects",
     description="Provide a list of variation definitions to be normalized and registered with AnyVar. The response contains one result per input, in the same order. Variations that fail translation are not registered and are returned with null `object` and `object_id` fields. Registration or liftover failure messages may also be included in the `messages` field.",
 )
-def register_variations(
+async def register_variations(
     request: Request,
+    response: Response,
     variations: Annotated[
         list[VariationRequest], Body(description="List of variations to register")
     ],
-) -> list[RegisterVariationResponse]:
+    run_async: Annotated[
+        bool,
+        Query(
+            description="If true, immediately return a '202 Accepted' response and run asynchronously",
+        ),
+    ] = False,
+    run_id: Annotated[
+        str | None,
+        Query(
+            description="When running asynchronously, use the specified value as the run id instead of generating a random uuid",
+        ),
+    ] = None,
+) -> list[RegisterVariationResponse] | RunStatusResponse | ErrorResponse:
     """Register multiple variations based on provided descriptions or references."""
+    if run_async:
+        if not anyvar.anyvar.has_variations_queueing_enabled() or not has_async_imports:
+            _logger.warning(
+                "Async variation registration requested but not enabled (has_variations_queueing_enabled=%s, has_async_imports=%s)",
+                anyvar.anyvar.has_variations_queueing_enabled(),
+                has_async_imports,
+                stack_info=True,
+            )
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return ErrorResponse(
+                error="Required modules and/or configurations for asynchronous variation registration are missing"
+            )
+
+        if run_id:
+            error = validate_run_id_available(run_id, response)
+            if error:
+                return error
+
+        # submit async job
+        variation_requests_json = [v.model_dump(mode="json") for v in variations]
+        task_result = celery_worker.register_variations.apply_async(
+            kwargs={
+                "variation_requests_json": variation_requests_json,
+            },
+            task_id=run_id,
+        )
+        _logger.info(
+            "%s - async variation registration submitted for %s variations",
+            task_result.id,
+            len(variations),
+        )
+
+        # estimate retry-after based on ~100 variations/second
+        _expected_variations_per_second = int(
+            os.getenv("ANYVAR_EXPECTED_VARIATIONS_PER_SECOND", "100")
+        )
+        retry_after = max(
+            1, round(len(variations) / _expected_variations_per_second, 0)
+        )
+
+        response.status_code = status.HTTP_202_ACCEPTED
+        response.headers["Location"] = f"/variations/{task_result.id}"
+        response.headers["Retry-After"] = str(int(retry_after))
+        return RunStatusResponse(
+            run_id=task_result.id,
+            status="PENDING",
+            status_message=f"Run submitted. Check status at /variations/{task_result.id}",
+        )
+
     av: AnyVar = request.app.state.anyvar
     return _register_variations(av, variations)
+
+
+@variations_router.get(
+    "/variations/{run_id}",
+    summary="Poll for status and/or result for asynchronous variation registration",
+    description="Provide a valid run id to get the status and/or result of an asynchronous variation registration run",
+    response_model=None,
+)
+async def get_variations_run_status(
+    response: Response,
+    run_id: Annotated[
+        str, Path(description="The run id to retrieve the result or status for")
+    ],
+) -> RunStatusResponse | JSONResponse | ErrorResponse:
+    """Return the status or result of an asynchronous registration of variations."""
+    enabled = bool(
+        anyvar.anyvar.has_variations_queueing_enabled() and has_async_imports
+    )
+    if not enabled:
+        _logger.warning(
+            "Async variation registration status requested but not enabled (has_variations_queueing_enabled=%s, has_async_imports=%s)",
+            anyvar.anyvar.has_variations_queueing_enabled(),
+            has_async_imports,
+            stack_info=True,
+        )
+    error = check_async_enabled(
+        enabled,
+        response,
+        "Required modules and/or configurations for asynchronous variation registration are missing",
+    )
+    if error:
+        return error
+
+    def on_success(async_result: AsyncResult) -> JSONResponse:
+        result_data = async_result.result
+        return JSONResponse(content=result_data, status_code=status.HTTP_200_OK)
+
+    return await resolve_async_task_status(
+        run_id,
+        response,
+        on_success=on_success,
+        failure_status_env_var="ANYVAR_VARIATIONS_ASYNC_FAILURE_STATUS_CODE",
+        status_path_prefix="/variations",
+    )
 
 
 PUT_VRS_VARIATION_EXAMPLE_PAYLOAD = {

@@ -7,8 +7,6 @@ import pytest
 from anyvar.core import metadata
 from anyvar.storage.base import Storage
 
-DEFAULT_MAPPING_TYPE = metadata.VariationMappingType.LIFTOVER_TO
-
 
 @pytest.fixture
 def preloaded_allele_pairs(preloaded_alleles: dict):
@@ -32,7 +30,7 @@ def stored_variation_mappings(storage: Storage, preloaded_allele_pairs: list):
             metadata.VariationMapping(
                 source_id=source_vrs_object["id"],
                 dest_id=dest_vrs_object["id"],
-                mapping_type=DEFAULT_MAPPING_TYPE,
+                mapping_type=metadata.VariationMappingType.LIFTOVER_TO.value,
             )
         )
 
@@ -68,7 +66,10 @@ def test_put_mapping_idempotency(restapi_client, preloaded_allele_pairs):
     source_vrs_object, dest_vrs_object = preloaded_allele_pairs[0]
     source_vrs_id = source_vrs_object["id"]
     dest_vrs_id = dest_vrs_object["id"]
-    payload = {"dest_id": dest_vrs_id, "mapping_type": DEFAULT_MAPPING_TYPE}
+    payload = {
+        "dest_id": dest_vrs_id,
+        "mapping_type": metadata.VariationMappingType.LIFTOVER_TO.value,
+    }
 
     # First request
     first_resp = restapi_client.put(f"/object/{source_vrs_id}/mappings", json=payload)
@@ -90,7 +91,10 @@ def test_put_mapping_same_source_and_dest(restapi_client, preloaded_allele_pairs
 
     resp = restapi_client.put(
         f"/object/{source_vrs_id}/mappings",
-        json={"dest_id": source_vrs_id, "mapping_type": DEFAULT_MAPPING_TYPE},
+        json={
+            "dest_id": source_vrs_id,
+            "mapping_type": metadata.VariationMappingType.LIFTOVER_TO.value,
+        },
     )
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     assert (
@@ -106,7 +110,10 @@ def test_put_mapping_invalid_source(restapi_client, preloaded_allele_pairs):
 
     resp = restapi_client.put(
         "/object/ga4gh:VA.invalidsource/mappings",
-        json={"dest_id": source_vrs_id, "mapping_type": DEFAULT_MAPPING_TYPE},
+        json={
+            "dest_id": source_vrs_id,
+            "mapping_type": metadata.VariationMappingType.LIFTOVER_TO.value,
+        },
     )
     assert resp.status_code == HTTPStatus.NOT_FOUND
     assert resp.json() == {"detail": "VRS Object ga4gh:VA.invalidsource not found"}
@@ -119,7 +126,10 @@ def test_put_mapping_invalid_dest(restapi_client, preloaded_allele_pairs):
 
     resp = restapi_client.put(
         f"/object/{source_vrs_id}/mappings",
-        json={"dest_id": "ga4gh:VA.invaliddest", "mapping_type": DEFAULT_MAPPING_TYPE},
+        json={
+            "dest_id": "ga4gh:VA.invaliddest",
+            "mapping_type": metadata.VariationMappingType.LIFTOVER_TO.value,
+        },
     )
     assert resp.status_code == HTTPStatus.NOT_FOUND
     assert resp.json() == {"detail": "VRS Object ga4gh:VA.invaliddest not found"}
@@ -148,7 +158,8 @@ def test_get_mapping_valid_request_found(restapi_client, stored_variation_mappin
     source_vrs_id = source_vrs_obj["id"]
 
     resp = restapi_client.get(
-        f"/object/{source_vrs_id}/mappings/{DEFAULT_MAPPING_TYPE}"
+        f"/object/{source_vrs_id}/mappings",
+        params={"mapping_type": metadata.VariationMappingType.LIFTOVER_TO.value},
     )
     assert resp.status_code == HTTPStatus.OK
     assert resp.json() == {
@@ -156,14 +167,17 @@ def test_get_mapping_valid_request_found(restapi_client, stored_variation_mappin
             {
                 "source_id": source_vrs_id,
                 "dest_id": dest_vrs_obj["id"],
-                "mapping_type": DEFAULT_MAPPING_TYPE,
+                "mapping_type": metadata.VariationMappingType.LIFTOVER_TO,
             }
         ]
     }
 
     resp = restapi_client.get(
-        f"/object/{dest_vrs_obj['id']}/mappings/{DEFAULT_MAPPING_TYPE}",
-        params={"as_source": False},
+        f"/object/{dest_vrs_obj['id']}/mappings",
+        params={
+            "as_source": False,
+            "mapping_type": metadata.VariationMappingType.LIFTOVER_TO.value,
+        },
     )
     assert resp.status_code == HTTPStatus.OK
     assert resp.json() == {
@@ -171,7 +185,36 @@ def test_get_mapping_valid_request_found(restapi_client, stored_variation_mappin
             {
                 "source_id": source_vrs_id,
                 "dest_id": dest_vrs_obj["id"],
-                "mapping_type": DEFAULT_MAPPING_TYPE,
+                "mapping_type": metadata.VariationMappingType.LIFTOVER_TO.value,
+            }
+        ]
+    }
+
+    # expect no transcription mappings
+    resp = restapi_client.get(
+        f"/object/{dest_vrs_obj['id']}/mappings",
+        params={
+            "as_source": False,
+            "mapping_type": metadata.VariationMappingType.TRANSCRIBE_TO.value,
+        },
+    )
+    assert resp.status_code == HTTPStatus.OK
+    assert resp.json() == {"mappings": []}
+
+
+def test_get_mapping_type_optional(restapi_client, stored_variation_mappings):
+    """Test that mapping_type is optional"""
+    source_vrs_obj, dest_vrs_obj = stored_variation_mappings[0]
+    source_vrs_id = source_vrs_obj["id"]
+
+    resp = restapi_client.get(f"/object/{source_vrs_id}/mappings")
+    assert resp.status_code == HTTPStatus.OK
+    assert resp.json() == {
+        "mappings": [
+            {
+                "source_id": source_vrs_id,
+                "dest_id": dest_vrs_obj["id"],
+                "mapping_type": metadata.VariationMappingType.LIFTOVER_TO,
             }
         ]
     }
@@ -182,7 +225,10 @@ def test_get_mapping_valid_request_not_found(restapi_client, stored_variation_ma
     source_vrs_obj, _ = stored_variation_mappings[0]
     source_vrs_id = source_vrs_obj["id"]
 
-    resp = restapi_client.get(f"/object/{source_vrs_id}/mappings/transcribe_to")
+    resp = restapi_client.get(
+        f"/object/{source_vrs_id}/mappings",
+        params={"mapping_type": metadata.VariationMappingType.TRANSCRIBE_TO.value},
+    )
     assert resp.status_code == HTTPStatus.OK
     assert resp.json() == {"mappings": []}
 
@@ -190,7 +236,8 @@ def test_get_mapping_valid_request_not_found(restapi_client, stored_variation_ma
 def test_get_mapping_invalid_source(restapi_client):
     """Test when an invalid source VRS ID is provided for GET method"""
     resp = restapi_client.get(
-        f"/object/ga4gh.VA:invalidsource/mappings/{DEFAULT_MAPPING_TYPE}"
+        "/object/ga4gh.VA:invalidsource/mappings",
+        params={"mapping_type": metadata.VariationMappingType.LIFTOVER_TO.value},
     )
     assert resp.status_code == HTTPStatus.NOT_FOUND
     assert resp.json() == {"detail": "VRS Object ga4gh.VA:invalidsource not found"}
@@ -201,7 +248,10 @@ def test_get_mapping_invalid_mapping(restapi_client, stored_variation_mappings):
     source_vrs_obj, _ = stored_variation_mappings[0]
     source_vrs_id = source_vrs_obj["id"]
 
-    resp = restapi_client.get(f"/object/{source_vrs_id}/mappings/invalid_mapping_type")
+    resp = restapi_client.get(
+        f"/object/{source_vrs_id}/mappings",
+        params={"mapping_type": "invalid_mapping_type"},
+    )
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     assert (
         resp.json()["detail"][0]["msg"]

@@ -1,7 +1,4 @@
-"""full-service interface to converting, validating, and registering
-biological sequence variation
-
-"""
+"""Full-service interface to converting, validating, and registering biological sequence variation."""
 
 import datetime
 import importlib.util
@@ -15,6 +12,11 @@ from urllib.parse import urlparse
 from ga4gh.vrs import models as vrs_models
 
 from anyvar.core import metadata, objects
+from anyvar.core.categorical_variants import (
+    CanonicalAllele,
+    ProteinSequenceConsequence,
+    is_expected_molecule_type,
+)
 from anyvar.core.objects import SupportedVrsObject
 from anyvar.storage import DEFAULT_STORAGE_URI
 from anyvar.storage.base import Storage
@@ -108,6 +110,14 @@ class VariantProjectorProtocol(Protocol):
     ) -> None: ...
 
 
+def has_variations_queueing_enabled() -> bool:
+    """Determine whether or not asynchronous task queueing is enabled for variations"""
+    return (
+        importlib.util.find_spec("celery") is not None
+        and os.environ.get("CELERY_BROKER_URL", "") != ""
+    )
+
+
 class ObjectNotFoundError(Exception):
     """Raised when an ID is given for a non-existent object."""
 
@@ -146,6 +156,10 @@ def create_projector(translator: Translator):  # noqa: ANN201
     cst = CoolSeqTool(**kwargs)
     _logger.info("CoolSeqTool initialized for variant projection")
     return VariantProjector(cst=cst, dp=translator.dp)
+
+
+class InvalidCategoricalVariantError(Exception):
+    """Raise when a provided categorical variant has invalid or missing required fields"""
 
 
 class AnyVar:
@@ -353,7 +367,7 @@ class AnyVar:
     def get_object_mappings(
         self,
         object_id: str,
-        mapping_type: metadata.VariationMappingType,
+        mapping_type: metadata.VariationMappingType | None = None,
         as_source: bool = True,
     ) -> Iterable[metadata.VariationMapping]:
         """Get all variation mappings given source object ID and mapping type
@@ -384,3 +398,51 @@ class AnyVar:
             except KeyError as e:
                 raise ObjectNotFoundError(object_id) from e
         return mappings
+
+    def register_ca_catvar(self, catvar: CanonicalAllele) -> None:
+        """Register a Canonical Allele Categorical Variant
+
+        Beyond the data structure validation performed by the catvar pydantic model,
+        this function also validates that the defining allele must be on a genomic sequence
+
+        Following successful validation, the catvar is stored for future reference.
+
+        :param catvar: user-supplied catvar
+        :raise InvalidCategoricalVariantError: if the molecule type for the defining allele can't be validated as genomic
+        """
+        if not is_expected_molecule_type(
+            catvar.constraints[0].root.allele.location.sequenceReference,
+            vrs_models.MoleculeType.GENOMIC,
+            self.translator.dp,
+        ):
+            msg = "Provided canonical allele constraint cannot be validated as referring to a genomic variation"
+            raise InvalidCategoricalVariantError(msg)
+        self.object_store.add_ca_catvar(catvar)
+
+    def get_ca_catvar(self, catvar_id: str) -> CanonicalAllele | None:
+        """Fetch a Canonical Allele catvar by ID"""
+        return self.object_store.get_ca_catvar(catvar_id)
+
+    def register_psq_catvar(self, catvar: ProteinSequenceConsequence) -> None:
+        """Register a Protein Sequence Consequence Categorical Variant
+
+        Beyond the data structure validation performed by the catvar pydantic model,
+        this function also validates that the defining allele must be on a protein sequence
+
+        Following successful validation, the catvar is stored for future reference.
+
+        :param catvar: user-supplied catvar
+        :raise InvalidCategoricalVariantError: if the molecule type for the defining allele can't be validated as protein
+        """
+        if not is_expected_molecule_type(
+            catvar.constraints[0].root.allele.location.sequenceReference,
+            vrs_models.MoleculeType.PROTEIN,
+            self.translator.dp,
+        ):
+            msg = "Provided canonical allele constraint cannot be validated as referring to a protein variation"
+            raise InvalidCategoricalVariantError(msg)
+        self.object_store.add_psq_catvar(catvar)
+
+    def get_psq_catvar(self, catvar_id: str) -> ProteinSequenceConsequence | None:
+        """Fetch a ProteinSequenceConsequence catvar by ID"""
+        return self.object_store.get_psq_catvar(catvar_id)

@@ -12,6 +12,8 @@ from celery.result import AsyncResult
 from dotenv import load_dotenv
 
 import anyvar
+from anyvar.restapi.schema import VariationRequest
+from anyvar.translate.register import register_variations as _register_variations
 from anyvar.vcf.ingest import (
     VcfRegistrar,
     register_existing_annotations,
@@ -29,7 +31,9 @@ celery_app.conf.update(
     task_serializer="json",
     result_serializer="json",
     accept_content=["application/json"],
-    result_backend=os.environ.get("CELERY_BACKEND_URL", None),
+    result_backend=os.environ.get(
+        "CELERY_BACKEND_URL", os.environ.get("CELERY_BROKER_URL", None)
+    ),
     result_backend_transport_options={"global_keyprefix": "anyvar_"},
     broker_url=os.environ.get("CELERY_BROKER_URL", None),
     timezone=os.environ.get("CELERY_TIMEZONE", "UTC"),
@@ -298,6 +302,51 @@ def ingest_annotated_vcf(
         return str(conflicts_file) if require_validation else ""
     except Exception:
         _logger.exception("%s - vcf ingestion failed with exception", self.request.id)
+        raise
+    finally:
+        exit_task()
+        maybe_teardown_anyvar_app()
+
+
+@celery_app.task(bind=True)
+def register_variations(
+    self: Task,
+    variation_requests_json: list[dict],
+) -> list[dict]:
+    """Register a batch of variations asynchronously.
+
+    :param variation_requests_json: list of variation request dicts (serialized VariationRequest)
+    :return: list of serialized RegisterVariationResponse dicts
+    """
+    try:
+        enter_task()
+        task_start = datetime.datetime.now(tz=datetime.UTC)
+
+        _logger.info(
+            "%s - registering %s variations",
+            self.request.id,
+            len(variation_requests_json),
+        )
+
+        anyvar_app = get_anyvar_app()
+        variation_requests = [
+            VariationRequest(**req) for req in variation_requests_json
+        ]
+
+        responses = _register_variations(anyvar_app, variation_requests)
+
+        elapsed = datetime.datetime.now(tz=datetime.UTC) - task_start
+        _logger.info(
+            "%s - variation registration completed in %s seconds",
+            self.request.id,
+            elapsed.seconds,
+        )
+
+        return [resp.model_dump(mode="json", exclude_none=True) for resp in responses]
+    except Exception:
+        _logger.exception(
+            "%s - variation registration failed with exception", self.request.id
+        )
         raise
     finally:
         exit_task()

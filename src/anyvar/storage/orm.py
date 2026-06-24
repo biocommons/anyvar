@@ -238,6 +238,33 @@ class VariationMapping(Base):
         return ()
 
 
+class CanonicalAllele(Base):
+    """AnyVar ORM model for canonical allele variants"""
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str]
+    allele_id: Mapped[str] = mapped_column(String, ForeignKey(Allele.id))
+    allele: Mapped[Allele] = relationship()
+
+
+class ProteinSequenceConsequence(Base):
+    """AnyVar ORM model for canonical allele variants"""
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str]
+    allele_id: Mapped[str] = mapped_column(String, ForeignKey(Allele.id))
+    allele: Mapped[Allele] = relationship()
+
+
+def create_tables(db_url: str) -> None:
+    """Create all tables in the database.
+
+    :param db_url: Database connection URL (e.g., postgresql://user:pass@host:port/db)
+    """
+    engine = create_engine(db_url)
+    Base.metadata.create_all(engine)
+
+
 def session_factory(db_url: str) -> sessionmaker:
     """Create a SQLAlchemy session factory.
 

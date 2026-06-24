@@ -1,4 +1,4 @@
-﻿anyvar.storage.orm
+anyvar.storage.orm
 ==================
 
 .. automodule:: anyvar.storage.orm
