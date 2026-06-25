@@ -17,7 +17,6 @@ AnyVar supports several different database engines. Use the ``ANYVAR_STORAGE_URI
 
 
 * A `libpq connection string <https://www.postgresql.org/docs/current/libpq.html>`_ constructs a PostgreSQL connection. This is the default database engine and is recommended for most use cases.
-* A URI with a ``snowflake://`` scheme constructs a Snowflake connection. See the :ref:`AnyVar Snowflake configuration <snowflake>` page for more information.
 * a URI with a ``duckdb://`` scheme constructs a `DuckDB <https://duckdb.org/>`_ connection. Use a relative file path, eg ``duckdb:///my_variants.duckdb``, for a file-based instance, or ``duckdb:///:memory:`` for an in-memory instance. See the :py:class:`~anyvar.storage.duckdb` API reference page for more information.
 * An empty string (ie ``export ANYVAR_STORAGE_URI=""``) enables :ref:`stateless mode <stateless_mode>`.
 
