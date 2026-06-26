@@ -30,6 +30,9 @@ from anyvar.restapi.utils import get_vrs_object
 from anyvar.storage.base import IncompleteVrsObjectError
 from anyvar.translate.base import Translator
 from anyvar.translate.register import (
+    add_projection_mappings as _add_projection_mappings,
+)
+from anyvar.translate.register import (
     register_variations as _register_variations,
 )
 from anyvar.translate.register import (
@@ -270,12 +273,16 @@ def register_vrs_variation(
     liftover_messages = liftover.add_liftover_mapping(
         variation, av.object_store, av.translator.dp
     )
+    messages: list[str] = liftover_messages or []
+
+    if av.projector is not None:
+        _add_projection_mappings(av, variation, messages)
 
     return RegisterVariationResponse(
         input_variation=input_variation,
         object=variation,
         object_id=variation.id,
-        messages=liftover_messages or [],
+        messages=messages,
     )
 
 

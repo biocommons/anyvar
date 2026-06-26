@@ -37,6 +37,7 @@ dynamic = ["version"]
 [project.optional-dependencies]
 duckdb = ["duckdb-engine"]
 postgres = ["psycopg[binary]"]
+projection = ["cool-seq-tool~=0.17.0"]
 queueing = [
     "celery[redis]~=5.5.0",
     "aiofiles",
@@ -50,6 +51,7 @@ test = [
     "celery[pytest]",
     "jsonschema",
     "pyyaml",
+    "cool-seq-tool~=0.17.0",
 ]
 dev = [
     "ruff==0.12.8",

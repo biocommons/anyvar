@@ -21,7 +21,7 @@ COPY pyproject.toml /app/pyproject.toml
 COPY src /app/src
 COPY .git /app/.git
 ENV PATH=/app/venv/bin:$PATH
-RUN pip install -e '.[dev,test,queueing,postgres]'
+RUN pip install -e '.[dev,test,queueing,postgres,projection]'
 
 FROM python:3.12-slim AS anyvar
 

@@ -49,6 +49,28 @@ def translate_variation(
         return TranslationResult(error=f'Unable to translate "{definition}"')
 
 
+def add_projection_mappings(
+    av: AnyVar,
+    variation: objects.SupportedVrsVariation,
+    messages: list[str],
+) -> int:
+    """Attempt projection and append user-facing projection messages."""
+    if av.projector is None:
+        return 0
+
+    from anyvar.mapping.projection import ProjectionError  # noqa: PLC0415
+
+    try:
+        av.projector.add_projections(
+            variation=variation,
+            storage=av.object_store,
+        )
+    except ProjectionError as exc:
+        messages.append(str(exc))
+        return 1
+    return 0
+
+
 def register_variations(
     av: AnyVar,
     variation_requests: list[VariationRequest],
@@ -101,6 +123,18 @@ def register_variations(
             )
             or []
         )
+
+        if av.projector is not None:
+            projection_message_count = add_projection_mappings(
+                av, translation_result.variation, messages
+            )
+            _logger.info(
+                "Projection completed for %s with %d message(s)",
+                translation_result.variation.id,
+                projection_message_count,
+            )
+        else:
+            _logger.info("Projection disabled for %s", translation_result.variation.id)
 
         responses.append(
             RegisterVariationResponse(
