@@ -31,45 +31,107 @@ load_dotenv()
 _logger = logging.getLogger(__name__)
 
 
+async def _load_yaml_mapping(
+    config_path: pathlib.Path,
+    config_description: str,
+) -> dict | None:
+    """Load a YAML config file, requiring a top-level mapping."""
+    try:
+        async with await anyio.open_file(config_path) as f:
+            contents = await f.read()
+    except (OSError, UnicodeError):
+        _logger.exception(
+            "Error reading %s from %s. Using default configs",
+            config_description,
+            config_path,
+        )
+        return None
+
+    try:
+        config = yaml.safe_load(contents)
+    except yaml.YAMLError:
+        _logger.exception(
+            "Error parsing %s from %s. Using default configs",
+            config_description,
+            config_path,
+        )
+        return None
+
+    if not isinstance(config, dict):
+        _logger.error(
+            "%s at %s must be a YAML mapping, got %s. Using default configs",
+            config_description,
+            config_path,
+            type(config).__name__,
+        )
+        return None
+
+    return config
+
+
+def _get_config_file_path(env_var: str) -> pathlib.Path | None:
+    """Return config file path from an environment variable, if valid."""
+    config_file = os.environ.get(env_var)
+    if not config_file:
+        return None
+
+    config_path = pathlib.Path(config_file)
+    if config_path.is_file():
+        return config_path
+
+    _logger.warning("%s is set to %s, but it is not a file.", env_var, config_file)
+    return None
+
+
+async def _configure_logging() -> None:
+    """Configure logging from file if available."""
+    logging_config_file = _get_config_file_path("ANYVAR_LOGGING_CONFIG")
+    if logging_config_file is None:
+        _logger.info("Logging with default configs.")
+        return
+
+    config = await _load_yaml_mapping(logging_config_file, "logging configuration")
+    if config is None:
+        return
+
+    try:
+        logging.config.dictConfig(config)
+    except Exception:
+        _logger.exception(
+            "Error in logging configuration at %s. Using default configs",
+            logging_config_file,
+        )
+        return
+
+
+async def _load_service_info() -> ServiceInfo:
+    """Load service-info configs from file or return defaults"""
+    service_info_config_file = _get_config_file_path("ANYVAR_SERVICE_INFO")
+    if service_info_config_file is None:
+        _logger.warning("Falling back on default service description")
+        return ServiceInfo()
+
+    service_info = await _load_yaml_mapping(
+        service_info_config_file, "service info definition"
+    )
+    if service_info is None:
+        return ServiceInfo()
+
+    try:
+        return ServiceInfo.model_validate(service_info)
+    except ValueError:
+        _logger.exception(
+            "Error loading from service info description at %s. Using default configs",
+            service_info_config_file,
+        )
+        return ServiceInfo()
+
+
 @asynccontextmanager
 async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
     """Perform resource initialization/teardown"""
-    # Configure logging from file or use default
-    logging_config_file = os.environ.get("ANYVAR_LOGGING_CONFIG", None)
-    if logging_config_file and pathlib.Path(logging_config_file).is_file():
-        async with await anyio.open_file(logging_config_file) as f:
-            try:
-                contents = await f.read()
-                config = yaml.safe_load(contents)
-                logging.config.dictConfig(config)
-                _logger.info("Logging using configs set from %s", logging_config_file)
-            except Exception:
-                _logger.exception(
-                    "Error in Logging Configuration. Using default configs"
-                )
-    else:
-        _logger.info("Logging with default configs.")
-
-    # Override default service-info parameters
-    service_info_config_file = os.environ.get("ANYVAR_SERVICE_INFO")
-    if service_info_config_file and pathlib.Path(service_info_config_file).is_file():
-        async with await anyio.open_file(service_info_config_file) as f:
-            try:
-                contents = await f.read()
-                service_info = yaml.safe_load(contents)
-                param_app.state.service_info = ServiceInfo(**service_info)
-                _logger.info(
-                    "Assigning service info values from %s", service_info_config_file
-                )
-            except Exception:
-                _logger.exception(
-                    "Error loading from service info description at %s. Using default configs",
-                    service_info_config_file,
-                )
-                param_app.state.service_info = ServiceInfo()
-    else:
-        _logger.warning("Falling back on default service description.")
-        param_app.state.service_info = ServiceInfo()
+    await _configure_logging()
+    param_app.state.service_info = await _load_service_info()
 
     # create anyvar instance
     storage = anyvar.anyvar.create_storage()
@@ -81,12 +143,14 @@ async def app_lifespan(param_app: FastAPI):  # noqa: ANN201
 
     # associate anyvar with the app state
     param_app.state.anyvar = anyvar_instance
-    yield
 
-    # close connectors on shutdown
-    if projector is not None:
-        projector.close()
-    storage.close()
+    # enclose in try/finally to ensure teardown
+    try:
+        yield
+    finally:
+        storage.close()
+        if projector is not None:
+            projector.close()
 
 
 app = FastAPI(
