@@ -77,7 +77,7 @@ def add_object_extension(
         AddExtensionRequest,
         Body(
             description="Extension to associate with the variation",
-            example={"name": "source_dataset", "value": "gnomAD_v4.1"},
+            examples=[{"name": "source_dataset", "value": "gnomAD_v4.1"}],
         ),
     ],
 ) -> AddExtensionResponse:
