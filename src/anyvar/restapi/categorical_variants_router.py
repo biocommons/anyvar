@@ -54,7 +54,7 @@ _put_psq_example = cat_vrs.CategoricalVariant(
 
 _put_psq_body = Body(
     description="A protein sequence consequence categorical variant with an ID that references an external knowledgebase record.",
-    example=_put_psq_example,
+    examples=[_put_psq_example],
 )
 
 
@@ -124,7 +124,7 @@ _put_ca_example = cat_vrs.CategoricalVariant(
 
 _put_ca_body = Body(
     description="A canonical allele categorical variant with an ID that references an external knowledgebase record.",
-    example=_put_ca_example,
+    examples=[_put_ca_example],
 )
 
 _put_ca_description = """Register a Canonical Allele Categorical Variant.
