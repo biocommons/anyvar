@@ -17,6 +17,8 @@ from anyvar.translate.base import Translator
 
 pytest_plugins = ("celery.contrib.pytest",)
 
+os.environ["WAGS_TAILS_DIR"] = str(Path(__file__).parent / "data")
+
 
 def pytest_runtest_setup(item):
     """Skip tests not compatible with the current test database backend"""
