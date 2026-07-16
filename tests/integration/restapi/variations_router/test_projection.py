@@ -302,7 +302,9 @@ UTR_PROJECTION_CASES = [
 
 
 def _assert_forward_mapping(restapi_client, source_id, mapping_type, dest_id):
-    response = restapi_client.get(f"/object/{source_id}/mappings/{mapping_type}")
+    response = restapi_client.get(
+        f"/object/{source_id}/mappings?mapping_type={mapping_type}"
+    )
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {
         "mappings": [
@@ -316,7 +318,9 @@ def _assert_forward_mapping(restapi_client, source_id, mapping_type, dest_id):
 
 
 def _assert_no_forward_mapping(restapi_client, source_id, mapping_type):
-    response = restapi_client.get(f"/object/{source_id}/mappings/{mapping_type}")
+    response = restapi_client.get(
+        f"/object/{source_id}/mappings?mapping_type={mapping_type}"
+    )
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"mappings": []}
 
@@ -531,7 +535,7 @@ def test_spdi_projection_uses_longest_compatible_transcript(
 
     genomic_id = payload["object_id"]
     mapping_response = projected_restapi_client.get(
-        f"/object/{genomic_id}/mappings/{metadata.VariationMappingType.TRANSCRIBE_TO}"
+        f"/object/{genomic_id}/mappings?mapping_type={metadata.VariationMappingType.TRANSCRIBE_TO}"
     )
     assert mapping_response.status_code == HTTPStatus.OK
     transcript_mappings = mapping_response.json()["mappings"]
@@ -549,7 +553,7 @@ def test_spdi_projection_uses_longest_compatible_transcript(
     assert transcript["state"]["sequence"] == projection_case["transcript_state"]
 
     protein_mapping_response = projected_restapi_client.get(
-        f"/object/{transcript_id}/mappings/{metadata.VariationMappingType.TRANSLATE_TO}"
+        f"/object/{transcript_id}/mappings?mapping_type={metadata.VariationMappingType.TRANSLATE_TO}"
     )
     assert protein_mapping_response.status_code == HTTPStatus.OK
     protein_mappings = protein_mapping_response.json()["mappings"]
@@ -627,7 +631,7 @@ def test_spdi_projection_persists_utr_transcript_without_protein_mapping(
 
     genomic_id = payload["object_id"]
     mapping_response = projected_restapi_client.get(
-        f"/object/{genomic_id}/mappings/{metadata.VariationMappingType.TRANSCRIBE_TO}"
+        f"/object/{genomic_id}/mappings?mapping_type={metadata.VariationMappingType.TRANSCRIBE_TO}"
     )
     assert mapping_response.status_code == HTTPStatus.OK
     mappings = mapping_response.json()["mappings"]
