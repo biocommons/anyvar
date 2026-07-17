@@ -23,7 +23,7 @@ def _put_variation(client, spdi: str):
 def _single_mapping(
     client, source_id: str, mapping_type: metadata.VariationMappingType
 ):
-    response = client.get(f"/object/{source_id}/mappings/{mapping_type}")
+    response = client.get(f"/object/{source_id}/mappings?mapping_type={mapping_type}")
     assert response.status_code == HTTPStatus.OK
     mappings = response.json()["mappings"]
     assert len(mappings) == 1
@@ -31,7 +31,7 @@ def _single_mapping(
 
 
 def _no_mapping(client, source_id: str, mapping_type: metadata.VariationMappingType):
-    response = client.get(f"/object/{source_id}/mappings/{mapping_type}")
+    response = client.get(f"/object/{source_id}/mappings?mapping_type={mapping_type}")
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"mappings": []}
 
