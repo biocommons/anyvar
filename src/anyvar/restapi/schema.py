@@ -28,9 +28,10 @@ class EndpointTag(StrEnum):
 
     META = "Service Metadata"
     VCF = "VCF Operations"
-    VRS_OBJECTS = "VRS Objects"
-    CATEGORICAL_VARIANTS = "Categorical Variants"
     VARIATIONS = "Variations"
+    SEQUENCE_LOCATIONS = "Sequence Locations"
+    SEQUENCE_REFERENCES = "Sequence References"
+    CATEGORICAL_VARIANTS = "Categorical Variants"
 
 
 class ServiceEnvironment(StrEnum):
