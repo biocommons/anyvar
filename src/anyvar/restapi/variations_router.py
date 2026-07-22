@@ -49,20 +49,6 @@ _logger = logging.getLogger(__name__)
 
 variations_router = APIRouter()
 
-VARIATION_EXAMPLE_PAYLOAD = {
-    "definition": "NC_000007.13:g.36561662_36561663del",
-    "input_type": "Allele",
-    "copies": 0,
-    "copy_change": "complete genomic loss",
-    "assembly_name": None,
-}
-
-
-_variation_request_body = Body(
-    description='Variation description, including (at minimum) a `definition` property. Can provide optional `input_type` if the expected output representation type is known, as well as an assembly_name (e.g.,"GRCh37" or "GRCh38"). If representing copy number, provide `copies` or `copy_change`.',
-    examples=[VARIATION_EXAMPLE_PAYLOAD],
-)
-
 
 def _handle_translation_request(
     tlr: Translator, var_req: VariationRequest
@@ -87,6 +73,44 @@ def _handle_translation_request(
     return translation_result.variation  # type: ignore
 
 
+VARIATIONS_EXAMPLE_PAYLOAD = [
+    {
+        "definition": "NC_000010.11:g.87894077C>T",
+        "assembly_name": None,
+    },
+    {"definition": "NM_000551.3:c.1A>T"},
+    {
+        "definition": {
+            "id": "ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb",
+            "type": "Allele",
+            "digest": "d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb",
+            "location": {
+                "id": "ga4gh:SL.JOFKL4nL5mRUlO_xLwQ8VOD1v7mxhs3I",
+                "type": "SequenceLocation",
+                "digest": "JOFKL4nL5mRUlO_xLwQ8VOD1v7mxhs3I",
+                "sequenceReference": {
+                    "type": "SequenceReference",
+                    "refgetAccession": "SQ.IW78mgV5Cqf6M24hy52hPjyyo5tCCd86",
+                },
+                "start": 36561661,
+                "end": 36561663,
+            },
+            "state": {
+                "type": "ReferenceLengthExpression",
+                "length": 0,
+                "sequence": "",
+                "repeatSubunitLength": 2,
+            },
+        }
+    },
+]
+
+_variations_request_body = Body(
+    description='Variation description, including (at minimum) a `definition` property. Can provide optional `input_type` if the expected output representation type is known, as well as an assembly_name (e.g.,"GRCh37" or "GRCh38").',
+    examples=[VARIATIONS_EXAMPLE_PAYLOAD],
+)
+
+
 @variations_router.put(
     "/variations",
     response_model_exclude_none=True,
@@ -96,9 +120,7 @@ def _handle_translation_request(
 async def register_variations(
     request: Request,
     response: Response,
-    variations: Annotated[
-        list[VariationRequest], Body(description="List of variations to register")
-    ],
+    variations: Annotated[list[VariationRequest], _variations_request_body],
     run_async: Annotated[
         bool,
         Query(
@@ -277,7 +299,7 @@ def register_vrs_variation(
 )
 def get_variation(
     request: Request,
-    variation: Annotated[VariationRequest, _variation_request_body],
+    variation: Annotated[VariationRequest, _variations_request_body],
 ) -> GetObjectResponse:
     """Search for registered variation"""
     av: AnyVar = request.app.state.anyvar

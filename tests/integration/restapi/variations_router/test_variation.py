@@ -9,7 +9,7 @@ from anyvar.mapping.liftover import ReferenceAssembly
 from anyvar.restapi.schema import RegisterVariationResponse, VariationRequest
 from anyvar.restapi.variations_router import (
     PUT_VRS_VARIATION_EXAMPLE_PAYLOAD,
-    VARIATION_EXAMPLE_PAYLOAD,
+    VARIATIONS_EXAMPLE_PAYLOAD,
 )
 from anyvar.storage.base import Storage
 
@@ -66,7 +66,7 @@ def test_put_allele_invalid_request(
 
 
 def test_put_variation_example(restapi_client: TestClient, alleles: dict):
-    resp = restapi_client.put("/variation", json=VARIATION_EXAMPLE_PAYLOAD)
+    resp = restapi_client.put("/variation", json=VARIATIONS_EXAMPLE_PAYLOAD)
     assert resp.status_code == HTTPStatus.OK
     expected_id = "ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb"
     assert resp.json()["object_id"] == expected_id

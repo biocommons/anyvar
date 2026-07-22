@@ -11,7 +11,6 @@ from ga4gh.cat_vrs import CATVRS_VERSION
 from ga4gh.vrs import (
     VRS_VERSION,
     VrsType,
-    models,
 )
 from ga4gh.vrs import (
     __version__ as vrs_python_version,
@@ -189,10 +188,8 @@ class VariationRequest(BaseModel):
 
     model_config = ConfigDict(use_enum_values=True)
 
-    definition: StrictStr
+    definition: StrictStr | dict
     input_type: SupportedVariationType | None = None
-    copies: int | None = None
-    copy_change: models.CopyChange | None = None
     assembly_name: ReferenceAssembly | None = ReferenceAssembly.GRCH38
 
 

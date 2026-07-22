@@ -3,6 +3,7 @@
 import logging
 
 from ga4gh.vrs.dataproxy import DataProxyValidationError
+from ga4gh.vrs.models import Allele
 from hgvs.exceptions import HGVSParseError
 
 from anyvar.anyvar import AnyVar
@@ -88,11 +89,24 @@ def register_variations(
     variations_to_store: list[objects.SupportedVrsObject] = []
 
     for variation_request in variation_requests:
-        translation_result = translate_variation(av.translator, variation_request)
-        translation_results.append(translation_result)
-
-        if translation_result.variation:
-            variations_to_store.append(translation_result.variation)
+        variation_definition = variation_request.definition
+        if isinstance(variation_definition, str):
+            translation_result = translate_variation(av.translator, variation_request)
+            translation_results.append(translation_result)
+            if translation_result.variation:
+                variations_to_store.append(translation_result.variation)
+        else:
+            try:
+                variation: Allele = Allele(**variation_definition)
+                if not variation.id:
+                    variation = objects.recursive_identify(vrs_object=variation)
+                translation_results.append(
+                    TranslationResult(variation=variation, error=None)
+                )
+            except Exception as e:
+                message = f"error: {e}"
+                _logger.exception(message)  # TODO - real error handling
+            variations_to_store.append(variation)
 
     if variations_to_store:
         av.put_objects(variations_to_store)
