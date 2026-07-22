@@ -72,6 +72,21 @@ def add_projection_mappings(
     return 0
 
 
+def _process_vrs_variation(
+    variation_definition: dict[str, str | int],
+) -> TranslationResult:
+    error: str | None = None
+    variation: objects.SupportedVrsVariation | None = None
+    try:
+        variation = Allele(**variation_definition)
+        if not variation.id:
+            variation = objects.recursive_identify(vrs_object=variation)
+    except Exception as e:  # noqa: BLE001 #TODO: use more specific error
+        error = f"error processing VRS Variation: {e}"
+        _logger.info(msg=error)
+    return TranslationResult(variation=variation, error=error)
+
+
 def register_variations(
     av: AnyVar,
     variation_requests: list[VariationRequest],
@@ -87,35 +102,26 @@ def register_variations(
     """
     translation_results: list[TranslationResult] = []
     variations_to_store: list[objects.SupportedVrsObject] = []
-
     for variation_request in variation_requests:
         variation_definition = variation_request.definition
         if isinstance(variation_definition, str):
             translation_result = translate_variation(av.translator, variation_request)
-            translation_results.append(translation_result)
-            if translation_result.variation:
-                variations_to_store.append(translation_result.variation)
         else:
-            try:
-                variation: Allele = Allele(**variation_definition)
-                if not variation.id:
-                    variation = objects.recursive_identify(vrs_object=variation)
-                translation_results.append(
-                    TranslationResult(variation=variation, error=None)
-                )
-            except Exception as e:
-                message = f"error: {e}"
-                _logger.exception(message)  # TODO - real error handling
-            variations_to_store.append(variation)
+            translation_result = _process_vrs_variation(
+                variation_definition=variation_definition
+            )
+
+        translation_results.append(translation_result)
+        if translation_result.variation:
+            variations_to_store.append(translation_result.variation)
 
     if variations_to_store:
-        av.put_objects(variations_to_store)
+        av.put_objects(variation_objects=variations_to_store)
 
     responses: list[RegisterVariationResponse] = []
-
-    for variation_request, translation_result in zip(
-        variation_requests, translation_results, strict=True
-    ):
+    for variation_request, translation_result in zip[
+        tuple[VariationRequest, TranslationResult]
+    ](variation_requests, translation_results, strict=True):
         if not translation_result.variation:
             responses.append(
                 RegisterVariationResponse(
