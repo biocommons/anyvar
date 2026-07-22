@@ -19,7 +19,6 @@ from anyvar import AnyVar
 from anyvar.restapi.auth import get_token_auth_dependency
 from anyvar.restapi.categorical_variants_router import catvar_router
 from anyvar.restapi.meta_router import meta_router
-from anyvar.restapi.objects_router import objects_router
 from anyvar.restapi.schema import (
     EndpointTag,
     ServiceInfo,
@@ -168,7 +167,7 @@ app = FastAPI(
 app.include_router(meta_router, tags=[EndpointTag.META])
 app.include_router(vcf_router, tags=[EndpointTag.VCF])
 app.include_router(variations_router, tags=[EndpointTag.VARIATIONS])
-app.include_router(objects_router, tags=[EndpointTag.VRS_OBJECTS])
+# app.include_router(objects_router, tags=[EndpointTag.VRS_OBJECTS])
 app.include_router(
     catvar_router,
     prefix="/categorical_variants",
