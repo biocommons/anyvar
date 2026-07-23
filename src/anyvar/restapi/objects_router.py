@@ -17,7 +17,7 @@ from anyvar.restapi.schema import (
     AddMappingResponse,
     GetExtensionResponse,
     GetMappingResponse,
-    GetObjectResponse,
+    GetVariationResponse,
 )
 from anyvar.restapi.utils import get_vrs_object
 
@@ -36,11 +36,11 @@ objects_router = APIRouter()
 def get_object_by_id(
     request: Request,
     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for object")],
-) -> GetObjectResponse:
+) -> GetVariationResponse:
     """Get registered VRS object given its VRS ID."""
     av: AnyVar = request.app.state.anyvar
     vrs_object: objects.SupportedVrsObject = get_vrs_object(av, vrs_id)
-    return GetObjectResponse(messages=[], data=vrs_object)
+    return GetVariationResponse(messages=[], data=vrs_object)
 
 
 @objects_router.delete(

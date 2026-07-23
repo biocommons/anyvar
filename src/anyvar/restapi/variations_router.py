@@ -12,7 +12,6 @@ from fastapi.responses import JSONResponse
 import anyvar
 from anyvar.anyvar import AnyVar
 from anyvar.core import objects
-from anyvar.mapping import liftover
 from anyvar.restapi import has_async_imports
 from anyvar.restapi.async_utils import (
     check_async_enabled,
@@ -20,24 +19,18 @@ from anyvar.restapi.async_utils import (
 )
 from anyvar.restapi.schema import (
     ErrorResponse,
-    GetObjectResponse,
     RegisterVariationResponse,
     RunStatusResponse,
     SearchResponse,
+    TranslationResult,
     VariationRequest,
 )
 from anyvar.restapi.utils import get_vrs_object
-from anyvar.storage.base import IncompleteVrsObjectError
 from anyvar.translate.base import Translator
-from anyvar.translate.register import (
-    add_projection_mappings as _add_projection_mappings,
-)
 from anyvar.translate.register import (
     register_variations as _register_variations,
 )
-from anyvar.translate.register import (
-    translate_variation as _translate_variation,
-)
+from anyvar.translate.register import translate_variation
 
 if has_async_imports:
     from celery.result import AsyncResult
@@ -63,14 +56,14 @@ def _handle_translation_request(
        * Reference base in gnomad/VCF-style expression fails to validate
        * translator returns not-implemented variation type
     """
-    translation_result = _translate_variation(tlr, var_req)
+    translation_result: TranslationResult = translate_variation(tlr, var_req)
     if translation_result.error:
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             detail=translation_result.error,
         )
 
-    return translation_result.variation  # type: ignore
+    return translation_result.variation  # pyright: ignore (if translation_result.variation was `None`, the HTTPException would've been raised above)
 
 
 VARIATIONS_EXAMPLE_PAYLOAD = [
@@ -114,7 +107,7 @@ _variations_request_body = Body(
 @variations_router.put(
     "/variations",
     response_model_exclude_none=True,
-    summary="Bulk register alleles or copy number objects",
+    summary="Bulk register alleles",
     description="Provide a list of variation definitions to be normalized and registered with AnyVar. The response contains one result per input, in the same order. Variations that fail translation are not registered and are returned with null `object` and `object_id` fields. Registration or liftover failure messages may also be included in the `messages` field.",
 )
 async def register_variations(
@@ -189,7 +182,7 @@ async def register_variations(
 
 
 @variations_router.get(
-    "/variations/{run_id}",
+    "/variations/run/{run_id}",
     summary="Poll for status and/or result for asynchronous variation registration",
     description="Provide a valid run id to get the status and/or result of an asynchronous variation registration run",
     response_model=None,
@@ -232,81 +225,40 @@ async def get_variations_run_status(
     )
 
 
-PUT_VRS_VARIATION_EXAMPLE_PAYLOAD = {
-    "location": {
-        "end": 87894077,
-        "start": 87894076,
-        "sequenceReference": {
-            "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
-            "type": "SequenceReference",
-        },
-        "type": "SequenceLocation",
-    },
-    "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
-    "type": "Allele",
-}
-
-
-@variations_router.put(
-    "/vrs_variation",
-    summary="Register a VRS variation",
-    description="Provide a valid VRS variation object to be registered with AnyVar. Returns a fully-identified VRS object.",
-    response_model_exclude_none=True,
-)
-def register_vrs_variation(
-    request: Request,
-    variation: Annotated[
-        objects.SupportedVrsVariation,
-        Body(
-            description="Valid VRS object.",
-            examples=[PUT_VRS_VARIATION_EXAMPLE_PAYLOAD],
-        ),
-    ],
-) -> RegisterVariationResponse:
-    """Register a complete VRS variation object.
-
-    No additional formatting or normalization is performed. IDs are added if not provided.
-    """
-    av: AnyVar = request.app.state.anyvar
-    input_variation = variation
-    try:
-        av.put_objects([variation])
-    except IncompleteVrsObjectError:
-        variation = objects.recursive_identify(variation)
-        av.put_objects([variation])
-
-    liftover_messages = liftover.add_liftover_mapping(
-        variation, av.object_store, av.translator.dp
-    )
-    messages: list[str] = liftover_messages or []
-
-    if av.projector is not None:
-        _add_projection_mappings(av, variation, messages)
-
-    return RegisterVariationResponse(
-        input_variation=input_variation,
-        object=variation,
-        object_id=variation.id,
-        messages=messages,
-    )
-
-
 @variations_router.post(
     "/variation",
     response_model_exclude_none=True,
-    summary="Retrieve a registered VRS allele or copy number variation",
+    summary="Retrieve a registered VRS allele",
     description="Provide a variation definition to be normalized and searched for in AnyVar",
 )
-def get_variation(
+def retrieve_variations(
     request: Request,
-    variation: Annotated[VariationRequest, _variations_request_body],
-) -> GetObjectResponse:
+    variations: Annotated[list[VariationRequest], _variations_request_body],
+) -> list[
+    RegisterVariationResponse
+]:  # TODO: This isn't registering, so it shouldn't return a registration response. Rename this??
     """Search for registered variation"""
     av: AnyVar = request.app.state.anyvar
-    translated_variation = _handle_translation_request(av.translator, variation)
-    vrs_id: str = translated_variation.id  # type: ignore
-    _ = get_vrs_object(av, vrs_id)  # raise NOT_FOUND for vrs_id not present in DB
-    return GetObjectResponse(messages=[], data=translated_variation)
+    responses: list[RegisterVariationResponse] = []
+
+    for variation_request in variations:
+        response = RegisterVariationResponse(input_variation=variation_request)
+        translation_result: TranslationResult = translate_variation(
+            tlr=av.translator, variation_request=variation_request
+        )
+        if translation_result.variation:
+            vrs_id: str = translation_result.variation.id  # type: ignore
+            try:
+                _ = get_vrs_object(
+                    av=av, vrs_object_id=vrs_id
+                )  # raise NOT_FOUND for vrs_id not present in DB
+            except:  # noqa: E722 - TODO: No bare except
+                response.messages = ["Variant not found"]
+        else:
+            response.messages = ["Unable to normalize variant"]
+        responses.append(response)
+
+    return responses
 
 
 @variations_router.get(
