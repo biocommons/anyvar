@@ -1,4 +1,4 @@
-"""Provide API routes relating to search operations"""
+"""Provide API routes relating to variation operations"""
 
 import logging
 import os
@@ -8,17 +8,25 @@ from typing import Annotated
 from fastapi import APIRouter, Body, HTTPException, Query, Request, Response, status
 from fastapi.params import Path
 from fastapi.responses import JSONResponse
+from pydantic import StrictStr
 
 import anyvar
-from anyvar.anyvar import AnyVar
-from anyvar.core import objects
+from anyvar.anyvar import AnyVar, ObjectNotFoundError
+from anyvar.core import metadata, objects
 from anyvar.restapi import has_async_imports
 from anyvar.restapi.async_utils import (
     check_async_enabled,
     validate_run_id_available,
 )
 from anyvar.restapi.schema import (
+    AddExtensionRequest,
+    AddExtensionResponse,
+    AddMappingRequest,
+    AddMappingResponse,
     ErrorResponse,
+    GetExtensionResponse,
+    GetMappingResponse,
+    GetVariationResponse,
     RegisterVariationResponse,
     RunStatusResponse,
     SearchResponse,
@@ -39,7 +47,6 @@ if has_async_imports:
     from anyvar.restapi.async_utils import resolve_async_task_status
 
 _logger = logging.getLogger(__name__)
-uvicorn_logger = logging.getLogger("uvicorn.error")
 
 variations_router = APIRouter()
 
@@ -185,8 +192,8 @@ async def register_variations(
 @variations_router.post(
     "/variations",
     response_model_exclude_none=True,
-    summary="Retrieve a registered VRS allele",
-    description="Provide a variation definition to be normalized and searched for in AnyVar",
+    summary="Retrieve registered VRS alleles",
+    description="Provide a list of variation definition to be normalized and searched for in AnyVar",
 )
 def retrieve_variations(
     request: Request,
@@ -218,50 +225,6 @@ def retrieve_variations(
         responses.append(response)
 
     return responses
-
-
-@variations_router.get(
-    "/variations/run/{run_id}",
-    summary="Poll for status and/or result for asynchronous variation registration",
-    description="Provide a valid run id to get the status and/or result of an asynchronous variation registration run",
-    response_model=None,
-)
-async def get_variations_run_status(
-    response: Response,
-    run_id: Annotated[
-        str, Path(description="The run id to retrieve the result or status for")
-    ],
-) -> RunStatusResponse | JSONResponse | ErrorResponse:
-    """Return the status or result of an asynchronous registration of variations."""
-    enabled = bool(
-        anyvar.anyvar.has_variations_queueing_enabled() and has_async_imports
-    )
-    if not enabled:
-        _logger.warning(
-            "Async variation registration status requested but not enabled (has_variations_queueing_enabled=%s, has_async_imports=%s)",
-            anyvar.anyvar.has_variations_queueing_enabled(),
-            has_async_imports,
-            stack_info=True,
-        )
-    error = check_async_enabled(
-        enabled,
-        response,
-        "Required modules and/or configurations for asynchronous variation registration are missing",
-    )
-    if error:
-        return error
-
-    def on_success(async_result: AsyncResult) -> JSONResponse:
-        result_data = async_result.result
-        return JSONResponse(content=result_data, status_code=status.HTTP_200_OK)
-
-    return await resolve_async_task_status(
-        run_id,
-        response,
-        on_success=on_success,
-        failure_status_env_var="ANYVAR_VARIATIONS_ASYNC_FAILURE_STATUS_CODE",
-        status_path_prefix="/variations",
-    )
 
 
 @variations_router.get(
@@ -320,3 +283,268 @@ def search_variations(
         ) from e
 
     return SearchResponse(variations=page.items, next_cursor=page.next_cursor)
+
+
+@variations_router.get(
+    "/variations/{vrs_id}",
+    response_model_exclude_none=True,
+    operation_id="getVariation",
+    summary="Retrieve a VRS variation by ID",
+    description="Gets a VRS variation by ID",
+)
+def get_object_by_id(
+    request: Request,
+    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for object")],
+) -> GetVariationResponse:
+    """Get registered VRS object given its VRS ID."""
+    av: AnyVar = request.app.state.anyvar
+    vrs_object: objects.SupportedVrsObject = get_vrs_object(av, vrs_id)
+    return GetVariationResponse(messages=[], data=vrs_object)
+
+
+@variations_router.delete(
+    "/variations/{vrs_id}",
+    response_model_exclude_none=True,
+    operation_id="deleteObject",
+    summary="Delete a VRS variation and any associated mappings and extensions",
+    description="Attempt deletion of a VRS variation by its ID. Mappings and Extensions that reference this object will also be deleted.",
+)
+def delete_object_by_id(
+    request: Request,
+    vrs_id: Annotated[StrictStr, Path(..., description="ID of object to delete")],
+) -> None:
+    """Delete a VRS object."""
+    av: AnyVar = request.app.state.anyvar
+    try:
+        av.delete_object(vrs_id)
+    except ObjectNotFoundError as e:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND) from e
+
+
+@variations_router.post(
+    "/variations/{vrs_id}/extensions",
+    response_model_exclude_none=True,
+    summary="Add an extension to a VRS Object",
+    description="Provide an extension to associate with a VRS object. The object MUST already be registered with AnyVar.",
+)
+def add_object_extension(
+    request: Request,
+    vrs_id: Annotated[
+        StrictStr, Path(..., description="VRS ID of variation to annotate")
+    ],
+    extension_request: Annotated[
+        AddExtensionRequest,
+        Body(
+            description="Extension to associate with the variation",
+            examples=[{"name": "source_dataset", "value": "gnomAD_v4.1"}],
+        ),
+    ],
+) -> AddExtensionResponse:
+    """Store an extension for a VRS Object."""
+    av: AnyVar = request.app.state.anyvar
+    vrs_object: objects.SupportedVrsObject = get_vrs_object(av, vrs_id)
+
+    extension_id: int | None = None
+    try:
+        extension = metadata.Extension(
+            object_id=vrs_object.id,  # pyright: ignore[reportArgumentType] - VRS Objects from the DB will never NOT have an ID
+            name=extension_request.name,
+            value=extension_request.value,
+        )
+        extension_id = av.put_extension(extension)
+    except ValueError as e:
+        _logger.exception(
+            "Failed to add Extension `%s` on VRS Object `%s`",
+            extension_request,
+            vrs_id,
+        )
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail=f"Failed to add extension: {extension_request}",
+        ) from e
+
+    return AddExtensionResponse(
+        object=vrs_object,
+        object_id=vrs_id,
+        extension_name=extension_request.name,
+        extension_value=extension_request.value,
+        extension_id=extension_id,
+    )
+
+
+@variations_router.get(
+    "/variations/{vrs_id}/extensions/{extension_name}",
+    response_model_exclude_none=True,
+    summary="Retrieve extensions for a VRS Object",
+    description="Retrieve extensions for a VRS Object by VRS ID and extension type",
+)
+def get_object_extensions(
+    request: Request,
+    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for VRS Object")],
+    extension_name: Annotated[StrictStr, Path(..., description="Extension name")],
+) -> GetExtensionResponse:
+    """Retrieve extensions for a VRS Object."""
+    av: AnyVar = request.app.state.anyvar
+    try:
+        extensions = av.get_object_extensions(vrs_id, extension_name)
+    except ObjectNotFoundError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"VRS Object {vrs_id} not found",
+        ) from e
+    return GetExtensionResponse(extensions=extensions)
+
+
+@variations_router.delete(
+    "/variations/{vrs_id}/extensions/{extension_name}",
+    response_model_exclude_none=True,
+    summary="Delete extensions for a VRS object.",
+    description="Delete all extensions under a given extension name for a VRS object. Returns idempotently regardless of whether there were extensions under that name for the object. Return 404 NOT FOUND if no known object matches given object ID.",
+    status_code=HTTPStatus.NO_CONTENT,
+)
+def delete_object_extensions(
+    request: Request,
+    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for VRS Object")],
+    extension_name: Annotated[StrictStr, Path(..., description="Extension name")],
+) -> Response:
+    """Delete extensions associated with a VRS object."""
+    av: AnyVar = request.app.state.anyvar
+    try:
+        av.delete_object_extensions(vrs_id, extension_name)
+    except ObjectNotFoundError as e:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail=f"Object `{vrs_id}` not found"
+        ) from e
+    return Response(status_code=HTTPStatus.NO_CONTENT)  # blank response if successful
+
+
+@variations_router.put(
+    "/variations/{vrs_id}/mappings",
+    response_model_exclude_none=True,
+    summary="Add mapping to a VRS Object",
+    description="Provide a mapping to associate with a VRS object. The source and dest objects must be registered with AnyVar before adding mappings.",
+)
+def add_object_mapping(
+    request: Request,
+    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID")],
+    mapping_request: Annotated[
+        AddMappingRequest, Body(description="Mapping to associate with the VRS Object")
+    ],
+) -> AddMappingResponse:
+    """Store a mapping for a VRS Object"""
+    av: AnyVar = request.app.state.anyvar
+    source_vrs_obj: objects.SupportedVrsObject = get_vrs_object(av, vrs_id)
+    dest_vrs_id = mapping_request.dest_id
+    dest_vrs_obj: objects.SupportedVrsObject = get_vrs_object(av, dest_vrs_id)
+
+    # Add the mapping to the database
+    mapping: metadata.VariationMapping | None = None
+    mapping_type = mapping_request.mapping_type
+    try:
+        mapping = metadata.VariationMapping(
+            source_id=vrs_id, dest_id=dest_vrs_id, mapping_type=mapping_type
+        )
+        av.put_mapping(mapping)
+    except ValueError as e:
+        _logger.exception(
+            "Failed to add mapping `%s` on variation `%s`",
+            mapping_request,
+            vrs_id,
+        )
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            detail=f"Failed to add mapping: {mapping_request}. {e}",
+        ) from e
+
+    return AddMappingResponse(
+        source_object=source_vrs_obj,
+        source_object_id=vrs_id,
+        dest_object=dest_vrs_obj,
+        dest_object_id=dest_vrs_id,
+        mapping_type=mapping_type,
+    )
+
+
+_get_mappings_description = """Retrieve mappings associated with a VRS object.
+
+Mappings are *directed*; if `as_source=true`, then retrieve mappings where the VRS object is the mapping *source*, i.e. where the mapping points from the object to another. Otherwise, get mappings where another object points to the VRS object.
+
+By default, retrieve mappings of any type. Use the `mapping_type` argument to specify a specific type.
+"""
+
+
+@variations_router.get(
+    "/variations/{vrs_id}/mappings",
+    response_model_exclude_none=True,
+    summary="Retrieve mappings for a VRS Object",
+    description=_get_mappings_description,
+)
+def get_object_mapping(
+    request: Request,
+    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
+    mapping_type: Annotated[
+        metadata.VariationMappingType | None, Query(..., description="Mapping type")
+    ] = None,
+    as_source: Annotated[
+        bool,
+        Query(
+            ...,
+            description="If `true`, get mappings where `vrs_id` corresponds to the mapping source; otherwise, get mappings where `vrs_id` is the mapping destination",
+        ),
+    ] = True,
+) -> GetMappingResponse:
+    """Retrieve mappings for a VRS Object."""
+    av: AnyVar = request.app.state.anyvar
+    try:
+        mappings = av.get_object_mappings(vrs_id, mapping_type, as_source)
+    except ObjectNotFoundError as e:
+        raise HTTPException(
+            HTTPStatus.NOT_FOUND,
+            detail=f"VRS Object {vrs_id} not found",
+        ) from e
+
+    return GetMappingResponse(mappings=mappings)
+
+
+@variations_router.get(
+    "/variations/run/{run_id}",
+    summary="Poll for status and/or result for asynchronous variation registration",
+    description="Provide a valid run id to get the status and/or result of an asynchronous variation registration run",
+    response_model=None,
+)
+async def get_variations_run_status(
+    response: Response,
+    run_id: Annotated[
+        str, Path(description="The run id to retrieve the result or status for")
+    ],
+) -> RunStatusResponse | JSONResponse | ErrorResponse:
+    """Return the status or result of an asynchronous registration of variations."""
+    enabled = bool(
+        anyvar.anyvar.has_variations_queueing_enabled() and has_async_imports
+    )
+    if not enabled:
+        _logger.warning(
+            "Async variation registration status requested but not enabled (has_variations_queueing_enabled=%s, has_async_imports=%s)",
+            anyvar.anyvar.has_variations_queueing_enabled(),
+            has_async_imports,
+            stack_info=True,
+        )
+    error = check_async_enabled(
+        enabled,
+        response,
+        "Required modules and/or configurations for asynchronous variation registration are missing",
+    )
+    if error:
+        return error
+
+    def on_success(async_result: AsyncResult) -> JSONResponse:
+        result_data = async_result.result
+        return JSONResponse(content=result_data, status_code=status.HTTP_200_OK)
+
+    return await resolve_async_task_status(
+        run_id,
+        response,
+        on_success=on_success,
+        failure_status_env_var="ANYVAR_VARIATIONS_ASYNC_FAILURE_STATUS_CODE",
+        status_path_prefix="/variations",
+    )
