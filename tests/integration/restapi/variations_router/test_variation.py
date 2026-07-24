@@ -121,7 +121,7 @@ def test_put_variations(restapi_client: TestClient, alleles: dict):
 
 def test_put_vrs_variation_allele(restapi_client: TestClient, alleles: dict):
     for allele_id, allele_fixture in alleles.items():
-        resp = restapi_client.put("/vrs_variation", json=allele_fixture["variation"])
+        resp = restapi_client.put("/variation", json=allele_fixture["variation"])
         assert resp.status_code == HTTPStatus.OK
         assert resp.json()["object_id"] == allele_id
 
@@ -168,18 +168,18 @@ def test_post_variation_invalid_request(
 
 def test_simple_delete_object(restapi_client: TestClient, alleles: dict):
     for allele_fixture in alleles.values():
-        restapi_client.put("/vrs_variation", json=allele_fixture["variation"])
+        restapi_client.put("/variation", json=allele_fixture["variation"])
     for allele_id in alleles:
-        restapi_client.delete(f"/objects/{allele_id}")
+        restapi_client.delete(f"/variation/{allele_id}")
 
 
 def test_delete_object_and_mappings(restapi_client: TestClient, alleles: dict):
     allele_id = "ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb"
     allele = alleles[allele_id]["variation"]
-    response = restapi_client.put("/vrs_variation", json=allele)
+    response = restapi_client.put("/variation", json=allele)
     response.raise_for_status()
     response = restapi_client.post(
-        f"/object/{allele_id}/extensions",
+        f"/variations/{allele_id}/extensions",
         json={
             "name": "clinvar_somatic_classification",
             "value": "Oncogenic",
@@ -188,16 +188,16 @@ def test_delete_object_and_mappings(restapi_client: TestClient, alleles: dict):
     response.raise_for_status()
 
     # attempt deletion
-    response = restapi_client.delete(f"/object/{allele_id}")
+    response = restapi_client.delete(f"/variations/{allele_id}")
     response.raise_for_status()
 
     # check that everything's gone
-    response = restapi_client.get(f"/object/{allele_id}")
+    response = restapi_client.get(f"/variations/{allele_id}")
     assert response.status_code == HTTPStatus.NOT_FOUND
     for request_path in (
-        f"/object/{allele_id}/mappings?mapping_type=liftover_to&as_source=true",
-        f"/object/{allele_id}/mappings?mapping_type=liftover_to&as_source=false",
-        f"/object/{allele_id}/extensions/clinvar_somatic_classification",
+        f"/variations/{allele_id}/mappings?mapping_type=liftover_to&as_source=true",
+        f"/variations/{allele_id}/mappings?mapping_type=liftover_to&as_source=false",
+        f"/variations/{allele_id}/extensions/clinvar_somatic_classification",
     ):
         response = restapi_client.get(request_path)
         assert response.json() == {

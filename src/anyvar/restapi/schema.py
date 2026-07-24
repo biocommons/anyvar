@@ -247,7 +247,7 @@ class GetMappingResponse(BaseModel):
 
 
 class RegisterVariationResponse(BaseModel):
-    """Describe response for the PUT /variation, PUT /variations, and PUT /vrs_variation endpoints"""
+    """Describe response for the PUT /variation, PUT /variations endpoints"""
 
     model_config = ConfigDict(
         json_schema_extra={
