@@ -39,6 +39,7 @@ if has_async_imports:
     from anyvar.restapi.async_utils import resolve_async_task_status
 
 _logger = logging.getLogger(__name__)
+uvicorn_logger = logging.getLogger("uvicorn.error")
 
 variations_router = APIRouter()
 
@@ -226,7 +227,7 @@ async def get_variations_run_status(
 
 
 @variations_router.post(
-    "/variation",
+    "/variations",
     response_model_exclude_none=True,
     summary="Retrieve a registered VRS allele",
     description="Provide a variation definition to be normalized and searched for in AnyVar",
@@ -236,7 +237,7 @@ def retrieve_variations(
     variations: Annotated[list[VariationRequest], _variations_request_body],
 ) -> list[
     RegisterVariationResponse
-]:  # TODO: This isn't registering, so it shouldn't return a registration response. Rename this??
+]:  # TODO: This isn't registering, so it shouldn't return a "registration" response. Rename this??
     """Search for registered variation"""
     av: AnyVar = request.app.state.anyvar
     responses: list[RegisterVariationResponse] = []
@@ -254,6 +255,8 @@ def retrieve_variations(
                 )  # raise NOT_FOUND for vrs_id not present in DB
             except:  # noqa: E722 - TODO: No bare except
                 response.messages = ["Variant not found"]
+            response.object = translation_result.variation
+            response.object_id = translation_result.variation.id
         else:
             response.messages = ["Unable to normalize variant"]
         responses.append(response)

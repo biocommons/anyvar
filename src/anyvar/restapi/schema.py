@@ -188,7 +188,7 @@ class VariationRequest(BaseModel):
 
     model_config = ConfigDict(use_enum_values=True)
 
-    definition: StrictStr | dict[str, str | int]
+    definition: StrictStr | dict[str, Any]
     input_type: SupportedVariationType | None = None
     assembly_name: ReferenceAssembly | None = ReferenceAssembly.GRCH38
 
