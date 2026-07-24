@@ -11,6 +11,7 @@ from pydantic import JsonValue
 
 from anyvar.core import metadata
 from anyvar.core import objects as anyvar_objects
+from anyvar.core.categorical_variants import CanonicalAllele, ProteinSequenceConsequence
 
 
 class StorageError(Exception):
@@ -257,4 +258,46 @@ class Storage(ABC):
         :param cursor: Opaque key indicating start location for query in pagination
         :return: Results page including variants and a cursor for next result page, if available
         :raise InvalidSearchParamsError: if above search param requirements are violated
+        """
+
+    @abstractmethod
+    def add_ca_catvar(self, ca: CanonicalAllele) -> None:
+        """Add a Canonical Allele Categorical Variant
+
+        This method **is not** responsible for validating that the provided catvar meets
+        data requirements to be considered a Canonical Allele instance;
+        passing an object without prior validation may raise unexpected errors
+
+        :param ca: canonical allele catvar
+        """
+
+    @abstractmethod
+    def get_ca_catvar(self, ca_id: str) -> CanonicalAllele | None:
+        """Fetch a Canonical Allele categorical variant by ID
+
+        Performs exact match -- case sensitive
+
+        :param ca_id: requested object ID
+        :return: matching canonical allele, if found
+        """
+
+    @abstractmethod
+    def add_psq_catvar(self, psq: ProteinSequenceConsequence) -> None:
+        """Add a Protein Sequence Consequence Categorical Variant
+
+        This method **is not** responsible for validating that the provided catvar meets
+        data requirements to be considered a Protein Sequence Consequence instance;
+        passing an object without prior validation may raise unexpected errors
+
+        :param psq: protein sequence consequence catvar
+        """
+
+    @abstractmethod
+    def get_psq_catvar(self, psq_id: str) -> ProteinSequenceConsequence | None:
+        """Fetch a Protein Sequence Consequence categorical variant by ID
+
+        Performs exact match -- case sensitive
+
+        :param psq_id: requested object ID
+        :return: matching canonical allele, if found
         """

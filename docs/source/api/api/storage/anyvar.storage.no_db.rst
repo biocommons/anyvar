@@ -1,4 +1,4 @@
-﻿anyvar.storage.no_db
+anyvar.storage.no_db
 ====================
 
 .. automodule:: anyvar.storage.no_db

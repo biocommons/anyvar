@@ -1,4 +1,4 @@
-﻿anyvar.core.metadata
+anyvar.core.metadata
 ====================
 
 .. automodule:: anyvar.core.metadata

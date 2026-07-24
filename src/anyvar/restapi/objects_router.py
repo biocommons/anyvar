@@ -77,7 +77,7 @@ def add_object_extension(
         AddExtensionRequest,
         Body(
             description="Extension to associate with the variation",
-            example={"name": "source_dataset", "value": "gnomAD_v4.1"},
+            examples=[{"name": "source_dataset", "value": "gnomAD_v4.1"}],
         ),
     ],
 ) -> AddExtensionResponse:
@@ -215,7 +215,7 @@ By default, retrieve mappings of any type. Use the `mapping_type` argument to sp
 
 
 @objects_router.get(
-    "/object/{vrs_id}/mappings/{mapping_type}",
+    "/object/{vrs_id}/mappings",
     response_model_exclude_none=True,
     summary="Retrieve mappings for a VRS Object",
     description=_get_mappings_description,
@@ -224,8 +224,8 @@ def get_object_mapping(
     request: Request,
     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
     mapping_type: Annotated[
-        metadata.VariationMappingType, Path(..., description="Mapping type")
-    ],
+        metadata.VariationMappingType | None, Query(..., description="Mapping type")
+    ] = None,
     as_source: Annotated[
         bool,
         Query(

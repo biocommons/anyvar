@@ -1,4 +1,4 @@
-﻿anyvar.anyvar
+anyvar.anyvar
 =============
 
 .. automodule:: anyvar.anyvar

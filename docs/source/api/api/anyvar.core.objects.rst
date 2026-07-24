@@ -1,4 +1,4 @@
-﻿anyvar.core.objects
+anyvar.core.objects
 ===================
 
 .. automodule:: anyvar.core.objects

@@ -4,7 +4,6 @@ Configuration
 This section details AnyVar configuration. It is broken down into the following subsections:
 
 * :doc:`Object Storage <storage>`: define database connection, alter table names, and set parameters for bulk processing
-* :doc:`Snowflake Storage <snowflake>`: configure AnyVar to use Snowflake as the object storage backend
 * :doc:`Asynchronous Processing <async>`: set parameters for Celery-based queued task processing
 * :doc:`Authentication <authentication>`: configure bearer token authentication for REST API endpoints
 * :doc:`Logging <logging>`: configure application logging
@@ -17,7 +16,6 @@ This section details AnyVar configuration. It is broken down into the following 
    :hidden:
 
    Storage<storage>
-   Snowflake Storage<snowflake>
    Asynchronous Processing<async>
    Authentication<authentication>
    Logging<logging>

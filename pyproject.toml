@@ -21,8 +21,8 @@ dependencies = [
     "python-multipart",  # required for fastapi file uploads
     "uvicorn",
     "ga4gh.vrs[extras]>=2.3.3,<3.0",
+    "ga4gh.cat_vrs>=0.7.1",
     "sqlalchemy~=2.0.0",
-    "snowflake-sqlalchemy~=1.8.2",
     "pyyaml",
     "agct >= 0.2.0rc1",
     "pysam",
@@ -30,11 +30,14 @@ dependencies = [
     "anyio",
     "bioutils",
     "biocommons.seqrepo",
+    "pyjwt[crypto]",
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
+duckdb = ["duckdb-engine"]
 postgres = ["psycopg[binary]"]
+projection = ["cool-seq-tool~=0.17.0"]
 queueing = [
     "celery[redis]~=5.5.0",
     "aiofiles",
@@ -48,11 +51,11 @@ test = [
     "celery[pytest]",
     "jsonschema",
     "pyyaml",
+    "cool-seq-tool~=0.17.0",
 ]
 dev = [
     "ruff==0.12.8",
-    "pre-commit>=4.2.0",
-    "ipykernel",
+    "prek>=0.2.23",
 ]
 docs = [
     "sphinx==8.2.3",
@@ -91,7 +94,7 @@ pythonpath = ["src"]
 markers = [
     "ci_ok: tests safe to run in CI",
     "postgresql: tests safe to run when test db is Postgres",
-    "snowflake: tests safe to run when test db is Snowflake",
+    "duckdb: tests safe to run when test db is duckdb"
 ]
 
 [tool.coverage.run]

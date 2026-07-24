@@ -1,4 +1,4 @@
-﻿anyvar.storage.mapper_registry
+anyvar.storage.mapper_registry
 ==============================
 
 .. automodule:: anyvar.storage.mapper_registry

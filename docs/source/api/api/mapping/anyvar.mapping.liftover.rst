@@ -1,4 +1,4 @@
-﻿anyvar.mapping.liftover
+anyvar.mapping.liftover
 =======================
 
 .. automodule:: anyvar.mapping.liftover

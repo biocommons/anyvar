@@ -66,10 +66,70 @@ The ``/search`` endpoint enables retrieval of all variants that overlap a provid
      'end': 87894077},
     'state': {'type': 'LiteralSequenceExpression', 'sequence': 'T'}}
 
+Bulk Variant Registration
+=========================
+
+The ``/variations`` endpoint accepts a list of variation definitions for bulk registration. Each input produces a corresponding result in the response, in the same order. Variations that fail translation are not registered and return ``null`` for the ``object`` and ``object_id`` fields.
+
+.. code-block:: pycon
+
+   >>> payload = [
+   ...     {"definition": "NC_000010.11:g.87894077C>T"},
+   ...     {"definition": "NC_000007.14:g.140753336A>T"},
+   ... ]
+   >>> response = requests.put("http://localhost:8000/variations", json=payload)
+   >>> response.status_code
+   200
+   >>> len(response.json())
+   2
+   >>> response.json()[0]["object_id"]
+   'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU'
+
+Asynchronous Bulk Registration
+------------------------------
+
+For larger batches of variations, the ``/variations`` endpoint supports the same `asynchronous request-response pattern <https://learn.microsoft.com/en-us/azure/architecture/patterns/async-request-reply>`_ used by the ``/vcf`` endpoint (see :ref:`async configuration <async_work_dir_config>`). Set the ``run_async`` query parameter to ``true`` to submit the job asynchronously. The server returns a ``202 Accepted`` response containing a ``run_id``, which can be used to poll for the result at ``GET /variations/{run_id}``.
+
+.. code-block:: pycon
+
+   >>> payload = [{"definition": f"NC_000010.11:g.{pos}C>T"} for pos in range(87894070, 87894080)]
+   >>> response = requests.put("http://localhost:8000/variations?run_async=true", json=payload)
+   >>> response.status_code
+   202
+   >>> run_id = response.json()["run_id"]
+   >>> print(response.json()["status_message"])
+   'Run submitted. Check status at /variations/<run_id>'
+   >>> # poll for status
+   >>> status_response = requests.get(f"http://localhost:8000/variations/{run_id}")
+   >>> status_response.status_code  # 202 while in progress, 200 when complete
+   202
+   >>> # keep requesting until 200 OK
+   >>> status_response = requests.get(f"http://localhost:8000/variations/{run_id}")
+   >>> status_response.status_code
+   200
+   >>> # the response body is the list of registration results
+   >>> len(status_response.json())
+   10
+
+An optional ``run_id`` query parameter can be supplied to use a specific identifier for the run instead of a randomly generated UUID:
+
+.. code-block:: pycon
+
+   >>> response = requests.put(
+   ...     "http://localhost:8000/variations?run_async=true&run_id=my-custom-run-id",
+   ...     json=payload,
+   ... )
+   >>> response.json()["run_id"]
+   'my-custom-run-id'
+
+.. note::
+
+   Asynchronous variation registration requires Celery and a message broker (e.g. Redis). The ``CELERY_BROKER_URL`` environment variable must be set. See :ref:`async configuration <async_work_dir_config>` for details.
+
 Working With Mappings
 =====================
 
-To add a :ref:`mapping <mappings>` between previously-registered variation objects issue a ``PUT`` request to ``/variations/<vrs_id>/mappings``, where ``vrs_id`` is the ``source_id`` of the mapping object:
+To add a :ref:`mapping <mappings>` between previously-registered variation objects issue a ``PUT`` request to ``/object/<vrs_id>/mappings``, where ``vrs_id`` is the ``source_id`` of the mapping object:
 
 .. code-block:: pycon
 
@@ -85,12 +145,12 @@ To add a :ref:`mapping <mappings>` between previously-registered variation objec
    ...     json=payload
    ... )
 
-Mappings from an object can be retrieved via ``GET /variations/<vrs_id>/mappings/<mapping_type>``:
+Mappings from an object can be retrieved via ``GET /object/<vrs_id>/mappings?mapping_type=<mapping_type>``:
 
 .. code-block:: pycon
 
    >>> response = requests.get(
-   ...     f"http://localhost:8000/object/{genomic_id}/mappings/transcribe_to"
+   ...     f"http://localhost:8000/object/{genomic_id}/mappings?mapping_type=transcribe_to"
    ... )
    >>> response.json()
    {'mappings': [{'source_id': 'ga4gh:VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe',
@@ -106,7 +166,7 @@ By default, when a GRCh37 or GRCh38 variant is registered, the lifted-over equiv
    >>> response = requests.put("http://localhost:8000/variation", json=payload)
    >>> registered_allele_id = response.json()["object_id"]
    >>> response = requests.get(
-   ...     f"http://localhost:8000/object/{registered_allele_id}/mappings/liftover_to"
+   ...     f"http://localhost:8000/object/{registered_allele_id}/mappings?mapping_type=liftover_to"
    ... )
    >>> response.json()
    {'mappings': [{'source_id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU',
@@ -165,7 +225,7 @@ Files submitted to the ``/vcf`` endpoint will be parsed for variants, which will
    >>> "VRS_Allele_IDs" in response.text
    True
 
-For larger files, a nontrivial amount of processing time may be required before the annotated file is ready to return. Users are advised to use the ``run_async`` parameter, which employs an `asynchronous request-response pattern <https://learn.microsoft.com/en-us/azure/architecture/patterns/async-request-reply>`_ to support multiple long-running tasks. In this model, when run requests are submitted, a run ID is returned. This ID can then be used to poll the server for the status of the task, responding with ``202 ACCEPTED`` if the task was submitted successfully, but is still in progress, and then returning the annotated file when it's ready.
+For larger files, a nontrivial amount of processing time may be required before the annotated file is ready to return. Users are advised to use the ``run_async`` parameter, which employs an `asynchronous request-response pattern <https://learn.microsoft.com/en-us/azure/architecture/patterns/async-request-reply>`_ to support multiple long-running tasks. The ``/variations`` endpoint supports the same pattern for bulk variant registration (see `Asynchronous Bulk Registration`_). In this model, when run requests are submitted, a run ID is returned. This ID can then be used to poll the server for the status of the task, responding with ``202 ACCEPTED`` if the task was submitted successfully, but is still in progress, and then returning the annotated file when it's ready.
 
 .. code-block:: pycon
 

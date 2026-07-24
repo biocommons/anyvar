@@ -5,11 +5,14 @@ from typing import TypeVar
 from ga4gh.vrs import models as vrs_models
 
 from anyvar.core import metadata
+from anyvar.core.categorical_variants import CanonicalAllele, ProteinSequenceConsequence
 from anyvar.storage import orm
 from anyvar.storage.mappers import (
     AlleleMapper,
     BaseMapper,
+    CanonicalAlleleMapper,
     ExtensionMapper,
+    ProteinSequenceConsequenceMapper,
     SequenceLocationMapper,
     SequenceReferenceMapper,
     VariationMappingMapper,
@@ -29,6 +32,8 @@ class MapperRegistry:
             vrs_models.SequenceReference: orm.SequenceReference,
             metadata.VariationMapping: orm.VariationMapping,
             metadata.Extension: orm.Extension,
+            ProteinSequenceConsequence: orm.ProteinSequenceConsequence,
+            CanonicalAllele: orm.CanonicalAllele,
         }
 
         self._mappers: dict[type, BaseMapper] = {
@@ -37,6 +42,8 @@ class MapperRegistry:
             orm.SequenceReference: SequenceReferenceMapper(),
             orm.VariationMapping: VariationMappingMapper(),
             orm.Extension: ExtensionMapper(),
+            orm.ProteinSequenceConsequence: ProteinSequenceConsequenceMapper(),
+            orm.CanonicalAllele: CanonicalAlleleMapper(),
         }
 
     def get_mapper(self, entity_type: type[T]) -> BaseMapper:

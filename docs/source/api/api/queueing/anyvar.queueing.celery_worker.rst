@@ -1,4 +1,4 @@
-﻿anyvar.queueing.celery_worker
+anyvar.queueing.celery_worker
 =============================
 
 .. automodule:: anyvar.queueing.celery_worker

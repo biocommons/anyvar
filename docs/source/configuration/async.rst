@@ -3,14 +3,14 @@ Asynchronous Processing Configuration
 
 .. _async_work_dir_config:
 
-Required: Work Directory Path
-=============================
+Required: Work Directory Path (VCF)
+===================================
 
-Designate the directory where AnyVar shares files for asynchronous data processing with ``ANYVAR_VCF_ASYNC_WORK_DIR``. This path **must refer to a shared filesystem** that is accessible to both the web API processes (which write the VCF data) and the Celery worker processes (which read and process it). It is the deployer’s responsibility to provision and mount this shared storage (e.g., via a persistent volume, NFS mount, or network filesystem) into all participating containers.
+Designate the directory where AnyVar shares files for asynchronous VCF data processing with ``ANYVAR_VCF_ASYNC_WORK_DIR``. This path **must refer to a shared filesystem** that is accessible to both the web API processes (which write the VCF data) and the Celery worker processes (which read and process it). It is the deployer’s responsibility to provision and mount this shared storage (e.g., via a persistent volume, NFS mount, or network filesystem) into all participating containers.
 
 .. important::
 
-    This value *must* be set for asynchronous processing to function. Note that it also must be set for both central AnyVar processes as well as workers.
+    This value *must* be set for asynchronous VCF processing to function. Note that it also must be set for both central AnyVar processes as well as workers.
 
 .. list-table::
    :widths: 30 70
@@ -20,6 +20,10 @@ Designate the directory where AnyVar shares files for asynchronous data processi
      - Default Value
    * - ``ANYVAR_VCF_ASYNC_WORK_DIR``
      - n/a
+
+.. note::
+
+   Asynchronous variation registration (via ``PUT /variations?run_async=true``) requires only the Celery broker/backend configuration described below; it does not require ``ANYVAR_VCF_ASYNC_WORK_DIR``.
 
 .. _async_broker_config:
 
@@ -97,3 +101,22 @@ These settings apply specifically to :ref:`VCF processing <vcf_ingest>` and exte
 
 * ``ANYVAR_VCF_ASYNC_WORK_DIR`` specifies the root directory used by the API server and Celery workers to exchange intermediate files.
 * ``ANYVAR_VCF_ASYNC_FAILURE_STATUS_CODE`` sets the HTTP status code returned by the run-status endpoint when an internal error occurs.
+
+Variation Registration Settings
+===============================
+
+These settings apply to asynchronous variation registration via ``PUT /variations?run_async=true``.
+
+.. list-table::
+   :widths: 30 70
+   :header-rows: 1
+
+   * - Environment Variable
+     - Default Value
+   * - ``ANYVAR_VARIATIONS_ASYNC_FAILURE_STATUS_CODE``
+     - ``500``
+   * - ``ANYVAR_EXPECTED_VARIATIONS_PER_SECOND``
+     - ``100``
+
+* ``ANYVAR_VARIATIONS_ASYNC_FAILURE_STATUS_CODE`` sets the HTTP status code returned by ``GET /variations/{run_id}`` when an internal error occurs during asynchronous variation registration.
+* ``ANYVAR_EXPECTED_VARIATIONS_PER_SECOND`` is used to estimate the ``Retry-After`` header value in the ``202 Accepted`` response. Higher values result in shorter suggested polling intervals.

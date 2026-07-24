@@ -1,4 +1,4 @@
-﻿anyvar.storage.mappers
+anyvar.storage.mappers
 ======================
 
 .. automodule:: anyvar.storage.mappers

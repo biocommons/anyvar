@@ -1,4 +1,4 @@
-﻿anyvar.vcf.ingest
+anyvar.vcf.ingest
 =================
 
 .. automodule:: anyvar.vcf.ingest

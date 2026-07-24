@@ -1,4 +1,4 @@
-﻿anyvar.translate.base
+anyvar.translate.base
 =====================
 
 .. automodule:: anyvar.translate.base
