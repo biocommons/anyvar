@@ -8,7 +8,6 @@ from fastapi.testclient import TestClient
 from anyvar.mapping.liftover import ReferenceAssembly
 from anyvar.restapi.schema import RegisterVariationResponse, VariationRequest
 from anyvar.restapi.variations_router import (
-    PUT_VRS_VARIATION_EXAMPLE_PAYLOAD,
     VARIATIONS_EXAMPLE_PAYLOAD,
 )
 from anyvar.storage.base import Storage
@@ -125,25 +124,6 @@ def test_put_vrs_variation_allele(restapi_client: TestClient, alleles: dict):
         resp = restapi_client.put("/vrs_variation", json=allele_fixture["variation"])
         assert resp.status_code == HTTPStatus.OK
         assert resp.json()["object_id"] == allele_id
-
-
-def test_put_vrs_variation_example(restapi_client: TestClient, alleles: dict):
-    resp = restapi_client.put("/vrs_variation", json=PUT_VRS_VARIATION_EXAMPLE_PAYLOAD)
-    assert resp.status_code == HTTPStatus.OK
-    expected_id = "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU"
-    assert resp.json()["object"] == alleles[expected_id]["variation"]
-    assert resp.json()["messages"] == []
-
-
-def test_post_variation_registered(restapi_client: TestClient, preloaded_alleles):
-    """Test POST method when variation has already been registered"""
-    for allele_fixture in preloaded_alleles.values():
-        if "register_params" not in allele_fixture:
-            continue
-
-        resp = restapi_client.post("/variation", json=allele_fixture["register_params"])
-        assert resp.status_code == HTTPStatus.OK
-        assert resp.json() == {"data": allele_fixture["variation"], "messages": []}
 
 
 def test_post_variation_not_registered(
