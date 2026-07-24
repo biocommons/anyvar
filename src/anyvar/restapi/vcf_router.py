@@ -531,7 +531,7 @@ async def annotated_vcf(
 
 
 @vcf_router.get(
-    "/vcf/{run_id}",
+    "/vcf/run/{run_id}",
     summary="Poll for status and/or result for asynchronous VCF ingestion",
     description="Provide a valid run id to get the status and/or result of a VCF ingestion run",
     response_model=None,
