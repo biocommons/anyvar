@@ -182,6 +182,44 @@ async def register_variations(
     return _register_variations(av, variations)
 
 
+@variations_router.post(
+    "/variations",
+    response_model_exclude_none=True,
+    summary="Retrieve a registered VRS allele",
+    description="Provide a variation definition to be normalized and searched for in AnyVar",
+)
+def retrieve_variations(
+    request: Request,
+    variations: Annotated[list[VariationRequest], _variations_request_body],
+) -> list[
+    RegisterVariationResponse
+]:  # TODO: This isn't registering, so it shouldn't return a "registration" response. Rename this??
+    """Search for registered variation"""
+    av: AnyVar = request.app.state.anyvar
+    responses: list[RegisterVariationResponse] = []
+
+    for variation_request in variations:
+        response = RegisterVariationResponse(input_variation=variation_request)
+        translation_result: TranslationResult = translate_variation(
+            tlr=av.translator, variation_request=variation_request
+        )
+        if translation_result.variation:
+            vrs_id: str = translation_result.variation.id  # type: ignore
+            try:
+                _ = get_vrs_object(
+                    av=av, vrs_object_id=vrs_id
+                )  # raise NOT_FOUND for vrs_id not present in DB
+            except:  # noqa: E722 - TODO: No bare except
+                response.messages = ["Variant not found"]
+            response.object = translation_result.variation
+            response.object_id = translation_result.variation.id
+        else:
+            response.messages = ["Unable to normalize variant"]
+        responses.append(response)
+
+    return responses
+
+
 @variations_router.get(
     "/variations/run/{run_id}",
     summary="Poll for status and/or result for asynchronous variation registration",
@@ -224,44 +262,6 @@ async def get_variations_run_status(
         failure_status_env_var="ANYVAR_VARIATIONS_ASYNC_FAILURE_STATUS_CODE",
         status_path_prefix="/variations",
     )
-
-
-@variations_router.post(
-    "/variations",
-    response_model_exclude_none=True,
-    summary="Retrieve a registered VRS allele",
-    description="Provide a variation definition to be normalized and searched for in AnyVar",
-)
-def retrieve_variations(
-    request: Request,
-    variations: Annotated[list[VariationRequest], _variations_request_body],
-) -> list[
-    RegisterVariationResponse
-]:  # TODO: This isn't registering, so it shouldn't return a "registration" response. Rename this??
-    """Search for registered variation"""
-    av: AnyVar = request.app.state.anyvar
-    responses: list[RegisterVariationResponse] = []
-
-    for variation_request in variations:
-        response = RegisterVariationResponse(input_variation=variation_request)
-        translation_result: TranslationResult = translate_variation(
-            tlr=av.translator, variation_request=variation_request
-        )
-        if translation_result.variation:
-            vrs_id: str = translation_result.variation.id  # type: ignore
-            try:
-                _ = get_vrs_object(
-                    av=av, vrs_object_id=vrs_id
-                )  # raise NOT_FOUND for vrs_id not present in DB
-            except:  # noqa: E722 - TODO: No bare except
-                response.messages = ["Variant not found"]
-            response.object = translation_result.variation
-            response.object_id = translation_result.variation.id
-        else:
-            response.messages = ["Unable to normalize variant"]
-        responses.append(response)
-
-    return responses
 
 
 @variations_router.get(
