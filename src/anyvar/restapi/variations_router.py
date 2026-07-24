@@ -292,7 +292,7 @@ def search_variations(
     summary="Retrieve a VRS variation by ID",
     description="Gets a VRS variation by ID",
 )
-def get_object_by_id(
+def get_variation_by_id(
     request: Request,
     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for object")],
 ) -> GetVariationResponse:
@@ -309,7 +309,7 @@ def get_object_by_id(
     summary="Delete a VRS variation and any associated mappings and extensions",
     description="Attempt deletion of a VRS variation by its ID. Mappings and Extensions that reference this object will also be deleted.",
 )
-def delete_object_by_id(
+def delete_variation_by_id(
     request: Request,
     vrs_id: Annotated[StrictStr, Path(..., description="ID of object to delete")],
 ) -> None:
@@ -327,7 +327,7 @@ def delete_object_by_id(
     summary="Add an extension to a VRS Object",
     description="Provide an extension to associate with a VRS object. The object MUST already be registered with AnyVar.",
 )
-def add_object_extension(
+def add_variation_extension(
     request: Request,
     vrs_id: Annotated[
         StrictStr, Path(..., description="VRS ID of variation to annotate")
@@ -378,7 +378,7 @@ def add_object_extension(
     summary="Retrieve extensions for a VRS Object",
     description="Retrieve extensions for a VRS Object by VRS ID and extension type",
 )
-def get_object_extensions(
+def get_variation_extensions(
     request: Request,
     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for VRS Object")],
     extension_name: Annotated[StrictStr, Path(..., description="Extension name")],
@@ -402,7 +402,7 @@ def get_object_extensions(
     description="Delete all extensions under a given extension name for a VRS object. Returns idempotently regardless of whether there were extensions under that name for the object. Return 404 NOT FOUND if no known object matches given object ID.",
     status_code=HTTPStatus.NO_CONTENT,
 )
-def delete_object_extensions(
+def delete_variation_extensions(
     request: Request,
     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for VRS Object")],
     extension_name: Annotated[StrictStr, Path(..., description="Extension name")],
@@ -424,7 +424,7 @@ def delete_object_extensions(
     summary="Add mapping to a VRS Object",
     description="Provide a mapping to associate with a VRS object. The source and dest objects must be registered with AnyVar before adding mappings.",
 )
-def add_object_mapping(
+def add_variation_mapping(
     request: Request,
     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID")],
     mapping_request: Annotated[
@@ -479,7 +479,7 @@ By default, retrieve mappings of any type. Use the `mapping_type` argument to sp
     summary="Retrieve mappings for a VRS Object",
     description=_get_mappings_description,
 )
-def get_object_mapping(
+def get_variation_mapping(
     request: Request,
     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
     mapping_type: Annotated[
