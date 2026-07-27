@@ -371,7 +371,7 @@ def get_variation_extensions(
     except ObjectNotFoundError as e:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
-            detail=f"variation {vrs_id} not found",
+            detail=f"Variation {vrs_id} not found",
         ) from e
     return GetExtensionResponse(extensions=extensions)
 
@@ -394,7 +394,7 @@ def delete_variation_extensions(
         av.delete_object_extensions(vrs_id, extension_name)
     except ObjectNotFoundError as e:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail=f"Object `{vrs_id}` not found"
+            status_code=HTTPStatus.NOT_FOUND, detail=f"Variation {vrs_id} not found"
         ) from e
     return Response(status_code=HTTPStatus.NO_CONTENT)  # blank response if successful
 
@@ -481,7 +481,7 @@ def get_variation_mapping(
     except ObjectNotFoundError as e:
         raise HTTPException(
             HTTPStatus.NOT_FOUND,
-            detail=f"variation {vrs_id} not found",
+            detail=f"Variation {vrs_id} not found",
         ) from e
 
     return GetMappingResponse(mappings=mappings)
