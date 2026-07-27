@@ -303,7 +303,7 @@ UTR_PROJECTION_CASES = [
 
 def _assert_forward_mapping(restapi_client, source_id, mapping_type, dest_id):
     response = restapi_client.get(
-        f"/object/{source_id}/mappings?mapping_type={mapping_type}"
+        f"/variations/{source_id}/mappings?mapping_type={mapping_type}"
     )
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {
@@ -319,7 +319,7 @@ def _assert_forward_mapping(restapi_client, source_id, mapping_type, dest_id):
 
 def _assert_no_forward_mapping(restapi_client, source_id, mapping_type):
     response = restapi_client.get(
-        f"/object/{source_id}/mappings?mapping_type={mapping_type}"
+        f"/variations/{source_id}/mappings?mapping_type={mapping_type}"
     )
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"mappings": []}
@@ -340,18 +340,20 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
     expected_messages = projection_case["messages"]
 
     response = projected_restapi_client.put(
-        "/variation", json={"definition": projection_case["spdi"]}
+        "/variations", json=[{"definition": projection_case["spdi"]}]
     )
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {
-        "input_variation": {
-            "definition": projection_case["spdi"],
-            "assembly_name": "GRCh38",
-        },
-        "object": genomic,
-        "object_id": genomic["id"],
-        "messages": expected_messages,
-    }
+    assert response.json() == [
+        {
+            "input_variation": {
+                "definition": projection_case["spdi"],
+                "assembly_name": "GRCh38",
+            },
+            "object": genomic,
+            "object_id": genomic["id"],
+            "messages": expected_messages,
+        }
+    ]
 
     _assert_forward_mapping(
         projected_restapi_client,
@@ -360,7 +362,7 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
         transcript["id"],
     )
 
-    response = projected_restapi_client.get(f"/object/{transcript['id']}")
+    response = projected_restapi_client.get(f"/variations/{transcript['id']}")
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"data": transcript, "messages": []}
 
@@ -372,7 +374,7 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
             protein["id"],
         )
 
-        response = projected_restapi_client.get(f"/object/{protein['id']}")
+        response = projected_restapi_client.get(f"/variations/{protein['id']}")
         assert response.status_code == HTTPStatus.OK
         assert response.json() == {"data": protein, "messages": []}
     else:
@@ -383,7 +385,7 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
         )
 
     response = projected_restapi_client.post(
-        "/variation", json={"definition": projection_case["spdi"]}
+        "/variations", json={"definition": projection_case["spdi"]}
     )
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"data": genomic, "messages": []}
@@ -440,10 +442,10 @@ def test_grch37_genomic_input_projects_via_internal_liftover(
     expected_grch38_genomic_id = grch38_snp["genomic"]["id"]
 
     response = projected_restapi_client.put(
-        "/variation", json={"definition": case["grch37_spdi"]}
+        "/variations", json=[{"definition": case["grch37_spdi"]}]
     )
     assert response.status_code == HTTPStatus.OK
-    body = response.json()
+    body = response.json()[0]
     assert body["messages"] == []
 
     # The registered genomic variant is on GRCh37 -- a distinct node from the
@@ -490,22 +492,26 @@ def test_transcript_spdi_projection_persists_protein_mapping(projected_restapi_c
     protein = projection_case["protein"]
     spdi = "NM_001367561.1:4295:A:T"
 
-    response = projected_restapi_client.put("/variation", json={"definition": spdi})
+    response = projected_restapi_client.put("/variations", json=[{"definition": spdi}])
     assert response.status_code == HTTPStatus.OK
     payload = response.json()
-    assert payload == {
-        "input_variation": {
-            "definition": spdi,
-            "assembly_name": "GRCh38",
-        },
-        "object": transcript,
-        "object_id": transcript["id"],
-        "messages": [
-            "Unable to complete liftover: Could not resolve reference assembly - "
-            "accession not found in any supported assembly"
-        ],
-    }
-    assert not any(message.startswith("Projection") for message in payload["messages"])
+    assert payload == [
+        {
+            "input_variation": {
+                "definition": spdi,
+                "assembly_name": "GRCh38",
+            },
+            "object": transcript,
+            "object_id": transcript["id"],
+            "messages": [
+                "Unable to complete liftover: Could not resolve reference assembly - "
+                "accession not found in any supported assembly"
+            ],
+        }
+    ]
+    assert not any(
+        message.startswith("Projection") for message in payload[0]["messages"]
+    )
 
     _assert_forward_mapping(
         projected_restapi_client,
@@ -514,7 +520,7 @@ def test_transcript_spdi_projection_persists_protein_mapping(projected_restapi_c
         protein["id"],
     )
 
-    response = projected_restapi_client.get(f"/object/{protein['id']}")
+    response = projected_restapi_client.get(f"/variations/{protein['id']}")
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"data": protein, "messages": []}
 
@@ -527,22 +533,22 @@ def test_spdi_projection_uses_longest_compatible_transcript(
 ):
     """Register a genomic SPDI that falls back to a non-MANE compatible transcript."""
     response = projected_restapi_client.put(
-        "/variation", json={"definition": projection_case["spdi"]}
+        "/variations", json=[{"definition": projection_case["spdi"]}]
     )
     assert response.status_code == HTTPStatus.OK
     payload = response.json()
-    assert payload["messages"] == []
+    assert payload[0]["messages"] == []
 
-    genomic_id = payload["object_id"]
+    genomic_id = payload[0]["object_id"]
     mapping_response = projected_restapi_client.get(
-        f"/object/{genomic_id}/mappings?mapping_type={metadata.VariationMappingType.TRANSCRIBE_TO}"
+        f"/variations/{genomic_id}/mappings?mapping_type={metadata.VariationMappingType.TRANSCRIBE_TO}"
     )
     assert mapping_response.status_code == HTTPStatus.OK
     transcript_mappings = mapping_response.json()["mappings"]
     assert len(transcript_mappings) == 1
 
     transcript_id = transcript_mappings[0]["dest_id"]
-    transcript_response = projected_restapi_client.get(f"/object/{transcript_id}")
+    transcript_response = projected_restapi_client.get(f"/variations/{transcript_id}")
     assert transcript_response.status_code == HTTPStatus.OK
     transcript = transcript_response.json()["data"]
     assert transcript["location"]["sequenceReference"]["refgetAccession"] == _refget(
@@ -553,14 +559,14 @@ def test_spdi_projection_uses_longest_compatible_transcript(
     assert transcript["state"]["sequence"] == projection_case["transcript_state"]
 
     protein_mapping_response = projected_restapi_client.get(
-        f"/object/{transcript_id}/mappings?mapping_type={metadata.VariationMappingType.TRANSLATE_TO}"
+        f"/variations/{transcript_id}/mappings?mapping_type={metadata.VariationMappingType.TRANSLATE_TO}"
     )
     assert protein_mapping_response.status_code == HTTPStatus.OK
     protein_mappings = protein_mapping_response.json()["mappings"]
     assert len(protein_mappings) == 1
 
     protein_id = protein_mappings[0]["dest_id"]
-    protein_response = projected_restapi_client.get(f"/object/{protein_id}")
+    protein_response = projected_restapi_client.get(f"/variations/{protein_id}")
     assert protein_response.status_code == HTTPStatus.OK
     protein = protein_response.json()["data"]
     assert protein["location"]["sequenceReference"]["refgetAccession"] == _refget(
@@ -581,20 +587,22 @@ def test_spdi_projection_skips_cases_without_compatible_transcripts(
     genomic = projection_case["genomic"]
 
     response = projected_restapi_client.put(
-        "/variation", json={"definition": projection_case["spdi"]}
+        "/variations", json=[{"definition": projection_case["spdi"]}]
     )
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {
-        "input_variation": {
-            "definition": projection_case["spdi"],
-            "assembly_name": "GRCh38",
-        },
-        "object": genomic,
-        "object_id": genomic["id"],
-        "messages": [],
-    }
+    assert response.json() == [
+        {
+            "input_variation": {
+                "definition": projection_case["spdi"],
+                "assembly_name": "GRCh38",
+            },
+            "object": genomic,
+            "object_id": genomic["id"],
+            "messages": [],
+        }
+    ]
 
-    response = projected_restapi_client.get(f"/object/{genomic['id']}")
+    response = projected_restapi_client.get(f"/variations/{genomic['id']}")
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"data": genomic, "messages": []}
 
@@ -605,7 +613,7 @@ def test_spdi_projection_skips_cases_without_compatible_transcripts(
     )
 
     response = projected_restapi_client.post(
-        "/variation", json={"definition": projection_case["spdi"]}
+        "/variations", json={"definition": projection_case["spdi"]}
     )
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"data": genomic, "messages": []}
@@ -621,24 +629,24 @@ def test_spdi_projection_persists_utr_transcript_without_protein_mapping(
     expected_end = utr_case["expected_transcript_end"]
     expected_accession = utr_case["expected_transcript_accession"]
 
-    response = projected_restapi_client.put("/variation", json={"definition": spdi})
+    response = projected_restapi_client.put("/variations", json=[{"definition": spdi}])
     assert response.status_code == HTTPStatus.OK
     payload = response.json()
     assert (
         f"Could not build coding variant for {expected_accession}"
-        not in payload["messages"]
+        not in payload[0]["messages"]
     )
 
-    genomic_id = payload["object_id"]
+    genomic_id = payload[0]["object_id"]
     mapping_response = projected_restapi_client.get(
-        f"/object/{genomic_id}/mappings?mapping_type={metadata.VariationMappingType.TRANSCRIBE_TO}"
+        f"/variations/{genomic_id}/mappings?mapping_type={metadata.VariationMappingType.TRANSCRIBE_TO}"
     )
     assert mapping_response.status_code == HTTPStatus.OK
     mappings = mapping_response.json()["mappings"]
     assert len(mappings) == 1
 
     transcript_id = mappings[0]["dest_id"]
-    transcript_response = projected_restapi_client.get(f"/object/{transcript_id}")
+    transcript_response = projected_restapi_client.get(f"/variations/{transcript_id}")
     assert transcript_response.status_code == HTTPStatus.OK
     transcript = transcript_response.json()["data"]
     assert transcript["location"]["sequenceReference"]["refgetAccession"] == _refget(
