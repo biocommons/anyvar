@@ -23,6 +23,7 @@ from anyvar.restapi.schema import (
     EndpointTag,
     ServiceInfo,
 )
+from anyvar.restapi.sequence_locations_router import sequence_locations_router
 from anyvar.restapi.variations_router import variations_router
 from anyvar.restapi.vcf_router import vcf_router
 
@@ -167,6 +168,7 @@ app = FastAPI(
 app.include_router(meta_router, tags=[EndpointTag.META])
 app.include_router(vcf_router, tags=[EndpointTag.VCF])
 app.include_router(variations_router, tags=[EndpointTag.VARIATIONS])
+app.include_router(sequence_locations_router, tags=[EndpointTag.SEQUENCE_REFERENCES])
 app.include_router(
     catvar_router,
     prefix="/categorical_variants",
