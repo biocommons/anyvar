@@ -167,7 +167,6 @@ app = FastAPI(
 app.include_router(meta_router, tags=[EndpointTag.META])
 app.include_router(vcf_router, tags=[EndpointTag.VCF])
 app.include_router(variations_router, tags=[EndpointTag.VARIATIONS])
-# app.include_router(objects_router, tags=[EndpointTag.VRS_OBJECTS])
 app.include_router(
     catvar_router,
     prefix="/categorical_variants",

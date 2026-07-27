@@ -188,50 +188,6 @@ async def register_variations(
     return _register_variations(av, variations)
 
 
-@variations_router.get(
-    "/variations/{run_id}",
-    summary="Poll for status and/or result for asynchronous variation registration",
-    description="Provide a valid run id to get the status and/or result of an asynchronous variation registration run",
-    response_model=None,
-)
-async def get_variations_run_status(
-    response: Response,
-    run_id: Annotated[
-        str, Path(description="The run id to retrieve the result or status for")
-    ],
-) -> RunStatusResponse | JSONResponse | ErrorResponse:
-    """Return the status or result of an asynchronous registration of variations."""
-    enabled = bool(
-        anyvar.anyvar.has_variations_queueing_enabled() and has_async_imports
-    )
-    if not enabled:
-        _logger.warning(
-            "Async variation registration status requested but not enabled (has_variations_queueing_enabled=%s, has_async_imports=%s)",
-            anyvar.anyvar.has_variations_queueing_enabled(),
-            has_async_imports,
-            stack_info=True,
-        )
-    error = check_async_enabled(
-        enabled,
-        response,
-        "Required modules and/or configurations for asynchronous variation registration are missing",
-    )
-    if error:
-        return error
-
-    def on_success(async_result: AsyncResult) -> JSONResponse:
-        result_data = async_result.result
-        return JSONResponse(content=result_data, status_code=status.HTTP_200_OK)
-
-    return await resolve_async_task_status(
-        run_id,
-        response,
-        on_success=on_success,
-        failure_status_env_var="ANYVAR_VARIATIONS_ASYNC_FAILURE_STATUS_CODE",
-        status_path_prefix="/variations",
-    )
-
-
 PUT_VRS_VARIATION_EXAMPLE_PAYLOAD = {
     "location": {
         "end": 87894077,
@@ -365,3 +321,47 @@ def search_variations(
         ) from e
 
     return SearchResponse(variations=page.items, next_cursor=page.next_cursor)
+
+
+@variations_router.get(
+    "/variations/run/{run_id}",
+    summary="Poll for status and/or result for asynchronous variation registration",
+    description="Provide a valid run id to get the status and/or result of an asynchronous variation registration run",
+    response_model=None,
+)
+async def get_variations_run_status(
+    response: Response,
+    run_id: Annotated[
+        str, Path(description="The run id to retrieve the result or status for")
+    ],
+) -> RunStatusResponse | JSONResponse | ErrorResponse:
+    """Return the status or result of an asynchronous registration of variations."""
+    enabled = bool(
+        anyvar.anyvar.has_variations_queueing_enabled() and has_async_imports
+    )
+    if not enabled:
+        _logger.warning(
+            "Async variation registration status requested but not enabled (has_variations_queueing_enabled=%s, has_async_imports=%s)",
+            anyvar.anyvar.has_variations_queueing_enabled(),
+            has_async_imports,
+            stack_info=True,
+        )
+    error = check_async_enabled(
+        enabled,
+        response,
+        "Required modules and/or configurations for asynchronous variation registration are missing",
+    )
+    if error:
+        return error
+
+    def on_success(async_result: AsyncResult) -> JSONResponse:
+        result_data = async_result.result
+        return JSONResponse(content=result_data, status_code=status.HTTP_200_OK)
+
+    return await resolve_async_task_status(
+        run_id,
+        response,
+        on_success=on_success,
+        failure_status_env_var="ANYVAR_VARIATIONS_ASYNC_FAILURE_STATUS_CODE",
+        status_path_prefix="/variations",
+    )
