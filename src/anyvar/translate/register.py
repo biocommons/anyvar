@@ -135,9 +135,9 @@ def register_variations(
     )
 
     responses: list[RegisterVariationResponse] = []
-    for variation_request, translation_result in zip[
-        tuple[VariationRequest, TranslationResult]
-    ](variation_requests, translation_results, strict=True):
+    for variation_request, translation_result in zip(
+        variation_requests, translation_results, strict=True
+    ):
         if not translation_result.variation:
             responses.append(
                 RegisterVariationResponse(

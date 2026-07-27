@@ -12,7 +12,6 @@ from fastapi.responses import JSONResponse
 import anyvar
 from anyvar.anyvar import AnyVar
 from anyvar.core import objects
-from anyvar.mapping import liftover
 from anyvar.restapi import has_async_imports
 from anyvar.restapi.async_utils import (
     check_async_enabled,
@@ -27,11 +26,7 @@ from anyvar.restapi.schema import (
     VariationRequest,
 )
 from anyvar.restapi.utils import get_vrs_object
-from anyvar.storage.base import IncompleteVrsObjectError
 from anyvar.translate.base import Translator
-from anyvar.translate.register import (
-    add_projection_mappings as _add_projection_mappings,
-)
 from anyvar.translate.register import (
     register_variations as _register_variations,
 )
@@ -114,7 +109,7 @@ _variations_request_body = Body(
 @variations_router.put(
     "/variations",
     response_model_exclude_none=True,
-    summary="Bulk register alleles or copy number objects",
+    summary="Bulk register alleles",
     description="Provide a list of variation definitions to be normalized and registered with AnyVar. The response contains one result per input, in the same order. Variations that fail translation are not registered and are returned with null `object` and `object_id` fields. Registration or liftover failure messages may also be included in the `messages` field.",
 )
 async def register_variations(
@@ -186,65 +181,6 @@ async def register_variations(
 
     av: AnyVar = request.app.state.anyvar
     return _register_variations(av, variations)
-
-
-PUT_VRS_VARIATION_EXAMPLE_PAYLOAD = {
-    "location": {
-        "end": 87894077,
-        "start": 87894076,
-        "sequenceReference": {
-            "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
-            "type": "SequenceReference",
-        },
-        "type": "SequenceLocation",
-    },
-    "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
-    "type": "Allele",
-}
-
-
-@variations_router.put(
-    "/vrs_variation",
-    summary="Register a VRS variation",
-    description="Provide a valid VRS variation object to be registered with AnyVar. Returns a fully-identified VRS object.",
-    response_model_exclude_none=True,
-)
-def register_vrs_variation(
-    request: Request,
-    variation: Annotated[
-        objects.SupportedVrsVariation,
-        Body(
-            description="Valid VRS object.",
-            examples=[PUT_VRS_VARIATION_EXAMPLE_PAYLOAD],
-        ),
-    ],
-) -> RegisterVariationResponse:
-    """Register a complete VRS variation object.
-
-    No additional formatting or normalization is performed. IDs are added if not provided.
-    """
-    av: AnyVar = request.app.state.anyvar
-    input_variation = variation
-    try:
-        av.put_objects([variation])
-    except IncompleteVrsObjectError:
-        variation = objects.recursive_identify(variation)
-        av.put_objects([variation])
-
-    liftover_messages = liftover.add_liftover_mapping(
-        variation, av.object_store, av.translator.dp
-    )
-    messages: list[str] = liftover_messages or []
-
-    if av.projector is not None:
-        _add_projection_mappings(av, variation, messages)
-
-    return RegisterVariationResponse(
-        input_variation=input_variation,
-        object=variation,
-        object_id=variation.id,
-        messages=messages,
-    )
 
 
 @variations_router.post(
