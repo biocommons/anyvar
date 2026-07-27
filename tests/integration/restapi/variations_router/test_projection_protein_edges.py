@@ -14,10 +14,12 @@ def _refget(translator: Translator, refseq: str) -> str:
     return aliases[0].removeprefix("ga4gh:")
 
 
-def _put_variations(client, spdi: str):
-    response = client.put("/variations", json={"definition": spdi})
+def _put_variation(client, spdi: str):
+    response = client.put("/variations", json=[{"definition": spdi}])
     assert response.status_code == HTTPStatus.OK
-    return response.json()
+    payload = response.json()
+    assert len(payload) == 1
+    return payload[0]
 
 
 def _single_mapping(
@@ -88,7 +90,7 @@ def test_selenocysteine_projection_edge_cases(
     case,
 ):
     """Project genomic SELENON variants through transcript to Sec protein states."""
-    payload = _put_variations(projected_restapi_client, case["spdi"])
+    payload = _put_variation(projected_restapi_client, case["spdi"])
 
     assert payload["messages"] == []
     transcript_id = _single_mapping(
@@ -120,7 +122,7 @@ def test_standard_stop_gain_projects_to_stop(
     projected_restapi_client,
     translator: Translator,
 ):
-    payload = _put_variations(
+    payload = _put_variation(
         projected_restapi_client,
         "NC_000002.12:29073502:C:T",
     )
@@ -155,7 +157,7 @@ def test_multiresidue_protein_effect_is_skipped(
     projected_restapi_client,
     translator: Translator,
 ):
-    payload = _put_variations(
+    payload = _put_variation(
         projected_restapi_client,
         "NC_000003.12:98592995:ACCTGTGCCAGAGCCTGGCACACCTG:ACCTG",
     )
