@@ -184,7 +184,7 @@ async def register_variations(
 
 
 @variations_router.post(
-    "/variation",
+    "/variations",
     response_model_exclude_none=True,
     summary="Retrieve a registered VRS allele or copy number variation",
     description="Provide a variation definition to be normalized and searched for in AnyVar",
