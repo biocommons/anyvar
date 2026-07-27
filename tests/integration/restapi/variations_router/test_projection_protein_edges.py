@@ -14,8 +14,8 @@ def _refget(translator: Translator, refseq: str) -> str:
     return aliases[0].removeprefix("ga4gh:")
 
 
-def _put_variation(client, spdi: str):
-    response = client.put("/variation", json={"definition": spdi})
+def _put_variations(client, spdi: str):
+    response = client.put("/variations", json={"definition": spdi})
     assert response.status_code == HTTPStatus.OK
     return response.json()
 
@@ -23,7 +23,9 @@ def _put_variation(client, spdi: str):
 def _single_mapping(
     client, source_id: str, mapping_type: metadata.VariationMappingType
 ):
-    response = client.get(f"/object/{source_id}/mappings?mapping_type={mapping_type}")
+    response = client.get(
+        f"/variations/{source_id}/mappings?mapping_type={mapping_type}"
+    )
     assert response.status_code == HTTPStatus.OK
     mappings = response.json()["mappings"]
     assert len(mappings) == 1
@@ -31,13 +33,15 @@ def _single_mapping(
 
 
 def _no_mapping(client, source_id: str, mapping_type: metadata.VariationMappingType):
-    response = client.get(f"/object/{source_id}/mappings?mapping_type={mapping_type}")
+    response = client.get(
+        f"/variations/{source_id}/mappings?mapping_type={mapping_type}"
+    )
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"mappings": []}
 
 
 def _get_object(client, object_id: str):
-    response = client.get(f"/object/{object_id}")
+    response = client.get(f"/variations/{object_id}")
     assert response.status_code == HTTPStatus.OK
     return response.json()["data"]
 
@@ -84,7 +88,7 @@ def test_selenocysteine_projection_edge_cases(
     case,
 ):
     """Project genomic SELENON variants through transcript to Sec protein states."""
-    payload = _put_variation(projected_restapi_client, case["spdi"])
+    payload = _put_variations(projected_restapi_client, case["spdi"])
 
     assert payload["messages"] == []
     transcript_id = _single_mapping(
@@ -116,7 +120,7 @@ def test_standard_stop_gain_projects_to_stop(
     projected_restapi_client,
     translator: Translator,
 ):
-    payload = _put_variation(
+    payload = _put_variations(
         projected_restapi_client,
         "NC_000002.12:29073502:C:T",
     )
@@ -151,7 +155,7 @@ def test_multiresidue_protein_effect_is_skipped(
     projected_restapi_client,
     translator: Translator,
 ):
-    payload = _put_variation(
+    payload = _put_variations(
         projected_restapi_client,
         "NC_000003.12:98592995:ACCTGTGCCAGAGCCTGGCACACCTG:ACCTG",
     )
