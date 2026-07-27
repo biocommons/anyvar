@@ -1,6 +1,7 @@
 """Test variation endpoints"""
 
 from http import HTTPStatus
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -8,10 +9,26 @@ from fastapi.testclient import TestClient
 from anyvar.mapping.liftover import ReferenceAssembly
 from anyvar.restapi.schema import RegisterVariationResponse, VariationRequest
 from anyvar.restapi.variations_router import (
-    PUT_VRS_VARIATION_EXAMPLE_PAYLOAD,
     VARIATIONS_EXAMPLE_PAYLOAD,
 )
 from anyvar.storage.base import Storage
+
+
+@pytest.fixture
+def minimal_vrs_variation() -> dict[str, Any]:
+    return {
+        "location": {
+            "end": 87894077,
+            "start": 87894076,
+            "sequenceReference": {
+                "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
+                "type": "SequenceReference",
+            },
+            "type": "SequenceLocation",
+        },
+        "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
+        "type": "Allele",
+    }
 
 
 def test_put_allele(restapi_client: TestClient, alleles: dict):
@@ -127,8 +144,12 @@ def test_put_vrs_variation_allele(restapi_client: TestClient, alleles: dict):
         assert resp.json()["object_id"] == allele_id
 
 
-def test_put_vrs_variation_example(restapi_client: TestClient, alleles: dict):
-    resp = restapi_client.put("/vrs_variation", json=PUT_VRS_VARIATION_EXAMPLE_PAYLOAD)
+def test_put_vrs_variation_example(
+    restapi_client: TestClient,
+    alleles: dict,
+    minimal_vrs_variation: dict[str, str | Any],
+):
+    resp = restapi_client.put("/vrs_variation", json=minimal_vrs_variation)
     assert resp.status_code == HTTPStatus.OK
     expected_id = "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU"
     assert resp.json()["object"] == alleles[expected_id]["variation"]
