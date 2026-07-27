@@ -19,7 +19,7 @@ sequence_locations_router = APIRouter()
 @sequence_locations_router.get(
     "/sequence_locations/{vrs_id}",
     response_model_exclude_none=True,
-    operation_id="getVariation",
+    operation_id="getSequenceLocation",
     summary="Retrieve a sequence location",
     description="Gets a sequence location by ID.",
 )
