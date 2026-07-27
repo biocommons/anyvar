@@ -1,4 +1,4 @@
-"""Provide API routes relating to search operations"""
+"""Provide API routes relating to variation operations"""
 
 import logging
 import os
@@ -270,14 +270,14 @@ def search_variations(
     "/variations/{vrs_id}",
     response_model_exclude_none=True,
     operation_id="getVariation",
-    summary="Retrieve a VRS object",
-    description="Gets a VRS object by ID. May return any supported type of VRS Object.",
+    summary="Retrieve a variation",
+    description="Gets a variation by ID. May return any supported type of variation.",
 )
 def get_variation_by_id(
     request: Request,
     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for object")],
 ) -> GetObjectResponse:
-    """Get registered VRS object given its VRS ID."""
+    """Get registered variation given its VRS ID."""
     av: AnyVar = request.app.state.anyvar
     vrs_object: objects.SupportedVrsObject = get_vrs_object(av, vrs_id)
     return GetObjectResponse(messages=[], data=vrs_object)
@@ -287,14 +287,14 @@ def get_variation_by_id(
     "/variations/{vrs_id}",
     response_model_exclude_none=True,
     operation_id="deleteObject",
-    summary="Delete a VRS object and any associated mappings and extensions",
-    description="Attempt deletion of a VRS object by its ID. Mappings and Extensions that reference this object will also be deleted.",
+    summary="Delete a variation and any associated mappings and extensions",
+    description="Attempt deletion of a variation by its ID. Mappings and Extensions that reference this object will also be deleted.",
 )
 def delete_variation_by_id(
     request: Request,
     vrs_id: Annotated[StrictStr, Path(..., description="ID of object to delete")],
 ) -> None:
-    """Delete a VRS object."""
+    """Delete a variation."""
     av: AnyVar = request.app.state.anyvar
     try:
         av.delete_object(vrs_id)
@@ -305,8 +305,8 @@ def delete_variation_by_id(
 @variations_router.post(
     "/variations/{vrs_id}/extensions",
     response_model_exclude_none=True,
-    summary="Add an extension to a VRS Object",
-    description="Provide an extension to associate with a VRS object. The object MUST already be registered with AnyVar.",
+    summary="Add an extension to a variation",
+    description="Provide an extension to associate with a variation. The object MUST already be registered with AnyVar.",
 )
 def add_variation_extension(
     request: Request,
@@ -321,21 +321,21 @@ def add_variation_extension(
         ),
     ],
 ) -> AddExtensionResponse:
-    """Store an extension for a VRS Object."""
+    """Store an extension for a variation."""
     av: AnyVar = request.app.state.anyvar
     vrs_object: objects.SupportedVrsObject = get_vrs_object(av, vrs_id)
 
     extension_id: int | None = None
     try:
         extension = metadata.Extension(
-            object_id=vrs_object.id,  # pyright: ignore[reportArgumentType] - VRS Objects from the DB will never NOT have an ID
+            object_id=vrs_object.id,  # pyright: ignore[reportArgumentType] - variations from the DB will never NOT have an ID
             name=extension_request.name,
             value=extension_request.value,
         )
         extension_id = av.put_extension(extension)
     except ValueError as e:
         _logger.exception(
-            "Failed to add Extension `%s` on VRS Object `%s`",
+            "Failed to add Extension `%s` on variation `%s`",
             extension_request,
             vrs_id,
         )
@@ -356,22 +356,22 @@ def add_variation_extension(
 @variations_router.get(
     "/variations/{vrs_id}/extensions/{extension_name}",
     response_model_exclude_none=True,
-    summary="Retrieve extensions for a VRS Object",
-    description="Retrieve extensions for a VRS Object by VRS ID and extension type",
+    summary="Retrieve extensions for a variation",
+    description="Retrieve extensions for a variation by VRS ID and extension type",
 )
 def get_variation_extensions(
     request: Request,
-    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for VRS Object")],
+    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
     extension_name: Annotated[StrictStr, Path(..., description="Extension name")],
 ) -> GetExtensionResponse:
-    """Retrieve extensions for a VRS Object."""
+    """Retrieve extensions for a variation."""
     av: AnyVar = request.app.state.anyvar
     try:
         extensions = av.get_object_extensions(vrs_id, extension_name)
     except ObjectNotFoundError as e:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
-            detail=f"VRS Object {vrs_id} not found",
+            detail=f"variation {vrs_id} not found",
         ) from e
     return GetExtensionResponse(extensions=extensions)
 
@@ -379,16 +379,16 @@ def get_variation_extensions(
 @variations_router.delete(
     "/variations/{vrs_id}/extensions/{extension_name}",
     response_model_exclude_none=True,
-    summary="Delete extensions for a VRS object.",
-    description="Delete all extensions under a given extension name for a VRS object. Returns idempotently regardless of whether there were extensions under that name for the object. Return 404 NOT FOUND if no known object matches given object ID.",
+    summary="Delete extensions for a variation.",
+    description="Delete all extensions under a given extension name for a variation. Returns idempotently regardless of whether there were extensions under that name for the object. Return 404 NOT FOUND if no known object matches given object ID.",
     status_code=HTTPStatus.NO_CONTENT,
 )
 def delete_variation_extensions(
     request: Request,
-    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for VRS Object")],
+    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
     extension_name: Annotated[StrictStr, Path(..., description="Extension name")],
 ) -> Response:
-    """Delete extensions associated with a VRS object."""
+    """Delete extensions associated with a variation."""
     av: AnyVar = request.app.state.anyvar
     try:
         av.delete_object_extensions(vrs_id, extension_name)
@@ -402,17 +402,17 @@ def delete_variation_extensions(
 @variations_router.put(
     "/variations/{vrs_id}/mappings",
     response_model_exclude_none=True,
-    summary="Add mapping to a VRS Object",
-    description="Provide a mapping to associate with a VRS object. The source and dest objects must be registered with AnyVar before adding mappings.",
+    summary="Add mapping to a variation",
+    description="Provide a mapping to associate with a variation. The source and dest objects must be registered with AnyVar before adding mappings.",
 )
 def add_object_mapping(
     request: Request,
     vrs_id: Annotated[StrictStr, Path(..., description="VRS ID")],
     mapping_request: Annotated[
-        AddMappingRequest, Body(description="Mapping to associate with the VRS Object")
+        AddMappingRequest, Body(description="Mapping to associate with the variation")
     ],
 ) -> AddMappingResponse:
-    """Store a mapping for a VRS Object"""
+    """Store a mapping for a variation"""
     av: AnyVar = request.app.state.anyvar
     source_vrs_obj: objects.SupportedVrsObject = get_vrs_object(av, vrs_id)
     dest_vrs_id = mapping_request.dest_id
@@ -446,9 +446,9 @@ def add_object_mapping(
     )
 
 
-_get_mappings_description = """Retrieve mappings associated with a VRS object.
+_get_mappings_description = """Retrieve mappings associated with a variation.
 
-Mappings are *directed*; if `as_source=true`, then retrieve mappings where the VRS object is the mapping *source*, i.e. where the mapping points from the object to another. Otherwise, get mappings where another object points to the VRS object.
+Mappings are *directed*; if `as_source=true`, then retrieve mappings where the variation is the mapping *source*, i.e. where the mapping points from the object to another. Otherwise, get mappings where another object points to the variation.
 
 By default, retrieve mappings of any type. Use the `mapping_type` argument to specify a specific type.
 """
@@ -457,7 +457,7 @@ By default, retrieve mappings of any type. Use the `mapping_type` argument to sp
 @variations_router.get(
     "/variations/{vrs_id}/mappings",
     response_model_exclude_none=True,
-    summary="Retrieve mappings for a VRS Object",
+    summary="Retrieve mappings for a variation",
     description=_get_mappings_description,
 )
 def get_variation_mapping(
@@ -474,14 +474,14 @@ def get_variation_mapping(
         ),
     ] = True,
 ) -> GetMappingResponse:
-    """Retrieve mappings for a VRS Object."""
+    """Retrieve mappings for a variation."""
     av: AnyVar = request.app.state.anyvar
     try:
         mappings = av.get_object_mappings(vrs_id, mapping_type, as_source)
     except ObjectNotFoundError as e:
         raise HTTPException(
             HTTPStatus.NOT_FOUND,
-            detail=f"VRS Object {vrs_id} not found",
+            detail=f"variation {vrs_id} not found",
         ) from e
 
     return GetMappingResponse(mappings=mappings)
