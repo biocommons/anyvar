@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeAlias
 
 from ga4gh.cat_vrs import CATVRS_VERSION
 from ga4gh.vrs import (
@@ -247,7 +247,7 @@ class GetMappingResponse(BaseModel):
 
 
 class RegisterVariationResponse(BaseModel):
-    """Describe response for the PUT /variation, PUT /variations endpoints"""
+    """Describe response for the PUT /variations endpoint"""
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -293,6 +293,10 @@ class RegisterVariationResponse(BaseModel):
     messages: list[str] = []
     object: objects.SupportedVrsVariation | None = None
     object_id: str | None = None
+
+
+# The responses for `PUT /variations` and `POST /variations` are identical
+RetrieveVariationResponse: TypeAlias = RegisterVariationResponse
 
 
 class GetVariationResponse(BaseModel):

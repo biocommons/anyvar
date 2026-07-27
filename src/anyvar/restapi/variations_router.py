@@ -28,6 +28,7 @@ from anyvar.restapi.schema import (
     GetMappingResponse,
     GetVariationResponse,
     RegisterVariationResponse,
+    RetrieveVariationResponse,
     RunStatusResponse,
     SearchResponse,
     TranslationResult,
@@ -193,20 +194,18 @@ async def register_variations(
     "/variations",
     response_model_exclude_none=True,
     summary="Retrieve registered VRS alleles",
-    description="Provide a list of variation definition to be normalized and searched for in AnyVar",
+    description="Provide a list of variation definitions to be normalized and searched for in AnyVar",
 )
 def retrieve_variations(
     request: Request,
     variations: Annotated[list[VariationRequest], _variations_request_body],
-) -> list[
-    RegisterVariationResponse
-]:  # TODO: This isn't registering, so it shouldn't return a "registration" response. Rename this??
+) -> list[RetrieveVariationResponse]:
     """Search for registered variation"""
     av: AnyVar = request.app.state.anyvar
-    responses: list[RegisterVariationResponse] = []
+    responses: list[RetrieveVariationResponse] = []
 
     for variation_request in variations:
-        response = RegisterVariationResponse(input_variation=variation_request)
+        response = RetrieveVariationResponse(input_variation=variation_request)
         translation_result: TranslationResult = translate_variation(
             tlr=av.translator, variation_request=variation_request
         )
