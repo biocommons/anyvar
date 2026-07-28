@@ -1,4 +1,4 @@
-"""Tests for async /variations and /variation endpoints in variations_router."""
+"""Tests for async /variations and /variations endpoints in variations_router."""
 
 from http import HTTPStatus
 from unittest.mock import MagicMock, patch
@@ -207,7 +207,7 @@ class TestPutVariationsSync:
 
 
 # ---------------------------------------------------------------------------
-# PUT /variation
+# PUT /variations
 # ---------------------------------------------------------------------------
 
 
@@ -215,7 +215,7 @@ class TestPutVariationsSync:
 class TestPutVariation:
     @patch("anyvar.restapi.variations_router._register_variations")
     def test_response(self, mock_register, test_client, sample_allele):
-        """PUT /variation response includes object and object_id."""
+        """PUT /variations response includes object and object_id."""
         mock_register.return_value = [
             RegisterVariationResponse(
                 input_variation=VariationRequest(**VARIATION_PAYLOAD),
@@ -225,10 +225,10 @@ class TestPutVariation:
             )
         ]
 
-        resp = test_client.put("/variation", json=VARIATION_PAYLOAD)
+        resp = test_client.put("/variations", json=[VARIATION_PAYLOAD])
         assert resp.status_code == HTTPStatus.OK
         body = resp.json()
-        assert body["object_id"] == sample_allele.id
+        assert body[0]["object_id"] == sample_allele.id
 
 
 # ---------------------------------------------------------------------------
@@ -245,7 +245,7 @@ class TestGetVariationsRunStatus:
     )
     def test_async_not_enabled(self, _mock_enabled, test_client):  # noqa: PT019
         """GET /variations/{run_id} returns 400 when async queueing is not enabled."""
-        resp = test_client.get("/variations/some-run-id")
+        resp = test_client.get("/variations/run/some-run-id")
         assert resp.status_code == HTTPStatus.BAD_REQUEST
         assert (
             "missing" in resp.json()["error"].lower()
@@ -277,7 +277,7 @@ class TestGetVariationsRunStatus:
             status_code=200,
         )
 
-        _ = test_client.get("/variations/run-123")
+        _ = test_client.get("/variations/run/run-123")
         # verify resolve_async_task_status was called with the run_id
         mock_resolve.assert_called_once()
         call_args = mock_resolve.call_args
