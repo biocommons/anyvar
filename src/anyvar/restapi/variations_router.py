@@ -75,17 +75,14 @@ def _handle_translation_request(
     return translation_result.variation  # type: ignore
 
 
-VARIATIONS_EXAMPLE_PAYLOAD = [
+PUT_VARIATIONS_EXAMPLE_PAYLOAD = [
     {
         "definition": "NC_000010.11:g.87894077C>T",
         "assembly_name": None,
     },
-    {"definition": "NM_000551.3:c.1A>T"},
     {
         "definition": {
-            "id": "ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb",
             "type": "Allele",
-            "digest": "d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb",
             "location": {
                 "id": "ga4gh:SL.JOFKL4nL5mRUlO_xLwQ8VOD1v7mxhs3I",
                 "type": "SequenceLocation",
@@ -107,9 +104,9 @@ VARIATIONS_EXAMPLE_PAYLOAD = [
     },
 ]
 
-_variations_request_body = Body(
+_put_variations_request_body = Body(
     description='Variation description, including (at minimum) a `definition` property. Can provide optional `input_type` if the expected output representation type is known, as well as an assembly_name (e.g.,"GRCh37" or "GRCh38").',
-    examples=[VARIATIONS_EXAMPLE_PAYLOAD],
+    examples=[PUT_VARIATIONS_EXAMPLE_PAYLOAD],
 )
 
 
@@ -122,7 +119,7 @@ _variations_request_body = Body(
 async def register_variations(
     request: Request,
     response: Response,
-    variations: Annotated[list[VariationRequest], _variations_request_body],
+    variations: Annotated[list[VariationRequest], _put_variations_request_body],
     run_async: Annotated[
         bool,
         Query(
@@ -190,6 +187,13 @@ async def register_variations(
     return _register_variations(av, variations)
 
 
+POST_VARIATIONS_EXAMPLE_PAYLOAD = {"definition": "NM_000551.3:c.1A>T"}
+_post_variations_request_body = Body(
+    description='Variation description, including (at minimum) a `definition` property. Can provide optional `input_type` if the expected output representation type is known, as well as an assembly_name (e.g.,"GRCh37" or "GRCh38").',
+    examples=[POST_VARIATIONS_EXAMPLE_PAYLOAD],
+)
+
+
 @variations_router.post(
     "/variations",
     response_model_exclude_none=True,
@@ -198,7 +202,7 @@ async def register_variations(
 )
 def get_variation(
     request: Request,
-    variation: Annotated[VariationRequest, _variations_request_body],
+    variation: Annotated[VariationRequest, _post_variations_request_body],
 ) -> GetObjectResponse:
     """Search for registered variation"""
     av: AnyVar = request.app.state.anyvar
