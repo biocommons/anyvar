@@ -241,7 +241,7 @@ def test_simple_delete_object(restapi_client: TestClient, alleles: dict):
 def test_delete_object_and_mappings(restapi_client: TestClient, alleles: dict):
     allele_id = "ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb"
     allele = alleles[allele_id]["variation"]
-    response = restapi_client.put("/variations", json=allele)
+    response = restapi_client.put("/variations", json=[{"definition": allele}])
     response.raise_for_status()
     response = restapi_client.post(
         f"/variations/{allele_id}/extensions",
@@ -266,5 +266,5 @@ def test_delete_object_and_mappings(restapi_client: TestClient, alleles: dict):
     ):
         response = restapi_client.get(request_path)
         assert response.json() == {
-            "detail": "VRS Object ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb not found"
+            "detail": "Variation ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb not found"
         }
