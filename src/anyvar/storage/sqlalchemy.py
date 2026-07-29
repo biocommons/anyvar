@@ -35,6 +35,7 @@ from anyvar.core import metadata
 from anyvar.core import objects as anyvar_objects
 from anyvar.core.categorical_variants import CanonicalAllele, ProteinSequenceConsequence
 from anyvar.storage import orm
+from anyvar.storage.alembic_config import configure_alembic
 from anyvar.storage.base import (
     AlleleSearchPage,
     DataIntegrityError,
@@ -76,11 +77,13 @@ class SqlAlchemyStorage(Storage):
     def _init_all_tables(self) -> None:
         inspector: Inspector = inspect(subject=self.engine)
         tables: set[str] = set(inspector.get_table_names())
+        anyvar_tables: set[str] = set(orm.Base.metadata.tables)
 
         # If the DB is empty, create all the required tables
-        if not tables:
-            repo_root = Path(__file__).resolve().parents[3]
-            config: Config = Config(file_=f"{repo_root}/alembic.ini")
+        if not tables & anyvar_tables:
+            repo_root: Path = Path(__file__).resolve().parents[3]
+            config: Config = Config(str(repo_root / "alembic.ini"))
+            configure_alembic(config, self.db_url)
             command.upgrade(config=config, revision="head")
 
     def wipe_db(self) -> None:

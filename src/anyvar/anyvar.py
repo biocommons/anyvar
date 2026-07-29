@@ -31,6 +31,21 @@ if os.environ.get("ANYVAR_SHOW_PYDANTIC_WARNINGS", None) is None:
 _logger = logging.getLogger(__name__)
 
 
+def get_storage_uri(uri_override: str | None) -> str:
+    """Get the correct storage URI. If one is provided as a param, use that.
+    Else, try to get the URI from the `ANYVAR_STORAGE_URI` environment variable.
+    Else, fallback to `DEFAULT_STORAGE_URI`.
+
+    :param uri_override: A string URI that overrides the default options
+    :return: The correct URI
+    """
+    return (
+        os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
+        if uri_override is None
+        else uri_override
+    )
+
+
 def create_storage(uri: str | None = None) -> Storage:
     """Provide factory to create storage based on `uri` or the ANYVAR_STORAGE_URI
     environment value.
@@ -44,8 +59,7 @@ def create_storage(uri: str | None = None) -> Storage:
 
     :param uri: storage URI
     """
-    if uri is None:
-        uri = os.environ.get("ANYVAR_STORAGE_URI", DEFAULT_STORAGE_URI)
+    uri = get_storage_uri(uri_override=uri)
     parsed_uri = urlparse(uri)
     if parsed_uri.scheme == "postgresql":
         from anyvar.storage.postgres import PostgresObjectStore  # noqa: PLC0415

@@ -6,12 +6,13 @@ Create Date: 2026-07-29 13:21:44.275633
 
 """
 
+# ruff: noqa: INP001
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
-
 from alembic import op
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "18469f31ca97"
@@ -47,19 +48,20 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id"),
     )
+    mapping_type = postgresql.ENUM(
+        "LIFTOVER_TO",
+        "TRANSCRIBE_TO",
+        "TRANSLATE_TO",
+        name="mapping_type",
+    )
+    mapping_type.create(op.get_bind(), checkfirst=True)
     op.create_table(
         "variation_mappings",
         sa.Column("source_id", sa.String(), nullable=False),
         sa.Column("dest_id", sa.String(), nullable=False),
         sa.Column(
             "mapping_type",
-            sa.Enum(
-                "LIFTOVER_TO",
-                "TRANSCRIBE_TO",
-                "TRANSLATE_TO",
-                name="mapping_type",
-                metadata=sa.MetaData(),
-            ),
+            mapping_type,
             nullable=False,
         ),
         sa.PrimaryKeyConstraint("source_id", "dest_id", "mapping_type"),

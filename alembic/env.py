@@ -1,19 +1,21 @@
 """Alembic environment setup"""
+# ruff: noqa: INP001
 
-import os
 from logging.config import fileConfig
 
 import dotenv
+from alembic import context
+from alembic.config import Config
 from sqlalchemy import engine_from_config, pool
 
-from alembic import context
+from anyvar.storage.alembic_config import configure_alembic
 from anyvar.storage.orm import Base
 
 dotenv.load_dotenv()
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
-config = context.config
+config: Config = context.config
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -30,10 +32,8 @@ target_metadata = Base.metadata
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
-config.set_main_option(
-    name="sqlalchemy.url",
-    value=os.getenv(key="ANYVAR_STORAGE_URI"),
-)
+
+configure_alembic(config=config)
 
 
 def run_migrations_offline() -> None:
