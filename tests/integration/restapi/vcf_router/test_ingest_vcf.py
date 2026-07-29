@@ -164,7 +164,7 @@ def test_registration_sync(
         "put_objects",
         lambda allele: recorded.extend(allele),
     )
-    resp = restapi_client.put("/annotated_vcf", files={"vcf": ("test.vcf", basic_vcf)})
+    resp = restapi_client.put("/vcf", files={"vcf": ("test.vcf", basic_vcf)})
 
     assert resp.status_code == HTTPStatus.OK
     assert recorded, "put_objects was never called"
@@ -172,9 +172,7 @@ def test_registration_sync(
     assert recorded[1].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
 
     # ignore wrong IDs
-    resp = restapi_client.put(
-        "/annotated_vcf", files={"vcf": ("test.vcf", vcf_incorrect_id)}
-    )
+    resp = restapi_client.put("/vcf", files={"vcf": ("test.vcf", vcf_incorrect_id)})
 
     assert resp.status_code == HTTPStatus.OK
     assert recorded, "put_objects was never called"
@@ -196,7 +194,7 @@ def test_registration_sync_validate(
         lambda allele: recorded.extend(allele),
     )
     resp = restapi_client.put(
-        "/annotated_vcf",
+        "/vcf",
         files={"vcf": ("test.vcf", basic_vcf)},
         params={"require_validation": True},
     )
@@ -209,7 +207,7 @@ def test_registration_sync_validate(
 
     # handle wrong ID
     resp = restapi_client.put(
-        "/annotated_vcf",
+        "/vcf",
         files={"vcf": ("test.vcf", vcf_incorrect_id)},
         params={"require_validation": True},
     )
@@ -232,7 +230,7 @@ def test_registration_async(
 ):
     """Test async file registration"""
     resp = restapi_client.put(
-        "/annotated_vcf",
+        "/vcf",
         files={"vcf": ("test.vcf", basic_vcf)},
         params={"run_async": True, "run_id": vcf_run_id},
     )
@@ -258,7 +256,7 @@ def test_registration_async(
     assert resp.json()["status"] == "SUCCESS"
 
     resp = restapi_client.put(
-        "/annotated_vcf",
+        "/vcf",
         files={"vcf": ("test.vcf", vcf_incorrect_id)},
         params={"run_async": True, "run_id": vcf_run_id},
     )
@@ -289,7 +287,7 @@ def test_registration_async_validate(
 ):
     """Test file registration, asynchronous + validation"""
     resp = restapi_client.put(
-        "/annotated_vcf",
+        "/vcf",
         files={"vcf": ("test.vcf", basic_vcf)},
         params={"require_validation": True, "run_async": True, "run_id": vcf_run_id},
     )
@@ -319,7 +317,7 @@ def test_registration_async_validate_wrongid(
 ):
     """Test file registration, asynchronous + validation of a file with a wrong ID"""
     resp = restapi_client.put(
-        "/annotated_vcf",
+        "/vcf",
         files={"vcf": ("test.vcf", vcf_incorrect_id)},
         params={"require_validation": True, "run_async": True, "run_id": vcf_run_id},
     )
@@ -347,7 +345,7 @@ def test_handle_incomplete_annotation(
 ):
     """Test that client gracefully handles an incompletely-annotated VCF"""
     resp = restapi_client.put(
-        "/annotated_vcf", files={"vcf": ("test.vcf", vcf_incomplete_annotations)}
+        "/vcf", files={"vcf": ("test.vcf", vcf_incomplete_annotations)}
     )
 
     assert resp.status_code == HTTPStatus.BAD_REQUEST
