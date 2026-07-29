@@ -3,9 +3,15 @@
 import json
 
 from pydantic import JsonValue
-from sqlalchemy import ColumnElement, Engine, Index, create_engine, delete, func
+from sqlalchemy import (
+    ColumnElement,
+    Engine,
+    Index,
+    delete,
+    func,
+)
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
 
 from anyvar.storage import orm
 from anyvar.storage.sqlalchemy import SqlAlchemyStorage
@@ -19,19 +25,8 @@ class PostgresObjectStore(SqlAlchemyStorage):
 
         :param db_url: Database connection URL (e.g., postgresql://user:pass@host:port/db)
         """
-        self.db_url = db_url
-        self.engine = create_engine(db_url)
-        self.session_factory = sessionmaker(bind=self.engine)
-        self.batch_size = kwargs.get("batch_size", 1000)
-        self._initialize(self.engine)
-
-    def _initialize(self, engine: Engine) -> None:
-        """Initialize postgres
-
-        Ensure existence of tables, engine-specific indices, etc
-        """
-        orm.Base.metadata.create_all(bind=engine)
-        self._create_indices(engine)
+        super().__init__(db_url=db_url)
+        self._create_indices(self.engine)
 
     def _create_indices(self, engine: Engine) -> None:
         """Create postgres-specific indices"""

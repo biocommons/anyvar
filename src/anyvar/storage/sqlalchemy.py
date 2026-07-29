@@ -10,11 +10,26 @@ import logging
 from abc import abstractmethod
 from collections import defaultdict
 from collections.abc import Iterable
+from pathlib import Path
 
+from alembic import command
+from alembic.config import Config
 from ga4gh.vrs import models as vrs_models
-from sqlalchemy import ColumnElement, and_, delete, or_, select
+from sqlalchemy import (
+    ColumnElement,
+    Inspector,
+    Pool,
+    and_,
+    create_engine,
+    delete,
+    inspect,
+    or_,
+    select,
+)
+from sqlalchemy.engine.base import Engine
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload, sessionmaker
+from sqlalchemy.orm import joinedload, sessionmaker
+from sqlalchemy.orm.session import Session
 
 from anyvar.core import metadata
 from anyvar.core import objects as anyvar_objects
@@ -44,6 +59,29 @@ class SqlAlchemyStorage(Storage):
         orm.Location.__name__,
         orm.Allele.__name__,
     ]
+
+    def __init__(
+        self, db_url: str, poolclass: type[Pool] | None = None, *args, **kwargs
+    ) -> None:
+        """Initialize storage.
+
+        :param db_url: Database connection URL (e.g., postgresql://user:pass@host:port/db)
+        """
+        self.db_url: str = db_url
+        self.engine: Engine = create_engine(url=db_url, poolclass=poolclass)
+        self.session_factory = sessionmaker[Session](bind=self.engine)
+        self.batch_size: int = kwargs.get("batch_size", 1000)
+        self._init_all_tables()
+
+    def _init_all_tables(self) -> None:
+        inspector: Inspector = inspect(subject=self.engine)
+        tables: set[str] = set(inspector.get_table_names())
+
+        # If the DB is empty, create all the required tables
+        if not tables:
+            repo_root = Path(__file__).resolve().parents[3]
+            config: Config = Config(file_=f"{repo_root}/alembic.ini")
+            command.upgrade(config=config, revision="head")
 
     def wipe_db(self) -> None:
         """Wipe all data from the storage backend."""
