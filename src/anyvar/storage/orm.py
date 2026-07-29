@@ -210,13 +210,13 @@ class ProteinSequenceConsequence(Base):
     allele: Mapped[Allele] = relationship()
 
 
-def create_tables(db_url: str) -> None:
-    """Create all tables in the database.
+# def create_tables(db_url: str) -> None:
+#     """Create all tables in the database.
 
-    :param db_url: Database connection URL (e.g., postgresql://user:pass@host:port/db)
-    """
-    engine = create_engine(db_url)
-    Base.metadata.create_all(engine)
+#     :param db_url: Database connection URL (e.g., postgresql://user:pass@host:port/db)
+#     """
+#     engine = create_engine(db_url)
+#     Base.metadata.create_all(engine)
 
 
 def session_factory(db_url: str) -> sessionmaker:
