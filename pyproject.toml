@@ -43,6 +43,7 @@ queueing = [
     "aiofiles",
 ]
 test = [
+    "alembic",
     "pytest",
     "pytest-asyncio",
     "pytest-cov",
