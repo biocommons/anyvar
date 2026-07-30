@@ -10,19 +10,14 @@ import logging
 from abc import abstractmethod
 from collections import defaultdict
 from collections.abc import Iterable
-from pathlib import Path
 
-from alembic import command
-from alembic.config import Config
 from ga4gh.vrs import models as vrs_models
 from sqlalchemy import (
     ColumnElement,
-    Inspector,
     Pool,
     and_,
     create_engine,
     delete,
-    inspect,
     or_,
     select,
 )
@@ -35,7 +30,6 @@ from anyvar.core import metadata
 from anyvar.core import objects as anyvar_objects
 from anyvar.core.categorical_variants import CanonicalAllele, ProteinSequenceConsequence
 from anyvar.storage import orm
-from anyvar.storage.alembic_config import configure_alembic
 from anyvar.storage.base import (
     AlleleSearchPage,
     DataIntegrityError,
@@ -72,19 +66,11 @@ class SqlAlchemyStorage(Storage):
         self.engine: Engine = create_engine(url=db_url, poolclass=poolclass)
         self.session_factory = sessionmaker[Session](bind=self.engine)
         self.batch_size: int = kwargs.get("batch_size", 1000)
-        self._init_all_tables()
+        self._create_tables()
 
-    def _init_all_tables(self) -> None:
-        inspector: Inspector = inspect(subject=self.engine)
-        tables: set[str] = set(inspector.get_table_names())
-        anyvar_tables: set[str] = set(orm.Base.metadata.tables)
-
-        # If the DB is empty, create all the required tables
-        if not tables & anyvar_tables:
-            repo_root: Path = Path(__file__).resolve().parents[3]
-            config: Config = Config(file_=str(repo_root / "alembic.ini"))
-            configure_alembic(config, db_url_override=self.db_url)
-            command.upgrade(config=config, revision="head")
+    @abstractmethod
+    def _create_tables(self) -> None:
+        """Initialize database tables"""
 
     def wipe_db(self) -> None:
         """Wipe all data from the storage backend."""

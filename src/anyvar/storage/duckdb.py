@@ -45,6 +45,10 @@ class DuckDbObjectStore(SqlAlchemyStorage):
         """
         super().__init__(db_url=db_uri, poolclass=StaticPool)
 
+    def _create_tables(self) -> None:
+        """Initialize database tables"""
+        orm.Base.metadata.create_all(bind=self.engine)
+
     def close(self) -> None:
         """Close the storage backend."""
         self.engine.dispose()

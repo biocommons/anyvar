@@ -33,6 +33,7 @@ target_metadata = Base.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
+# Don't override config if it's already been set
 if not config.get_main_option("sqlalchemy.url"):
     configure_alembic(config)
 
