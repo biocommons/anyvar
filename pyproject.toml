@@ -35,8 +35,8 @@ dependencies = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
-duckdb = ["duckdb-engine"]
-postgres = ["psycopg[binary]"]
+duckdb = ["duckdb-engine", "alembic"]
+postgres = ["psycopg[binary]", "alembic"]
 projection = ["cool-seq-tool~=0.17.0"]
 queueing = [
     "celery[redis]~=5.5.0",
