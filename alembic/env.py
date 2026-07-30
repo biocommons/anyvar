@@ -33,7 +33,8 @@ target_metadata = Base.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
-configure_alembic(config=config)
+if not config.get_main_option("sqlalchemy.url"):
+    configure_alembic(config)
 
 
 def run_migrations_offline() -> None:

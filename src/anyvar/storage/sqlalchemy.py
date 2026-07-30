@@ -82,8 +82,8 @@ class SqlAlchemyStorage(Storage):
         # If the DB is empty, create all the required tables
         if not tables & anyvar_tables:
             repo_root: Path = Path(__file__).resolve().parents[3]
-            config: Config = Config(str(repo_root / "alembic.ini"))
-            configure_alembic(config, self.db_url)
+            config: Config = Config(file_=str(repo_root / "alembic.ini"))
+            configure_alembic(config, db_url_override=self.db_url)
             command.upgrade(config=config, revision="head")
 
     def wipe_db(self) -> None:
