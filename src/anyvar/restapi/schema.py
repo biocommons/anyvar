@@ -338,7 +338,7 @@ class SearchResponse(BaseModel):
 
 class RunStatusResponse(BaseModel):
     """Represents the response for triggering or checking the status of a run
-    at the GET /vcf/{run_id} endpoint.
+    at the GET /vcf/runs/{run_id} endpoint.
     """
 
     run_id: str  # Run ID

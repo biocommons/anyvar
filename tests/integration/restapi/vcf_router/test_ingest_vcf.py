@@ -246,7 +246,7 @@ def test_registration_async(
     assert resp.json()["run_id"] == vcf_run_id
 
     while True:
-        resp = restapi_client.get(f"/vcf/{vcf_run_id}")
+        resp = restapi_client.get(f"/vcf/runs/{vcf_run_id}")
         if resp.status_code == HTTPStatus.ACCEPTED:
             time.sleep(1)
         elif resp.status_code == HTTPStatus.OK:
@@ -274,7 +274,7 @@ def test_registration_async(
 
     time.sleep(5)
 
-    resp = restapi_client.get(f"/vcf/{vcf_run_id}")
+    resp = restapi_client.get(f"/vcf/runs/{vcf_run_id}")
     assert resp.status_code == HTTPStatus.OK
     assert resp.json()["status"] == "SUCCESS"
 
@@ -304,7 +304,7 @@ def test_registration_async_validate(
 
     time.sleep(5)
 
-    resp = restapi_client.get(f"/vcf/{vcf_run_id}")
+    resp = restapi_client.get(f"/vcf/runs/{vcf_run_id}")
     assert resp.status_code == HTTPStatus.OK
     assert resp.content.count(b"\n") == 1  # just header
 
@@ -335,7 +335,7 @@ def test_registration_async_validate_wrongid(
 
     time.sleep(5)
 
-    resp = restapi_client.get(f"/vcf/{vcf_run_id}")
+    resp = restapi_client.get(f"/vcf/runs/{vcf_run_id}")
     assert resp.status_code == HTTPStatus.OK
     assert b"ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6z" in resp.content
 

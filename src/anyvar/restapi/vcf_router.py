@@ -153,7 +153,7 @@ async def _annotate_vcf_async(
 
     # set response headers
     response.status_code = status.HTTP_202_ACCEPTED
-    response.headers["Location"] = f"/vcf/{task_result.id}"
+    response.headers["Location"] = f"/vcf/runs/{task_result.id}"
     retry_after = max(
         1,
         round(

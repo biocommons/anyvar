@@ -1,16 +1,17 @@
-# /// script  # noqa: D100
-# dependencies = [
-#   "requests",
-#   "click",
-# ]
-#
-# invoke with e.g. `uv run scripts/vcf_benchmark.py --workers 2 vcfs/vcf_1.vcf vcfs/vcf_2.vcf vcfs/vcf_3.vcf vcfs/vcf_4.vcf`
-# ///
+"""Script to test timing of VCF processing.
+
+dependencies = [
+  "requests",
+  "click",
+]
+
+Invoke with e.g. `uv run scripts/vcf_benchmark.py --workers 2 vcfs/vcf_1.vcf vcfs/vcf_2.vcf vcfs/vcf_3.vcf vcfs/vcf_4.vcf`
+or `PYTHONPATH=src python3 scripts/vcf_benchmark.py --workers 2 --assembly GRCh38 vcfs/vcf_1.vcf vcfs/vcf_2.vcf vcfs/vcf_3.vcf vcfs/vcf_4.vcf`
+"""
 
 import logging
 import time
 from concurrent.futures import ProcessPoolExecutor
-from enum import StrEnum
 from functools import partial
 from json import JSONDecodeError
 from pathlib import Path
@@ -18,6 +19,8 @@ from timeit import default_timer as timer
 
 import click
 import requests
+
+from anyvar.mapping.liftover import ReferenceAssembly
 
 LOG_FILE = "anyvar_benchmark.log"
 logging.basicConfig(
@@ -41,6 +44,15 @@ def submit_variants(
     assembly: str,
     run_async: bool,
 ) -> None:
+    """Submit variants from a VCF file for ingestion
+
+    :param file: The VCF file
+    :param anyvar_host: An AnyVar instance
+    :param for_ref: If true, compute VRS IDs for the reference allele
+    :param allow_async_write: Whether to allow async database writes
+    :param assembly: The assembly of the variants in the VCF
+    :param run_async: If true, run ingestion asynchronously
+    """
     with file.open("rb") as f:
         response = requests.put(
             f"{anyvar_host}/vcf",
@@ -62,7 +74,9 @@ def submit_variants(
         while True:
             logger.info("Polling ingestion status...")
             time.sleep(5)
-            response = requests.get(f"{anyvar_host}/vcf/{run_id}", timeout=HTTP_TIMEOUT)
+            response = requests.get(
+                f"{anyvar_host}/vcf/runs/{run_id}", timeout=HTTP_TIMEOUT
+            )
             try:
                 if response.json()["status"] != "PENDING":
                     logger.info("Ingestion complete!")
@@ -88,11 +102,6 @@ def submit_variants(
         logger.info("Something has gone wrong: %s", response.text)
 
 
-class AssemblyOption(StrEnum):
-    GRCH38 = "GRCh38"
-    GRCH37 = "GRCh37"
-
-
 def process_file(
     filepath: Path,
     *,
@@ -101,6 +110,13 @@ def process_file(
     assembly: str,
     run_async: bool,
 ) -> None:
+    """Process a VCF file.
+
+    :param for_ref: If true, compute VRS IDs for the reference allele
+    :param allow_async_write: Whether to allow async database writes
+    :param assembly: The assembly of the variants in the VCF
+    :param run_async: If true, run ingestion asynchronously
+    """
     anyvar_host = "http://localhost:8000"
     start = timer()
     submit_variants(
@@ -121,7 +137,13 @@ def process_file(
 )
 @click.option("--for-ref", type=bool, default=True)
 @click.option("--allow-async-write", type=bool, default=True)
-@click.option("--assembly", type=click.Choice(AssemblyOption, case_sensitive=False))
+@click.option(
+    "--assembly",
+    type=click.Choice(
+        choices=[assembly.value for assembly in ReferenceAssembly],
+        case_sensitive=False,
+    ),
+)
 @click.option("--run-async", type=bool, default=True)
 def main(
     filepaths: tuple[Path],
@@ -130,7 +152,16 @@ def main(
     allow_async_write: bool,
     assembly: str,
     run_async: bool,
-):
+) -> None:
+    """Test timing of VCF processing
+
+    :param filepaths: The VCF files
+    :param workers: The number of workers to use
+    :param for_ref: If true, compute VRS IDs for the reference allele
+    :param allow_async_write: Whether to allow async database writes
+    :param assembly: The assembly of the variants in the VCF
+    :param run_async: If true, run ingestion asynchronously
+    """
     logger.info("Received %s file(s):", len(filepaths))
     for fp in filepaths:
         logger.info("- %s", fp)

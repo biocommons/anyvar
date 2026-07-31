@@ -235,11 +235,11 @@ For larger files, a nontrivial amount of processing time may be required before 
    >>> print(response.json()["status_message"])
    'Run submitted. Check status at /vcf/runs/05385087-78e2-44d4-8ecc-3ca74563c4b1'
    >>> run_id = response.json()["run_id"]
-   >>> response = requests.get(f"http://localhost:8000/vcf/{run_id}")
+   >>> response = requests.get(f"http://localhost:8000/vcf/runs/{run_id}")
    >>> response.status_code
    202
    >>> # keep requesting until `200 OK`
-   >>> response = requests.get(f"http://localhost:8000/vcf/{run_id}")
+   >>> response = requests.get(f"http://localhost:8000/vcf/runs/{run_id}")
    >>> response.status_code
    200
    >>> # this indicates the task is complete and the request includes the finished file

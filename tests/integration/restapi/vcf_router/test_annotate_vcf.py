@@ -189,7 +189,7 @@ def test_vcf_registration_async(
     assert resp.json()["run_id"] == vcf_run_id
 
     while True:
-        resp = restapi_client.get(f"/vcf/{vcf_run_id}")
+        resp = restapi_client.get(f"/vcf/runs/{vcf_run_id}")
         if resp.status_code == HTTPStatus.ACCEPTED:
             time.sleep(1)
         elif resp.status_code == HTTPStatus.OK:
@@ -250,7 +250,7 @@ def test_vcf_get_result_no_async(restapi_client: TestClient, mocker: MockerFixtu
     mocker.patch.dict(
         os.environ, {"ANYVAR_VCF_ASYNC_WORK_DIR": "", "CELERY_BROKER_URL": ""}
     )
-    resp = restapi_client.get("/vcf/12345")
+    resp = restapi_client.get("/vcf/runs/12345")
     assert resp.status_code == HTTPStatus.BAD_REQUEST
     assert "error" in resp.json()
     assert (
@@ -268,7 +268,7 @@ def test_vcf_get_result_success(restapi_client: TestClient, mocker: MockerFixtur
     mock_result.return_value.status = "SUCCESS"
     mock_result.return_value.result = __file__
     mock_bg_tasks = mocker.patch("anyvar.restapi.vcf_router.BackgroundTasks.add_task")
-    resp = restapi_client.get("/vcf/12345")
+    resp = restapi_client.get("/vcf/runs/12345")
     assert resp.status_code == HTTPStatus.OK
     with pathlib.Path(__file__).open(mode="rb") as fd:
         assert resp.content == fd.read()
@@ -288,7 +288,7 @@ def test_vcf_get_result_failure_timeout(
     mock_result.return_value.result = TimeLimitExceeded("task timed out")
     mock_result.return_value.kwargs = {"input_file_path": __file__}
     mock_bg_tasks = mocker.patch("anyvar.restapi.vcf_router.BackgroundTasks.add_task")
-    resp = restapi_client.get("/vcf/12345")
+    resp = restapi_client.get("/vcf/runs/12345")
     assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
     assert "error" in resp.json()
     assert resp.json()["error"] == "TimeLimitExceeded('task timed out',)"
@@ -310,7 +310,7 @@ def test_vcf_get_result_failure_worker_lost(
     mock_result.return_value.result = WorkerLostError("killed")
     mock_result.return_value.kwargs = {"input_file_path": __file__}
     mock_bg_tasks = mocker.patch("anyvar.restapi.vcf_router.BackgroundTasks.add_task")
-    resp = restapi_client.get("/vcf/12345")
+    resp = restapi_client.get("/vcf/runs/12345")
     assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
     assert "error" in resp.json()
     assert resp.json()["error"] == "killed"
@@ -337,7 +337,7 @@ def test_vcf_get_result_failure_other(
     mock_result.return_value.result = KeyError("foo")
     mock_result.return_value.kwargs = {"input_file_path": __file__}
     mock_bg_tasks = mocker.patch("anyvar.restapi.vcf_router.BackgroundTasks.add_task")
-    resp = restapi_client.get("/vcf/12345")
+    resp = restapi_client.get("/vcf/runs/12345")
     assert resp.status_code == HTTPStatus.OK
     assert "error" in resp.json()
     assert resp.json()["error"] == "'foo'"
@@ -354,7 +354,7 @@ def test_vcf_get_result_notfound(restapi_client: TestClient, mocker: MockerFixtu
     )
     mock_result = mocker.patch("anyvar.restapi.async_utils.AsyncResult")
     mock_result.return_value.status = "PENDING"
-    resp = restapi_client.get("/vcf/12345")
+    resp = restapi_client.get("/vcf/runs/12345")
     assert resp.status_code == HTTPStatus.NOT_FOUND
     assert "status_message" in resp.json()
     assert resp.json()["status_message"] == "Run not found"
@@ -371,11 +371,12 @@ def test_vcf_get_result_notcomplete(restapi_client: TestClient, mocker: MockerFi
     )
     mock_result = mocker.patch("anyvar.restapi.async_utils.AsyncResult")
     mock_result.return_value.status = "SENT"
-    resp = restapi_client.get("/vcf/12345")
+    resp = restapi_client.get("/vcf/runs/12345")
     assert resp.status_code == HTTPStatus.ACCEPTED
     assert "status_message" in resp.json()
     assert (
-        resp.json()["status_message"] == "Run not completed. Check status at /vcf/12345"
+        resp.json()["status_message"]
+        == "Run not completed. Check status at /vcf/runs/12345"
     )
     assert "status" in resp.json()
     assert resp.json()["status"] == "PENDING"
