@@ -180,7 +180,7 @@ async def register_variations(
         return RunStatusResponse(
             run_id=task_result.id,
             status="PENDING",
-            status_message=f"Run submitted. Check status at /variations/{task_result.id}",
+            status_message=f"Run submitted. Check status at /variations/runs/{task_result.id}",
         )
 
     av: AnyVar = request.app.state.anyvar
@@ -492,7 +492,7 @@ def get_variation_mapping(
 
 
 @variations_router.get(
-    "/variations/run/{run_id}",
+    "/variations/runs/{run_id}",
     summary="Poll for status and/or result for asynchronous variation registration",
     description="Provide a valid run id to get the status and/or result of an asynchronous variation registration run",
     response_model=None,

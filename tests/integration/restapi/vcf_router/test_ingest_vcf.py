@@ -238,7 +238,7 @@ def test_registration_async(
     assert "status_message" in resp.json()
     assert (
         resp.json()["status_message"]
-        == f"Run submitted. Check status at /vcf/{vcf_run_id}"
+        == f"Run submitted. Check status at /vcf/runs/{vcf_run_id}"
     )
     assert "status" in resp.json()
     assert resp.json()["status"] == "PENDING"
@@ -265,7 +265,7 @@ def test_registration_async(
     assert "status_message" in resp.json()
     assert (
         resp.json()["status_message"]
-        == f"Run submitted. Check status at /vcf/{vcf_run_id}"
+        == f"Run submitted. Check status at /vcf/runs/{vcf_run_id}"
     )
     assert "status" in resp.json()
     assert resp.json()["status"] == "PENDING"
@@ -295,7 +295,7 @@ def test_registration_async_validate(
     assert "status_message" in resp.json()
     assert (
         resp.json()["status_message"]
-        == f"Run submitted. Check status at /vcf/{vcf_run_id}"
+        == f"Run submitted. Check status at /vcf/runs/{vcf_run_id}"
     )
     assert "status" in resp.json()
     assert resp.json()["status"] == "PENDING"
@@ -326,7 +326,7 @@ def test_registration_async_validate_wrongid(
     assert "status_message" in resp.json()
     assert (
         resp.json()["status_message"]
-        == f"Run submitted. Check status at /vcf/{vcf_run_id}"
+        == f"Run submitted. Check status at /vcf/runs/{vcf_run_id}"
     )
     assert "status" in resp.json()
     assert resp.json()["status"] == "PENDING"

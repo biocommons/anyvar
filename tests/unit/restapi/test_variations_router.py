@@ -232,7 +232,7 @@ class TestPutVariation:
 
 
 # ---------------------------------------------------------------------------
-# GET /variations/run/{run_id}
+# GET /variations/runs/{run_id}
 # ---------------------------------------------------------------------------
 
 
@@ -244,8 +244,8 @@ class TestGetVariationsRunStatus:
         return_value=False,
     )
     def test_async_not_enabled(self, _mock_enabled, test_client):  # noqa: PT019
-        """GET /variations/run/{run_id} returns 400 when async queueing is not enabled."""
-        resp = test_client.get("/variations/run/some-run-id")
+        """GET /variations/runs/{run_id} returns 400 when async queueing is not enabled."""
+        resp = test_client.get("/variations/runs/some-run-id")
         assert resp.status_code == HTTPStatus.BAD_REQUEST
         assert (
             "missing" in resp.json()["error"].lower()
@@ -264,7 +264,7 @@ class TestGetVariationsRunStatus:
         _mock_enabled,  # noqa: PT019
         test_client,
     ):
-        """GET /variations/run/{run_id} delegates to resolve_async_task_status with the correct run_id."""
+        """GET /variations/runs/{run_id} delegates to resolve_async_task_status with the correct run_id."""
 
         mock_resolve.return_value = JSONResponse(
             content=[{"object_id": "ga4gh:VA.123"}],
@@ -277,7 +277,7 @@ class TestGetVariationsRunStatus:
             status_code=200,
         )
 
-        _ = test_client.get("/variations/run/run-123")
+        _ = test_client.get("/variations/runs/run-123")
         # verify resolve_async_task_status was called with the run_id
         mock_resolve.assert_called_once()
         call_args = mock_resolve.call_args

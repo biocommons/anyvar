@@ -98,13 +98,13 @@ For larger batches of variations, the ``/variations`` endpoint supports the same
    202
    >>> run_id = response.json()["run_id"]
    >>> print(response.json()["status_message"])
-   'Run submitted. Check status at /variations/<run_id>'
+   'Run submitted. Check status at /variations/runs/<run_id>'
    >>> # poll for status
    >>> status_response = requests.get(f"http://localhost:8000/variations/{run_id}")
    >>> status_response.status_code  # 202 while in progress, 200 when complete
    202
    >>> # keep requesting until 200 OK
-   >>> status_response = requests.get(f"http://localhost:8000/variations/{run_id}")
+   >>> status_response = requests.get(f"http://localhost:8000/variations/runs/{run_id}")
    >>> status_response.status_code
    200
    >>> # the response body is the list of registration results
@@ -233,7 +233,7 @@ For larger files, a nontrivial amount of processing time may be required before 
    ...     files = {"vcf": ("big_vcf.vcf", f, "text/plain")}
    ...     response = requests.put("http://localhost:8000/vcf?enable_async=true", files=files)
    >>> print(response.json()["status_message"])
-   'Run submitted. Check status at /vcf/05385087-78e2-44d4-8ecc-3ca74563c4b1'
+   'Run submitted. Check status at /vcf/runs/05385087-78e2-44d4-8ecc-3ca74563c4b1'
    >>> run_id = response.json()["run_id"]
    >>> response = requests.get(f"http://localhost:8000/vcf/{run_id}")
    >>> response.status_code
