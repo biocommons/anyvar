@@ -8,6 +8,8 @@ from pathlib import Path
 import pytest
 from fastapi import UploadFile
 from fastapi.testclient import TestClient
+from ga4gh.vrs.models import Allele
+from httpx._models import Response
 
 from anyvar.restapi.vcf_router import write_vcf_and_count_sites
 
@@ -152,19 +154,21 @@ async def test_write_sitecounter(basic_vcf: io.BytesIO, tmp_path: Path):
 
 
 def test_registration_sync(
-    monkeypatch,
+    monkeypatch: pytest.MonkeyPatch,
     restapi_client: TestClient,
     basic_vcf: io.BytesIO,
     vcf_incorrect_id: io.BytesIO,
-):
+) -> None:
     """Test basic file registration, synchronous + no validation"""
-    recorded = []
+    recorded: list[Allele] = []
     monkeypatch.setattr(
         restapi_client.app.state.anyvar,
         "put_objects",
         lambda allele: recorded.extend(allele),
     )
-    resp = restapi_client.put("/vcf", files={"vcf": ("test.vcf", basic_vcf)})
+    resp: Response = restapi_client.put(
+        url="/vcf", files={"vcf": ("test.vcf", basic_vcf)}
+    )
 
     assert resp.status_code == HTTPStatus.OK
     assert recorded, "put_objects was never called"
@@ -172,7 +176,7 @@ def test_registration_sync(
     assert recorded[1].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
 
     # ignore wrong IDs
-    resp = restapi_client.put("/vcf", files={"vcf": ("test.vcf", vcf_incorrect_id)})
+    resp = restapi_client.put(url="/vcf", files={"vcf": ("test.vcf", vcf_incorrect_id)})
 
     assert resp.status_code == HTTPStatus.OK
     assert recorded, "put_objects was never called"
@@ -181,20 +185,20 @@ def test_registration_sync(
 
 
 def test_registration_sync_validate(
-    monkeypatch,
+    monkeypatch: pytest.MonkeyPatch,
     restapi_client: TestClient,
     basic_vcf: io.BytesIO,
     vcf_incorrect_id: io.BytesIO,
-):
+) -> None:
     """Test basic file registration, synchronous + validation"""
-    recorded = []
+    recorded: list[Allele] = []
     monkeypatch.setattr(
         restapi_client.app.state.anyvar,
         "put_objects",
         lambda allele: recorded.extend(allele),
     )
-    resp = restapi_client.put(
-        "/vcf",
+    resp: Response = restapi_client.put(
+        url="/vcf",
         files={"vcf": ("test.vcf", basic_vcf)},
         params={"require_validation": True},
     )
@@ -207,7 +211,7 @@ def test_registration_sync_validate(
 
     # handle wrong ID
     resp = restapi_client.put(
-        "/vcf",
+        url="/vcf",
         files={"vcf": ("test.vcf", vcf_incorrect_id)},
         params={"require_validation": True},
     )
@@ -341,12 +345,21 @@ def test_registration_async_validate_wrongid(
 
 
 def test_handle_incomplete_annotation(
-    restapi_client: TestClient, vcf_incomplete_annotations: io.BytesIO
+    restapi_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    vcf_incomplete_annotations: io.BytesIO,
 ):
     """Test that client gracefully handles an incompletely-annotated VCF"""
-    resp = restapi_client.put(
-        "/vcf", files={"vcf": ("test.vcf", vcf_incomplete_annotations)}
+    recorded: list[Allele] = []
+    monkeypatch.setattr(
+        restapi_client.app.state.anyvar,
+        "put_objects",
+        lambda allele: recorded.extend(allele),
+    )
+    resp: Response = restapi_client.put(
+        url="/vcf", files={"vcf": ("test.vcf", vcf_incomplete_annotations)}
     )
 
-    assert resp.status_code == HTTPStatus.BAD_REQUEST
-    assert "Required VRS annotations are missing" in resp.json()["error"]
+    assert resp.status_code == HTTPStatus.OK
+    assert recorded[0].id == "ga4gh:VA.5PqxTNMJZYJqQZ8MgF_77I1I_qcddGN_"
+    assert recorded[1].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"

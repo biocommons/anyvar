@@ -27,7 +27,7 @@ class VrsObjectRegistrationBatcher:
         :return: None
         """
         self.batch_collection = []
-        self.anyvar_instance: AnyVar = anyvar_instance
+        self.anyvar_instance = anyvar_instance
 
     def add_to_batch(self, vrs_object: SupportedVrsObject) -> None:
         """Adds a VRS Object to the current batch. If batch size limit is now met, register the whole batch.
@@ -106,3 +106,23 @@ class VcfRegistrar(VcfAnnotator):
 
         # register the final batch of vrs objects (since the last batch will likely be smaller than the batch size limit)
         self.vrs_object_registration_batcher.register_batch()
+
+    # def register_without_annotating(
+    #     self,
+    #     input_vcf_path: Path,
+    #     output_vcf_path: Path | None = None,
+    #     vrs_attributes: bool = False,
+    #     assembly: str = "GRCh38",
+    #     compute_for_ref: bool = True,
+    #     require_validation: bool = True,
+    #     **kwargs
+    # ) -> None:
+    #     super().annotate(
+    #         input_vcf_path,
+    #         output_vcf_path,
+    #         vrs_attributes,
+    #         assembly,
+    #         compute_for_ref,
+    #         require_validation,
+    #         **kwargs,
+    #     )

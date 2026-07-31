@@ -6,6 +6,7 @@ import os
 import pathlib
 import tempfile
 import uuid
+from logging import Logger
 from typing import Annotated
 
 from fastapi import (
@@ -41,7 +42,7 @@ if has_async_imports:
     from anyvar.queueing import celery_worker
     from anyvar.restapi.async_utils import resolve_async_task_status
 
-_logger = logging.getLogger(__name__)
+_logger: Logger = logging.getLogger(__name__)
 
 vcf_router = APIRouter()
 
@@ -169,6 +170,16 @@ async def _annotate_vcf_async(
     )
 
 
+def _handle_failed_registration(logger: Logger, vcf_filename: str) -> ErrorResponse:
+    logger.exception(
+        "Encountered error during registration of VCF file %s", vcf_filename
+    )
+    return ErrorResponse(
+        error="VCF registration failed.",
+        error_code=str(status.HTTP_500_INTERNAL_SERVER_ERROR),
+    )
+
+
 async def _annotate_vcf_sync(
     request: Request,
     response: Response,
@@ -199,12 +210,30 @@ async def _annotate_vcf_sync(
             assembly=assembly,
             vrs_attributes=add_vrs_attributes,
         )
-    except (TranslatorConnectionError, OSError, ValueError):
-        _logger.exception(
-            "Encountered error during registration of VCF file %s", vcf.filename
+    except ValueError as e:
+        already_annotated: bool = (
+            str(e) == "Header already exists for id=VRS_Allele_IDs"
         )
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        return ErrorResponse(error="VCF registration failed.")
+        if already_annotated:
+            registrar.annotate(
+                input_vcf_path=temp_in_path,
+                output_vcf_path=None,
+                compute_for_ref=for_ref,
+                assembly=assembly,
+                vrs_attributes=add_vrs_attributes,
+            )
+        else:
+            error_response: ErrorResponse = _handle_failed_registration(
+                logger=_logger, vcf_filename=vcf.filename or ""
+            )
+            response.status_code = int(error_response.error_code)  # pyright: ignore[reportArgumentType]
+            return error_response
+    except (TranslatorConnectionError, OSError):
+        error_response = _handle_failed_registration(
+            logger=_logger, vcf_filename=vcf.filename or ""
+        )
+        response.status_code = int(error_response.error_code)  # pyright: ignore[reportArgumentType]
+        return error_response
 
     if not allow_async_write:
         _logger.info("Waiting for object store writes from API handler method")
