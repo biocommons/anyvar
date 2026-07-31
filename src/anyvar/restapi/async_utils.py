@@ -170,5 +170,5 @@ if has_async_imports:
         return RunStatusResponse(
             run_id=run_id,
             status="PENDING",
-            status_message=f"Run not completed. Check status at {status_path_prefix}/{run_id}",
+            status_message=f"Run not completed. Check status at {status_path_prefix}/runs/{run_id}",
         )
