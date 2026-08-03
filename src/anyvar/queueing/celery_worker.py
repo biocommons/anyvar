@@ -211,6 +211,7 @@ def annotate_vcf(
         # annotate vcf with VRS IDs
         anyvar_app = get_anyvar_app()
         registrar = VcfRegistrar(anyvar_app.translator.dp, av=anyvar_app)
+        already_annotated: bool = False
         try:
             registrar.annotate(
                 Path(input_file_path),
@@ -220,9 +221,7 @@ def annotate_vcf(
                 vrs_attributes=add_vrs_attributes,
             )
         except ValueError as e:
-            already_annotated: bool = (
-                str(e) == "ValueError: Header already exists for id=VRS_Allele_IDs"
-            )
+            already_annotated = str(e) == "Header already exists for id=VRS_Allele_IDs"
             if already_annotated:
                 registrar.annotate(
                     input_vcf_path=Path(input_file_path),
@@ -252,6 +251,10 @@ def annotate_vcf(
                 self.request.id,
                 elapsed.seconds,
             )
+
+        output_file_path = (
+            output_file_path if not already_annotated else input_file_path
+        )
 
         # remove input file
         Path(input_file_path).unlink()
