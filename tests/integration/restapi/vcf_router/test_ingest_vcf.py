@@ -346,20 +346,12 @@ def test_registration_async_validate_wrongid(
 
 def test_handle_incomplete_annotation(
     restapi_client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
     vcf_incomplete_annotations: io.BytesIO,
 ):
     """Test that client gracefully handles an incompletely-annotated VCF"""
-    recorded: list[Allele] = []
-    monkeypatch.setattr(
-        restapi_client.app.state.anyvar,
-        "put_objects",
-        lambda allele: recorded.extend(allele),
-    )
-    resp: Response = restapi_client.put(
-        url="/vcf", files={"vcf": ("test.vcf", vcf_incomplete_annotations)}
+    resp = restapi_client.put(
+        "/vcf", files={"vcf": ("test.vcf", vcf_incomplete_annotations)}
     )
 
-    assert resp.status_code == HTTPStatus.OK
-    assert recorded[0].id == "ga4gh:VA.5PqxTNMJZYJqQZ8MgF_77I1I_qcddGN_"
-    assert recorded[1].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
+    assert resp.status_code == HTTPStatus.BAD_REQUEST
+    assert "Some required VRS annotations are missing" in resp.json()["error"]

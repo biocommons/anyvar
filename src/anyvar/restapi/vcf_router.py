@@ -34,6 +34,8 @@ from anyvar.translate.base import TranslatorConnectionError
 from anyvar.vcf.ingest import (
     RequiredAnnotationsError,
     VcfRegistrar,
+    has_any_vcf_annotations,
+    has_required_vcf_annotations,
     register_existing_annotations,
 )
 
@@ -52,6 +54,11 @@ vcf_router = APIRouter()
 _expected_vrs_ids_per_second = int(
     os.getenv("ANYVAR_EXPECTED_VRS_IDS_PER_SECOND", "500")
 )
+
+
+def _has_existing_vrs_header(exc: ValueError) -> bool:
+    """Return whether a ValueError indicates the VRS header already exists."""
+    return str(exc) == "Header already exists for id=VRS_Allele_IDs"
 
 
 async def write_vcf_and_count_sites(
@@ -96,7 +103,8 @@ async def write_vcf_and_count_sites(
 
 async def _annotate_vcf_async(
     response: Response,
-    vcf: UploadFile,
+    input_file_path: pathlib.Path,
+    vcf_site_count: int,
     for_ref: bool,
     allow_async_write: bool,
     assembly: str,
@@ -116,26 +124,6 @@ async def _annotate_vcf_async(
         return ErrorResponse(
             error="Required modules and/or configurations for asynchronous VCF annotation are missing"
         )
-
-    if run_id:
-        error = validate_run_id_available(run_id, response)
-        if error:
-            return error
-
-    # write file to shared storage area with a directory for each day and a random file name
-    async_work_dir = os.environ.get("ANYVAR_VCF_ASYNC_WORK_DIR", None)
-    utc_now = datetime.datetime.now(tz=datetime.UTC)
-    file_id = str(uuid.uuid4())
-    input_file_path = pathlib.Path(
-        f"{async_work_dir}/{utc_now.year}{utc_now.month}{utc_now.day}/{file_id}"
-    )
-    if not input_file_path.parent.exists():
-        input_file_path.parent.mkdir(parents=True)
-    _logger.debug(
-        "writing working file for async run %s vcf to %s", run_id, input_file_path
-    )
-
-    vcf_site_count = await write_vcf_and_count_sites(vcf, run_id, input_file_path)
 
     # submit async job
     task_result = celery_worker.annotate_vcf.apply_async(
@@ -186,7 +174,7 @@ async def _annotate_vcf_sync(
     request: Request,
     response: Response,
     bg_tasks: BackgroundTasks,
-    vcf: UploadFile,
+    input_file_path: pathlib.Path,
     for_ref: bool,
     allow_async_write: bool,
     assembly: str,
@@ -195,43 +183,37 @@ async def _annotate_vcf_sync(
     """Annotate with VRS IDs synchronously.  See `annotate_vcf()` for parameter definitions."""
     av: AnyVar = request.app.state.anyvar
     registrar = VcfRegistrar(data_proxy=av.translator.dp, av=av)
-
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".vcf") as temp_in:
-        contents = await vcf.read()
-        temp_in.write(contents)
-        temp_in_path = pathlib.Path(temp_in.name)
+    response_file_path = input_file_path
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".vcf") as temp_out:
         temp_out_path = pathlib.Path(temp_out.name)
 
-    already_annotated: bool = False
     try:
         registrar.annotate(
-            input_vcf_path=temp_in_path,
+            input_vcf_path=input_file_path,
             output_vcf_path=temp_out_path,
             compute_for_ref=for_ref,
             assembly=assembly,
             vrs_attributes=add_vrs_attributes,
         )
-    except ValueError as e:
-        already_annotated = str(e) == "Header already exists for id=VRS_Allele_IDs"
-        if already_annotated:
-            registrar.annotate(
-                input_vcf_path=temp_in_path,
-                output_vcf_path=None,
-                compute_for_ref=for_ref,
-                assembly=assembly,
-                vrs_attributes=add_vrs_attributes,
-            )
-        else:
+        response_file_path = temp_out_path
+    except ValueError as exc:
+        if not _has_existing_vrs_header(exc):
             error_response: ErrorResponse = _handle_failed_registration(
-                logger=_logger, vcf_filename=vcf.filename or ""
+                logger=_logger, vcf_filename=str(input_file_path)
             )
             response.status_code = int(error_response.error_code)  # pyright: ignore[reportArgumentType]
             return error_response
+        registrar.annotate(
+            input_vcf_path=input_file_path,
+            output_vcf_path=None,
+            compute_for_ref=for_ref,
+            assembly=assembly,
+            vrs_attributes=add_vrs_attributes,
+        )
     except (TranslatorConnectionError, OSError):
         error_response = _handle_failed_registration(
-            logger=_logger, vcf_filename=vcf.filename or ""
+            logger=_logger, vcf_filename=str(input_file_path)
         )
         response.status_code = int(error_response.error_code)  # pyright: ignore[reportArgumentType]
         return error_response
@@ -240,10 +222,10 @@ async def _annotate_vcf_sync(
         _logger.info("Waiting for object store writes from API handler method")
         av.object_store.wait_for_writes()
 
-    bg_tasks.add_task(_working_file_cleanup, temp_in_path)
+    bg_tasks.add_task(_working_file_cleanup, input_file_path)
     bg_tasks.add_task(_working_file_cleanup, temp_out_path)
 
-    return FileResponse(temp_in_path if already_annotated else temp_out_path)
+    return FileResponse(path=response_file_path)
 
 
 @vcf_router.put(
@@ -316,50 +298,84 @@ async def register_variants_from_vcf(
     # ensure the temporary file is flushed to disk
     vcf.file.rollover()
 
-    # For both synchronous and async ingestion, begin by assuming the VCF file is already annotated,
-    # then try annotating the file if the first attempt at ingestion fails
+    # validate run id, if applicable
+    if run_async and run_id:
+        error = validate_run_id_available(run_id, response)
+        if error:
+            return error
+
+    # Write to temporary file
+    if run_async:
+        async_work_dir = os.environ.get("ANYVAR_VCF_ASYNC_WORK_DIR", None)
+        utc_now = datetime.datetime.now(tz=datetime.UTC)
+        file_id = str(uuid.uuid4())
+        input_file_path = pathlib.Path(
+            f"{async_work_dir}/{utc_now.year}{utc_now.month}{utc_now.day}/{file_id}"
+        )
+        if not input_file_path.parent.exists():
+            input_file_path.parent.mkdir(parents=True)
+    else:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".vcf") as temp_in:
+            input_file_path = pathlib.Path(temp_in.name)
+
+    _logger.debug("writing working file for /vcf request to %s", input_file_path)
+    vcf_site_count = await write_vcf_and_count_sites(vcf, run_id, input_file_path)
+
+    # Check annotations - if the VCF has SOME required annotations, but not ALL of them (i.e., is only partially annotated), raise an error
+    # But if it has NO annotations, we'll annotate it in the next step
+    is_fully_annotated = has_required_vcf_annotations(input_file_path)
+    has_any_annotations = has_any_vcf_annotations(input_file_path)
+
+    if has_any_annotations and not is_fully_annotated:
+        _working_file_cleanup(str(input_file_path), missing_ok=True)
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return ErrorResponse(
+            error="Some required VRS annotations are missing -- ensure INFO field has VRS_Allele_IDs, VRS_Starts, VRS_Ends, VRS_States, VRS_Lengths, and VRS_RepeatSubunitLengths"
+        )
+
+    # If VCF is already annotated, just ingest its variants;
+    # otherwise, annotate first and then ingest
     try:
         if run_async:
-            try:
+            if is_fully_annotated:
                 return await _ingest_annotated_vcf_async(
                     response=response,
-                    vcf=vcf,
+                    input_file_path=input_file_path,
+                    vcf_site_count=vcf_site_count,
                     allow_async_write=allow_async_write,
                     assembly=assembly,
                     require_validation=require_validation,
                     run_id=run_id,
                 )
-            except RequiredAnnotationsError:
-                return await _annotate_vcf_async(
-                    response=response,
-                    vcf=vcf,
-                    for_ref=for_ref,
-                    allow_async_write=allow_async_write,
-                    assembly=assembly,
-                    add_vrs_attributes=add_vrs_attributes,
-                    run_id=run_id,
-                )
-        else:
-            try:
-                return await _ingest_annotated_vcf_sync(
-                    request=request,
-                    bg_tasks=bg_tasks,
-                    vcf=vcf,
-                    assembly=assembly,
-                    allow_async_write=allow_async_write,
-                    require_validation=require_validation,
-                )
-            except RequiredAnnotationsError:
-                return await _annotate_vcf_sync(
-                    request=request,
-                    response=response,
-                    bg_tasks=bg_tasks,
-                    vcf=vcf,
-                    for_ref=for_ref,
-                    allow_async_write=allow_async_write,
-                    assembly=assembly,
-                    add_vrs_attributes=add_vrs_attributes,
-                )
+            return await _annotate_vcf_async(
+                response=response,
+                input_file_path=input_file_path,
+                vcf_site_count=vcf_site_count,
+                for_ref=for_ref,
+                allow_async_write=allow_async_write,
+                assembly=assembly,
+                add_vrs_attributes=add_vrs_attributes,
+                run_id=run_id,
+            )
+        if is_fully_annotated:
+            return await _ingest_annotated_vcf_sync(
+                request=request,
+                bg_tasks=bg_tasks,
+                input_file_path=input_file_path,
+                assembly=assembly,
+                allow_async_write=allow_async_write,
+                require_validation=require_validation,
+            )
+        return await _annotate_vcf_sync(
+            request=request,
+            response=response,
+            bg_tasks=bg_tasks,
+            input_file_path=input_file_path,
+            for_ref=for_ref,
+            allow_async_write=allow_async_write,
+            assembly=assembly,
+            add_vrs_attributes=add_vrs_attributes,
+        )
     except (TranslatorConnectionError, OSError, ValueError):
         _logger.exception(
             "Encountered error during registration of VCF file %s", vcf.filename
@@ -386,28 +402,22 @@ def _working_file_cleanup(file_path: str, missing_ok: bool = False) -> None:
 async def _ingest_annotated_vcf_sync(
     request: Request,
     bg_tasks: BackgroundTasks,
-    vcf: UploadFile,
+    input_file_path: pathlib.Path,
     assembly: str,
     allow_async_write: bool,
     require_validation: bool,
 ) -> FileResponse | ErrorResponse | None:
     """Ingest annotated VCF synchronously.  See `annotated_vcf()` for parameter definitions."""
     av: AnyVar = request.app.state.anyvar
-
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".vcf") as temp_in:
-        contents = await vcf.read()
-        temp_in.write(contents)
-        temp_in_path = pathlib.Path(temp_in.name)
-
     conflicts_file = register_existing_annotations(
-        av, temp_in_path, assembly, require_validation
+        av, input_file_path, assembly, require_validation
     )
 
     if not allow_async_write:
         _logger.info("Waiting for object store writes from API handler method")
         av.object_store.wait_for_writes()
 
-    bg_tasks.add_task(_working_file_cleanup, temp_in_path)
+    bg_tasks.add_task(_working_file_cleanup, input_file_path)
     if conflicts_file:
         bg_tasks.add_task(_working_file_cleanup, conflicts_file)
         return FileResponse(conflicts_file)
@@ -416,7 +426,8 @@ async def _ingest_annotated_vcf_sync(
 
 async def _ingest_annotated_vcf_async(
     response: Response,
-    vcf: UploadFile,
+    input_file_path: pathlib.Path,
+    vcf_site_count: int,
     assembly: str,
     allow_async_write: bool,
     require_validation: bool,
@@ -434,24 +445,6 @@ async def _ingest_annotated_vcf_async(
         return ErrorResponse(
             error="Required modules and/or configurations for asynchronous VCF annotation are missing"
         )
-
-    # if run_id is provided, validate it does not already exist
-    if run_id:
-        error = validate_run_id_available(run_id, response)
-        if error:
-            return error
-
-    async_work_dir = os.environ.get("ANYVAR_VCF_ASYNC_WORK_DIR", None)
-    utc_now = datetime.datetime.now(tz=datetime.UTC)
-    file_id = str(uuid.uuid4())
-    input_file_path = pathlib.Path(
-        f"{async_work_dir}/{utc_now.year}{utc_now.month}{utc_now.day}/{file_id}"
-    )
-    if not input_file_path.parent.exists():
-        input_file_path.parent.mkdir(parents=True)
-    _logger.debug("writing working file for async vcf to %s", input_file_path)
-
-    vcf_site_count = await write_vcf_and_count_sites(vcf, run_id, input_file_path)
 
     task_result = celery_worker.ingest_annotated_vcf.apply_async(
         kwargs={

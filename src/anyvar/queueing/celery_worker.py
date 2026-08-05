@@ -241,6 +241,7 @@ def annotate_vcf(
 
         # remove input file
         Path(input_file_path).unlink()
+
         # return output file path
         return output_file_path  # noqa: TRY300
     except Exception:
