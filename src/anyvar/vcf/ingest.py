@@ -131,6 +131,28 @@ def _raise_for_missing_vcf_annotations(vcf: pysam.VariantFile) -> None:
         )
 
 
+def has_required_vcf_annotations(file_path: Path) -> bool:
+    """Return whether a VCF contains the full set of required VRS INFO fields."""
+    variantfile = pysam.VariantFile(filename=str(file_path), mode="r")
+    try:
+        _raise_for_missing_vcf_annotations(variantfile)
+    except RequiredAnnotationsError:
+        return False
+    finally:
+        variantfile.close()
+    return True
+
+
+def has_any_vcf_annotations(file_path: Path) -> bool:
+    """Return whether a VCF contains any VRS INFO fields."""
+    field_names = {name.value for name in FieldName}
+    variantfile = pysam.VariantFile(filename=str(file_path), mode="r")
+    try:
+        return any(name in variantfile.header.info for name in field_names)
+    finally:
+        variantfile.close()
+
+
 def register_existing_annotations(
     av: AnyVar, file_path: Path, assembly: str, require_validation: bool = False
 ) -> Path | None:
