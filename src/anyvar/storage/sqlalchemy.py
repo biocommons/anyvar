@@ -12,9 +12,19 @@ from collections import defaultdict
 from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
-from sqlalchemy import ColumnElement, and_, delete, or_, select
+from sqlalchemy import (
+    ColumnElement,
+    Pool,
+    and_,
+    create_engine,
+    delete,
+    or_,
+    select,
+)
+from sqlalchemy.engine.base import Engine
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload, sessionmaker
+from sqlalchemy.orm import joinedload, sessionmaker
+from sqlalchemy.orm.session import Session
 
 from anyvar.core import metadata
 from anyvar.core import objects as anyvar_objects
@@ -44,6 +54,23 @@ class SqlAlchemyStorage(Storage):
         orm.Location.__name__,
         orm.Allele.__name__,
     ]
+
+    def __init__(
+        self, db_url: str, poolclass: type[Pool] | None = None, *args, **kwargs
+    ) -> None:
+        """Initialize storage.
+
+        :param db_url: Database connection URL (e.g., postgresql://user:pass@host:port/db)
+        """
+        self.db_url: str = db_url
+        self.engine: Engine = create_engine(url=db_url, poolclass=poolclass)
+        self.session_factory = sessionmaker[Session](bind=self.engine)
+        self.batch_size: int = kwargs.get("batch_size", 1000)
+        self._create_tables()
+
+    @abstractmethod
+    def _create_tables(self) -> None:
+        """Initialize database tables"""
 
     def wipe_db(self) -> None:
         """Wipe all data from the storage backend."""

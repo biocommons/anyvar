@@ -1,13 +1,25 @@
 """Provide PostgreSQL-based storage implementation."""
 
 import json
+from pathlib import Path
 
+from alembic import command
+from alembic.config import Config
 from pydantic import JsonValue
-from sqlalchemy import ColumnElement, Engine, Index, create_engine, delete, func
+from sqlalchemy import (
+    ColumnElement,
+    Engine,
+    Index,
+    Inspector,
+    delete,
+    func,
+    inspect,
+)
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
 
 from anyvar.storage import orm
+from anyvar.storage.alembic_config import configure_alembic
 from anyvar.storage.sqlalchemy import SqlAlchemyStorage
 
 
@@ -19,19 +31,20 @@ class PostgresObjectStore(SqlAlchemyStorage):
 
         :param db_url: Database connection URL (e.g., postgresql://user:pass@host:port/db)
         """
-        self.db_url = db_url
-        self.engine = create_engine(db_url)
-        self.session_factory = sessionmaker(bind=self.engine)
-        self.batch_size = kwargs.get("batch_size", 1000)
-        self._initialize(self.engine)
+        super().__init__(db_url=db_url)
+        self._create_indices(self.engine)
 
-    def _initialize(self, engine: Engine) -> None:
-        """Initialize postgres
+    def _create_tables(self) -> None:
+        """Initialize database tables"""
+        inspector: Inspector = inspect(subject=self.engine)
+        tables: set[str] = set(inspector.get_table_names())
 
-        Ensure existence of tables, engine-specific indices, etc
-        """
-        orm.Base.metadata.create_all(bind=engine)
-        self._create_indices(engine)
+        # If the DB is empty, create all the required tables
+        if not tables:
+            repo_root: Path = Path(__file__).resolve().parents[3]
+            config: Config = Config(file_=str(repo_root / "alembic.ini"))
+            configure_alembic(config, db_url_override=self.db_url)
+            command.upgrade(config=config, revision="head")
 
     def _create_indices(self, engine: Engine) -> None:
         """Create postgres-specific indices"""
