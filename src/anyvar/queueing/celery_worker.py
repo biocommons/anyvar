@@ -252,13 +252,11 @@ def annotate_vcf(
                 elapsed.seconds,
             )
 
-        output_file_path = (
-            output_file_path if not already_annotated else input_file_path
-        )
-
+        if already_annotated:
+            # return output file path
+            return input_file_path
         # remove input file
         Path(input_file_path).unlink()
-
         # return output file path
         return output_file_path  # noqa: TRY300
     except Exception:

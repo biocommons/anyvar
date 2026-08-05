@@ -202,6 +202,7 @@ async def _annotate_vcf_sync(
     with tempfile.NamedTemporaryFile(delete=False, suffix=".vcf") as temp_out:
         temp_out_path = pathlib.Path(temp_out.name)
 
+    already_annotated: bool = False
     try:
         registrar.annotate(
             input_vcf_path=temp_in_path,
@@ -211,9 +212,7 @@ async def _annotate_vcf_sync(
             vrs_attributes=add_vrs_attributes,
         )
     except ValueError as e:
-        already_annotated: bool = (
-            str(e) == "Header already exists for id=VRS_Allele_IDs"
-        )
+        already_annotated = str(e) == "Header already exists for id=VRS_Allele_IDs"
         if already_annotated:
             registrar.annotate(
                 input_vcf_path=temp_in_path,
@@ -242,7 +241,7 @@ async def _annotate_vcf_sync(
     bg_tasks.add_task(_working_file_cleanup, temp_in_path)
     bg_tasks.add_task(_working_file_cleanup, temp_out_path)
 
-    return FileResponse(temp_out_path)
+    return FileResponse(temp_in_path if already_annotated else temp_out_path)
 
 
 @vcf_router.put(
