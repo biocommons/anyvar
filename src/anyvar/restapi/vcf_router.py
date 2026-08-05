@@ -32,7 +32,9 @@ from anyvar.restapi.async_utils import (
 from anyvar.restapi.schema import ErrorResponse, RunStatusResponse
 from anyvar.translate.base import TranslatorConnectionError
 from anyvar.vcf.ingest import (
+    RequiredAnnotationsError,
     VcfRegistrar,
+    register_existing_annotations,
 )
 
 if has_async_imports:
@@ -347,6 +349,213 @@ def _working_file_cleanup(file_path: str, missing_ok: bool = False) -> None:
         pathlib.Path(file_path).unlink(missing_ok=missing_ok)
     except Exception as e:  # noqa: BLE001
         _logger.warning("unable to remove working file %s: %s", file_path, str(e))
+
+
+async def _ingest_annotated_vcf_sync(
+    request: Request,
+    bg_tasks: BackgroundTasks,
+    vcf: UploadFile,
+    assembly: str,
+    allow_async_write: bool,
+    require_validation: bool,
+) -> FileResponse | ErrorResponse | None:
+    """Ingest annotated VCF synchronously.  See `annotated_vcf()` for parameter definitions."""
+    av: AnyVar = request.app.state.anyvar
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".vcf") as temp_in:
+        contents = await vcf.read()
+        temp_in.write(contents)
+        temp_in_path = pathlib.Path(temp_in.name)
+
+    conflicts_file = register_existing_annotations(
+        av, temp_in_path, assembly, require_validation
+    )
+
+    if not allow_async_write:
+        _logger.info("Waiting for object store writes from API handler method")
+        av.object_store.wait_for_writes()
+
+    bg_tasks.add_task(_working_file_cleanup, temp_in_path)
+    if conflicts_file:
+        bg_tasks.add_task(_working_file_cleanup, conflicts_file)
+        return FileResponse(conflicts_file)
+    return None
+
+
+async def _ingest_annotated_vcf_async(
+    response: Response,
+    vcf: UploadFile,
+    assembly: str,
+    allow_async_write: bool,
+    require_validation: bool,
+    run_id: str | None,
+) -> RunStatusResponse | ErrorResponse:
+    """Ingest annotated VCF asynchronously.  See `annotated_vcf()` for parameter definitions."""
+    if not anyvar.anyvar.has_queueing_enabled() or not has_async_imports:
+        _logger.warning(
+            "Async VCF annotation requested but not enabled (has_queueing_enabled=%s, has_async_imports=%s)",
+            anyvar.anyvar.has_queueing_enabled(),
+            has_async_imports,
+            stack_info=True,
+        )
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return ErrorResponse(
+            error="Required modules and/or configurations for asynchronous VCF annotation are missing"
+        )
+
+    # if run_id is provided, validate it does not already exist
+    if run_id:
+        error = validate_run_id_available(run_id, response)
+        if error:
+            return error
+
+    async_work_dir = os.environ.get("ANYVAR_VCF_ASYNC_WORK_DIR", None)
+    utc_now = datetime.datetime.now(tz=datetime.UTC)
+    file_id = str(uuid.uuid4())
+    input_file_path = pathlib.Path(
+        f"{async_work_dir}/{utc_now.year}{utc_now.month}{utc_now.day}/{file_id}"
+    )
+    if not input_file_path.parent.exists():
+        input_file_path.parent.mkdir(parents=True)
+    _logger.debug("writing working file for async vcf to %s", input_file_path)
+
+    vcf_site_count = await write_vcf_and_count_sites(vcf, run_id, input_file_path)
+
+    task_result = celery_worker.ingest_annotated_vcf.apply_async(
+        kwargs={
+            "input_file_path": str(input_file_path),
+            "assembly": assembly,
+            "allow_async_write": allow_async_write,
+            "require_validation": require_validation,
+        },
+        task_id=run_id,
+    )
+    _logger.info(
+        "%s - async annotation run submitted for vcf with %s sites",
+        task_result.id,
+        vcf_site_count,
+    )
+
+    # set response headers
+    response.status_code = status.HTTP_202_ACCEPTED
+    response.headers["Location"] = f"/vcf/{task_result.id}"
+    # low side estimate for time is 333 variants per second
+    retry_after = max(1, round((vcf_site_count * 2) / 333, 0))
+    _logger.debug("%s - retry after is %s", task_result.id, str(retry_after))
+    response.headers["Retry-After"] = str(retry_after)
+    return RunStatusResponse(
+        run_id=task_result.id,
+        status="PENDING",
+        status_message=f"Run submitted. Check status at /vcf/{task_result.id}",
+    )
+
+
+@vcf_router.put(
+    "/annotated_vcf",
+    summary="Register alleles from a VCF that has already been annotated with VRS objects",
+    description="Provide a VCF that already has VRS location and state annotations. Ingest the objects into AnyVar.",
+    response_model=None,
+)
+async def annotated_vcf(
+    request: Request,
+    response: Response,
+    bg_tasks: BackgroundTasks,
+    vcf: Annotated[
+        UploadFile,
+        File(
+            ...,
+            description="VCF that has already been annotated with VRS ID, start/stop, and state for all alleles",
+        ),
+    ],
+    allow_async_write: Annotated[
+        bool,
+        Query(
+            description="Whether to allow asynchronous write of VRS objects to database",
+        ),
+    ] = False,
+    assembly: Annotated[
+        str,
+        Query(
+            pattern="^(GRCh38|GRCh37)$",
+            description="The reference assembly for the VCF",
+        ),
+    ] = "GRCh38",
+    run_async: Annotated[
+        bool,
+        Query(
+            description="If true, immediately return a '202 Accepted' response and run asynchronously",
+        ),
+    ] = False,
+    require_validation: Annotated[
+        bool,
+        Query(
+            description="If true, verify correctness of annotated ID and return CSV listing all validation failures"
+        ),
+    ] = False,
+    run_id: Annotated[
+        str | None,
+        Query(
+            description="When running asynchronously, use the specified value as the run id instead generating a random uuid",
+        ),
+    ] = None,
+) -> FileResponse | RunStatusResponse | ErrorResponse | None:
+    """Register alleles from a VCF and return a file annotated with VRS IDs."""
+    # If async requested but not enabled, return an error
+    if (
+        run_async and not anyvar.anyvar.has_queueing_enabled()
+    ) or not has_async_imports:
+        _logger.warning(
+            "Async VCF annotation requested but not enabled (run_async=%s, has_queueing_enabled=%s, has_async_imports=%s)",
+            run_async,
+            anyvar.anyvar.has_queueing_enabled(),
+            has_async_imports,
+            stack_info=True,
+        )
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return ErrorResponse(
+            error="Required modules and/or configurations for asynchronous VCF ingest are missing"
+        )
+
+    # ensure the temporary file is flushed to disk
+    vcf.file.rollover()
+
+    if run_async:
+        if run_id:
+            existing_result = AsyncResult(id=run_id)
+            if existing_result.status != "PENDING":
+                response.status_code = status.HTTP_400_BAD_REQUEST
+                return ErrorResponse(
+                    error=f"An existing run with id {run_id} is {existing_result.status}.  Fetch the completed run result before submitting with the same run_id."
+                )
+        return await _ingest_annotated_vcf_async(
+            response=response,
+            vcf=vcf,
+            allow_async_write=allow_async_write,
+            assembly=assembly,
+            require_validation=require_validation,
+            run_id=run_id,
+        )
+    try:
+        return await _ingest_annotated_vcf_sync(
+            request=request,
+            bg_tasks=bg_tasks,
+            vcf=vcf,
+            assembly=assembly,
+            allow_async_write=allow_async_write,
+            require_validation=require_validation,
+        )
+    except RequiredAnnotationsError:
+        _logger.exception("%s lacks required VRS annotations", vcf.filename)
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return ErrorResponse(
+            error="Required VRS annotations are missing -- ensure INFO field has VRS_Allele_IDs, VRS_Starts, VRS_Ends, VRS_States, VRS_Lengths, and VRS_RepeatSubunitLengths"
+        )
+    except (TranslatorConnectionError, OSError, ValueError):
+        _logger.exception(
+            "Encountered error during registration of VCF file %s", vcf.filename
+        )
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ErrorResponse(error="VCF ingestion failed.")
 
 
 @vcf_router.get(
