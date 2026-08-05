@@ -252,7 +252,7 @@ async def _annotate_vcf_sync(
     description="Provide a valid VCF. All reference and alternate alleles will be registered with AnyVar. The file is annotated with VRS IDs and returned.",
     response_model=None,
 )
-async def annotate_vcf(
+async def register_variants_from_vcf(
     request: Request,
     response: Response,
     bg_tasks: BackgroundTasks,
@@ -286,13 +286,19 @@ async def annotate_vcf(
             description="If true, immediately return a '202 Accepted' response and run asynchronously",
         ),
     ] = False,
+    require_validation: Annotated[
+        bool,
+        Query(
+            description="For pre-annotated VCFs: If true, verify correctness of annotated ID and return CSV listing all validation failures. Noop for unannotated VCFs."
+        ),
+    ] = False,
     run_id: Annotated[
         str | None,
         Query(
             description="When running asynchronously, use the specified value as the run id instead generating a random uuid",
         ),
     ] = None,
-) -> FileResponse | RunStatusResponse | ErrorResponse:
+) -> FileResponse | RunStatusResponse | ErrorResponse | None:
     """Register alleles from a VCF and return a file annotated with VRS IDs."""
     # If async requested but not enabled, return an error
     if run_async and not anyvar.anyvar.has_queueing_enabled():
@@ -310,30 +316,56 @@ async def annotate_vcf(
     # ensure the temporary file is flushed to disk
     vcf.file.rollover()
 
+    # For both synchronous and async ingestion, begin by assuming the VCF file is already annotated,
+    # then try annotating the file if the first attempt at ingestion fails
     try:
-        # Submit asynchronous run
         if run_async:
-            return await _annotate_vcf_async(
-                response=response,
-                vcf=vcf,
-                for_ref=for_ref,
-                allow_async_write=allow_async_write,
-                assembly=assembly,
-                add_vrs_attributes=add_vrs_attributes,
-                run_id=run_id,
-            )
-        # Run synchronously
-        else:  # noqa: RET505
-            return await _annotate_vcf_sync(
-                request=request,
-                response=response,
-                bg_tasks=bg_tasks,
-                vcf=vcf,
-                for_ref=for_ref,
-                allow_async_write=allow_async_write,
-                assembly=assembly,
-                add_vrs_attributes=add_vrs_attributes,
-            )
+            try:
+                return await _ingest_annotated_vcf_async(
+                    response=response,
+                    vcf=vcf,
+                    allow_async_write=allow_async_write,
+                    assembly=assembly,
+                    require_validation=require_validation,
+                    run_id=run_id,
+                )
+            except RequiredAnnotationsError:
+                return await _annotate_vcf_async(
+                    response=response,
+                    vcf=vcf,
+                    for_ref=for_ref,
+                    allow_async_write=allow_async_write,
+                    assembly=assembly,
+                    add_vrs_attributes=add_vrs_attributes,
+                    run_id=run_id,
+                )
+        else:
+            try:
+                return await _ingest_annotated_vcf_sync(
+                    request=request,
+                    bg_tasks=bg_tasks,
+                    vcf=vcf,
+                    assembly=assembly,
+                    allow_async_write=allow_async_write,
+                    require_validation=require_validation,
+                )
+            except RequiredAnnotationsError:
+                return await _annotate_vcf_sync(
+                    request=request,
+                    response=response,
+                    bg_tasks=bg_tasks,
+                    vcf=vcf,
+                    for_ref=for_ref,
+                    allow_async_write=allow_async_write,
+                    assembly=assembly,
+                    add_vrs_attributes=add_vrs_attributes,
+                )
+    except (TranslatorConnectionError, OSError, ValueError):
+        _logger.exception(
+            "Encountered error during registration of VCF file %s", vcf.filename
+        )
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ErrorResponse(error="VCF ingestion failed.")
     except Exception:
         _logger.exception("Unhandled error encountered error during VCF registration")
         raise
@@ -438,7 +470,7 @@ async def _ingest_annotated_vcf_async(
 
     # set response headers
     response.status_code = status.HTTP_202_ACCEPTED
-    response.headers["Location"] = f"/vcf/{task_result.id}"
+    response.headers["Location"] = f"/vcf/runs/{task_result.id}"
     # low side estimate for time is 333 variants per second
     retry_after = max(1, round((vcf_site_count * 2) / 333, 0))
     _logger.debug("%s - retry after is %s", task_result.id, str(retry_after))
@@ -446,7 +478,7 @@ async def _ingest_annotated_vcf_async(
     return RunStatusResponse(
         run_id=task_result.id,
         status="PENDING",
-        status_message=f"Run submitted. Check status at /vcf/{task_result.id}",
+        status_message=f"Run submitted. Check status at /vcf/runs/{task_result.id}",
     )
 
 
