@@ -1,5 +1,4 @@
 """Alembic environment setup"""
-# ruff: noqa: INP001
 
 from logging.config import fileConfig
 

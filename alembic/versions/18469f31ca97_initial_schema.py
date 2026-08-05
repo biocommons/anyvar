@@ -6,8 +6,6 @@ Create Date: 2026-07-29 13:21:44.275633
 
 """
 
-# ruff: noqa: INP001
-
 from collections.abc import Sequence
 
 import sqlalchemy as sa
