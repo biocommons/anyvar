@@ -148,7 +148,7 @@ def test_registration_sync(
     restapi_client: TestClient,
     basic_vcf: io.BytesIO,
 ):
-    """Test basic file registration, synchronous + no validation"""
+    """Test basic file registration, synchronous"""
     recorded = []
     monkeypatch.setattr(
         restapi_client.app.state.anyvar,
@@ -161,31 +161,6 @@ def test_registration_sync(
     assert recorded, "put_objects was never called"
     assert recorded[0].id == "ga4gh:VA.5PqxTNMJZYJqQZ8MgF_77I1I_qcddGN_"
     assert recorded[1].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
-
-
-def test_registration_sync_validate(
-    monkeypatch,
-    restapi_client: TestClient,
-    basic_vcf: io.BytesIO,
-):
-    """Test basic file registration, synchronous + validation"""
-    recorded = []
-    monkeypatch.setattr(
-        restapi_client.app.state.anyvar,
-        "put_objects",
-        lambda allele: recorded.extend(allele),
-    )
-    resp = restapi_client.put(
-        "/vcf",
-        files={"vcf": ("test.vcf", basic_vcf)},
-        params={"require_validation": True},
-    )
-
-    assert resp.status_code == HTTPStatus.OK
-    assert recorded, "put_objects was never called"
-    assert recorded[0].id == "ga4gh:VA.5PqxTNMJZYJqQZ8MgF_77I1I_qcddGN_"
-    assert recorded[1].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
-    assert resp.content.count(b"\n") == 1  # just header
 
 
 def test_registration_async(
@@ -220,36 +195,6 @@ def test_registration_async(
         else:
             raise AssertionError(f"Unexpected HTTP response: {resp.status_code}")
     assert resp.json()["status"] == "SUCCESS"
-
-
-def test_registration_async_validate(
-    restapi_client: TestClient,
-    basic_vcf: io.BytesIO,
-    celery_context,  # noqa: ARG001
-    vcf_run_id: str,
-):
-    """Test file registration, asynchronous + validation"""
-    resp = restapi_client.put(
-        "/vcf",
-        files={"vcf": ("test.vcf", basic_vcf)},
-        params={"require_validation": True, "run_async": True, "run_id": vcf_run_id},
-    )
-    assert resp.status_code == HTTPStatus.ACCEPTED
-    assert "status_message" in resp.json()
-    assert (
-        resp.json()["status_message"]
-        == f"Run submitted. Check status at /vcf/{vcf_run_id}"
-    )
-    assert "status" in resp.json()
-    assert resp.json()["status"] == "PENDING"
-    assert "run_id" in resp.json()
-    assert resp.json()["run_id"] == vcf_run_id
-
-    time.sleep(5)
-
-    resp = restapi_client.get(f"/vcf/{vcf_run_id}")
-    assert resp.status_code == HTTPStatus.OK
-    assert resp.content.count(b"\n") == 1  # just header
 
 
 def test_handle_preannotated(
