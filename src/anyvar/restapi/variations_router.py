@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from pydantic import StrictStr
 
 import anyvar
-from anyvar.anyvar import AnyVar, ObjectNotFoundError
+from anyvar.anyvar import AnyVar, ObjectNotFoundError, UnexpectedObjectTypeError
 from anyvar.core import metadata, objects
 from anyvar.restapi import has_async_imports
 from anyvar.restapi.async_utils import (
@@ -283,8 +283,10 @@ def get_variation_by_id(
 ) -> GetObjectResponse:
     """Get registered variation given its VRS ID."""
     av: AnyVar = request.app.state.anyvar
-    vrs_object: objects.SupportedVrsObject = get_vrs_object(av, vrs_id)
-    return GetObjectResponse(messages=[], data=vrs_object)
+    variation: objects.SupportedVrsObject = get_vrs_object(
+        av, vrs_object_id=vrs_id, object_type=objects.SupportedVrsVariation
+    )
+    return GetObjectResponse(messages=[], data=variation)
 
 
 @variations_router.delete(
@@ -301,7 +303,7 @@ def delete_variation_by_id(
     """Delete a variation."""
     av: AnyVar = request.app.state.anyvar
     try:
-        av.delete_object(vrs_id)
+        av.delete_object(object_id=vrs_id)
     except ObjectNotFoundError as e:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND) from e
 
@@ -337,6 +339,14 @@ def add_variation_extension(
             value=extension_request.value,
         )
         extension_id = av.put_extension(extension)
+    except UnexpectedObjectTypeError as e:
+        _logger.exception(
+            "Error: cannot add extensions to objects that are not variants",
+        )
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail=f"Failed to add extension: {extension_request} - object is not a variant",
+        ) from e
     except ValueError as e:
         _logger.exception(
             "Failed to add Extension `%s` on variation `%s`",

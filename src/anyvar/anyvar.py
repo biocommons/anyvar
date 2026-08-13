@@ -17,10 +17,11 @@ from anyvar.core.categorical_variants import (
     ProteinSequenceConsequence,
     is_expected_molecule_type,
 )
-from anyvar.core.objects import SupportedVrsObject
+from anyvar.core.objects import SupportedVrsObject, SupportedVrsVariation
 from anyvar.storage import DEFAULT_STORAGE_URI
 from anyvar.storage.base import Storage
 from anyvar.storage.no_db import NoObjectStore
+from anyvar.storage.orm import VrsObject
 from anyvar.translate.base import Translator
 from anyvar.translate.vrs_python import VrsPythonTranslator
 
@@ -29,6 +30,18 @@ if os.environ.get("ANYVAR_SHOW_PYDANTIC_WARNINGS", None) is None:
     warnings.filterwarnings("ignore", module="pydantic")
 
 _logger = logging.getLogger(__name__)
+
+
+class UnexpectedObjectTypeError(Exception):
+    """Raised when an object is not of the type(s) it is expected to be"""
+
+
+def _validate_is_supported_variant(
+    vrs_object: VrsObject | SupportedVrsObject | SupportedVrsVariation,
+) -> None:
+    if not isinstance(vrs_object, SupportedVrsVariation):
+        message: str = f"Object {vrs_object.id} is not a variation or is of an unsupported variation type"
+        raise UnexpectedObjectTypeError(message)
 
 
 def create_storage(uri: str | None = None) -> Storage:
@@ -253,7 +266,12 @@ class AnyVar:
 
         :param extension: an Extension object
         :return: extension ID if successful, None otherwise
+        :raise UnexpectedObjectTypeError: if trying to add an Extension to an object that is not a supported variation type
         """
+        # only allow deletion of variants, not other types of VRS Objects
+        vrs_object: SupportedVrsObject = self.get_object(extension.object_id)
+        _validate_is_supported_variant(vrs_object=vrs_object)
+
         extension_id: int | None = None
         try:
             extension_id = self.object_store.add_extension(extension)
@@ -269,19 +287,23 @@ class AnyVar:
 
         :param object_id: ID of object to delete
         :raise ObjectNotFoundError: if no stored object matches given ID
+        :raise UnexpectedObjectTypeError: if the provided object_type does not match the actual object_type
         """
         try:
             vrs_object = self._get_object_polymorphic(object_id)
         except KeyError as e:
             raise ObjectNotFoundError from e
+
+        # only allow deletion of variants, not other types of VRS Objects
+        _validate_is_supported_variant(vrs_object=vrs_object)
+
         for extension in self.object_store.get_extensions(object_id):
             self.object_store.delete_extensions(vrs_object.id, extension.name)
         for mapping in self.object_store.get_mappings(object_id, as_source=True):
             self.object_store.delete_mapping(mapping)
         for mapping in self.object_store.get_mappings(object_id, as_source=False):
             self.object_store.delete_mapping(mapping)
-        object_type = objects.vrs_object_class_map[vrs_object.type]
-        self.object_store.delete_objects(object_type, [object_id])
+        self.object_store.delete_objects(type(vrs_object), [object_id])
 
     def get_object_extensions(
         self, object_id: str, extension_name: str | None = None
@@ -353,6 +375,13 @@ class AnyVar:
 
         :param mapping: a Mapping object
         """
+        # only allow mappings between variants, not other object types
+        source_object: SupportedVrsObject = self.get_object(object_id=mapping.source_id)
+        _validate_is_supported_variant(source_object)
+
+        dest_object: SupportedVrsObject = self.get_object(object_id=mapping.dest_id)
+        _validate_is_supported_variant(dest_object)
+
         try:
             return self.object_store.add_mapping(mapping)
         except Exception:

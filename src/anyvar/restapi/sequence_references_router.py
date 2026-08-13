@@ -4,6 +4,7 @@ import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Path, Request
+from ga4gh.vrs.models import SequenceReference
 from pydantic import StrictStr
 
 from anyvar import AnyVar
@@ -29,5 +30,7 @@ def get_sequence_reference_by_id(
 ) -> GetObjectResponse:
     """Get registered sequence reference given its VRS ID."""
     av: AnyVar = request.app.state.anyvar
-    vrs_object: objects.SupportedVrsObject = get_vrs_object(av, vrs_id)
+    vrs_object: objects.SupportedVrsObject = get_vrs_object(
+        av, vrs_object_id=vrs_id, object_type=SequenceReference
+    )
     return GetObjectResponse(messages=[], data=vrs_object)
