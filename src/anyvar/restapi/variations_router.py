@@ -175,7 +175,7 @@ async def register_variations(
         )
 
         response.status_code = status.HTTP_202_ACCEPTED
-        response.headers["Location"] = f"/variations/{task_result.id}"
+        response.headers["Location"] = f"/variations/runs/{task_result.id}"
         response.headers["Retry-After"] = str(int(retry_after))
         return RunStatusResponse(
             run_id=task_result.id,
