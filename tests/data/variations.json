@@ -23,7 +23,7 @@
           "repeatSubunitLength": 2
         }
       },
-      "comment": "NC_000007.13:g.36561662_36561663del -- grch37 liftover from VA.QiKnpRR8S7SPoUE-RMUJJbT-RS1akuHA. Example from PUT /variation"
+      "comment": "NC_000007.13:g.36561662_36561663del -- grch37 liftover from VA.QiKnpRR8S7SPoUE-RMUJJbT-RS1akuHA. Example from PUT /variations"
     },
     "ga4gh:VA.QiKnpRR8S7SPoUE-RMUJJbT-RS1akuHA": {
       "variation": {

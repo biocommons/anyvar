@@ -15,15 +15,19 @@ def _refget(translator: Translator, refseq: str) -> str:
 
 
 def _put_variation(client, spdi: str):
-    response = client.put("/variation", json={"definition": spdi})
+    response = client.put("/variations", json=[{"definition": spdi}])
     assert response.status_code == HTTPStatus.OK
-    return response.json()
+    payload = response.json()
+    assert len(payload) == 1
+    return payload[0]
 
 
 def _single_mapping(
     client, source_id: str, mapping_type: metadata.VariationMappingType
 ):
-    response = client.get(f"/object/{source_id}/mappings?mapping_type={mapping_type}")
+    response = client.get(
+        f"/variations/{source_id}/mappings?mapping_type={mapping_type}"
+    )
     assert response.status_code == HTTPStatus.OK
     mappings = response.json()["mappings"]
     assert len(mappings) == 1
@@ -31,13 +35,15 @@ def _single_mapping(
 
 
 def _no_mapping(client, source_id: str, mapping_type: metadata.VariationMappingType):
-    response = client.get(f"/object/{source_id}/mappings?mapping_type={mapping_type}")
+    response = client.get(
+        f"/variations/{source_id}/mappings?mapping_type={mapping_type}"
+    )
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"mappings": []}
 
 
 def _get_object(client, object_id: str):
-    response = client.get(f"/object/{object_id}")
+    response = client.get(f"/variations/{object_id}")
     assert response.status_code == HTTPStatus.OK
     return response.json()["data"]
 

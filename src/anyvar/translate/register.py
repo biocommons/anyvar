@@ -3,7 +3,9 @@
 import logging
 
 from ga4gh.vrs.dataproxy import DataProxyValidationError
+from ga4gh.vrs.models import Allele
 from hgvs.exceptions import HGVSParseError
+from pydantic.types import StrictStr
 
 from anyvar.anyvar import AnyVar
 from anyvar.core import objects
@@ -71,6 +73,50 @@ def add_projection_mappings(
     return 0
 
 
+def _process_vrs_variation(
+    variation_definition: dict[str, str | int],
+) -> TranslationResult:
+    error: str | None = None
+    variation: objects.SupportedVrsVariation | None = None
+    try:
+        variation = Allele(**variation_definition)
+        if not variation.id:
+            variation = objects.recursive_identify(vrs_object=variation)
+    except Exception as e:  # noqa: BLE001 #TODO: use more specific error
+        error = f"error processing VRS Variation: {e}"
+        _logger.info(msg=error)
+    return TranslationResult(variation=variation, error=error)
+
+
+def _register_initial_variations(
+    av: AnyVar, variation_requests: list[VariationRequest]
+) -> list[TranslationResult]:
+    translation_results: list[TranslationResult] = []
+    variations_to_store: list[objects.SupportedVrsObject] = []
+
+    for variation_request in variation_requests:
+        variation_definition: StrictStr | dict[str, str | int] = (
+            variation_request.definition
+        )
+        if isinstance(
+            variation_definition, str
+        ):  # VRS variants are inputted as dicts; everything else is strings
+            translation_result = translate_variation(av.translator, variation_request)
+        else:
+            translation_result = _process_vrs_variation(
+                variation_definition=variation_definition
+            )
+
+        translation_results.append(translation_result)
+        if translation_result.variation:
+            variations_to_store.append(translation_result.variation)
+
+    if variations_to_store:
+        av.put_objects(variations_to_store)
+
+    return translation_results
+
+
 def register_variations(
     av: AnyVar,
     variation_requests: list[VariationRequest],
@@ -84,21 +130,11 @@ def register_variations(
         `object` and `object_id` fields. Registration or liftover failure messages may
         also be included in the `messages` field.
     """
-    translation_results: list[TranslationResult] = []
-    variations_to_store: list[objects.SupportedVrsObject] = []
-
-    for variation_request in variation_requests:
-        translation_result = translate_variation(av.translator, variation_request)
-        translation_results.append(translation_result)
-
-        if translation_result.variation:
-            variations_to_store.append(translation_result.variation)
-
-    if variations_to_store:
-        av.put_objects(variations_to_store)
+    translation_results: list[TranslationResult] = _register_initial_variations(
+        av=av, variation_requests=variation_requests
+    )
 
     responses: list[RegisterVariationResponse] = []
-
     for variation_request, translation_result in zip(
         variation_requests, translation_results, strict=True
     ):
@@ -115,7 +151,7 @@ def register_variations(
 
         # add variant metadata
         av.create_timestamp_if_missing(translation_result.variation.id)  # type: ignore (ID guaranteed to be present)
-        messages = (
+        messages: list[str] = (
             liftover.add_liftover_mapping(
                 variation=translation_result.variation,
                 storage=av.object_store,

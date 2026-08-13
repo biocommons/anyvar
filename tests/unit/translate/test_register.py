@@ -132,7 +132,10 @@ class TestRegisterVariations:
         mock_translate.return_value = TranslationResult(variation=sample_allele)
         mock_liftover_mod.add_liftover_mapping.return_value = None
 
-        responses = register_variations(mock_anyvar, [sample_variation_request])
+        responses = register_variations(
+            av=mock_anyvar,
+            variation_requests=[sample_variation_request],
+        )
 
         assert len(responses) == 1
         resp = responses[0]

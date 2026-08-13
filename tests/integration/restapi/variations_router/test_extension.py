@@ -24,7 +24,7 @@ def test_extension_crud(
 
     # post an extension
     response = restapi_client.post(
-        f"/object/{braf_v600e_id}/extensions", json=braf_extension_payload
+        f"/variations/{braf_v600e_id}/extensions", json=braf_extension_payload
     )
     response.raise_for_status()
     assert response.json()["extension_name"] == braf_extension_payload["name"]
@@ -32,7 +32,7 @@ def test_extension_crud(
 
     # get an extension
     response = restapi_client.get(
-        f"/object/{braf_v600e_id}/extensions/{braf_extension_payload['name']}"
+        f"/variations/{braf_v600e_id}/extensions/{braf_extension_payload['name']}"
     )
     response.raise_for_status()
     data = response.json()["extensions"]
@@ -42,11 +42,11 @@ def test_extension_crud(
 
     # delete it
     response = restapi_client.delete(
-        f"/object/{braf_v600e_id}/extensions/{braf_extension_payload['name']}"
+        f"/variations/{braf_v600e_id}/extensions/{braf_extension_payload['name']}"
     )
     response.raise_for_status()
     response = restapi_client.get(
-        f"/object/{braf_v600e_id}/extensions/{braf_extension_payload['name']}"
+        f"/variations/{braf_v600e_id}/extensions/{braf_extension_payload['name']}"
     )
     response.raise_for_status()
     data = response.json()["extensions"]
@@ -55,19 +55,17 @@ def test_extension_crud(
 
 def test_get_extension_nonexistent_var(restapi_client: TestClient):
     response = restapi_client.get(
-        "/object/vrs_id_that_doesnt_exist/extensions/doesnt_matter"
+        "/variations/vrs_id_that_doesnt_exist/extensions/doesnt_matter"
     )
     assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json() == {
-        "detail": "VRS Object vrs_id_that_doesnt_exist not found"
-    }
+    assert response.json() == {"detail": "Variation vrs_id_that_doesnt_exist not found"}
 
 
 def test_post_extension_nonexistent_var(
     restapi_client: TestClient, braf_extension_payload: dict
 ):
     response = restapi_client.post(
-        "/object/not_a_real_vrs_id/extensions", json=braf_extension_payload
+        "/variations/not_a_real_vrs_id/extensions", json=braf_extension_payload
     )
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json() == {"detail": "VRS Object not_a_real_vrs_id not found"}

@@ -1,6 +1,7 @@
 """Test variation endpoints"""
 
 from http import HTTPStatus
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -8,17 +9,16 @@ from fastapi.testclient import TestClient
 from anyvar.mapping.liftover import ReferenceAssembly
 from anyvar.restapi.schema import RegisterVariationResponse, VariationRequest
 from anyvar.restapi.variations_router import (
-    PUT_VRS_VARIATION_EXAMPLE_PAYLOAD,
-    VARIATION_EXAMPLE_PAYLOAD,
+    PUT_VARIATIONS_EXAMPLE_PAYLOAD,
 )
 from anyvar.storage.base import Storage
 
 
 def test_put_allele(restapi_client: TestClient, alleles: dict):
     def assert_put_ok(client, payload, object_id):
-        resp = client.put("/variation", json=payload)
+        resp = client.put("/variations", json=payload)
         assert resp.status_code == HTTPStatus.OK
-        assert resp.json()["object"]["id"] == object_id
+        assert resp.json()[0]["object"]["id"] == object_id
 
     for allele_id, allele in alleles.items():
         register_params = allele.get("register_params")
@@ -26,17 +26,17 @@ def test_put_allele(restapi_client: TestClient, alleles: dict):
         if not register_params:
             continue
 
-        assert_put_ok(restapi_client, register_params, allele_id)
+        assert_put_ok(restapi_client, [register_params], allele_id)
 
         if register_params.get("assembly_name") == ReferenceAssembly.GRCH38.value:
             register_params.pop("assembly_name")
-            assert_put_ok(restapi_client, register_params, allele_id)
+            assert_put_ok(restapi_client, [register_params], allele_id)
 
     # confirm idempotency
     test_allele_id = "ga4gh:VA.rQBlRht2jfsSp6TpX3xhraxtmgXNKvQf"
     test_allele_fixture = alleles[test_allele_id]
     assert_put_ok(
-        restapi_client, test_allele_fixture["register_params"], test_allele_id
+        restapi_client, [test_allele_fixture["register_params"]], test_allele_id
     )
 
 
@@ -60,18 +60,23 @@ def test_put_allele(restapi_client: TestClient, alleles: dict):
 def test_put_allele_invalid_request(
     restapi_client: TestClient, definition: str, err_msg: str
 ):
-    resp = restapi_client.post("/variation", json={"definition": definition})
+    resp = restapi_client.post("/variations", json={"definition": definition})
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     assert resp.json() == {"detail": err_msg}
 
 
-def test_put_variation_example(restapi_client: TestClient, alleles: dict):
-    resp = restapi_client.put("/variation", json=VARIATION_EXAMPLE_PAYLOAD)
+def test_put_variations_example(restapi_client: TestClient, alleles: dict):
+    resp = restapi_client.put("/variations", json=PUT_VARIATIONS_EXAMPLE_PAYLOAD)
     assert resp.status_code == HTTPStatus.OK
-    expected_id = "ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb"
-    assert resp.json()["object_id"] == expected_id
-    assert resp.json()["object"] == alleles[expected_id]["variation"]
-    assert resp.json()["messages"] == []
+    expected_ids = [
+        "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU",
+        "ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb",
+    ]
+    response_object: list[dict[str, Any]] = resp.json()
+    for index, expected_id in enumerate(expected_ids):
+        assert response_object[index]["object_id"] == expected_id
+        assert response_object[index]["object"] == alleles[expected_id]["variation"]
+        assert response_object[index]["messages"] == []
 
 
 def test_put_variations(restapi_client: TestClient, alleles: dict):
@@ -122,17 +127,11 @@ def test_put_variations(restapi_client: TestClient, alleles: dict):
 
 def test_put_vrs_variation_allele(restapi_client: TestClient, alleles: dict):
     for allele_id, allele_fixture in alleles.items():
-        resp = restapi_client.put("/vrs_variation", json=allele_fixture["variation"])
+        resp = restapi_client.put(
+            "/variations", json=[{"definition": allele_fixture["variation"]}]
+        )
         assert resp.status_code == HTTPStatus.OK
-        assert resp.json()["object_id"] == allele_id
-
-
-def test_put_vrs_variation_example(restapi_client: TestClient, alleles: dict):
-    resp = restapi_client.put("/vrs_variation", json=PUT_VRS_VARIATION_EXAMPLE_PAYLOAD)
-    assert resp.status_code == HTTPStatus.OK
-    expected_id = "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU"
-    assert resp.json()["object"] == alleles[expected_id]["variation"]
-    assert resp.json()["messages"] == []
+        assert resp.json()[0]["object_id"] == allele_id
 
 
 def test_post_variation_registered(restapi_client: TestClient, preloaded_alleles):
@@ -141,7 +140,9 @@ def test_post_variation_registered(restapi_client: TestClient, preloaded_alleles
         if "register_params" not in allele_fixture:
             continue
 
-        resp = restapi_client.post("/variation", json=allele_fixture["register_params"])
+        resp = restapi_client.post(
+            "/variations", json=allele_fixture["register_params"]
+        )
         assert resp.status_code == HTTPStatus.OK
         assert resp.json() == {"data": allele_fixture["variation"], "messages": []}
 
@@ -155,7 +156,9 @@ def test_post_variation_not_registered(
         if "register_params" not in allele_fixture:
             continue
 
-        resp = restapi_client.post("/variation", json=allele_fixture["register_params"])
+        resp = restapi_client.post(
+            "/variations", json=allele_fixture["register_params"]
+        )
         assert resp.status_code == HTTPStatus.NOT_FOUND
         assert resp.json() == {"detail": f"VRS Object {allele_id} not found"}
 
@@ -181,14 +184,26 @@ def test_post_variation_invalid_request(
     restapi_client: TestClient, definition: str, err_msg: str
 ):
     """Test POST method with invalid requests"""
-    resp = restapi_client.post("/variation", json={"definition": definition})
+    resp = restapi_client.post("/variations", json={"definition": definition})
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     assert resp.json() == {"detail": err_msg}
 
 
+def test_get_allele(restapi_client: TestClient, preloaded_alleles: dict[str, str]):
+    for allele_id, allele_fixture in preloaded_alleles.items():
+        resp = restapi_client.get(f"/variations/{allele_id}")
+        assert resp.status_code == HTTPStatus.OK
+        assert resp.json()["data"] == allele_fixture["variation"]
+
+    bad_resp = restapi_client.get(
+        "/variations/ga4gh:VA.invalid7DSM9KE3Z0LntAukLqm0K2ENn"
+    )
+    assert bad_resp.status_code == HTTPStatus.NOT_FOUND
+
+
 def test_simple_delete_object(restapi_client: TestClient, alleles: dict):
     for allele_fixture in alleles.values():
-        restapi_client.put("/vrs_variation", json=allele_fixture["variation"])
+        restapi_client.put("/variations", json=allele_fixture["variation"])
     for allele_id in alleles:
         restapi_client.delete(f"/objects/{allele_id}")
 
@@ -196,10 +211,10 @@ def test_simple_delete_object(restapi_client: TestClient, alleles: dict):
 def test_delete_object_and_mappings(restapi_client: TestClient, alleles: dict):
     allele_id = "ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb"
     allele = alleles[allele_id]["variation"]
-    response = restapi_client.put("/vrs_variation", json=allele)
+    response = restapi_client.put("/variations", json=[{"definition": allele}])
     response.raise_for_status()
     response = restapi_client.post(
-        f"/object/{allele_id}/extensions",
+        f"/variations/{allele_id}/extensions",
         json={
             "name": "clinvar_somatic_classification",
             "value": "Oncogenic",
@@ -208,18 +223,18 @@ def test_delete_object_and_mappings(restapi_client: TestClient, alleles: dict):
     response.raise_for_status()
 
     # attempt deletion
-    response = restapi_client.delete(f"/object/{allele_id}")
+    response = restapi_client.delete(f"/variations/{allele_id}")
     response.raise_for_status()
 
     # check that everything's gone
-    response = restapi_client.get(f"/object/{allele_id}")
+    response = restapi_client.get(f"/variations/{allele_id}")
     assert response.status_code == HTTPStatus.NOT_FOUND
     for request_path in (
-        f"/object/{allele_id}/mappings?mapping_type=liftover_to&as_source=true",
-        f"/object/{allele_id}/mappings?mapping_type=liftover_to&as_source=false",
-        f"/object/{allele_id}/extensions/clinvar_somatic_classification",
+        f"/variations/{allele_id}/mappings?mapping_type=liftover_to&as_source=true",
+        f"/variations/{allele_id}/mappings?mapping_type=liftover_to&as_source=false",
+        f"/variations/{allele_id}/extensions/clinvar_somatic_classification",
     ):
         response = restapi_client.get(request_path)
         assert response.json() == {
-            "detail": "VRS Object ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb not found"
+            "detail": "Variation ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb not found"
         }

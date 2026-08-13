@@ -1,4 +1,4 @@
-"""Tests for async /variations and /variation endpoints in variations_router."""
+"""Tests for async /variations and /variations endpoints in variations_router."""
 
 from http import HTTPStatus
 from unittest.mock import MagicMock, patch
@@ -14,7 +14,6 @@ from anyvar.restapi.schema import (
     ErrorResponse,
     RegisterVariationResponse,
     ServiceInfo,
-    TranslationResult,
     VariationRequest,
 )
 
@@ -141,7 +140,7 @@ class TestPutVariationsAsync:
         assert body["run_id"] == "async-run-123"
         assert body["status"] == "PENDING"
         assert "Location" in resp.headers
-        assert "/variations/async-run-123" in resp.headers["Location"]
+        assert "/variations/runs/async-run-123" in resp.headers["Location"]
         assert "Retry-After" in resp.headers
 
     @patch("anyvar.restapi.has_async_imports", True)
@@ -208,25 +207,32 @@ class TestPutVariationsSync:
 
 
 # ---------------------------------------------------------------------------
-# POST /variation
+# PUT /variations
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.ci_ok
-class TestPostVariation:
-    @patch("anyvar.restapi.variations_router._translate_variation")
-    def test_response(self, mock_translate, test_client, sample_allele):
-        """POST /variation response includes translated variation data."""
-        mock_translate.return_value = TranslationResult(variation=sample_allele)
+class TestPutVariation:
+    @patch("anyvar.restapi.variations_router._register_variations")
+    def test_response(self, mock_register, test_client, sample_allele):
+        """PUT /variations response includes object and object_id."""
+        mock_register.return_value = [
+            RegisterVariationResponse(
+                input_variation=VariationRequest(**VARIATION_PAYLOAD),
+                object=sample_allele,
+                object_id=sample_allele.id,
+                messages=[],
+            )
+        ]
 
-        resp = test_client.post("/variation", json=VARIATION_PAYLOAD)
+        resp = test_client.put("/variations", json=[VARIATION_PAYLOAD])
         assert resp.status_code == HTTPStatus.OK
         body = resp.json()
-        assert body["data"]["id"] == sample_allele.id
+        assert body[0]["object_id"] == sample_allele.id
 
 
 # ---------------------------------------------------------------------------
-# GET /variations/{run_id}
+# GET /variations/runs/{run_id}
 # ---------------------------------------------------------------------------
 
 
@@ -238,8 +244,8 @@ class TestGetVariationsRunStatus:
         return_value=False,
     )
     def test_async_not_enabled(self, _mock_enabled, test_client):  # noqa: PT019
-        """GET /variations/{run_id} returns 400 when async queueing is not enabled."""
-        resp = test_client.get("/variations/some-run-id")
+        """GET /variations/runs/{run_id} returns 400 when async queueing is not enabled."""
+        resp = test_client.get("/variations/runs/some-run-id")
         assert resp.status_code == HTTPStatus.BAD_REQUEST
         assert (
             "missing" in resp.json()["error"].lower()
@@ -258,7 +264,7 @@ class TestGetVariationsRunStatus:
         _mock_enabled,  # noqa: PT019
         test_client,
     ):
-        """GET /variations/{run_id} delegates to resolve_async_task_status with the correct run_id."""
+        """GET /variations/runs/{run_id} delegates to resolve_async_task_status with the correct run_id."""
 
         mock_resolve.return_value = JSONResponse(
             content=[{"object_id": "ga4gh:VA.123"}],
@@ -271,7 +277,7 @@ class TestGetVariationsRunStatus:
             status_code=200,
         )
 
-        _ = test_client.get("/variations/run-123")
+        _ = test_client.get("/variations/runs/run-123")
         # verify resolve_async_task_status was called with the run_id
         mock_resolve.assert_called_once()
         call_args = mock_resolve.call_args
