@@ -31,7 +31,7 @@ class VrsObjectRegistrationBatcher:
         :return: None
         """
         self.batch_collection = []
-        self.anyvar_instance = anyvar_instance
+        self.anyvar_instance: AnyVar = anyvar_instance
 
     def add_to_batch(self, vrs_object: SupportedVrsObject) -> None:
         """Adds a VRS Object to the current batch. If batch size limit is now met, register the whole batch.

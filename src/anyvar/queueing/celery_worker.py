@@ -212,27 +212,13 @@ def annotate_vcf(
         # annotate vcf with VRS IDs
         anyvar_app = get_anyvar_app()
         registrar = VcfRegistrar(anyvar_app.translator.dp, av=anyvar_app)
-        already_annotated: bool = False
-        try:
-            registrar.annotate(
-                Path(input_file_path),
-                Path(output_file_path),
-                compute_for_ref=for_ref,
-                assembly=assembly,
-                vrs_attributes=add_vrs_attributes,
-            )
-        except ValueError as e:
-            already_annotated = str(e) == "Header already exists for id=VRS_Allele_IDs"
-            if already_annotated:
-                registrar.annotate(
-                    input_vcf_path=Path(input_file_path),
-                    output_vcf_path=None,
-                    compute_for_ref=for_ref,
-                    assembly=assembly,
-                    vrs_attributes=add_vrs_attributes,
-                )
-            else:
-                raise
+        registrar.annotate(
+            Path(input_file_path),
+            Path(output_file_path),
+            compute_for_ref=for_ref,
+            assembly=assembly,
+            vrs_attributes=add_vrs_attributes,
+        )
         elapsed = datetime.datetime.now(tz=datetime.UTC) - task_start
         _logger.info(
             "%s - annotation completed in %s seconds", self.request.id, elapsed.seconds
@@ -253,11 +239,9 @@ def annotate_vcf(
                 elapsed.seconds,
             )
 
-        if already_annotated:
-            # return output file path
-            return input_file_path
         # remove input file
         Path(input_file_path).unlink()
+
         # return output file path
         return output_file_path  # noqa: TRY300
     except Exception:

@@ -8,8 +8,6 @@ from pathlib import Path
 import pytest
 from fastapi import UploadFile
 from fastapi.testclient import TestClient
-from ga4gh.vrs.models import Allele
-from httpx._models import Response
 
 from anyvar.restapi.vcf_router import write_vcf_and_count_sites
 
@@ -154,21 +152,19 @@ async def test_write_sitecounter(basic_vcf: io.BytesIO, tmp_path: Path):
 
 
 def test_registration_sync(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch,
     restapi_client: TestClient,
     basic_vcf: io.BytesIO,
     vcf_incorrect_id: io.BytesIO,
-) -> None:
+):
     """Test basic file registration, synchronous + no validation"""
-    recorded: list[Allele] = []
+    recorded = []
     monkeypatch.setattr(
         restapi_client.app.state.anyvar,
         "put_objects",
         lambda allele: recorded.extend(allele),
     )
-    resp: Response = restapi_client.put(
-        url="/vcf", files={"vcf": ("test.vcf", basic_vcf)}
-    )
+    resp = restapi_client.put("/annotated_vcf", files={"vcf": ("test.vcf", basic_vcf)})
 
     assert resp.status_code == HTTPStatus.OK
     assert recorded, "put_objects was never called"
@@ -176,7 +172,9 @@ def test_registration_sync(
     assert recorded[1].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
 
     # ignore wrong IDs
-    resp = restapi_client.put(url="/vcf", files={"vcf": ("test.vcf", vcf_incorrect_id)})
+    resp = restapi_client.put(
+        "/annotated_vcf", files={"vcf": ("test.vcf", vcf_incorrect_id)}
+    )
 
     assert resp.status_code == HTTPStatus.OK
     assert recorded, "put_objects was never called"
@@ -185,20 +183,20 @@ def test_registration_sync(
 
 
 def test_registration_sync_validate(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch,
     restapi_client: TestClient,
     basic_vcf: io.BytesIO,
     vcf_incorrect_id: io.BytesIO,
-) -> None:
+):
     """Test basic file registration, synchronous + validation"""
-    recorded: list[Allele] = []
+    recorded = []
     monkeypatch.setattr(
         restapi_client.app.state.anyvar,
         "put_objects",
         lambda allele: recorded.extend(allele),
     )
-    resp: Response = restapi_client.put(
-        url="/vcf",
+    resp = restapi_client.put(
+        "/annotated_vcf",
         files={"vcf": ("test.vcf", basic_vcf)},
         params={"require_validation": True},
     )
@@ -211,7 +209,7 @@ def test_registration_sync_validate(
 
     # handle wrong ID
     resp = restapi_client.put(
-        url="/vcf",
+        "/annotated_vcf",
         files={"vcf": ("test.vcf", vcf_incorrect_id)},
         params={"require_validation": True},
     )
@@ -234,7 +232,7 @@ def test_registration_async(
 ):
     """Test async file registration"""
     resp = restapi_client.put(
-        "/vcf",
+        "/annotated_vcf",
         files={"vcf": ("test.vcf", basic_vcf)},
         params={"run_async": True, "run_id": vcf_run_id},
     )
@@ -242,7 +240,7 @@ def test_registration_async(
     assert "status_message" in resp.json()
     assert (
         resp.json()["status_message"]
-        == f"Run submitted. Check status at /vcf/runs/{vcf_run_id}"
+        == f"Run submitted. Check status at /vcf/{vcf_run_id}"
     )
     assert "status" in resp.json()
     assert resp.json()["status"] == "PENDING"
@@ -250,7 +248,7 @@ def test_registration_async(
     assert resp.json()["run_id"] == vcf_run_id
 
     while True:
-        resp = restapi_client.get(f"/vcf/runs/{vcf_run_id}")
+        resp = restapi_client.get(f"/vcf/{vcf_run_id}")
         if resp.status_code == HTTPStatus.ACCEPTED:
             time.sleep(1)
         elif resp.status_code == HTTPStatus.OK:
@@ -260,7 +258,7 @@ def test_registration_async(
     assert resp.json()["status"] == "SUCCESS"
 
     resp = restapi_client.put(
-        "/vcf",
+        "/annotated_vcf",
         files={"vcf": ("test.vcf", vcf_incorrect_id)},
         params={"run_async": True, "run_id": vcf_run_id},
     )
@@ -269,7 +267,7 @@ def test_registration_async(
     assert "status_message" in resp.json()
     assert (
         resp.json()["status_message"]
-        == f"Run submitted. Check status at /vcf/runs/{vcf_run_id}"
+        == f"Run submitted. Check status at /vcf/{vcf_run_id}"
     )
     assert "status" in resp.json()
     assert resp.json()["status"] == "PENDING"
@@ -278,7 +276,7 @@ def test_registration_async(
 
     time.sleep(5)
 
-    resp = restapi_client.get(f"/vcf/runs/{vcf_run_id}")
+    resp = restapi_client.get(f"/vcf/{vcf_run_id}")
     assert resp.status_code == HTTPStatus.OK
     assert resp.json()["status"] == "SUCCESS"
 
@@ -291,7 +289,7 @@ def test_registration_async_validate(
 ):
     """Test file registration, asynchronous + validation"""
     resp = restapi_client.put(
-        "/vcf",
+        "/annotated_vcf",
         files={"vcf": ("test.vcf", basic_vcf)},
         params={"require_validation": True, "run_async": True, "run_id": vcf_run_id},
     )
@@ -299,7 +297,7 @@ def test_registration_async_validate(
     assert "status_message" in resp.json()
     assert (
         resp.json()["status_message"]
-        == f"Run submitted. Check status at /vcf/runs/{vcf_run_id}"
+        == f"Run submitted. Check status at /vcf/{vcf_run_id}"
     )
     assert "status" in resp.json()
     assert resp.json()["status"] == "PENDING"
@@ -308,7 +306,7 @@ def test_registration_async_validate(
 
     time.sleep(5)
 
-    resp = restapi_client.get(f"/vcf/runs/{vcf_run_id}")
+    resp = restapi_client.get(f"/vcf/{vcf_run_id}")
     assert resp.status_code == HTTPStatus.OK
     assert resp.content.count(b"\n") == 1  # just header
 
@@ -321,7 +319,7 @@ def test_registration_async_validate_wrongid(
 ):
     """Test file registration, asynchronous + validation of a file with a wrong ID"""
     resp = restapi_client.put(
-        "/vcf",
+        "/annotated_vcf",
         files={"vcf": ("test.vcf", vcf_incorrect_id)},
         params={"require_validation": True, "run_async": True, "run_id": vcf_run_id},
     )
@@ -330,7 +328,7 @@ def test_registration_async_validate_wrongid(
     assert "status_message" in resp.json()
     assert (
         resp.json()["status_message"]
-        == f"Run submitted. Check status at /vcf/runs/{vcf_run_id}"
+        == f"Run submitted. Check status at /vcf/{vcf_run_id}"
     )
     assert "status" in resp.json()
     assert resp.json()["status"] == "PENDING"
@@ -339,27 +337,18 @@ def test_registration_async_validate_wrongid(
 
     time.sleep(5)
 
-    resp = restapi_client.get(f"/vcf/runs/{vcf_run_id}")
+    resp = restapi_client.get(f"/vcf/{vcf_run_id}")
     assert resp.status_code == HTTPStatus.OK
     assert b"ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6z" in resp.content
 
 
 def test_handle_incomplete_annotation(
-    restapi_client: TestClient,
-    monkeypatch: pytest.MonkeyPatch,
-    vcf_incomplete_annotations: io.BytesIO,
+    restapi_client: TestClient, vcf_incomplete_annotations: io.BytesIO
 ):
     """Test that client gracefully handles an incompletely-annotated VCF"""
-    recorded: list[Allele] = []
-    monkeypatch.setattr(
-        restapi_client.app.state.anyvar,
-        "put_objects",
-        lambda allele: recorded.extend(allele),
-    )
-    resp: Response = restapi_client.put(
-        url="/vcf", files={"vcf": ("test.vcf", vcf_incomplete_annotations)}
+    resp = restapi_client.put(
+        "/annotated_vcf", files={"vcf": ("test.vcf", vcf_incomplete_annotations)}
     )
 
-    assert resp.status_code == HTTPStatus.OK
-    assert recorded[0].id == "ga4gh:VA.5PqxTNMJZYJqQZ8MgF_77I1I_qcddGN_"
-    assert recorded[1].id == "ga4gh:VA._QhHH18HBAIeLos6npRgR-S_0lAX5KR6"
+    assert resp.status_code == HTTPStatus.BAD_REQUEST
+    assert "Required VRS annotations are missing" in resp.json()["error"]

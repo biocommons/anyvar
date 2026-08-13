@@ -6,7 +6,6 @@ import os
 import pathlib
 import tempfile
 import uuid
-from logging import Logger
 from typing import Annotated
 
 from fastapi import (
@@ -44,7 +43,7 @@ if has_async_imports:
     from anyvar.queueing import celery_worker
     from anyvar.restapi.async_utils import resolve_async_task_status
 
-_logger: Logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 vcf_router = APIRouter()
 
@@ -156,7 +155,7 @@ async def _annotate_vcf_async(
 
     # set response headers
     response.status_code = status.HTTP_202_ACCEPTED
-    response.headers["Location"] = f"/vcf/runs/{task_result.id}"
+    response.headers["Location"] = f"/vcf/{task_result.id}"
     retry_after = max(
         1,
         round(
@@ -168,17 +167,7 @@ async def _annotate_vcf_async(
     return RunStatusResponse(
         run_id=task_result.id,
         status="PENDING",
-        status_message=f"Run submitted. Check status at /vcf/runs/{task_result.id}",
-    )
-
-
-def _handle_failed_registration(logger: Logger, vcf_filename: str) -> ErrorResponse:
-    logger.exception(
-        "Encountered error during registration of VCF file %s", vcf_filename
-    )
-    return ErrorResponse(
-        error="VCF registration failed.",
-        error_code=str(status.HTTP_500_INTERNAL_SERVER_ERROR),
+        status_message=f"Run submitted. Check status at /vcf/{task_result.id}",
     )
 
 
@@ -204,7 +193,6 @@ async def _annotate_vcf_sync(
     with tempfile.NamedTemporaryFile(delete=False, suffix=".vcf") as temp_out:
         temp_out_path = pathlib.Path(temp_out.name)
 
-    already_annotated: bool = False
     try:
         registrar.annotate(
             input_vcf_path=temp_in_path,
@@ -213,28 +201,12 @@ async def _annotate_vcf_sync(
             assembly=assembly,
             vrs_attributes=add_vrs_attributes,
         )
-    except ValueError as e:
-        already_annotated = str(e) == "Header already exists for id=VRS_Allele_IDs"
-        if already_annotated:
-            registrar.annotate(
-                input_vcf_path=temp_in_path,
-                output_vcf_path=None,
-                compute_for_ref=for_ref,
-                assembly=assembly,
-                vrs_attributes=add_vrs_attributes,
-            )
-        else:
-            error_response: ErrorResponse = _handle_failed_registration(
-                logger=_logger, vcf_filename=vcf.filename or ""
-            )
-            response.status_code = int(error_response.error_code)  # pyright: ignore[reportArgumentType]
-            return error_response
-    except (TranslatorConnectionError, OSError):
-        error_response = _handle_failed_registration(
-            logger=_logger, vcf_filename=vcf.filename or ""
+    except (TranslatorConnectionError, OSError, ValueError):
+        _logger.exception(
+            "Encountered error during registration of VCF file %s", vcf.filename
         )
-        response.status_code = int(error_response.error_code)  # pyright: ignore[reportArgumentType]
-        return error_response
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ErrorResponse(error="VCF registration failed.")
 
     if not allow_async_write:
         _logger.info("Waiting for object store writes from API handler method")
@@ -243,7 +215,7 @@ async def _annotate_vcf_sync(
     bg_tasks.add_task(_working_file_cleanup, temp_in_path)
     bg_tasks.add_task(_working_file_cleanup, temp_out_path)
 
-    return FileResponse(temp_in_path if already_annotated else temp_out_path)
+    return FileResponse(temp_out_path)
 
 
 @vcf_router.put(
@@ -559,7 +531,7 @@ async def annotated_vcf(
 
 
 @vcf_router.get(
-    "/vcf/runs/{run_id}",
+    "/vcf/{run_id}",
     summary="Poll for status and/or result for asynchronous VCF ingestion",
     description="Provide a valid run id to get the status and/or result of a VCF ingestion run",
     response_model=None,
