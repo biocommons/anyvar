@@ -153,7 +153,7 @@ async def _annotate_vcf_async(
 
     # set response headers
     response.status_code = status.HTTP_202_ACCEPTED
-    response.headers["Location"] = f"/vcf/{task_result.id}"
+    response.headers["Location"] = f"/vcf/runs/{task_result.id}"
     retry_after = max(
         1,
         round(
@@ -165,7 +165,7 @@ async def _annotate_vcf_async(
     return RunStatusResponse(
         run_id=task_result.id,
         status="PENDING",
-        status_message=f"Run submitted. Check status at /vcf/{task_result.id}",
+        status_message=f"Run submitted. Check status at /vcf/runs/{task_result.id}",
     )
 
 
@@ -339,7 +339,7 @@ def _working_file_cleanup(file_path: str, missing_ok: bool = False) -> None:
 
 
 @vcf_router.get(
-    "/vcf/{run_id}",
+    "/vcf/runs/{run_id}",
     summary="Poll for status and/or result for asynchronous VCF ingestion",
     description="Provide a valid run id to get the status and/or result of a VCF ingestion run",
     response_model=None,

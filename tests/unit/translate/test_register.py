@@ -142,9 +142,7 @@ class TestRegisterVariations:
         assert resp.object == sample_allele
         assert resp.object_id == sample_allele.id
         assert resp.messages == []
-        mock_anyvar.put_objects.assert_called_once_with(
-            variation_objects=[sample_allele]
-        )
+        mock_anyvar.put_objects.assert_called_once_with([sample_allele])
         mock_anyvar.create_timestamp_if_missing.assert_called_once_with(
             sample_allele.id
         )
@@ -184,9 +182,7 @@ class TestRegisterVariations:
         assert "Unable to translate" in responses[1].messages[0]
 
         # Only the successful variation should be stored
-        mock_anyvar.put_objects.assert_called_once_with(
-            variation_objects=[sample_allele]
-        )
+        mock_anyvar.put_objects.assert_called_once_with([sample_allele])
 
     @patch("anyvar.translate.register.liftover")
     @patch("anyvar.translate.register.translate_variation")

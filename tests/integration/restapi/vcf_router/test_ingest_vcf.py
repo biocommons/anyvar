@@ -179,7 +179,7 @@ def test_registration_async(
     assert "status_message" in resp.json()
     assert (
         resp.json()["status_message"]
-        == f"Run submitted. Check status at /vcf/{vcf_run_id}"
+        == f"Run submitted. Check status at /vcf/runs/{vcf_run_id}"
     )
     assert "status" in resp.json()
     assert resp.json()["status"] == "PENDING"
@@ -187,14 +187,16 @@ def test_registration_async(
     assert resp.json()["run_id"] == vcf_run_id
 
     while True:
-        resp = restapi_client.get(f"/vcf/{vcf_run_id}")
+        resp = restapi_client.get(f"/vcf/runs/{vcf_run_id}")
         if resp.status_code == HTTPStatus.ACCEPTED:
             time.sleep(1)
         elif resp.status_code == HTTPStatus.OK:
             break
         else:
             raise AssertionError(f"Unexpected HTTP response: {resp.status_code}")
-    assert resp.json()["status"] == "SUCCESS"
+
+    assert b"##fileformat=VCF" in resp.content
+    assert b"VRS_Allele_IDs" in resp.content
 
 
 def test_handle_preannotated(
