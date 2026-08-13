@@ -13,24 +13,24 @@ An AnyVar server hosts Swagger UI documentation at the server root address (e.g.
 Basic Variant Operations
 ========================
 
-Send a ``PUT`` request to ``/variation`` with a payload containing a variant definition using a :ref:`supported variant definition nomenclature<supported-variant-nomenclature>`. If translation and registration are successful, the response will include the variant's `identifier <https://vrs.ga4gh.org/en/stable/conventions/computed_identifiers.html>`_ and the complete `VRS allele object <https://vrs.ga4gh.org/en/stable/concepts/MolecularVariation/Allele.html>`_.
+Send a ``PUT`` request to ``/variations`` with a payload containing a variant definition using a :ref:`supported variant definition nomenclature<supported-variant-nomenclature>`. If translation and registration are successful, the response will include the variant's `identifier <https://vrs.ga4gh.org/en/stable/conventions/computed_identifiers.html>`_ and the complete `VRS allele object <https://vrs.ga4gh.org/en/stable/concepts/MolecularVariation/Allele.html>`_.
 
 .. code-block:: pycon
 
    >>> import requests
    >>> payload = {"definition": "NC_000010.11:g.87894077C>T"}
-   >>> response = requests.put("http://localhost:8000/variation", json=payload)
+   >>> response = requests.put("http://localhost:8000/variations", json=payload)
    >>> allele_id = response.json()["object_id"]
    >>> allele_id
    'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU'
    >>> response.json()["object"]
    {'id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', 'type': 'Allele', 'digest': 'K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', 'location': {'id': 'ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy', 'type': 'SequenceLocation', 'digest': '01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy', 'sequenceReference': {'type': 'SequenceReference', 'refgetAccession': 'SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB'}, 'start': 87894076, 'end': 87894077}, 'state': {'type': 'LiteralSequenceExpression', 'sequence': 'T'}}
 
-A ``GET`` request to ``/variation/<ID>`` can be used to retrieve the same object later.
+A ``GET`` request to ``/variations/<ID>`` can be used to retrieve the same object later.
 
 .. code-block:: pycon
 
-   >>> response = requests.get(f"http://localhost:8000/object/{allele_id}")
+   >>> response = requests.get(f"http://localhost:8000/variations/{allele_id}")
    >>> response.json()["data"]
    {'id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', 'type': 'Allele', 'digest': 'K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU', 'location': {'id': 'ga4gh:SL.aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8', 'type': 'SequenceLocation', 'digest': 'aCMcqLGKClwMWEDx3QWe4XSiGDlKXdB8', 'sequenceReference': {'type': 'SequenceReference', 'refgetAccession': 'SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB'}, 'start': 87894076, 'end': 87894077}, 'state': {'type': 'LiteralSequenceExpression', 'sequence': 'T'}}
 
@@ -39,7 +39,7 @@ Variant registration also registered contained VRS objects, like SequenceLocatio
 .. code-block:: pycon
 
    >>> location_id = "ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy"
-   >>> response = requests.get(f"http://localhost:8000/object/{location_id}")
+   >>> response = requests.get(f"http://localhost:8000/sequence_locations/{location_id}")
    >>> response.json()["data"]
    {'id': 'ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy', 'type': 'SequenceLocation', 'digest': '01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy', 'sequenceReference': {'type': 'SequenceReference', 'refgetAccession': 'SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB'}, 'start': 87894076, 'end': 87894077}
 
@@ -88,7 +88,7 @@ The ``/variations`` endpoint accepts a list of variation definitions for bulk re
 Asynchronous Bulk Registration
 ------------------------------
 
-For larger batches of variations, the ``/variations`` endpoint supports the same `asynchronous request-response pattern <https://learn.microsoft.com/en-us/azure/architecture/patterns/async-request-reply>`_ used by the ``/vcf`` endpoint (see :ref:`async configuration <async_work_dir_config>`). Set the ``run_async`` query parameter to ``true`` to submit the job asynchronously. The server returns a ``202 Accepted`` response containing a ``run_id``, which can be used to poll for the result at ``GET /variations/{run_id}``.
+For larger batches of variations, the ``/variations`` endpoint supports the same `asynchronous request-response pattern <https://learn.microsoft.com/en-us/azure/architecture/patterns/async-request-reply>`_ used by the ``/vcf`` endpoint (see :ref:`async configuration <async_work_dir_config>`). Set the ``run_async`` query parameter to ``true`` to submit the job asynchronously. The server returns a ``202 Accepted`` response containing a ``run_id``, which can be used to poll for the result at ``GET /variations/runs/{run_id}``.
 
 .. code-block:: pycon
 
@@ -129,28 +129,28 @@ An optional ``run_id`` query parameter can be supplied to use a specific identif
 Working With Mappings
 =====================
 
-To add a :ref:`mapping <mappings>` between previously-registered variation objects issue a ``PUT`` request to ``/object/<vrs_id>/mappings``, where ``vrs_id`` is the ``source_id`` of the mapping object:
+To add a :ref:`mapping <mappings>` between previously-registered variation objects issue a ``PUT`` request to ``/variations/<vrs_id>/mappings``, where ``vrs_id`` is the ``source_id`` of the mapping object:
 
 .. code-block:: pycon
 
    >>> payload = {"definition": "NC_000007.14:g.140753336A>T"}
-   >>> response = requests.put("http://localhost:8000/variation", json=payload)
+   >>> response = requests.put("http://localhost:8000s", json=payload)
    >>> genomic_id = response.json()["object"]["id"]
    >>> payload = {"definition": "NM_004333.6:c.1799T>A"}
-   >>> response = requests.put("http://localhost:8000/variation", json=payload)
+   >>> response = requests.put("http://localhost:8000/variations", json=payload)
    >>> tx_id = response.json()["object"]["id"]
    >>> payload = {"dest_id": tx_id, "mapping_type": "transcribe_to"}
    >>> requests.put(
-   ...     f"http://localhost:8000/object/{genomic_id}/mappings",
+   ...     f"http://localhost:8000/variations/{genomic_id}/mappings",
    ...     json=payload
    ... )
 
-Mappings from an object can be retrieved via ``GET /object/<vrs_id>/mappings?mapping_type=<mapping_type>``:
+Mappings from an object can be retrieved via ``GET /variations/<vrs_id>/mappings?mapping_type=<mapping_type>``:
 
 .. code-block:: pycon
 
    >>> response = requests.get(
-   ...     f"http://localhost:8000/object/{genomic_id}/mappings?mapping_type=transcribe_to"
+   ...     f"http://localhost:8000/variations/{genomic_id}/mappings?mapping_type=transcribe_to"
    ... )
    >>> response.json()
    {'mappings': [{'source_id': 'ga4gh:VA.Otc5ovrw906Ack087o1fhegB4jDRqCAe',
@@ -163,10 +163,10 @@ By default, when a GRCh37 or GRCh38 variant is registered, the lifted-over equiv
 .. code-block:: pycon
 
    >>> payload = {"definition": "NC_000010.11:g.87894077C>T"}
-   >>> response = requests.put("http://localhost:8000/variation", json=payload)
+   >>> response = requests.put("http://localhost:8000/variations", json=payload)
    >>> registered_allele_id = response.json()["object_id"]
    >>> response = requests.get(
-   ...     f"http://localhost:8000/object/{registered_allele_id}/mappings?mapping_type=liftover_to"
+   ...     f"http://localhost:8000/variations/{registered_allele_id}/mappings?mapping_type=liftover_to"
    ... )
    >>> response.json()
    {'mappings': [{'source_id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU',
@@ -177,7 +177,7 @@ By default, when a GRCh37 or GRCh38 variant is registered, the lifted-over equiv
 Working With Extensions
 ========================
 
-To add a new :ref:`extension<extensions>` to a registered variation, send a ``POST`` request to ``/object/<vrs_id>/extensions`` with a payload containing the extension name and value:
+To add a new :ref:`extension<extensions>` to a registered variation, send a ``POST`` request to ``/variations/<vrs_id>/extensions`` with a payload containing the extension name and value:
 
 .. code-block:: pycon
 
@@ -186,13 +186,13 @@ To add a new :ref:`extension<extensions>` to a registered variation, send a ``PO
    ...     "value": "VCV000012345.6",
    ... }
    >>> braf_v600e_id = "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU"
-   >>> response = requests.post(f"http://localhost:8000/object/{braf_v600e_id}/extensions", json=payload)
+   >>> response = requests.post(f"http://localhost:8000/variations/{braf_v600e_id}/extensions", json=payload)
 
 Extensions can be retrieved via a GET request for the VRS ID and extension name:
 
 .. code-block:: pycon
 
-   >>> resp = requests.get(f"http://localhost:8000/object/{braf_v600e_id}/extensions/clinvar_accession")
+   >>> resp = requests.get(f"http://localhost:8000/variations/{braf_v600e_id}/extensions/clinvar_accession")
    >>> response.json()
    {'object': {'id': 'ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU',
      'type': 'Allele',

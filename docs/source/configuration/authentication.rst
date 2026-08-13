@@ -141,7 +141,7 @@ When authentication is enabled, include the bearer token in the ``Authorization`
 .. code-block:: bash
 
    curl -H "Authorization: Bearer YOUR_TOKEN_HERE" \
-        https://your-anyvar-instance.com/variation
+        https://your-anyvar-instance.com/variations
 
 Without a valid token, requests will receive a 401 Unauthorized response.
 

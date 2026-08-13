@@ -140,7 +140,7 @@ class TestPutVariationsAsync:
         assert body["run_id"] == "async-run-123"
         assert body["status"] == "PENDING"
         assert "Location" in resp.headers
-        assert "/variations/async-run-123" in resp.headers["Location"]
+        assert "/variations/runs/async-run-123" in resp.headers["Location"]
         assert "Retry-After" in resp.headers
 
     @patch("anyvar.restapi.has_async_imports", True)

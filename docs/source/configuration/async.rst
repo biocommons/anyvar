@@ -118,5 +118,5 @@ These settings apply to asynchronous variation registration via ``PUT /variation
    * - ``ANYVAR_EXPECTED_VARIATIONS_PER_SECOND``
      - ``100``
 
-* ``ANYVAR_VARIATIONS_ASYNC_FAILURE_STATUS_CODE`` sets the HTTP status code returned by ``GET /variations/{run_id}`` when an internal error occurs during asynchronous variation registration.
+* ``ANYVAR_VARIATIONS_ASYNC_FAILURE_STATUS_CODE`` sets the HTTP status code returned by ``GET /variations/runs/{run_id}`` when an internal error occurs during asynchronous variation registration.
 * ``ANYVAR_EXPECTED_VARIATIONS_PER_SECOND`` is used to estimate the ``Retry-After`` header value in the ``202 Accepted`` response. Higher values result in shorter suggested polling intervals.

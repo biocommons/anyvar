@@ -184,7 +184,7 @@ class SupportedVariationType(StrEnum):
 
 
 class VariationRequest(BaseModel):
-    """Describe request structure for the PUT and POST /variation endpoints"""
+    """Describe request structure for the PUT and POST /variations endpoints"""
 
     model_config = ConfigDict(use_enum_values=True)
 
@@ -194,7 +194,7 @@ class VariationRequest(BaseModel):
 
 
 class AddExtensionResponse(BaseModel):
-    """Response for the POST /variation/{vrs_id}/extensions endpoint"""
+    """Response for the POST /variations/{vrs_id}/extensions endpoint"""
 
     object: objects.SupportedVrsObject | None
     object_id: str | None
@@ -204,7 +204,7 @@ class AddExtensionResponse(BaseModel):
 
 
 class AddExtensionRequest(BaseModel):
-    """Request for the POST /variation/{vrs_id}/extensions endpoint.
+    """Request for the POST /variations/{vrs_id}/extensions endpoint.
 
     Used when the extension is identified through the request path.
     """
@@ -214,13 +214,13 @@ class AddExtensionRequest(BaseModel):
 
 
 class GetExtensionResponse(BaseModel):
-    """Response for the GET /variation/{vrs_id}/extensions/{extension_name} endpoint"""
+    """Response for the GET /variations/{vrs_id}/extensions/{extension_name} endpoint"""
 
     extensions: list[metadata.Extension]
 
 
 class AddMappingResponse(BaseModel):
-    """Response for POST /variation/{vrs_id}/mappings endpoint"""
+    """Response for POST /variations/{vrs_id}/mappings endpoint"""
 
     model_config = ConfigDict(use_enum_values=True)
 
@@ -232,7 +232,7 @@ class AddMappingResponse(BaseModel):
 
 
 class AddMappingRequest(BaseModel):
-    """Request for the POST /variation/{vrs_id}/mappings endpoint"""
+    """Request for the POST /variations/{vrs_id}/mappings endpoint"""
 
     model_config = ConfigDict(use_enum_values=True)
 
@@ -241,13 +241,13 @@ class AddMappingRequest(BaseModel):
 
 
 class GetMappingResponse(BaseModel):
-    """Request for the GET /variation/{vrs_id}/mappings endpoint"""
+    """Request for the GET /variations/{vrs_id}/mappings endpoint"""
 
     mappings: Iterable[metadata.VariationMapping]
 
 
 class RegisterVariationResponse(BaseModel):
-    """Describe response for the PUT /variation, PUT /variations, and PUT /vrs_variation endpoints"""
+    """Describe response for the PUT /variations endpoints"""
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -296,7 +296,7 @@ class RegisterVariationResponse(BaseModel):
 
 
 class GetObjectResponse(BaseModel):
-    """Describe response for the GET /variation endpoint"""
+    """Describe response for the GET /variations endpoint"""
 
     model_config = ConfigDict(
         json_schema_extra={
