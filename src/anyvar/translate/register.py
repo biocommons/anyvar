@@ -112,7 +112,7 @@ def _register_initial_variations(
             variations_to_store.append(translation_result.variation)
 
     if variations_to_store:
-        av.put_objects(variation_objects=variations_to_store)
+        av.put_objects(variations_to_store)
 
     return translation_results
 

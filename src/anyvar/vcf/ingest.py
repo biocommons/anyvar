@@ -42,7 +42,7 @@ class VrsObjectRegistrationBatcher:
     def register_batch(self) -> None:
         """Registers a batch of vrs objects and resets the collection list to prepare for the next batch"""
         if self.batch_collection:
-            self.anyvar_instance.put_objects(variation_objects=self.batch_collection)
+            self.anyvar_instance.put_objects(self.batch_collection)
             _logger.debug("Wrote %s variants to DB", len(self.batch_collection))
             self.batch_collection = []
 

@@ -199,12 +199,29 @@ async def _annotate_vcf_sync(
             assembly=assembly,
             vrs_attributes=add_vrs_attributes,
         )
-    except (TranslatorConnectionError, OSError, ValueError):
-        _logger.exception(
-            "Encountered error during registration of VCF file %s", vcf.filename
+    except (TranslatorConnectionError, OSError, ValueError) as e:
+        logger_message: str = (
+            f"Encountered error during registration of VCF file {vcf.filename}"
         )
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        return ErrorResponse(error="VCF registration failed.")
+        response_message: str = "VCF registration failed."
+        status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+
+        # We do not accept pre-annotated VCF files; handle these errors separately
+        if (
+            isinstance(e, ValueError)
+            and str(e) == "Header already exists for id=VRS_Allele_IDs"
+        ):
+            logger_message = (
+                f"Error: VCF file {vcf.filename} is already annotated with VRS IDs"
+            )
+            response_message = (
+                "VCF registration failed - file is already annotated with VRS IDs"
+            )
+            status_code = status.HTTP_400_BAD_REQUEST
+
+        _logger.exception(msg=logger_message)
+        response.status_code = status_code
+        return ErrorResponse(error=response_message)
 
     if not allow_async_write:
         _logger.info("Waiting for object store writes from API handler method")
