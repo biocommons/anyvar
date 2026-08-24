@@ -10,15 +10,42 @@ from pydantic import Field, field_validator
 _logger = logging.getLogger(__name__)
 
 
+_seqrepo_seqtype_to_molecule_type = {
+    "c": vrs_models.MoleculeType.RNA,
+    "g": vrs_models.MoleculeType.GENOMIC,
+    "p": vrs_models.MoleculeType.PROTEIN,
+    "m": vrs_models.MoleculeType.MRNA,
+}
+
+
+def get_molecule_type(
+    seq_ref: vrs_models.SequenceReference,
+    dp: _DataProxy,
+) -> vrs_models.MoleculeType | None:
+    """Return the molecule type for a sequence reference, inferring it via SeqRepo if absent."""
+    if seq_ref.moleculeType:
+        return seq_ref.moleculeType
+    refseq_aliases = dp.translate_sequence_identifier(
+        f"ga4gh:{seq_ref.refgetAccession}", "refseq"
+    )
+    if not refseq_aliases:
+        _logger.debug(
+            "Unable to translate sequence accession %s to a known namespace",
+            seq_ref.refgetAccession,
+        )
+        return None
+    raw_seq_type = dp.extract_sequence_type(refseq_aliases[0])
+    if not raw_seq_type:
+        return None
+    return _seqrepo_seqtype_to_molecule_type.get(raw_seq_type)
+
+
 def is_expected_molecule_type(
     seq_ref: vrs_models.SequenceReference,
     expected_type: vrs_models.MoleculeType,
     dp: _DataProxy,
 ) -> bool:
     """Validate that the given sequence reference has the expected molecule type
-
-    Currently only intended to support genomic and protein variants since that's what
-    we have catvars for
 
     No further validation is performed if the `moleculeType` property is defined; its
     value is accepted as authoritative and no additional sequence type lookup is
@@ -30,29 +57,15 @@ def is_expected_molecule_type(
     :return: whether the sequence reference's molecule type can be validated as consistent
         with the expected molecule type
     """
-    if seq_ref.moleculeType:
-        return seq_ref.moleculeType == expected_type
-
-    refseq_aliases = dp.translate_sequence_identifier(
-        f"ga4gh:{seq_ref.refgetAccession}", "refseq"
-    )
-    if not refseq_aliases:
+    seq_type = get_molecule_type(seq_ref, dp)
+    if not seq_type:
         _logger.debug(
-            "Unable to translate sequence accession %s to a known namespace",
+            "Encountered unexpected or unknown sequence type for %s: %s",
             seq_ref.refgetAccession,
+            seq_type,
         )
         return False
-    raw_seq_type = dp.extract_sequence_type(refseq_aliases[0])
-    if expected_type == vrs_models.MoleculeType.GENOMIC:
-        return raw_seq_type == "g"
-    if expected_type == vrs_models.MoleculeType.PROTEIN:
-        return raw_seq_type == "p"
-    _logger.debug(
-        "Encountered unexpected or unknown sequence type for %s: %s",
-        seq_ref.refgetAccession,
-        raw_seq_type,
-    )
-    return False
+    return seq_type == expected_type
 
 
 class _SimpleAlleleCatVar(cat_vrs_models.CategoricalVariant):

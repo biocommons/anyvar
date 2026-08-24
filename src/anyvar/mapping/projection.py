@@ -10,9 +10,9 @@ import concurrent.futures
 import logging
 import math
 import threading
-from collections.abc import Awaitable
+from collections.abc import Coroutine
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 from bioutils import sequences as bioutils_sequences
 from bioutils.sequences import TranslationTable
@@ -28,19 +28,22 @@ from ga4gh.vrs import models, normalize
 from ga4gh.vrs.dataproxy import _DataProxy
 from ga4gh.vrs.normalize import denormalize_reference_length_expression
 
+from anyvar.core.categorical_variants import get_molecule_type
 from anyvar.core.metadata import VariationMapping, VariationMappingType
 from anyvar.core.objects import SupportedVrsVariation
-from anyvar.storage.base import Storage
+from anyvar.mapping.projection_models import (
+    ProjectedVariation,
+    ProjectionError,
+    ProjectionFailure,
+    ProjectionNotApplicable,
+    ProjectionOutcome,
+    ProjectionResults,
+)
 
 _logger = logging.getLogger(__name__)
 
 _CODON_LENGTH = 3
 _ASYNC_TIMEOUT = 30
-_REFSEQ_TRANSCRIPT_PREFIXES = ("NM_", "NR_", "XM_", "XR_")
-
-
-class ProjectionError(Exception):
-    """Indicates a failure during variant projection."""
 
 
 class _RefSeqPositionLike(Protocol):
@@ -86,16 +89,6 @@ class _ProjectionLocation:
     refget_accession: str | None = None
 
 
-@dataclass(frozen=True)
-class _ProjectedTranscriptAllele:
-    """Projected transcript allele metadata needed for protein projection."""
-
-    vrs_id: str
-    start: int
-    end: int
-    state: models.LiteralSequenceExpression
-
-
 def _get_variation_location(
     variation: SupportedVrsVariation,
     *,
@@ -125,18 +118,16 @@ def _get_variation_location(
     return _ProjectionLocation(start, end, refget_accession)
 
 
-def _refget_to_refseq_accession(dp: _DataProxy, refget_accession: str) -> str | None:
-    """Convert a refget accession (SQ.xxx) to a RefSeq accession (NC_/NM_/NP_).
-
-    :param dp: SeqRepo DataProxy instance
-    :param refget_accession: refget accession (e.g. "SQ.xxx")
-    :return: RefSeq accession or None if not found
-    """
-    ga4gh_id = f"ga4gh:{refget_accession}"
+def _get_refseq_accession(
+    dp: _DataProxy, variation: SupportedVrsVariation
+) -> str | None:
+    """Retrieve refseq accession for the given variant"""
+    location = _get_variation_location(variation, require_refget=True)
+    ga4gh_id = f"ga4gh:{location.refget_accession}"
     try:
         aliases = dp.translate_sequence_identifier(ga4gh_id, "refseq")
     except KeyError:
-        _logger.debug("No RefSeq alias found for %s", refget_accession)
+        _logger.debug("No RefSeq alias found for %s", location.refget_accession)
         return None
     if not aliases:
         return None
@@ -549,11 +540,6 @@ def _is_utr_variant(cdna: _CdnaPositionLike) -> str | None:
     return None
 
 
-def _is_refseq_transcript_accession(accession: str) -> bool:
-    """Return whether an accession names a RefSeq transcript sequence."""
-    return accession.startswith(_REFSEQ_TRANSCRIPT_PREFIXES)
-
-
 def _cdna_pos_to_protein_pos(c_pos: tuple[int, int]) -> tuple[int, int]:
     """Get protein inter-residue coordinates from CDS-relative cDNA coordinates."""
     end = math.ceil(c_pos[1] / _CODON_LENGTH)
@@ -569,36 +555,6 @@ def _cdna_pos_to_transcript_pos(cdna: _CdnaPositionLike) -> tuple[int, int]:
     return (
         cdna.pos[0] + cdna.coding_start_site,
         cdna.pos[1] + cdna.coding_start_site,
-    )
-
-
-def _store_projected_variant(
-    storage: Storage,
-    source_id: str,
-    projected_variant: models.Allele,
-    mapping_type: VariationMappingType,
-) -> None:
-    """Store a projected variant and create a forward mapping.
-
-    :param storage: Storage instance
-    :param source_id: VRS ID of the source variant
-    :param projected_variant: the projected VRS Allele
-    :param mapping_type: type of mapping (TRANSCRIBE_TO or TRANSLATE_TO)
-    """
-    projected_id: str = projected_variant.id  # type: ignore
-    _logger.debug(
-        "Persisting projected variant mapping_type=%s source_id=%s dest_id=%s",
-        mapping_type.value,
-        source_id,
-        projected_id,
-    )
-    storage.add_objects([projected_variant])
-    storage.add_mapping(
-        VariationMapping(
-            source_id=source_id,
-            dest_id=projected_id,
-            mapping_type=mapping_type,
-        )
     )
 
 
@@ -657,7 +613,7 @@ class VariantProjector:
 
     def _run_async_projection(
         self,
-        awaitable: Awaitable[object],
+        awaitable: Coroutine[Any, Any, object],
         *,
         timeout_message: str,
         failure_message: str,
@@ -772,7 +728,6 @@ class VariantProjector:
 
     def _project_transcript_to_protein(
         self,
-        storage: Storage,
         source_id: str,
         cdna: _CdnaPositionLike,
         protein: _RefSeqPositionLike | None,
@@ -781,31 +736,40 @@ class VariantProjector:
         cdna_state: models.LiteralSequenceExpression,
         *,
         missing_protein_message: str | None = None,
-    ) -> None:
+    ) -> ProjectionOutcome:
         """Project a transcript allele to protein and store the mapping."""
         utr_region = _is_utr_variant(cdna)
         if utr_region:
-            _logger.info(
-                "Skipping protein projection for %s: variant in %s UTR",
-                cdna.refseq,
-                utr_region.replace("_", "' "),
-            )
-            return
+            msg = f"Skipping protein projection for {cdna.refseq}: variant in {utr_region} UTR"
+            _logger.info(msg)
+            return ProjectionNotApplicable(source_id, msg, models.MoleculeType.PROTEIN)
 
         if not protein or not protein.refseq:
-            _logger.debug("No protein representation returned for %s", cdna.refseq)
+            msg = f"No protein representation returned for {cdna.refseq}"
+            _logger.debug(msg)
             if missing_protein_message:
-                raise ProjectionError(missing_protein_message)
-            return
+                return ProjectionFailure(
+                    source_id,
+                    missing_protein_message,
+                    destination_molecule_type=models.MoleculeType.PROTEIN,
+                )
+            return ProjectionNotApplicable(source_id, msg, models.MoleculeType.PROTEIN)
 
-        protein_state = _derive_protein_substitution_state(
-            self.dp,
-            cdna,
-            protein,
-            cdna_start,
-            cdna_end,
-            cdna_state,
-        )
+        try:
+            protein_state = _derive_protein_substitution_state(
+                self.dp,
+                cdna,
+                protein,
+                cdna_start,
+                cdna_end,
+                cdna_state,
+            )
+        except ProjectionError as e:
+            return ProjectionFailure(
+                source_id=source_id,
+                description=str(e),
+                destination_molecule_type=models.MoleculeType.PROTEIN,
+            )
 
         protein_allele = _build_allele(
             self.dp,
@@ -814,27 +778,31 @@ class VariantProjector:
             protein.pos[1],
             protein_state,
         )
-        _store_projected_variant(
-            storage,
-            source_id,
-            protein_allele,
-            VariationMappingType.TRANSLATE_TO,
+        return ProjectedVariation(
+            destination_variation=protein_allele,
+            mapping=VariationMapping(
+                source_id=source_id,
+                dest_id=protein_allele.id,
+                mapping_type=VariationMappingType.TRANSLATE_TO,
+            ),
         )
 
     def _project_genomic_to_transcript(
         self,
-        storage: Storage,
         source_id: str,
         variation: SupportedVrsVariation,
         cdna: CdnaRepresentation,
         genomic_ac: str,
-    ) -> _ProjectedTranscriptAllele | None:
+    ) -> ProjectionOutcome:
         """Build and store the transcript allele projected from a genomic variant."""
         if not cdna.refseq:
-            _logger.debug(
-                "No RefSeq cDNA accession in projection result for %s", genomic_ac
+            msg = f"No RefSeq cDNA accession in projection result for {genomic_ac}"
+            _logger.debug(msg)
+            return ProjectionNotApplicable(
+                source_id=source_id,
+                reason=msg,
+                destination_molecule_type=models.MoleculeType.RNA,
             )
-            return None
 
         cdna_start, cdna_end = _cdna_pos_to_transcript_pos(cdna)
         cdna_state = _project_genomic_state_to_cdna_literal(self.dp, variation, cdna)
@@ -845,19 +813,13 @@ class VariantProjector:
             cdna_end,
             cdna_state,
         )
-
-        cdna_id: str = cdna_allele.id  # type: ignore[assignment]
-        _store_projected_variant(
-            storage,
-            source_id,
-            cdna_allele,
-            VariationMappingType.TRANSCRIBE_TO,
-        )
-        return _ProjectedTranscriptAllele(
-            vrs_id=cdna_id,
-            start=cdna_start,
-            end=cdna_end,
-            state=cdna_state,
+        return ProjectedVariation(
+            destination_variation=cdna_allele,
+            mapping=VariationMapping(
+                source_id=source_id,
+                dest_id=cdna_allele.id,
+                mapping_type=VariationMappingType.TRANSCRIBE_TO,
+            ),
         )
 
     async def _resolve_genomic_mane_c_p(
@@ -888,15 +850,15 @@ class VariantProjector:
     def _project_genomic_variant(
         self,
         variation: SupportedVrsVariation,
-        storage: Storage,
         genomic_ac: str,
-    ) -> None:
+    ) -> ProjectionResults:
         """Project a genomic variant to coding and protein representations.
 
         :param variation: genomic VRS variation
         :param storage: Storage instance
         :param genomic_ac: pre-resolved genomic RefSeq accession
         """
+        projection_result = ProjectionResults()
         location = _get_variation_location(variation, require_refget=True)
 
         input_vrs_id: str = variation.id  # type: ignore
@@ -912,94 +874,119 @@ class VariantProjector:
         # Use cool-seq-tool to get MANE c./p. representations, falling back to
         # the longest compatible remaining transcript when MANE is unavailable
         # or incompatible.
-        result = self._run_async_projection(
-            self._resolve_genomic_mane_c_p(
-                genomic_ac,
-                location.start,
-                location.end,
-            ),
-            timeout_message="Projection failed: coordinate mapping timed out",
-            failure_message="Projection failed: error during coordinate mapping",
-            log_context=(
-                "cool-seq-tool projection for "
-                f"{genomic_ac}:{location.start}-{location.end}"
-            ),
-        )
+        try:
+            result = self._run_async_projection(
+                self._resolve_genomic_mane_c_p(
+                    genomic_ac,
+                    location.start,
+                    location.end,
+                ),
+                timeout_message="Projection failed: coordinate mapping timed out",
+                failure_message="Projection failed: error during coordinate mapping",
+                log_context=(
+                    "cool-seq-tool projection for "
+                    f"{genomic_ac}:{location.start}-{location.end}"
+                ),
+            )
+        except ProjectionError as e:
+            projection_result.add(
+                ProjectionFailure.from_error(source_id=variation.id, error=e)
+            )
+            return projection_result
 
         if result is None:
             # No compatible transcript is an expected no-op, not a failure.
-            _logger.info(
-                "Projection skipped for %s: no compatible transcript found at %s:%d-%d",
-                input_vrs_id,
-                genomic_ac,
-                location.start,
-                location.end,
-            )
-            return  # no compatible transcript data -- not an error
+            msg = f"Projection skipped for {input_vrs_id}: no compatible transcript found at {genomic_ac}:{location.start}-{location.end}"
+            _logger.info(msg)
 
-        transcript_projection = self._project_genomic_to_transcript(
-            storage,
+            projection_result.add(
+                ProjectionNotApplicable(
+                    source_id=variation.id,
+                    reason=msg,
+                    destination_molecule_type=None,
+                )
+            )
+            return projection_result
+
+        transcript_projection_result = self._project_genomic_to_transcript(
             input_vrs_id,
             variation,
             result.cdna,
             genomic_ac,
         )
-        if transcript_projection:
-            self._project_transcript_to_protein(
-                storage,
-                transcript_projection.vrs_id,
+        projection_result.add(transcript_projection_result)
+        if isinstance(transcript_projection_result, ProjectedVariation):
+            tx_allele = transcript_projection_result.destination_variation
+            cdna_start, cdna_end = _cdna_pos_to_transcript_pos(result.cdna)
+            protein_projection = self._project_transcript_to_protein(
+                tx_allele.id,
                 result.cdna,
                 result.protein,
-                transcript_projection.start,
-                transcript_projection.end,
-                transcript_projection.state,
+                cdna_start,
+                cdna_end,
+                tx_allele.state,
             )
+            if protein_projection:
+                projection_result.add(protein_projection)
 
         _logger.debug(
             "Projection finished for %s transcript_id=%s",
             input_vrs_id,
-            transcript_projection.vrs_id if transcript_projection else None,
+            transcript_projection_result.destination_variation.id
+            if isinstance(transcript_projection_result, ProjectedVariation)
+            else None,
         )
+        return projection_result
 
     def _project_transcript_variant(
         self,
         variation: SupportedVrsVariation,
-        storage: Storage,
         transcript_ac: str,
-    ) -> None:
+    ) -> ProjectionResults:
         """Project a direct transcript variant to its associated protein."""
+        projection_result = ProjectionResults()
         location = _get_variation_location(variation)
 
         input_vrs_id: str = variation.id  # type: ignore
-        result = self._run_async_projection(
-            self._resolve_transcript_to_protein_metadata(
-                transcript_ac, location.start, location.end
-            ),
-            timeout_message="Projection failed: transcript metadata lookup timed out",
-            failure_message="Projection failed: error during transcript metadata lookup",
-            log_context=(
-                "Transcript projection metadata lookup for "
-                f"{transcript_ac}:{location.start}-{location.end}"
-            ),
-        )
+        try:
+            result = self._run_async_projection(
+                self._resolve_transcript_to_protein_metadata(
+                    transcript_ac, location.start, location.end
+                ),
+                timeout_message="Projection failed: transcript metadata lookup timed out",
+                failure_message="Projection failed: error during transcript metadata lookup",
+                log_context=(
+                    f"Transcript projection metadata lookup for {transcript_ac}:{location.start}-{location.end}"
+                ),
+            )
+        except ProjectionError as e:
+            projection_result.add(
+                ProjectionFailure.from_error(source_id=variation.id, error=e)
+            )
+            return projection_result
         try:
             cdna, protein = result  # type: ignore[misc]
         except (TypeError, ValueError):
-            msg = (
-                "Projection skipped: no CDS/protein metadata for transcript "
-                f"{transcript_ac}"
+            projection_result.add(
+                ProjectionNotApplicable(
+                    variation.id,
+                    f"Projection skipped: no CDS/protein metadata for transcript {transcript_ac}",
+                    models.MoleculeType.PROTEIN,
+                )
             )
-            raise ProjectionError(msg) from None
+            return projection_result
         if cdna is None:
-            msg = (
-                "Projection skipped: no CDS/protein metadata for transcript "
-                f"{transcript_ac}"
+            projection_result.add(
+                ProjectionNotApplicable(
+                    variation.id,
+                    f"Projection skipped: no CDS/protein metadata for transcript {transcript_ac}",
+                    models.MoleculeType.PROTEIN,
+                )
             )
-            raise ProjectionError(msg)
-        cdna_state = _get_transcript_literal_state(self.dp, variation)
+            return projection_result
 
-        self._project_transcript_to_protein(
-            storage,
+        cdna_state = _get_transcript_literal_state(self.dp, variation)
+        protein_projection_result = self._project_transcript_to_protein(
             input_vrs_id,
             cdna,
             protein,
@@ -1011,73 +998,39 @@ class VariantProjector:
                 f"{transcript_ac}"
             ),
         )
+        projection_result.add(protein_projection_result)
+        return projection_result
 
-    def _add_projections_for_refseq_accession(
+    def project_variations(
         self,
         variation: SupportedVrsVariation,
-        storage: Storage,
-        refseq_accession: str,
-    ) -> None:
-        """Dispatch projection for an already-resolved RefSeq accession."""
-        if refseq_accession.startswith("NC_"):
-            self._project_genomic_variant(variation, storage, refseq_accession)
-            return
-        if _is_refseq_transcript_accession(refseq_accession):
-            # TODO: consider optionally registering an additional mapping from
-            # the user-provided transcript to the corresponding MANE transcript.
-            self._project_transcript_variant(variation, storage, refseq_accession)
-            return
-        _logger.debug(
-            "Skipping projection: %s is not a genomic or transcript accession",
-            refseq_accession,
-        )
+    ) -> ProjectionResults:
+        """Get variations which can be projected from the provided variation
 
-    def add_projections(
-        self,
-        variation: SupportedVrsVariation,
-        storage: Storage,
-    ) -> None:
-        """Project a variant to other molecule types and store mappings.
-
-        For genomic variants, projects to coding (TRANSCRIBE_TO) and protein
-        (TRANSLATE_TO) representations using cool-seq-tool transcript selection
-        with longest-compatible fallback. For transcript variants, projects
-        directly to the associated protein.
-
-        This method raises projection errors for warning cases that callers may
-        catch and communicate to users.
-
-        TODO: This only supports refseq accessions. Consider another approach.
-
-        :param variation: variation to project
-        :param storage: Storage instance
-        :raises ProjectionError: if projection is unsupported or fails
+        :param variation: input variant
+        :return: result class containing successfully-generated mappings as well as failures
         """
         if not isinstance(variation, models.Allele):
-            raise ProjectionError(
-                "Projection unsupported: only Allele variations are supported"
-            )
+            raise TypeError("Projection is currently supported for alleles only")
+        refseq_accession = _get_refseq_accession(self.dp, variation)
+        if not refseq_accession:
+            msg = f"Projection skipped for {variation.id}: could not resolve RefSeq accession for {variation.location.sequenceReference.refgetAccession}"
+            _logger.info(msg)
+            return ProjectionResults(failures=[ProjectionFailure(variation.id, msg)])
 
-        location = _get_variation_location(variation, require_refget=True)
-
-        try:
-            refseq_accession = _refget_to_refseq_accession(
-                self.dp, location.refget_accession
-            )
-            if not refseq_accession:
-                _logger.info(
-                    "Projection skipped for %s: could not resolve RefSeq accession "
-                    "for %s",
-                    variation.id,
-                    location.refget_accession,
+        molecule_type = get_molecule_type(variation.location.sequenceReference, self.dp)
+        match molecule_type:
+            case models.MoleculeType.GENOMIC:
+                return self._project_genomic_variant(variation, refseq_accession)
+            case models.MoleculeType.RNA:
+                return self._project_transcript_variant(variation, refseq_accession)
+            case _:
+                return ProjectionResults(
+                    not_applicable=[
+                        ProjectionNotApplicable(
+                            source_id=variation.id,
+                            reason=f"Projection unsupported for molecule type: {molecule_type}",
+                            destination_molecule_type=None,
+                        )
+                    ]
                 )
-                return
-            self._add_projections_for_refseq_accession(
-                variation, storage, refseq_accession
-            )
-        except ProjectionError as exc:
-            _logger.info("Projection failed for %s: %s", variation.id, exc)
-            raise
-        except Exception:
-            _logger.exception("Unexpected error during projection of %s", variation.id)
-            raise ProjectionError("Projection failed: unexpected error") from None

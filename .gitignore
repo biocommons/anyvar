@@ -124,3 +124,7 @@ docker/data*
 
 # logging configs
 logging.yaml
+
+# test data stuff
+tests/data/ncbi_lrg_refseqgene
+tests/data/ncbi_mane_summary

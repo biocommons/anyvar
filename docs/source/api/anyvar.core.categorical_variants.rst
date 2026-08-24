@@ -1,0 +1,8 @@
+anyvar.core.categorical_variants
+================================
+
+.. automodule:: anyvar.core.categorical_variants
+   :members:
+   :undoc-members:
+   :special-members: __init__
+   :exclude-members: model_fields, model_config

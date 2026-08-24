@@ -12,14 +12,10 @@ from anyvar.storage.base import Storage
 def preloaded_allele_pairs(preloaded_alleles: dict):
     """Get preloaded allele pairs"""
     preloaded_alleles_l = [allele["variation"] for allele in preloaded_alleles.values()]
-    preloaded_allele_pairs = []
-    for i in range(0, len(preloaded_alleles_l), 2):
-        try:
-            preloaded_allele_pairs.append(preloaded_alleles_l[i : i + 2])
-        except ValueError:
-            break
-
-    return preloaded_allele_pairs
+    return [
+        preloaded_alleles_l[i : i + 2]
+        for i in range(0, len(preloaded_alleles_l) - 1, 2)
+    ]
 
 
 @pytest.fixture
@@ -30,7 +26,7 @@ def stored_variation_mappings(storage: Storage, preloaded_allele_pairs: list):
             metadata.VariationMapping(
                 source_id=source_vrs_object["id"],
                 dest_id=dest_vrs_object["id"],
-                mapping_type=metadata.VariationMappingType.LIFTOVER_TO.value,
+                mapping_type=metadata.VariationMappingType.LIFTOVER_TO,
             )
         )
 

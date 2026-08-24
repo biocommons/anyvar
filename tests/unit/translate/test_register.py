@@ -7,6 +7,7 @@ from ga4gh.vrs import models
 from ga4gh.vrs.dataproxy import DataProxyValidationError
 from hgvs.exceptions import HGVSParseError
 
+from anyvar.mapping.liftover import RoundtripError
 from anyvar.restapi.schema import TranslationResult, VariationRequest
 from anyvar.translate.base import TranslationError
 from anyvar.translate.register import register_variations, translate_variation
@@ -130,7 +131,7 @@ class TestRegisterVariations:
     ):
         """Successful registration calls liftover and populates object, object_id."""
         mock_translate.return_value = TranslationResult(variation=sample_allele)
-        mock_liftover_mod.add_liftover_mapping.return_value = None
+        mock_liftover_mod.liftover_and_register_variant.return_value = None
 
         responses = register_variations(mock_anyvar, [sample_variation_request])
 
@@ -143,7 +144,7 @@ class TestRegisterVariations:
         mock_anyvar.create_timestamp_if_missing.assert_called_once_with(
             sample_allele.id
         )
-        mock_liftover_mod.add_liftover_mapping.assert_called_once()
+        mock_liftover_mod.liftover_and_register_variant.assert_called_once()
 
     @patch("anyvar.translate.register.liftover")
     @patch("anyvar.translate.register.translate_variation")
@@ -162,7 +163,7 @@ class TestRegisterVariations:
             TranslationResult(variation=sample_allele),
             TranslationResult(error='Unable to translate "invalid-variant"'),
         ]
-        mock_liftover_mod.add_liftover_mapping.return_value = None
+        mock_liftover_mod.liftover_and_register_variant.return_value = None
 
         responses = register_variations(mock_anyvar, [good_req, bad_req])
 
@@ -181,21 +182,19 @@ class TestRegisterVariations:
         # Only the successful variation should be stored
         mock_anyvar.put_objects.assert_called_once_with([sample_allele])
 
-    @patch("anyvar.translate.register.liftover")
+    @patch("anyvar.translate.register.liftover.liftover_and_register_variant")
     @patch("anyvar.translate.register.translate_variation")
     def test_liftover_failure_returns_messages(
         self,
         mock_translate,
-        mock_liftover_mod,
+        mock_liftover,
         mock_anyvar,
         sample_allele,
         sample_variation_request,
     ):
         """When liftover fails, response includes error messages."""
         mock_translate.return_value = TranslationResult(variation=sample_allele)
-        mock_liftover_mod.add_liftover_mapping.return_value = [
-            "Unable to complete liftover: some error"
-        ]
+        mock_liftover.side_effect = RoundtripError()
 
         responses = register_variations(mock_anyvar, [sample_variation_request])
 
@@ -203,7 +202,7 @@ class TestRegisterVariations:
         resp = responses[0]
         assert resp.object == sample_allele
         assert resp.object_id == sample_allele.id
-        assert resp.messages == ["Unable to complete liftover: some error"]
+        assert resp.messages == [RoundtripError.get_error_message()]
 
     @patch("anyvar.translate.register.liftover")
     @patch("anyvar.translate.register.translate_variation")
@@ -228,4 +227,4 @@ class TestRegisterVariations:
 
         # put_objects should not be called when nothing translates
         mock_anyvar.put_objects.assert_not_called()
-        mock_liftover_mod.add_liftover_mapping.assert_not_called()
+        mock_liftover_mod.liftover_and_register_variant.assert_not_called()

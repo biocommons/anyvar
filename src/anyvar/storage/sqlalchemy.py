@@ -12,7 +12,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 
 from ga4gh.vrs import models as vrs_models
-from sqlalchemy import ColumnElement, and_, delete, or_, select
+from sqlalchemy import ColumnElement, and_, delete, or_, select, union_all
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, sessionmaker
 
@@ -507,3 +507,71 @@ class SqlAlchemyStorage(Storage):
             if ca:
                 return mapper_registry.from_db_entity(ca)
         return None
+
+    def get_catvars_by_allele_ids(
+        self, allele_ids: list[str]
+    ) -> list[CanonicalAllele | ProteinSequenceConsequence]:
+        """Return categorical variants connected to the given alleles.
+
+        Retrieves every registered ``CanonicalAllele`` and
+        ``ProteinSequenceConsequence`` whose defining allele is either one of the
+        given alleles or is transitively connected to one through variation mappings.
+        Mappings are traversed in both directions, regardless of their stored
+        source and destination orientation.
+
+        If no matching categorical variants exist, an empty list is returned.
+
+        :param allele_ids: VRS identifiers of alleles.
+        :return: Connected canonical allele and protein sequence consequence
+            categorical variants.
+        """
+        if not allele_ids:
+            return []
+
+        # Represent every stored mapping as two directed edges:
+        # source -> destination and destination -> source.
+        mapping_edges = union_all(
+            select(
+                orm.VariationMapping.source_id.label("from_id"),
+                orm.VariationMapping.dest_id.label("to_id"),
+            ),
+            select(
+                orm.VariationMapping.dest_id.label("from_id"),
+                orm.VariationMapping.source_id.label("to_id"),
+            ),
+        ).subquery("mapping_edges")
+
+        # Anchor: the requested alleles.
+        reachable_alleles = (
+            select(orm.Allele.id.label("allele_id"))
+            .where(orm.Allele.id.in_(allele_ids))
+            .cte("reachable_alleles", recursive=True)
+        )
+
+        # Recursive term: follow either direction through the normalized edge set.
+        next_alleles = select(mapping_edges.c.to_id.label("allele_id")).join(
+            reachable_alleles,
+            mapping_edges.c.from_id == reachable_alleles.c.allele_id,
+        )
+
+        reachable_alleles = reachable_alleles.union(next_alleles)
+        reachable_ids_stmt = select(reachable_alleles.c.allele_id)
+
+        ca_stmt = (
+            select(orm.CanonicalAllele)
+            .where(orm.CanonicalAllele.allele_id.in_(reachable_ids_stmt))
+            .order_by(orm.CanonicalAllele.id)
+        )
+        psq_stmt = (
+            select(orm.ProteinSequenceConsequence)
+            .where(orm.ProteinSequenceConsequence.allele_id.in_(reachable_ids_stmt))
+            .order_by(orm.ProteinSequenceConsequence.id)
+        )
+
+        with self.session_factory() as session:
+            entities = [
+                *session.scalars(ca_stmt).all(),
+                *session.scalars(psq_stmt).all(),
+            ]
+
+            return [mapper_registry.from_db_entity(entity) for entity in entities]

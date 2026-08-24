@@ -118,7 +118,7 @@ They can be retrieved with :py:meth:`AnyVar.get_object_mappings() <anyvar.anyvar
 
 See :ref:`here <mappings>` for more information about object mappings in AnyVar.
 
-The :py:mod:`~anyvar.mapping.liftover` module provides the :py:func:`~anyvar.mapping.liftover.add_liftover_mapping` function as a convenient way to find the lifted-over equivalent of a variation, register it, and add mappings of type ``liftover`` between them.
+The :py:mod:`~anyvar.mapping.liftover` module provides the :py:func:`~anyvar.mapping.liftover.liftover_and_register_variant` function as a convenient way to find the lifted-over equivalent of a variation, register it, and add mappings of type ``liftover`` between them.
 
 Object Extensions
 ==================

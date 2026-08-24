@@ -1,14 +1,23 @@
 """Provide API routes related to categorical variants"""
 
+import contextlib
 from http import HTTPStatus
 from typing import Annotated
 
-from fastapi import APIRouter, Body, HTTPException, Request
+from fastapi import APIRouter, Body, HTTPException, Query, Request
 from ga4gh.cat_vrs import models as cat_vrs
 from ga4gh.vrs import models as vrs
 
 from anyvar.anyvar import AnyVar, InvalidCategoricalVariantError
 from anyvar.core.categorical_variants import CanonicalAllele, ProteinSequenceConsequence
+from anyvar.mapping import liftover
+from anyvar.mapping.protocols import project_and_register_variations
+from anyvar.restapi.schema import VariationRequest
+from anyvar.restapi.variation_request import (
+    handle_translation_request,
+    variation_request_body,
+)
+from anyvar.restapi.vrs_objects import get_vrs_object
 
 catvar_router = APIRouter()
 
@@ -159,6 +168,19 @@ def put_canonical_allele(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             detail="Validation checks failed -- see description for data requirements",
         ) from e
+    allele = catvar.constraints[0].root.allele
+    if av.projector:
+        project_and_register_variations(av.projector, av.object_store, allele)
+    try:
+        lo_allele = liftover.liftover_and_register_variant(
+            allele, av.object_store, av.translator.dp
+        )
+    except liftover.LiftoverError:
+        pass
+    else:
+        if av.projector:
+            # add projections for liftover result if successful
+            project_and_register_variations(av.projector, av.object_store, lo_allele)
 
 
 @catvar_router.get("/canonical_alleles/{ca_id}", response_model_exclude_none=True)
@@ -169,3 +191,72 @@ def get_canonical_allele(request: Request, ca_id: str) -> CanonicalAllele:
     if not ca:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
     return ca
+
+
+@catvar_router.get(
+    "",
+    response_model_exclude_none=True,
+    operation_id="get_catvars_by_member_id",
+    summary="Retrieve categorical variants by member VRS object ID",
+    description=(
+        "Retrieve registered categorical variants that include the provided VRS "
+        "object ID as a member. The ID must already resolve to a registered VRS "
+        "object; this endpoint does not translate expressions or create new mappings."
+    ),
+)
+def get_catvars_by_member_id(
+    request: Request,
+    vrs_id: Annotated[
+        str,
+        Query(
+            description=(
+                "Identifier for a registered VRS object to use as the categorical "
+                "variant member lookup target."
+            ),
+            examples=["ga4gh:VA.j4XnsLZcdzDIYa5pvvXM7t1wn9OITr0L"],
+        ),
+    ],
+) -> list[CanonicalAllele | ProteinSequenceConsequence]:
+    """Retrieve categorical variants containing a registered VRS object."""
+    av: AnyVar = request.app.state.anyvar
+    vrs_object = get_vrs_object(av, vrs_id, object_type=vrs.Allele)
+    if not isinstance(vrs_object, vrs.Allele):
+        raise TypeError
+    vrs_ids = {vrs_object.id}
+    with contextlib.suppress(liftover.LiftoverError):
+        lo_allele = liftover.liftover_variant(vrs_object)
+        vrs_ids.add(lo_allele.id)
+    # don't need to do projection here -- they would've already been done at registration time
+    catvars = av.object_store.get_catvars_by_allele_ids(list(vrs_ids))
+    return catvars
+
+
+@catvar_router.post(
+    "",
+    response_model_exclude_none=True,
+    operation_id="get_catvars_by_expression",
+    summary="Retrieve categorical variants by variant expression",
+    description=(
+        "Translate a submitted variant expression into a VRS object, then retrieve "
+        "registered categorical variants that include that object, or equivalent "
+        "mapped objects, as members. This endpoint may compute mappings needed for "
+        "lookup, but does not register the submitted variation or persist newly "
+        "computed mappings."
+    ),
+)
+def get_catvars_by_variation(
+    request: Request,
+    variation: Annotated[VariationRequest, variation_request_body],
+) -> list[CanonicalAllele | ProteinSequenceConsequence]:
+    """Retrieve categorical variants matching a translated variation expression."""
+    av: AnyVar = request.app.state.anyvar
+    translated_variation = handle_translation_request(av.translator, variation)
+    allele_ids = {translated_variation.id}
+    with contextlib.suppress(liftover.LiftoverError):
+        lo_allele = liftover.liftover_variant(translated_variation)
+        allele_ids.add(lo_allele.id)
+    if av.projector:
+        projections = av.projector.project_variations(translated_variation)
+        allele_ids |= {p.destination_variation.id for p in projections.projections}
+    catvars = av.object_store.get_catvars_by_allele_ids(list(allele_ids))
+    return catvars
