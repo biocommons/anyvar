@@ -54,28 +54,38 @@ def add_projection_mappings(
     variation: objects.SupportedVrsVariation,
     messages: list[str],
 ) -> int:
-    """Attempt projection and append user-facing projection messages."""
+    """Attempt projection and append user-facing projection messages.
+
+    Modifies ``messages`` in place so that projection module doesn't need to be imported
+    outside this function
+    """
     if av.projector is None:
         return 0
 
-    from anyvar.mapping.projection import ProjectionError  # noqa: PLC0415
+    from anyvar.mapping.protocols import (  # noqa: PLC0415
+        project_and_register_variations,
+    )
 
-    try:
-        av.projector.add_projections(
-            variation=variation,
-            storage=av.object_store,
-        )
-    except ProjectionError as exc:
-        messages.append(str(exc))
-        return 1
-    return 0
+    projection_result = project_and_register_variations(
+        projector=av.projector,
+        storage=av.object_store,
+        variation=variation,
+    )
+    messages.extend(str(failure.description) for failure in projection_result.failures)
+    messages.extend(str(na.reason) for na in projection_result.not_applicable)
+    return 0 if projection_result.fully_succeeded else 1
 
 
 def register_variations(
     av: AnyVar,
     variation_requests: list[VariationRequest],
 ) -> list[RegisterVariationResponse]:
-    """Bulk register variations
+    """Provide core variant registration service.
+
+    Bulk register variants, and also trigger side effects like
+    * timestamp annotations
+    * liftover
+    * transcript/protein projection
 
     :param av: AnyVar instance
     :param variation_requests: Input variation requests to register
@@ -115,19 +125,25 @@ def register_variations(
 
         # add variant metadata
         av.create_timestamp_if_missing(translation_result.variation.id)  # type: ignore (ID guaranteed to be present)
-        messages = (
-            liftover.add_liftover_mapping(
+        try:
+            lo_allele = liftover.liftover_and_register_variant(
                 variation=translation_result.variation,
                 storage=av.object_store,
                 dataproxy=av.translator.dp,
             )
-            or []
-        )
-
+        except liftover.LiftoverError as e:
+            messages = [e.get_error_message()]
+            lo_allele = None
+        else:
+            messages = []
         if av.projector is not None:
             projection_message_count = add_projection_mappings(
                 av, translation_result.variation, messages
             )
+            if lo_allele:
+                projection_message_count += add_projection_mappings(
+                    av, lo_allele, messages
+                )
             _logger.info(
                 "Projection completed for %s with %d message(s)",
                 translation_result.variation.id,
@@ -136,6 +152,8 @@ def register_variations(
         else:
             _logger.info("Projection disabled for %s", translation_result.variation.id)
 
+        # need to deduplicate e.g. if projection fails for both the input and lifted-over variant
+        messages = list(set(messages))
         responses.append(
             RegisterVariationResponse(
                 input_variation=variation_request,

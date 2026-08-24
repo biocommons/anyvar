@@ -6,7 +6,6 @@ import logging
 import os
 import warnings
 from collections.abc import Iterable
-from typing import Protocol
 from urllib.parse import urlparse
 
 from ga4gh.vrs import models as vrs_models
@@ -17,7 +16,7 @@ from anyvar.core.categorical_variants import (
     ProteinSequenceConsequence,
     is_expected_molecule_type,
 )
-from anyvar.core.objects import SupportedVrsObject
+from anyvar.mapping.protocols import VariantProjectorProtocol
 from anyvar.storage import DEFAULT_STORAGE_URI
 from anyvar.storage.base import Storage
 from anyvar.storage.no_db import NoObjectStore
@@ -95,14 +94,6 @@ def has_queueing_enabled() -> bool:
         and os.environ.get("CELERY_BROKER_URL", "") != ""
         and os.environ.get("ANYVAR_VCF_ASYNC_WORK_DIR", "") != ""
     )
-
-
-class VariantProjectorProtocol(Protocol):
-    """Protocol for variant projection across the central dogma."""
-
-    def add_projections(  # noqa: D102
-        self, variation: objects.SupportedVrsVariation, storage: Storage
-    ) -> None: ...
 
 
 def has_variations_queueing_enabled() -> bool:
@@ -207,7 +198,7 @@ class AnyVar:
         """
         if object_type is not None:
             # Search specific object type
-            found: list[SupportedVrsObject] = list(
+            found: list[objects.SupportedVrsObject] = list(
                 self.object_store.get_objects(
                     object_type=object_type, object_ids=[object_id]
                 )

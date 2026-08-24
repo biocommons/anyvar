@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from ga4gh.vrs import models
 from pydantic import BaseModel
 
-from anyvar.anyvar import AnyVar, create_storage, create_translator
+from anyvar.anyvar import AnyVar, create_projector, create_storage, create_translator
 from anyvar.core import objects
 from anyvar.restapi.main import app as anyvar_restapi
 from anyvar.restapi.schema import ServiceInfo
@@ -115,7 +115,11 @@ def translator():
 @pytest.fixture(scope="module")
 def anyvar_instance(storage: Storage, translator: Translator):
     """Provide a test AnyVar instance"""
-    return AnyVar(object_store=storage, translator=translator)
+    return AnyVar(
+        object_store=storage,
+        translator=translator,
+        projector=create_projector(translator),
+    )
 
 
 @pytest.fixture(scope="module")

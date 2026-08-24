@@ -439,6 +439,10 @@
           "sequence": "A"
         }
       },
+      "expected_messages": [
+        "Projection skipped for ga4gh:VA.aqLIhSpwt8_SFJ7_9RKK8XVuc-UuzE_h: no compatible transcript found at NC_000001.11:35227333-35227334",
+        "Projection skipped for ga4gh:VA.-TB6WooXjvbjA63has2iP654CYWWWfV9: no compatible transcript found at NC_000001.10:35692934-35692935"
+      ],
       "comment": "gnomad grch38"
     },
     "ga4gh:VA.sMA9h8fzDi0RvweMlxtD0_Oi8B-JZ1V-": {

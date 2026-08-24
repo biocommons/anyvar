@@ -46,6 +46,14 @@ class LiftoverError(Exception):
         )
 
 
+class RoundtripError(LiftoverError):
+    """Indicates failure to roundtrip a liftover between 37 and 38, suggesting ambiguous or unreliable liftover"""
+
+    error_details = (
+        "Lifted-over coordinates could not be converted back to the original location"
+    )
+
+
 class UnsupportedVariantLocationTypeError(LiftoverError):
     """Indicates a variant with a 'location' type that is unsupported"""
 
@@ -132,7 +140,7 @@ def convert_position(
     return models.Range([lower_bound, upper_bound])
 
 
-def get_liftover_variant(input_variant: SupportedVrsVariation) -> SupportedVrsVariation:
+def liftover_variant(input_variant: SupportedVrsVariation) -> SupportedVrsVariation:
     """Liftover a variant from GRCh37 or GRCH38 into the opposite assembly, and return the converted variant as a VrsVariation.
 
     If liftover is unsuccessful, raise an Exception.
@@ -201,9 +209,9 @@ def get_liftover_variant(input_variant: SupportedVrsVariation) -> SupportedVrsVa
     return converted_variant
 
 
-def add_liftover_mapping(
+def liftover_and_register_variant(
     variation: SupportedVrsVariation, storage: Storage, dataproxy: _DataProxy
-) -> list[str] | None:
+) -> SupportedVrsVariation:
     """Perform liftover between GRCh37 <-> GRCh38. Store mappings between the original and lifted-over variants.
 
     Don't register lifted-over variant or mappings if
@@ -220,23 +228,15 @@ def add_liftover_mapping(
     :param variation: variation to attempt liftover upon
     :param storage: Storage instance
     :param dataproxy: SeqRepo DataProxy instance, for normalizing lifted-over alleles
-    :return: list of messages describing warnings or failures, or ``None`` if completely successful
+    :return: lifted-over variant
+    :raise RoundtripError: if liftover fails to roundtrip back to original variant
     """
     input_vrs_id: str = variation.id  # type: ignore
-    try:
-        lifted_over_variant = get_liftover_variant(variation)
-        reverse_liftover_variant = get_liftover_variant(lifted_over_variant)
-    except LiftoverError as e:
-        _logger.exception(
-            "Encountered error during liftover of variation `%s`",
-            variation,
-        )
-        return [e.get_error_message()]
+    lifted_over_variant = liftover_variant(variation)
+    reverse_liftover_variant = liftover_variant(lifted_over_variant)
 
     if reverse_liftover_variant.id != variation.id:
-        return [
-            f"{LiftoverError.base_error_message}: Roundtripped lifted-over id `{reverse_liftover_variant.id}` does not match initial value of {input_vrs_id}"
-        ]
+        raise RoundtripError
 
     normalized_lifted_over_variant = normalize(
         lifted_over_variant, data_proxy=dataproxy
@@ -257,4 +257,4 @@ def add_liftover_mapping(
             mapping_type=VariationMappingType.LIFTOVER_TO,
         )
     )
-    return None
+    return normalized_lifted_over_variant

@@ -301,3 +301,22 @@ class Storage(ABC):
         :param psq_id: requested object ID
         :return: matching canonical allele, if found
         """
+
+    @abstractmethod
+    def get_catvars_by_allele_ids(
+        self, allele_ids: list[str]
+    ) -> list[CanonicalAllele | ProteinSequenceConsequence]:
+        """Return categorical variants connected to the given alleles.
+
+        Retrieves every registered ``CanonicalAllele`` and
+        ``ProteinSequenceConsequence`` whose defining allele is either one of the
+        given alleles or is transitively connected to one through variation mappings.
+        Mappings are traversed in both directions, regardless of their stored
+        source and destination orientation.
+
+        If no matching categorical variants exist, an empty list is returned.
+
+        :param allele_ids: VRS identifiers of alleles.
+        :return: Connected canonical allele and protein sequence consequence
+            categorical variants.
+        """

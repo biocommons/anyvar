@@ -8,19 +8,20 @@ Core Functions and Utilities
 
 .. autosummary::
    :nosignatures:
-   :toctree: api/
+   :toctree:
    :template: module_summary.rst
 
    anyvar.anyvar
    anyvar.core.metadata
    anyvar.core.objects
+   anyvar.core.categorical_variants
 
 VCF Ingestion
 =============
 
 .. autosummary::
    :nosignatures:
-   :toctree: api/vcf
+   :toctree: vcf
    :template: module_summary.rst
 
    anyvar.vcf.ingest
@@ -41,7 +42,7 @@ Object Storage
 
 .. autosummary::
    :nosignatures:
-   :toctree: api/storage/
+   :toctree: storage/
    :template: module_summary_no_inherit.rst
 
    anyvar.storage.base
@@ -57,18 +58,22 @@ Variant Translation
 
 .. autosummary::
    :nosignatures:
-   :toctree: api/translate/
+   :toctree: translate/
    :template: module_summary.rst
 
    anyvar.translate.base
    anyvar.translate.vrs_python
+   anyvar.translate.register
 
 Mapping
 =======
 
 .. autosummary::
    :nosignatures:
-   :toctree: api/mapping/
+   :toctree: mapping/
    :template: module_summary.rst
 
    anyvar.mapping.liftover
+   anyvar.mapping.projection_models
+   anyvar.mapping.projection
+   anyvar.mapping.protocols

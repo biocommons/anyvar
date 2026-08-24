@@ -246,6 +246,88 @@ For larger files, a nontrivial amount of processing time may be required before 
    >>> "VRS_Allele_IDs" in response.text
    True
 
+
+Categorical Variant Registration and Retrieval
+==============================================
+
+Given a categorical variation representing the `CIViC <https://civicdb.org>`_ record for `BRAF V600E <https://civicdb.org/molecular-profiles/12/summary>`_ (i.e. any variant which results in the change of V to E at position 600 on the protein transcript for BRAF):
+
+.. code-block:: pycon
+
+   >>> catvar_json = {
+   ...   "id": "civic.mpid:12",
+   ...   "type": "CategoricalVariant",
+   ...   "name": "BRAF V600E",
+   ...   "constraints": [
+   ...     {
+   ...       "type": "DefiningAlleleConstraint",
+   ...       "allele": {
+   ...         "id": "ga4gh:VA.j4XnsLZcdzDIYa5pvvXM7t1wn9OITr0L",
+   ...         "type": "Allele",
+   ...         "digest": "j4XnsLZcdzDIYa5pvvXM7t1wn9OITr0L",
+   ...         "location": {
+   ...           "id": "ga4gh:SL.t-3DrWALhgLdXHsupI-e-M00aL3HgK3y",
+   ...           "type": "SequenceLocation",
+   ...           "digest": "t-3DrWALhgLdXHsupI-e-M00aL3HgK3y",
+   ...           "sequenceReference": {
+   ...             "type": "SequenceReference",
+   ...             "refgetAccession": "SQ.cQvw4UsHHRRlogxbWCB8W-mKD4AraM9y",
+   ...             "moleculeType": "protein"
+   ...           },
+   ...           "start": 599,
+   ...           "end": 600
+   ...         },
+   ...         "state": {
+   ...           "type": "LiteralSequenceExpression",
+   ...           "sequence": "E"
+   ...         }
+   ...       }
+   ...     }
+   ...   ]
+   ... }
+
+This categorical variant can be registered by submitting the catvar payload to the appropriate ``PUT /categorical_variants/`` endpoint, as determined by its categorical variant type:
+
+.. code-block:: pycon
+
+   >>> response = requests.put("http://localhost:8000/categorical_variants/protein_sequence_consequences", json=catvar_json)
+   >>> response.status_code
+   200
+
+Note that categorical variant types impose their own internal value requirements: for example, submitting the above to the canonical allele registration endpoint returns an error, because it is defined by the wrong kind of molecule type:
+
+.. code-block:: pycon
+
+   >>> response = requests.put("http://localhost:8000/categorical_variants/canonical_alleles", json=catvar_json)
+   >>> response.status_code
+   422
+   >>> response.json()
+   {'detail': 'Validation checks failed -- see description for data requirements'}
+
+Once registered, a categorical variant can be retrieved by its original ID:
+
+.. code-block:: pycon
+
+   >>> response = requests.get(f"http://localhost:8000/categorical_variants/protein_sequence_consequences/{catvar_json['id']}")
+   >>> response.json() == catvar_json
+   True
+
+If a registered variant is a member of a categorical variant, then the categorical variant can be retrieved by the former variant's ID with the ``GET /categorical_variants`` endpoint. For a trivial example, we can retrieve our BRAF V600E categorical variant by the defining allele ID. Note that this endpoint retrieves *all* pertinent categorical variants, so the response is an array:
+
+.. code-block:: pycon
+
+   >>> response = requests.get(f"http://localhost:8000/categorical_variants?vrs_id={catvar_json['constraints'][0]['allele']['id']}")
+   >>> response.json() == [catvar_json]
+   True
+
+Lastly, supported variant expressions can be used to query categorical variants. For example, the HGVS expression `NC_000007.14:g.140753336A>T`, which represents a change on GRCh38 chromosome 7 which results in the protein change `BRAF V600E`, can be submitted to ``POST /categorical_variants``:
+
+.. code-block:: pycon
+
+   >>> payload = {"input_type": "Allele", "definition": "NC_000007.14:g.140753336A>T"}
+   >>> response = requests.post("http://localhost:8000/categorical_variants", json=payload)
+   >>> response.json() == [catvar_json]
+
 .. _get_service_info:
 
 Get Service Info
