@@ -303,34 +303,39 @@ class GetObjectResponse(BaseModel):
             "examples": [
                 {
                     "messages": [],
-                    "data": {
-                        "digest": "K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU",
-                        "id": "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU",
-                        "location": {
-                            "digest": "01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
-                            "id": "ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
-                            "start": 87894076,
-                            "end": 87894077,
-                            "sequenceReference": {
-                                "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
-                                "type": "SequenceReference",
+                    "data": [
+                        {
+                            "digest": "K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU",
+                            "id": "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU",
+                            "location": {
+                                "digest": "01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
+                                "id": "ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
+                                "start": 87894076,
+                                "end": 87894077,
+                                "sequenceReference": {
+                                    "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
+                                    "type": "SequenceReference",
+                                },
+                                "type": "SequenceLocation",
                             },
-                            "type": "SequenceLocation",
-                        },
-                        "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
-                        "type": "Allele",
-                    },
+                            "state": {
+                                "sequence": "T",
+                                "type": "LiteralSequenceExpression",
+                            },
+                            "type": "Allele",
+                        }
+                    ],
                 }
             ]
         }
     )
 
     messages: list[StrictStr]
-    data: objects.SupportedVrsObject | None = None
+    data: list[objects.SupportedVrsObject] = []
 
 
 class SearchResponse(BaseModel):
-    """Describe response for the GET /search endpoint"""
+    """Describe response for the GET /variations endpoint"""
 
     variations: list[objects.SupportedVrsVariation]
     next_cursor: str | None

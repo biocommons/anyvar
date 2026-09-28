@@ -3,7 +3,7 @@
 import logging
 import os
 from http import HTTPStatus
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Body, HTTPException, Query, Request, Response, status
 from fastapi.params import Path
@@ -13,6 +13,7 @@ from pydantic import StrictStr
 import anyvar
 from anyvar.anyvar import AnyVar, ObjectNotFoundError, UnexpectedObjectTypeError
 from anyvar.core import metadata, objects
+from anyvar.core.objects import SupportedVrsObject, SupportedVrsVariation
 from anyvar.restapi import has_async_imports
 from anyvar.restapi.async_utils import (
     check_async_enabled,
@@ -197,19 +198,34 @@ _post_variations_request_body = Body(
 @variations_router.post(
     "/variations",
     response_model_exclude_none=True,
-    summary="Retrieve a registered VRS allele or copy number variation",
+    summary="Retrieve registered VRS alleles",
     description="Provide a variation definition to be normalized and searched for in AnyVar",
 )
 def get_variation(
     request: Request,
-    variation: Annotated[VariationRequest, _post_variations_request_body],
+    variations: Annotated[list[VariationRequest], _post_variations_request_body],
 ) -> GetObjectResponse:
     """Search for registered variation"""
     av: AnyVar = request.app.state.anyvar
-    translated_variation = _handle_translation_request(av.translator, variation)
-    vrs_id: str = translated_variation.id  # type: ignore
-    _ = get_vrs_object(av, vrs_id)  # raise NOT_FOUND for vrs_id not present in DB
-    return GetObjectResponse(messages=[], data=translated_variation)
+    retrieved_variations: list[SupportedVrsObject] = []
+
+    for variation in variations:
+        variation_definition: StrictStr | dict[str, Any] = variation.definition
+        vrs_id: str = ""
+        if isinstance(variation_definition, dict):
+            vrs_id = str(variation_definition.get("id", ""))
+        else:
+            translated_variation: SupportedVrsVariation = _handle_translation_request(
+                tlr=av.translator, var_req=variation
+            )
+            vrs_id = translated_variation.id  # type: ignore
+
+        vrs_object: SupportedVrsObject = get_vrs_object(
+            av, vrs_object_id=vrs_id
+        )  # raise NOT_FOUND for vrs_id not present in DB
+        retrieved_variations.append(vrs_object)
+
+    return GetObjectResponse(messages=[], data=retrieved_variations)
 
 
 @variations_router.get(
