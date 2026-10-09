@@ -26,9 +26,9 @@ should be minimal specific maintenance required here.
 import json
 
 from pydantic import JsonValue
-from sqlalchemy import ColumnElement, create_engine, delete, func, select
+from sqlalchemy import ColumnElement, delete, func, select
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from anyvar.storage import orm
@@ -43,11 +43,11 @@ class DuckDbObjectStore(SqlAlchemyStorage):
 
         :param db_uri: DuckDB connection URI. See above for options.
         """
-        self.db_url = db_uri
-        self.engine = create_engine(self.db_url, poolclass=StaticPool)
-        orm.Base.metadata.create_all(self.engine)
-        self.session_factory = sessionmaker(bind=self.engine)
-        self.batch_size = kwargs.get("batch_size", 1000)
+        super().__init__(db_url=db_uri, poolclass=StaticPool)
+
+    def _create_tables(self) -> None:
+        """Initialize database tables"""
+        orm.Base.metadata.create_all(bind=self.engine)
 
     def close(self) -> None:
         """Close the storage backend."""

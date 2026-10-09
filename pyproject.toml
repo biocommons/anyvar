@@ -35,14 +35,15 @@ dependencies = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
-duckdb = ["duckdb-engine"]
-postgres = ["psycopg[binary]"]
+duckdb = ["duckdb-engine", "alembic"]
+postgres = ["psycopg[binary]", "alembic"]
 projection = ["cool-seq-tool~=0.17.0"]
 queueing = [
     "celery[redis]~=5.5.0",
     "aiofiles",
 ]
 test = [
+    "alembic",
     "pytest",
     "pytest-asyncio",
     "pytest-cov",
@@ -188,6 +189,7 @@ ignore-variadic-names = true
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "E402"]
+"alembic/*" = ["INP001"]
 "src/anyvar/vcf/ingest.py" = ["ARG002"]
 "src/anyvar/restapi/main.py" = ["B008"]
 "src/anyvar/queueing/celery_worker.py" = ["PLW0602", "PLW0603"]

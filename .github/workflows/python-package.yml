@@ -70,14 +70,6 @@ jobs:
           docker logs postgres
           exit 1
 
-      - name: Initialize GiST extension
-        if: matrix.storage.backend == 'postgres'
-        env:
-          PGPASSWORD: postgres
-        run: |
-          psql -h localhost -p 5432 -U postgres -d postgres \
-            -c "CREATE EXTENSION IF NOT EXISTS btree_gist;"
-
       - name: Cache chainfiles for liftover
         uses: actions/cache@v5
         with:

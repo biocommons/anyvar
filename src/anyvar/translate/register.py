@@ -153,7 +153,7 @@ def register_variations(
             _logger.info("Projection disabled for %s", translation_result.variation.id)
 
         # need to deduplicate e.g. if projection fails for both the input and lifted-over variant
-        messages = list(set(messages))
+        messages: list[str] = list[str](dict.fromkeys(messages))
         responses.append(
             RegisterVariationResponse(
                 input_variation=variation_request,

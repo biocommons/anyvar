@@ -53,6 +53,7 @@ coverage.xml
 .pytest_cache/
 anyvar-test.duckdb
 tests/tmp_async_work_dir
+tests/data/ncbi*
 
 # Translations
 *.mo

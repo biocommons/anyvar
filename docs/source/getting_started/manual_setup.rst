@@ -30,7 +30,6 @@ AnyVar utilizes the connection string defined by the environment variable ``ANYV
 
    % psql -U postgres -c "CREATE USER anyvar WITH PASSWORD 'anyvar-pw';"
    % psql -U postgres -c "CREATE DATABASE anyvar WITH OWNER anyvar;"
-   % psql -U postgres -d anyvar -c "CREATE EXTENSION IF NOT EXISTS btree_gist;"
    % export ANYVAR_STORAGE_URI="postgresql://anyvar:anyvar-pw@localhost:5432/anyvar"
 
 See more on storage configuration :doc:`here <../configuration/storage>`.
