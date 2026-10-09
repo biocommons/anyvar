@@ -102,3 +102,9 @@ class NoObjectStore(Storage):
 
     def get_psq_catvar(self, psq_id: str) -> ProteinSequenceConsequence | None:
         """(No-op) Fetch a Protein Sequence Consequence categorical variant by ID"""
+
+    def get_catvars_by_allele_ids(
+        self, allele_ids: list[str]
+    ) -> list[CanonicalAllele | ProteinSequenceConsequence]:
+        """(No-op) Return all CA and PSQ categorical variants for the given alleles."""
+        return []

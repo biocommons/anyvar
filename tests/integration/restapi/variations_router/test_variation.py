@@ -7,10 +7,8 @@ from fastapi.testclient import TestClient
 
 from anyvar.mapping.liftover import ReferenceAssembly
 from anyvar.restapi.schema import RegisterVariationResponse, VariationRequest
-from anyvar.restapi.variations_router import (
-    PUT_VRS_VARIATION_EXAMPLE_PAYLOAD,
-    VARIATION_EXAMPLE_PAYLOAD,
-)
+from anyvar.restapi.variation_request import VARIATION_EXAMPLE_PAYLOAD
+from anyvar.restapi.variations_router import PUT_VRS_VARIATION_EXAMPLE_PAYLOAD
 from anyvar.storage.base import Storage
 
 
@@ -71,7 +69,9 @@ def test_put_variation_example(restapi_client: TestClient, alleles: dict):
     expected_id = "ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb"
     assert resp.json()["object_id"] == expected_id
     assert resp.json()["object"] == alleles[expected_id]["variation"]
-    assert resp.json()["messages"] == []
+    assert resp.json()["messages"] == [
+        "Projection skipped: could not derive alternate protein state for NP_001628.1"
+    ]
 
 
 def test_put_variations(restapi_client: TestClient, alleles: dict):

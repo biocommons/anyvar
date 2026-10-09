@@ -1,3 +1,5 @@
+import re
+
 import pytest
 from ga4gh.vrs import models
 
@@ -138,11 +140,11 @@ def test_liftover_success(request: pytest.FixtureRequest, variant_fixture_name: 
     grch38 = fixture["grch38"]
 
     # 37 to 38
-    lifted_over_variant_output = liftover.get_liftover_variant(grch37)
+    lifted_over_variant_output = liftover.liftover_variant(grch37)
     assert lifted_over_variant_output == grch38
 
     # 38 to 37
-    lifted_over_variant_output = liftover.get_liftover_variant(grch38)
+    lifted_over_variant_output = liftover.liftover_variant(grch38)
     assert lifted_over_variant_output == grch37
 
 
@@ -156,11 +158,11 @@ def test_liftover_failure(request, variant_fixture_name):
         type(expected_error),
         match=expected_error.args[0] if expected_error.args else None,
     ):
-        liftover.get_liftover_variant(variant_input)
+        liftover.liftover_variant(variant_input)
 
 
 ######################################################################################################
-## Tests for `src/anyvar/mapping/liftover.py > 'add_liftover_mapping' ##
+## Tests for `src/anyvar/mapping/liftover.py > 'liftover_and_register_variant' ##
 ######################################################################################################
 @pytest.mark.parametrize(
     "variant_fixture_name",
@@ -185,7 +187,8 @@ def test_liftover_mapping_success(
 
     # ensure input is present in DB
     storage.add_objects([src])
-    liftover.add_liftover_mapping(src, storage, translator.dp)
+    result = liftover.liftover_and_register_variant(src, storage, translator.dp)
+    assert result == dst
 
     # mapping and lifted-over variant should be present
     mappings = list(
@@ -218,6 +221,8 @@ def test_liftover_mapping_failure(
     # ensure input is present in DB
     anyvar_instance.object_store.add_objects([variant_input])
 
-    assert liftover.add_liftover_mapping(variant_input, storage, translator.dp) == [
-        expected_error.get_error_message()
-    ]
+    with pytest.raises(
+        type(expected_error),
+        match=re.escape(str(expected_error)),
+    ):
+        liftover.liftover_and_register_variant(variant_input, storage, translator.dp)

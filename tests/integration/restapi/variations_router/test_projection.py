@@ -73,8 +73,7 @@ PROJECTION_CASES = [
         "clinvar_cdna": "NM_001425324.1:c.5095_5096insA",
         "clinvar_protein": "NP_001412253.1:p.Ala1699Aspfs",
         "messages": [
-            "Projection skipped: could not derive alternate protein state for "
-            "NP_000341.2"
+            "Projection skipped: could not derive alternate protein state for NP_000341.2"
         ],
         "genomic": {
             "id": "ga4gh:VA.pePyWtQvzIyNEMJhzwZz4cnRtLTT_Xr-",
@@ -119,8 +118,7 @@ PROJECTION_CASES = [
         "clinvar_cdna": "NM_022664.3:c.240_241del",
         "clinvar_protein": "NP_073155.2:p.Gln81fs",
         "messages": [
-            "Projection skipped: could not derive alternate protein state for "
-            "NP_004416.2"
+            "Projection skipped: could not derive alternate protein state for NP_004416.2"
         ],
         "genomic": {
             "id": "ga4gh:VA.mkLU2yL862kqFSvsTsB_JhSg8Cvg88BG",
@@ -193,6 +191,10 @@ NO_MANE_PROJECTION_CASES = [
             },
             "state": {"type": "LiteralSequenceExpression", "sequence": "T"},
         },
+        "messages": [
+            "Projection skipped for ga4gh:VA.CVtLdvZzDLxjKRtwT76p2cO-M7nFCuYs: no compatible transcript found at NC_000001.10:982840-982841",
+            "Projection skipped for ga4gh:VA.Qs90vys_MRPyU62F7EdL2oVWZWn8KCi7: no compatible transcript found at NC_000001.11:1047460-1047461",
+        ],
     },
     {
         "label": "intronic_minus",
@@ -216,6 +218,10 @@ NO_MANE_PROJECTION_CASES = [
             },
             "state": {"type": "LiteralSequenceExpression", "sequence": "A"},
         },
+        "messages": [
+            "Projection skipped for ga4gh:VA.34JOe7-8kxqGRV5WFHbZrp7VlJ-_INLm: no compatible transcript found at NC_000001.11:2406959-2406960",
+            "Projection skipped for ga4gh:VA.Dle08WA7nO97kyBnqArjUJxVC3v-GKUZ: no compatible transcript found at NC_000001.10:2338398-2338399",
+        ],
     },
     {
         "label": "non_mane_no_compatible",
@@ -239,6 +245,10 @@ NO_MANE_PROJECTION_CASES = [
             },
             "state": {"type": "LiteralSequenceExpression", "sequence": "A"},
         },
+        "messages": [
+            "Projection skipped for ga4gh:VA.G53FTDcF1YlzXIOMCPWzz73AqNLojIu-: no compatible transcript found at NC_000022.10:51117856-51117857",
+            "Projection skipped for ga4gh:VA.rKpaEJAGJVinPM650Tv93NEz4YNfbVp6: no compatible transcript found at NC_000022.11:50679428-50679429",
+        ],
     },
 ]
 
@@ -584,15 +594,12 @@ def test_spdi_projection_skips_cases_without_compatible_transcripts(
         "/variation", json={"definition": projection_case["spdi"]}
     )
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {
-        "input_variation": {
-            "definition": projection_case["spdi"],
-            "assembly_name": "GRCh38",
-        },
-        "object": genomic,
-        "object_id": genomic["id"],
-        "messages": [],
+    assert response.json()["input_variation"] == {
+        "definition": projection_case["spdi"],
+        "assembly_name": "GRCh38",
     }
+    assert response.json()["object"] == genomic
+    assert sorted(response.json()["messages"]) == sorted(projection_case["messages"])
 
     response = projected_restapi_client.get(f"/object/{genomic['id']}")
     assert response.status_code == HTTPStatus.OK

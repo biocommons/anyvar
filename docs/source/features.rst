@@ -98,7 +98,20 @@ Variant Mappings
    :members:
    :undoc-members:
 
+.. _catvars:
+
+Categorical Variants
+====================
+
+**Categorical variants** can be registered to support retrieval of external knowledge using AnyVar's translation and mapping services. A stored categorical variant can be dereferenced by its ID, or queried by an ID or expression which defines one of its members. AnyVar currently supports two types of categorical variants:
+
+* *Canonical Allele*: a categorical variant defined by a genomic allele whose members include equivalent representations of that allele on other genome assemblies, as well as its transcript and protein consequences.
+* *Protein Sequence Consequence*: a categorical variant defined by a protein allele whose members include the genomic and transcript alleles that produce that protein consequence.
+
+See the `Cat-VRS docs <https://cat-vrs.ga4gh.org/>`_ for more information.
+
 .. _stateless_mode:
+
 
 Stateless Mode
 ==============

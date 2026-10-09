@@ -26,18 +26,16 @@ from anyvar.restapi.schema import (
     SearchResponse,
     VariationRequest,
 )
-from anyvar.restapi.utils import get_vrs_object
+from anyvar.restapi.variation_request import (
+    handle_translation_request,
+    variation_request_body,
+)
+from anyvar.restapi.vrs_objects import get_vrs_object
 from anyvar.storage.base import IncompleteVrsObjectError
-from anyvar.translate.base import Translator
 from anyvar.translate.register import (
     add_projection_mappings as _add_projection_mappings,
 )
-from anyvar.translate.register import (
-    register_variations as _register_variations,
-)
-from anyvar.translate.register import (
-    translate_variation as _translate_variation,
-)
+from anyvar.translate.register import register_variations as _register_variations
 
 if has_async_imports:
     from celery.result import AsyncResult
@@ -49,43 +47,6 @@ _logger = logging.getLogger(__name__)
 
 variations_router = APIRouter()
 
-VARIATION_EXAMPLE_PAYLOAD = {
-    "definition": "NC_000007.13:g.36561662_36561663del",
-    "input_type": "Allele",
-    "copies": 0,
-    "copy_change": "complete genomic loss",
-    "assembly_name": None,
-}
-
-
-_variation_request_body = Body(
-    description='Variation description, including (at minimum) a `definition` property. Can provide optional `input_type` if the expected output representation type is known, as well as an assembly_name (e.g.,"GRCh37" or "GRCh38"). If representing copy number, provide `copies` or `copy_change`.',
-    examples=[VARIATION_EXAMPLE_PAYLOAD],
-)
-
-
-def _handle_translation_request(
-    tlr: Translator, var_req: VariationRequest
-) -> objects.SupportedVrsVariation:
-    """Perform variant translation and convert known exceptions to appropriate HTTP responses
-
-    :param tlr: Translator instance
-    :param var_req: request object relayed to variation endpoint
-    :return: VRS variation instance
-    :raise HTTPException: return 422 response if
-       * Variant definition cannot be translated
-       * Reference base in gnomad/VCF-style expression fails to validate
-       * translator returns not-implemented variation type
-    """
-    translation_result = _translate_variation(tlr, var_req)
-    if translation_result.error:
-        raise HTTPException(
-            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-            detail=translation_result.error,
-        )
-
-    return translation_result.variation  # type: ignore
-
 
 @variations_router.put(
     "/variation",
@@ -95,7 +56,7 @@ def _handle_translation_request(
 )
 def register_variation(
     request: Request,
-    variation: Annotated[VariationRequest, _variation_request_body],
+    variation: Annotated[VariationRequest, variation_request_body],
 ) -> RegisterVariationResponse:
     """Register a variation based on a provided description or reference."""
     av: AnyVar = request.app.state.anyvar
@@ -270,10 +231,14 @@ def register_vrs_variation(
         variation = objects.recursive_identify(variation)
         av.put_objects([variation])
 
-    liftover_messages = liftover.add_liftover_mapping(
-        variation, av.object_store, av.translator.dp
-    )
-    messages: list[str] = liftover_messages or []
+    try:
+        liftover.liftover_and_register_variant(
+            variation, av.object_store, av.translator.dp
+        )
+    except liftover.LiftoverError as e:
+        messages: list[str] = [e.get_error_message()]
+    else:
+        messages = []
 
     if av.projector is not None:
         _add_projection_mappings(av, variation, messages)
@@ -294,11 +259,11 @@ def register_vrs_variation(
 )
 def get_variation(
     request: Request,
-    variation: Annotated[VariationRequest, _variation_request_body],
+    variation: Annotated[VariationRequest, variation_request_body],
 ) -> GetObjectResponse:
     """Search for registered variation"""
     av: AnyVar = request.app.state.anyvar
-    translated_variation = _handle_translation_request(av.translator, variation)
+    translated_variation = handle_translation_request(av.translator, variation)
     vrs_id: str = translated_variation.id  # type: ignore
     _ = get_vrs_object(av, vrs_id)  # raise NOT_FOUND for vrs_id not present in DB
     return GetObjectResponse(messages=[], data=translated_variation)

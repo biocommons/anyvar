@@ -19,7 +19,7 @@ from anyvar.restapi.schema import (
     GetMappingResponse,
     GetObjectResponse,
 )
-from anyvar.restapi.utils import get_vrs_object
+from anyvar.restapi.vrs_objects import get_vrs_object
 
 _logger = logging.getLogger(__name__)
 

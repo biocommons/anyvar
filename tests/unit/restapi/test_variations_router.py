@@ -214,7 +214,7 @@ class TestPutVariationsSync:
 
 @pytest.mark.ci_ok
 class TestPostVariation:
-    @patch("anyvar.restapi.variations_router._translate_variation")
+    @patch("anyvar.restapi.variation_request.translate_variation")
     def test_response(self, mock_translate, test_client, sample_allele):
         """POST /variation response includes translated variation data."""
         mock_translate.return_value = TranslationResult(variation=sample_allele)
