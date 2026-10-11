@@ -7,6 +7,7 @@ dev = [
   "deptry>=0.23",
   "pre-commit>=3.8",
   "pytest~=9.0",
+  "pytest-cov>=4.1",
   "ruff>=0.12",
   "toml-sort",
   "tox-uv>=1.28",
@@ -34,14 +35,17 @@ classifiers = [
 dependencies = [
   "agct >= 0.2.0rc1",
   "anyio",
+  "asyncio>=4.0.0",
   "biocommons.seqrepo",
   "bioutils",
+  "celery>=5.5.3",
   "fastapi>=0.95.0",
   "ga4gh.cat_vrs>=0.7.1",
   "ga4gh.vrs[extras]>=2.3.2,<3.0",
   "httpx2>=2.13.1",
   "pyjwt[crypto]",
   "pysam",
+  "pytest-mock>=3.16.0",
   "python-dotenv",
   "python-multipart",
   "pyyaml",
@@ -53,7 +57,7 @@ dynamic = ["version"]
 license = "Apache-2.0"
 name = "anyvar"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = "~=3.12.0"
 
 [project.optional-dependencies]
 docs = [
