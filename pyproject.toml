@@ -57,7 +57,7 @@ dynamic = ["version"]
 license = "Apache-2.0"
 name = "anyvar"
 readme = "README.md"
-requires-python = "~=3.12.0"
+requires-python = ">=3.11"
 
 [project.optional-dependencies]
 docs = [
