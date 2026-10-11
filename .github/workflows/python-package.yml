@@ -25,7 +25,7 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync
 
       - name: Check style
         run: uv run ruff check && uv run ruff format --check
@@ -87,7 +87,7 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --extra test --extra queueing ${{ matrix.storage.deps }}
+        run: uv sync --group test --extra queueing ${{ matrix.storage.deps }}
 
       - name: Run tests
         run: uv run pytest -vv -m "ci_ok"
@@ -122,7 +122,7 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --extra docs
+        run: uv sync --group docs
 
       - name: Attempt docs build
         working-directory: ./docs

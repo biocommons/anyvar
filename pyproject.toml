@@ -4,14 +4,33 @@ requires = ["setuptools >= 84.0", "setuptools_scm[toml] >= 10.3"]
 
 [dependency-groups]
 dev = [
+  "cool-seq-tool~=0.17.0",
   "deptry>=0.23",
   "pre-commit>=3.8",
-  "pytest~=9.0",
+  "pytest-asyncio",
   "pytest-cov>=4.1",
+  "pytest-mock>=3.16.0",
+  "pytest~=9.0",
   "ruff>=0.12",
   "toml-sort",
   "tox-uv>=1.28",
   "vcrpy",
+]
+docs = [
+  "sphinx-autobuild==2024.10.3",
+  "sphinx-autodoc-typehints==3.2.0",
+  "sphinx-copybutton==0.5.2",
+  "sphinx-github-changelog==1.7.1",
+  "sphinx==8.2.3",
+  "sphinx_rtd_theme==3.0.2",
+  "sphinxext-opengraph==0.10.0"
+]
+test = [
+  "alembic",
+  "celery[pytest]",
+  "httpx",
+  "jsonschema",
+  "pyyaml"
 ]
 
 [project]
@@ -45,7 +64,6 @@ dependencies = [
   "httpx2>=2.13.1",
   "pyjwt[crypto]",
   "pysam",
-  "pytest-mock>=3.16.0",
   "python-dotenv",
   "python-multipart",
   "pyyaml",
@@ -57,18 +75,9 @@ dynamic = ["version"]
 license = "Apache-2.0"
 name = "anyvar"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"
 
 [project.optional-dependencies]
-docs = [
-  "sphinx-autobuild==2024.10.3",
-  "sphinx-autodoc-typehints==3.2.0",
-  "sphinx-copybutton==0.5.2",
-  "sphinx-github-changelog==1.7.1",
-  "sphinx==8.2.3",
-  "sphinx_rtd_theme==3.0.2",
-  "sphinxext-opengraph==0.10.0"
-]
 duckdb = [
   "alembic",
   "duckdb-engine"
@@ -83,18 +92,6 @@ projection = [
 queueing = [
   "aiofiles",
   "celery[redis]~=5.5.0"
-]
-test = [
-  "alembic",
-  "celery[pytest]",
-  "cool-seq-tool~=0.17.0",
-  "httpx",
-  "jsonschema",
-  "pytest",
-  "pytest-asyncio",
-  "pytest-cov",
-  "pytest-mock",
-  "pyyaml"
 ]
 
 [project.urls]

@@ -46,7 +46,7 @@ publish: build ## Publish package to PyPI
 
 .PHONY: testready
 testready:
-	uv pip install '.[postgres,queueing,test]'
+	uv pip install --group test '.[postgres,queueing]'
 
 .PHONY: cqa
 cqa: ## Run code quality assessments
