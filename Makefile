@@ -5,85 +5,62 @@
 .PRECIOUS:
 .SUFFIXES:
 
-SHELL:=/bin/bash -e -o pipefail
-SELF:=$(firstword $(MAKEFILE_LIST))
+.DEFAULT_GOAL := help
+default: help
 
-PKG=anyvar
-PKGD=$(subst .,/,${PKG})
-PYV:=3.11
-VEDIR=venv/${PYV}
-
-UNAME = $(shell uname)
-ifeq (${UNAME},Darwin)
-    _XRM_R:=
-else
-    _XRM_R:=r
-endif
-XRM=xargs -0${_XRM_R} rm
+define INFO_MESSAGE
+	@echo "⏩\033[1;38;5;208m$(1)\033[0m"
+endef
 
 ############################################################################
 #= BASIC USAGE
-default: help
 
-#=> help -- display this help message
-help:
-	@sbin/makefile-extract-documentation "${SELF}"
-
+.PHONY: help
+help: ## Display help message
+	@./sbin/makefile-extract-documentation ${MAKEFILE_LIST}
 
 ############################################################################
 #= SETUP, INSTALLATION, PACKAGING
 
-#=> venv: make a Python 3 virtual environment & install basic dependencies
-.PHONY: venv/%
-venv/%:
-	python$* -m venv $@; \
-	. $@/bin/activate; \
-	python -m ensurepip --upgrade; \
-	pip install --upgrade pip setuptools; \
-	pip install .
-
-#=> develop: install package in develop mode
-.PHONY: develop
-develop:
-	pip install -e .[postgres,queueing,test,dev,docs]
-
-#=> devready: create venv, install prerequisites, install pkg in develop mode
+install: devready
 .PHONY: devready
-devready:
-	make ${VEDIR} && source ${VEDIR}/bin/activate && make develop
-	@echo '################################################################'
-	@echo '###  `source ${VEDIR}/bin/activate` to use this environment  ###'
-	@echo '################################################################'
+devready: ## Prepare local dev env: Create virtual env, install the pre-commit hooks
+	$(call INFO_MESSAGE, Prepare local dev env: Create virtual env and install the pre-commit hooks)
+	uv sync --dev
+	uv run pre-commit install
+	$(call INFO_MESSAGE, Activate the virtual env with \`source .venv/bin/activate\`)
 
-#=> install: install package
-#=> bdist bdist_egg bdist_wheel build sdist: distribution options
-.PHONY: bdist bdist_egg bdist_wheel build build_sphinx sdist install
-bdist bdist_egg bdist_wheel build sdist install: %:
-	python setup.py $@
+.PHONY: build
+build: ## Build package
+	$(call INFO_MESSAGE, "Build package")
+	rm -fr dist
+	uv build
+
+.PHONY: publish
+publish: build ## Publish package to PyPI
+	$(call INFO_MESSAGE, "Publish package to PyPI")
+	uv publish  # Requires UV_PUBLISH_TOKEN or Trusted Publishing setup
 
 ############################################################################
-#= TESTING
-# see test configuration in setup.cfg
+#= FORMATTING, TESTING, AND CODE QUALITY
 
 .PHONY: testready
 testready:
 	pip install -e '.[postgres,queueing,test]'
 
-#=> test: execute tests
+.PHONY: cqa
+cqa: ## Run code quality assessments
+	$(call INFO_MESSAGE, "Checking lock file consistency")
+	uv lock --locked
+	$(call INFO_MESSAGE, "Linting and reformatting files")
+	uv run pre-commit run
+	$(call INFO_MESSAGE, "Checking for obsolete dependencies")
+	uv run deptry src
+
 .PHONY: test
-test:
-	python -m pytest tests
-
-#=> cqa: execute code quality tests
-cqa:
-	ruff format --check
-	ruff check
-
-#=> reformat: reformat code
-.PHONY: reformat
-reformat:
-	ruff check --fix
-	ruff format
+test: ## Test the code with pytest
+	@echo "🚀 Testing code: Running pytest"
+	uv run pytest
 
 ############################################################################
 #= UTILITY TARGETS
@@ -105,23 +82,28 @@ docs: develop
 ############################################################################
 #= CLEANUP
 
-#=> clean: remove temporary and backup files
 .PHONY: clean
-clean:
-	find . \( -name \*~ -o -name \*.bak \) -print0 | ${XRM}
+clean:  ## Remove temporary and backup files
+	$(call INFO_MESSAGE, "Remove temporary and backup files")
+	find . \( -name "*~" -o -name "*.bak" \) -exec rm -frv {} +
 
-#=> cleaner: remove files and directories that are easily rebuilt
 .PHONY: cleaner
-cleaner: clean
-	rm -rf .cache *.egg-info .pytest_cache build dist doc/_build htmlcov
-	find . \( -name \*.pyc -o -name \*.orig -o -name \*.rej \) -print0 | ${XRM} -fr
-	find . -name __pycache__ -print0 | ${XRM} -fr
-	rm -fvr .ruff_cache
+cleaner: clean  ## Remove files and directories that are easily rebuilt
+	$(call INFO_MESSAGE, "Remove files and directories that are easily rebuilt")
+	rm -frv .cache .DS_Store .pytest_cache .ruff_cache build coverage.xml dist docs/_build site
+	find . \( -name __pycache__ -type d \) -exec rm -frv {} +
+	find . \( -name "*.pyc" -o -name "*.egg-info" \) -exec rm -frv {} +
+	find . \( -name "*.orig" -o -name "*.rej" \) -exec rm -frv {} +
 
-#=> cleanest: remove files and directories that require more time/network fetches to rebuild
 .PHONY: cleanest
-cleanest: cleaner
-	rm -fr .eggs .tox venv
+cleanest: cleaner  ## Remove files and directories that can be rebuilt
+	$(call INFO_MESSAGE, "Remove files and directories that can be rebuilt")
+	rm -frv .eggs .tox .venv venv
+
+.PHONY: distclean
+distclean: cleanest  ## Remove untracked files and other detritus
+	@echo "❌ Remove untracked files and other detritus -- Too dangerous... do this yourself"
+	# git clean -df
 
 
 ## <LICENSE>

@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+"""extract doc from a makefile"""
+
+# ############################################################################
+# #= BASIC USAGE
+#
+# .PHONY: help
+# help: ## Display help message
+
+import fileinput
+import re
+
+CSI = "\033["
+BOLD = CSI + "1m"
+UNDERLINE = CSI + "4m"
+RESET = CSI + "0m"
+HEADER_COLOR = CSI + "38;5;208m"
+SECTION_COLOR = ""  # CSI + "38;5;99m"
+COMMAND_COLOR = CSI + "38;5;208m"
+
+print("""usage: make [target ...]
+
+biocommons packages consolidate command invocations in make targets to promote
+consistency across developers and environments, including GitHub actions. Using
+other invocation methods is not supported and will be ignored in bug reports.
+
+This makefile supports the following targets:
+""")
+
+for line in fileinput.input():  # noqa: SIM115
+    if m := re.match(r"#= (.+)", line):
+        print(f"\n{UNDERLINE}{SECTION_COLOR}{m.group(1)}{RESET}")
+    elif m := re.match(r"([-\s\w]+):.+?##\s+(.+)", line):
+        print(f"{BOLD}{COMMAND_COLOR}{m.group(1):<20}{RESET}{m.group(2)}")
