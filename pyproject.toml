@@ -180,14 +180,16 @@ testpaths = ["tests"]
 exclude = ["docs/source/"]
 include = ["src/**/*.py", "tests/**/*.py", "demo/**/*.py"]
 src = ["src"]
-target-version = "py314"
+target-version = "py311"
 
 [tool.ruff.format]
 docstring-code-format = true
-preview = true
+preview = false
 quote-style = "double"
 
 [tool.ruff.lint]
+# preserve existing noqa directives for rules not selected below (avoids RUF100)
+external = ["ANN", "BLE", "D", "SLF"]
 fixable = [
   "B",
   "C4",
@@ -217,6 +219,12 @@ ignore = [
   "RET504",
   "S321",
   "W191",
+  # anyvar-specific (restored from pre-template config)
+  "EM",
+  "PLR0904",
+  "PLR091",
+  "PLR1702",
+  "TRY003",
 ]
 select = [
   "A", # https://docs.astral.sh/ruff/rules/#flake8-builtins-a
@@ -252,6 +260,22 @@ select = [
   "PLR2004", # Magic value used in comparison
   "S101", # Use of `assert` detected
 ]
+# anyvar-specific (restored from pre-template config)
+"__init__.py" = ["F401", "E402"]
+"alembic/*" = ["INP001"]
+"src/anyvar/vcf/ingest.py" = ["ARG002"]
+"src/anyvar/restapi/main.py" = ["B008"]
+"src/anyvar/queueing/celery_worker.py" = ["PLW0602", "PLW0603"]
+"src/anyvar/storage/no_db.py" = ["ARG002"]
+"tests/*" = ["ANN001", "ANN2", "ANN102", "S101", "B011", "INP001", "D", "C400", "PLR2004"]
+"tests/unit/storage/*" = ["S608"]
+"tests/unit/storage/test_no_db.py" = ["ARG002", "A002", "TRY002"]
+"demo/*" = ["T201"]
+"tests/unit/mapping/test_projection.py" = ["RUF043"]
+"tests/integration/restapi/vcf_router/test_ingest_vcf.py" = ["PLW0108"]
+
+[tool.ruff.lint.flake8-unused-arguments]
+ignore-variadic-names = true
 
 [tool.setuptools]
 include-package-data = true
