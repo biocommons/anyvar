@@ -1,8 +1,13 @@
+# This workflow file was copied from the biocommons/python-package repo.
+# However, it is currently disabled for all branches because it runs the full
+# test suite without the services anyvar tests require (seqrepo, Postgres,
+# Redis) and does not generate coverage.xml.
+
 name: GitHub Coverage
 
 on:
   push:
-    branches: ["*"]
+    branches: ["NEVER"]
 
 jobs:
   coverage-python:
