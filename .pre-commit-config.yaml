@@ -23,7 +23,7 @@ repos:
       - id: mixed-line-ending
         args: [--fix=lf]
       - id: pretty-format-json
-        exclude: ^.devcontainer/.*devcontainer.json
+        exclude: ^(\.devcontainer/.*devcontainer\.json|tests/data/variations\.json)$
         args: [--autofix, --no-sort-keys]
       - id: trailing-whitespace
 
@@ -39,10 +39,11 @@ repos:
     hooks:
       - id: actionlint
 
-  - repo: local
-    hooks:
-      - id: canonicalize-gitignore
-        name: Sort unique .gitignore
-        entry: sh -c 'LC_ALL=C sort -u -o .gitignore .gitignore'
-        language: system
-        files: ^\.gitignore$
+  # disabled: sorting separates .gitignore comments from their entries
+  # - repo: local
+  #   hooks:
+  #     - id: canonicalize-gitignore
+  #       name: Sort unique .gitignore
+  #       entry: sh -c 'LC_ALL=C sort -u -o .gitignore .gitignore'
+  #       language: system
+  #       files: ^\.gitignore$
