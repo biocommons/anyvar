@@ -1,0 +1,26 @@
+# This workflow file was copied from the biocommons/python-package repo.
+# However, it is currently disabled for all branches and tags because AnyVar
+# uses an older customized workflow.  So, this file is really just a reminder
+# that we're not using the standard biocommons Python CI/CD workflow.
+
+name: Python CI/CD
+permissions:
+  contents: write
+  id-token: write
+
+on:
+  push:
+    branches: ["NEVER"]
+    tags: ["NEVER"]
+
+jobs:
+  python-ci-cd:
+    name: Python CI/CD
+    permissions:
+      contents: write
+      id-token: write
+    uses: biocommons/.github/.github/workflows/python-ci-cd.yml@main
+    with:
+      publish: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') }}
+    secrets:
+      pypi-token: ${{ secrets.UV_PUBLISH_TOKEN }}

@@ -1,110 +1,120 @@
-[project]
-name = "anyvar"
-authors = [
-  { name="biocommons contributors", email="biocommons-dev@googlegroups.com" },
-]
-description = "AnyVar provides Python and REST interfaces to validate, normalize, generate identifiers, and register biological sequence variation according to the GA4GH Variation Representation standards."
-readme = "README.md"
-license = { file="LICENSE" }
-requires-python = ">=3.11"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-]
-dependencies = [
-    "fastapi>=0.95.0",
-    "python-multipart",  # required for fastapi file uploads
-    "uvicorn",
-    "ga4gh.vrs[extras]>=2.3.2,<3.0",
-    "ga4gh.cat_vrs>=0.7.1",
-    "sqlalchemy~=2.0.0",
-    "pyyaml",
-    "agct >= 0.2.0rc1",
-    "pysam",
-    "python-dotenv",
-    "anyio",
-    "bioutils",
-    "biocommons.seqrepo",
-    "pyjwt[crypto]",
-]
-dynamic = ["version"]
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools ~= 84.0.0", "setuptools_scm[toml] ~= 10.3.4"]
 
-[project.optional-dependencies]
-duckdb = ["duckdb-engine", "alembic"]
-postgres = ["psycopg[binary]", "alembic"]
-projection = ["cool-seq-tool~=0.17.0"]
-queueing = [
-    "celery[redis]~=5.5.0",
-    "aiofiles",
-]
-test = [
-    "alembic",
-    "pytest",
-    "pytest-asyncio",
-    "pytest-cov",
-    "pytest-mock",
-    "httpx",
-    "celery[pytest]",
-    "jsonschema",
-    "pyyaml",
-    "cool-seq-tool~=0.17.0",
-]
+[dependency-groups]
 dev = [
-    "ruff==0.12.8",
-    "prek>=0.2.23",
+  "cool-seq-tool~=0.17.0",
+  "deptry>=0.23",
+  "prek ~= 0.5.5",
+  "pytest-asyncio",
+  "pytest ~= 9.1.1",
+  "pytest-cov ~= 7.1.0",
+  "pytest-mock>=3.16.0",
+  "pytest~=9.0",
+  "ruff ~= 0.17.0",
+  "toml-sort ~= 0.25.0",
+  "tox-uv ~= 1.37.0",
+  "vcrpy ~= 8.3.0",
 ]
 docs = [
-    "sphinx==8.2.3",
-    "sphinx_rtd_theme==3.0.2",
-    "sphinx-autodoc-typehints==3.2.0",
-    "sphinx-autobuild==2024.10.3",
-    "sphinx-copybutton==0.5.2",
-    "sphinxext-opengraph==0.10.0",
-    "sphinx-github-changelog==1.7.1",
+  "sphinx-autobuild==2024.10.3",
+  "sphinx-autodoc-typehints==3.2.0",
+  "sphinx-copybutton==0.5.2",
+  "sphinx-github-changelog==1.7.1",
+  "sphinx==8.2.3",
+  "sphinx_rtd_theme==3.0.2",
+  "sphinxext-opengraph==0.10.0"
+]
+test = [
+  "alembic",
+  "celery[pytest]",
+  "httpx",
+  "jsonschema",
+  "pyyaml"
+]
+
+[project]
+authors = [
+  {email = "biocommons-dev@googlegroups.com", name = "biocommons contributors"}
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
+  "Programming Language :: Python",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+  "Topic :: Scientific/Engineering :: Medical Science Apps.",
+  "Topic :: Software Development :: Libraries :: Python Modules"
+]
+dependencies = [
+  "agct >= 0.2.0rc1",
+  "anyio",
+  "asyncio>=4.0.0",
+  "biocommons.seqrepo",
+  "bioutils",
+  "celery>=5.5.3",
+  "fastapi>=0.95.0",
+  "ga4gh.cat_vrs>=0.7.1",
+  "ga4gh.vrs[extras]>=2.3.2,<3.0",
+  "httpx2>=2.13.1",
+  "jsonschema>=4.26.0",
+  "pyjwt[crypto]",
+  "pysam",
+  "python-dotenv",
+  "python-multipart",
+  "pyyaml",
+  "sqlalchemy~=2.0.0",
+  "uvicorn",
+]
+description = "AnyVar provides Python and REST interfaces to validate, normalize, generate identifiers, and register biological sequence variation according to the GA4GH Variation Representation standards."
+dynamic = ["version"]
+keywords = [
+  "biocommons",
+  "bioinformatics",
+  "computational biology",
+  "genome variation",
+  "genomics",
+  "hgvs",
+  "variation"
+]
+license = "Apache-2.0"
+name = "anyvar"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+
+[project.optional-dependencies]
+duckdb = [
+  "alembic",
+  "duckdb-engine"
+]
+postgres = [
+  "alembic",
+  "psycopg[binary]"
+]
+projection = [
+  "cool-seq-tool~=0.17.0"
+]
+queueing = [
+  "aiofiles",
+  "celery[redis]~=5.5.0"
 ]
 
 [project.urls]
-Homepage = "https://github.com/biocommons/anyvar"
-Documentation = "https://github.com/biocommons/anyvar/"
 Changelog = "https://github.com/biocommons/anyvar/releases"
-Source = "https://github.com/biocommons/anyvar/"
-"Bug Tracker" = "https://github.com/biocommons/anyvar/issues"
+Documentation = "https://github.com/biocommons/anyvar/"
+Homepage = "https://github.com/biocommons/anyvar"
+Issues = "https://github.com/biocommons/anyvar/issues"
+Repository = "https://github.com/biocommons/anyvar/"
 
-
-[build-system]
-requires = [
-    "setuptools >= 65.3",
-    "setuptools_scm >= 8"
-]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools.package-data]
-"anyvar.storage" = ["*.sql"]
-
-[tool.setuptools_scm]
-
-[tool.pytest.ini_options]
-addopts = "--cov=anyvar --cov-report term-missing"
-testpaths = ["tests"]
-pythonpath = ["src"]
-markers = [
-    "ci_ok: tests safe to run in CI",
-    "postgresql: tests safe to run when test db is Postgres",
-    "duckdb: tests safe to run when test db is duckdb"
-]
-
-[tool.coverage.run]
-branch = true
-source = ["anyvar"]
-omit = ["*_test.py", "*/test/*", "*/tests/*"]
+[tool.coverage]
 
 [tool.coverage.report]
-show_missing = true
 exclude_lines = [
     # Have to re-enable the standard pragma
     "pragma: no cover",
@@ -120,74 +130,137 @@ exclude_lines = [
     # Don't complain if non-runnable code isn't run:
     "if __name__ == .__main__.:",
 ]
+show_missing = true
+skip_empty = true
+
+[tool.coverage.run]
+branch = true
+omit = [
+  "*_test.py",
+  "*/test/*",
+  "*/tests/*",
+]
+source = ["src"]
+
+[tool.deptry]
+
+[tool.deptry.package_module_name_map]
+# map package name to import name
+# Making this explicit suppresses deptry notices
+coloredlogs = "coloredlogs"
+mkdocs = "mkdocs"
+mkdocs-material = "mkdocs_material"
+mkdocstrings = "mkdocstrings"
+mypy = "mypy"
+pytest = "pytest"
+pytest-cov = "pytest_cov"
+pyyaml = "yaml"
+ruff = "ruff"
+tox-uv = "tox_uv"
+ty = "ty"
+
+[tool.pytest.ini_options]
+addopts = "--cov=anyvar --cov-report term-missing"
+doctest_optionflags = [
+  "ALLOW_BYTES",
+  "ALLOW_UNICODE",
+  "ELLIPSIS",
+  "IGNORE_EXCEPTION_DETAIL",
+  "NORMALIZE_WHITESPACE"
+]
+markers = [
+  "ci_ok: tests safe to run in CI",
+  "duckdb: tests safe to run when test db is duckdb",
+  "postgresql: tests safe to run when test db is Postgres"
+]
+pythonpath = ["src"]
+testpaths = ["tests"]
 
 [tool.ruff]
-src = ["src"]
-include = ["src/**/*.py", "tests/**/*.py", "demo/**/*.py"]
 exclude = ["docs/source/"]
+include = ["src/**/*.py", "tests/**/*.py", "demo/**/*.py"]
+src = ["src"]
+target-version = "py311"
+
+[tool.ruff.format]
+docstring-code-format = true
+preview = false
+quote-style = "double"
 
 [tool.ruff.lint]
-select = ["ALL"]
+# preserve existing noqa directives for rules not selected below (avoids RUF100)
+external = ["ANN", "BLE", "D", "SLF"]
+fixable = [
+  "B",
+  "C4",
+  "D",
+  "EM",
+  "F401",
+  "F541",
+  "I",
+  "PERF",
+  "PIE",
+  "PT",
+  "RET",
+  "RSE",
+  "RUF",
+  "SIM",
+  "UP"
+]
 ignore = [
-    # not used
-    "AIR",
-    "ERA",
-    "FAST",
-    "YTT",
-    "FBT",
-    "CPY",
-    "DJ",
-    "EM",
-    "EXE",
-    "FIX",
-    "FA",
-    "INT",
-    "PYI",
-    "TID",
-    "TD",
-    "TC",
-    "C90",
-    "NPY",
-    "PD",
-    # ignore for compatibility with formatter
-    "D206",
-    "D300",
-    "W191",
-    "E111",
-    "E114",
-    "E117",
-    "E501",
-    "W191",
-    "S321",
-    "COM812",
-    # don't require types on *args, **kwargs
-    "ANN002",
-    "ANN003",
-    # subjective pylint thresholds
-    "PLR0904",
-    "PLR091",
-    "PLR1702",
-    # excessive docstring requirements
-    "D105",
-    "D205",
-    "D203",
-    "D213",  # conflicts with D212
-    "D400",
-    "D401",
-    "D403",
-    "D415",
-    # excessive exception message requirements
-    "TRY003",
-    # excessive type ignore requirements
-    "PGH003",
-    # misc unnecessary readability requirements
-    "RET504",
+  "E111",
+  "E114",
+  "E117",
+  "E501",
+  "E731",
+  "N801",
+  "N802",
+  "PLR0913",
+  "RET504",
+  "S321",
+  "W191",
+  # anyvar-specific (restored from pre-template config)
+  "EM",
+  "PLR0904",
+  "PLR091",
+  "PLR1702",
+  "TRY003",
+]
+select = [
+  "A", # https://docs.astral.sh/ruff/rules/#flake8-builtins-a
+  "ARG", # https://docs.astral.sh/ruff/rules/#flake8-unused-arguments-arg
+  "B", # https://docs.astral.sh/ruff/rules/#flake8-bugbear-b
+  "C4", # https://docs.astral.sh/ruff/rules/#flake8-comprehensions-c4
+  "DTZ", # https://docs.astral.sh/ruff/rules/#flake8-datetimez-dtz
+  "E",
+  "EM", # https://docs.astral.sh/ruff/rules/#flake8-errmsg-em
+  "F", # https://docs.astral.sh/ruff/rules/#pyflakes-f
+  "G", # https://docs.astral.sh/ruff/rules/#flake8-logging-format-g
+  "I", # https://docs.astral.sh/ruff/rules/#isort-i
+  "LOG", # https://docs.astral.sh/ruff/rules/#flake8-logging-log
+  "N", # https://docs.astral.sh/ruff/rules/#pep8-naming-n
+  "PERF", # https://docs.astral.sh/ruff/rules/#perflint-perf
+  "PIE", # https://docs.astral.sh/ruff/rules/#flake8-pie-pie
+  "PL", # https://docs.astral.sh/ruff/rules/#pylint-pl
+  "PT", # https://docs.astral.sh/ruff/rules/#flake8-pytest-style-pt
+  "PTH", # https://docs.astral.sh/ruff/rules/#flake8-use-pathlib-pth
+  "RET", # https://docs.astral.sh/ruff/rules/#flake8-return-ret
+  "RSE", # https://docs.astral.sh/ruff/rules/#flake8-raise-rse
+  "RUF", # https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
+  "S", # https://docs.astral.sh/ruff/rules/#flake8-bandit-s
+  "SIM", # https://docs.astral.sh/ruff/rules/#flake8-simplify-sim
+  "TRY", # https://docs.astral.sh/ruff/rules/#tryceratops-try
+  "UP", # https://docs.astral.sh/ruff/rules/#pyupgrade-up
+  "W", # https://docs.astral.sh/ruff/rules/#pycodestyle-e-w
+  "YTT" # https://docs.astral.sh/ruff/rules/#flake8-2020-ytt
 ]
 
-[tool.ruff.lint.flake8-unused-arguments]
-ignore-variadic-names = true
-
-[tool.ruff.lint.per-file-ignores]
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/**/*.py" = [
+  "PLR2004", # Magic value used in comparison
+  "S101", # Use of `assert` detected
+]
+# anyvar-specific (restored from pre-template config)
 "__init__.py" = ["F401", "E402"]
 "alembic/*" = ["INP001"]
 "src/anyvar/vcf/ingest.py" = ["ARG002"]
@@ -198,6 +271,25 @@ ignore-variadic-names = true
 "tests/unit/storage/*" = ["S608"]
 "tests/unit/storage/test_no_db.py" = ["ARG002", "A002", "TRY002"]
 "demo/*" = ["T201"]
+"tests/unit/mapping/test_projection.py" = ["RUF043"]
+"tests/integration/restapi/vcf_router/test_ingest_vcf.py" = ["PLW0108"]
 
-[tool.ruff.format]
-docstring-code-format = true
+[tool.ruff.lint.flake8-unused-arguments]
+ignore-variadic-names = true
+
+[tool.setuptools]
+include-package-data = true
+package-dir = {"" = "src"}
+zip-safe = true
+
+[tool.setuptools.package-data]
+# "*" = ["_data/*/*.json.gz"]
+# "*" = ["*.gz", "*.json", "*.yaml"]
+"*" = ["_data/*"]
+
+[tool.setuptools.packages.find]
+exclude = ["*.pyc", "__pycache__"]
+namespaces = true
+where = ["src"]
+
+[tool.setuptools_scm]
