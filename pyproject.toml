@@ -160,7 +160,7 @@ tox-uv = "tox_uv"
 ty = "ty"
 
 [tool.pytest.ini_options]
-addopts = "-s -v -x --strict-markers -m 'not extra' --doctest-modules --cov=src"
+addopts = "--cov=anyvar --cov-report term-missing"
 doctest_optionflags = [
   "ALLOW_BYTES",
   "ALLOW_UNICODE",
