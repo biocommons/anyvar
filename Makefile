@@ -58,7 +58,7 @@ cqa: ## Run code quality assessments
 	uv run deptry src
 
 .PHONY: test
-test: ## Test the code with pytest
+test: testready ## Test the code with pytest
 	@echo "🚀 Testing code: Running pytest"
 	uv run pytest
 
