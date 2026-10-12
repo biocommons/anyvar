@@ -6,12 +6,15 @@ import pytest
 from fastapi import Response, status
 from fastapi.responses import JSONResponse
 
+from anyvar.restapi import has_async_imports
 from anyvar.restapi.async_utils import (
     check_async_enabled,
-    resolve_async_task_status,
     validate_run_id_available,
 )
 from anyvar.restapi.schema import ErrorResponse, RunStatusResponse
+
+if has_async_imports:
+    from anyvar.restapi.async_utils import resolve_async_task_status
 
 # ---------------------------------------------------------------------------
 # Tests: check_async_enabled()
@@ -43,6 +46,7 @@ class TestCheckAsyncEnabled:
 
 
 @pytest.mark.ci_ok
+@pytest.mark.skipif(not has_async_imports, reason="async dependencies not installed")
 class TestValidateRunIdAvailable:
     @patch("anyvar.restapi.has_async_imports", True)
     @patch("anyvar.restapi.async_utils.AsyncResult")
@@ -73,13 +77,15 @@ class TestValidateRunIdAvailable:
         assert "SUCCESS" in result.error
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    @patch("anyvar.restapi.has_async_imports", False)
-    def test_no_async_imports_returns_none(self):
-        """When async imports are unavailable, validation is skipped and returns None."""
-        response = Response()
-        result = validate_run_id_available("test-run-id", response)
 
-        assert result is None
+@pytest.mark.ci_ok
+@pytest.mark.skipif(has_async_imports, reason="async dependencies installed")
+def test_validate_run_id_available_no_async_imports_returns_none():
+    """When async imports are unavailable, validation is skipped and returns None."""
+    response = Response()
+    result = validate_run_id_available("test-run-id", response)
+
+    assert result is None
 
 
 # ---------------------------------------------------------------------------
@@ -88,6 +94,7 @@ class TestValidateRunIdAvailable:
 
 
 @pytest.mark.ci_ok
+@pytest.mark.skipif(not has_async_imports, reason="async dependencies not installed")
 class TestResolveAsyncTaskStatus:
     @pytest.mark.asyncio
     @patch("anyvar.restapi.async_utils.AsyncResult")

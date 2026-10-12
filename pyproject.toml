@@ -1,20 +1,21 @@
 [build-system]
 build-backend = "setuptools.build_meta"
-requires = ["setuptools >= 84.0", "setuptools_scm[toml] >= 10.3"]
+requires = ["setuptools ~= 84.0.0", "setuptools_scm[toml] ~= 10.3.4"]
 
 [dependency-groups]
 dev = [
   "cool-seq-tool~=0.17.0",
   "deptry>=0.23",
-  "pre-commit>=3.8",
+  "prek ~= 0.5.5",
   "pytest-asyncio",
-  "pytest-cov>=4.1",
+  "pytest ~= 9.1.1",
+  "pytest-cov ~= 7.1.0",
   "pytest-mock>=3.16.0",
   "pytest~=9.0",
-  "ruff>=0.12",
-  "toml-sort",
-  "tox-uv>=1.28",
-  "vcrpy",
+  "ruff ~= 0.17.0",
+  "toml-sort ~= 0.25.0",
+  "tox-uv ~= 1.37.0",
+  "vcrpy ~= 8.3.0",
 ]
 docs = [
   "sphinx-autobuild==2024.10.3",
@@ -62,6 +63,7 @@ dependencies = [
   "ga4gh.cat_vrs>=0.7.1",
   "ga4gh.vrs[extras]>=2.3.2,<3.0",
   "httpx2>=2.13.1",
+  "jsonschema>=4.26.0",
   "pyjwt[crypto]",
   "pysam",
   "python-dotenv",
@@ -72,6 +74,15 @@ dependencies = [
 ]
 description = "AnyVar provides Python and REST interfaces to validate, normalize, generate identifiers, and register biological sequence variation according to the GA4GH Variation Representation standards."
 dynamic = ["version"]
+keywords = [
+  "biocommons",
+  "bioinformatics",
+  "computational biology",
+  "genome variation",
+  "genomics",
+  "hgvs",
+  "variation"
+]
 license = "Apache-2.0"
 name = "anyvar"
 readme = "README.md"
@@ -141,7 +152,6 @@ mkdocs = "mkdocs"
 mkdocs-material = "mkdocs_material"
 mkdocstrings = "mkdocstrings"
 mypy = "mypy"
-pre-commit = "pre_commit"
 pytest = "pytest"
 pytest-cov = "pytest_cov"
 pyyaml = "yaml"

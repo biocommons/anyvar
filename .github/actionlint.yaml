@@ -1,0 +1,5 @@
+paths:
+  .github/workflows/github-coverage.yml:
+    ignore:
+      # code-quality scope is new (2026-05, preview); remove when actionlint recognizes it
+      - 'unknown permission scope "code-quality"'
