@@ -201,10 +201,10 @@ _post_variations_request_body = Body(
     summary="Retrieve registered VRS alleles",
     description="Provide a list of variation definitions to be normalized and searched for in AnyVar",
 )
-def get_variation(
+def retrieve_variations(
     request: Request,
     variations: Annotated[list[VariationRequest], _post_variations_request_body],
-) -> GetObjectResponse:
+) -> list[GetObjectResponse]:
     """Search for registered variation"""
     av: AnyVar = request.app.state.anyvar
     retrieved_variations: list[SupportedVrsObject] = []
@@ -225,7 +225,10 @@ def get_variation(
         )  # raise NOT_FOUND for vrs_id not present in DB
         retrieved_variations.append(vrs_object)
 
-    return GetObjectResponse(messages=[], data=retrieved_variations)
+    return [
+        GetObjectResponse(messages=[], data=variation)
+        for variation in retrieved_variations
+    ]
 
 
 @variations_router.get(
@@ -290,8 +293,8 @@ def search_variations(
     "/variations/{vrs_id}",
     response_model_exclude_none=True,
     operation_id="getVariation",
-    summary="Retrieve a variation",
-    description="Gets a variation by ID. May return any supported type of variation.",
+    summary="Retrieve a single variation",
+    description="Gets a single variation by ID. May return any supported type of variation.",
 )
 def get_variation_by_id(
     request: Request,

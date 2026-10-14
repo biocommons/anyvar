@@ -296,42 +296,40 @@ class RegisterVariationResponse(BaseModel):
 
 
 class GetObjectResponse(BaseModel):
-    """Describe response for the GET /variations endpoint"""
+    """Describe response for retrieving multiple VRS Objects"""
 
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
                 {
                     "messages": [],
-                    "data": [
-                        {
-                            "digest": "K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU",
-                            "id": "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU",
-                            "location": {
-                                "digest": "01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
-                                "id": "ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
-                                "start": 87894076,
-                                "end": 87894077,
-                                "sequenceReference": {
-                                    "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
-                                    "type": "SequenceReference",
-                                },
-                                "type": "SequenceLocation",
+                    "data": {
+                        "digest": "K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU",
+                        "id": "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU",
+                        "location": {
+                            "digest": "01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
+                            "id": "ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
+                            "start": 87894076,
+                            "end": 87894077,
+                            "sequenceReference": {
+                                "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
+                                "type": "SequenceReference",
                             },
-                            "state": {
-                                "sequence": "T",
-                                "type": "LiteralSequenceExpression",
-                            },
-                            "type": "Allele",
-                        }
-                    ],
+                            "type": "SequenceLocation",
+                        },
+                        "state": {
+                            "sequence": "T",
+                            "type": "LiteralSequenceExpression",
+                        },
+                        "type": "Allele",
+                    },
                 }
             ]
         }
     )
 
     messages: list[StrictStr]
-    data: list[objects.SupportedVrsObject] = []
+    data: objects.SupportedVrsObject
 
 
 class SearchResponse(BaseModel):
