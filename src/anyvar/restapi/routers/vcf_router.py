@@ -6,6 +6,7 @@ import os
 import pathlib
 import tempfile
 import uuid
+from http import HTTPStatus
 from typing import Annotated
 
 from fastapi import (
@@ -17,7 +18,6 @@ from fastapi import (
     Request,
     Response,
     UploadFile,
-    status,
 )
 from fastapi.responses import FileResponse
 
@@ -109,7 +109,7 @@ async def _annotate_vcf_async(
             has_async_imports,
             stack_info=True,
         )
-        response.status_code = status.HTTP_400_BAD_REQUEST
+        response.status_code = HTTPStatus.BAD_REQUEST
         return ErrorResponse(
             error="Required modules and/or configurations for asynchronous VCF annotation are missing"
         )
@@ -152,7 +152,7 @@ async def _annotate_vcf_async(
     )
 
     # set response headers
-    response.status_code = status.HTTP_202_ACCEPTED
+    response.status_code = HTTPStatus.ACCEPTED
     response.headers["Location"] = f"/vcf/runs/{task_result.id}"
     retry_after = max(
         1,
@@ -204,7 +204,7 @@ async def _annotate_vcf_sync(
             f"Encountered error during registration of VCF file {vcf.filename}"
         )
         response_message: str = "VCF registration failed."
-        status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        status_code = HTTPStatus.INTERNAL_SERVER_ERROR
 
         # We do not accept pre-annotated VCF files; handle these errors separately
         if (
@@ -217,7 +217,7 @@ async def _annotate_vcf_sync(
             response_message = (
                 "VCF registration failed - file is already annotated with VRS IDs"
             )
-            status_code = status.HTTP_400_BAD_REQUEST
+            status_code = HTTPStatus.BAD_REQUEST
 
         _logger.exception(msg=logger_message)
         response.status_code = status_code
@@ -289,7 +289,7 @@ async def annotate_vcf(
             anyvar.anyvar.has_queueing_enabled(),
             stack_info=True,
         )
-        response.status_code = status.HTTP_400_BAD_REQUEST
+        response.status_code = HTTPStatus.BAD_REQUEST
         return ErrorResponse(
             error="Required modules and/or configurations for asynchronous VCF annotation are missing"
         )
@@ -370,7 +370,7 @@ async def get_vcf_run_status(
         return error
 
     def on_success(async_result: AsyncResult) -> FileResponse | RunStatusResponse:
-        response.status_code = status.HTTP_200_OK
+        response.status_code = HTTPStatus.OK
         output_file_path = async_result.result
         if output_file_path:
             _logger.debug("%s - output file path is %s", run_id, output_file_path)

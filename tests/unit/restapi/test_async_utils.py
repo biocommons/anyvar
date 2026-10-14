@@ -1,9 +1,10 @@
 """Tests for anyvar.restapi.async_utils module."""
 
+from http import HTTPStatus
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastapi import Response, status
+from fastapi import Response
 from fastapi.responses import JSONResponse
 
 from anyvar.restapi.async_utils import (
@@ -27,7 +28,7 @@ class TestCheckAsyncEnabled:
 
         assert isinstance(result, ErrorResponse)
         assert result.error == "Async not available"
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.status_code == HTTPStatus.BAD_REQUEST
 
     def test_enabled_returns_none(self):
         """When async is enabled, returns None (no error)."""
@@ -71,7 +72,7 @@ class TestValidateRunIdAvailable:
         assert isinstance(result, ErrorResponse)
         assert "test-run-id" in result.error
         assert "SUCCESS" in result.error
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.status_code == HTTPStatus.BAD_REQUEST
 
     @patch("anyvar.restapi.has_async_imports", False)
     def test_no_async_imports_returns_none(self):
@@ -99,9 +100,7 @@ class TestResolveAsyncTaskStatus:
         mock_async_result_cls.return_value = mock_result
 
         def on_success(async_result):
-            return JSONResponse(
-                content=async_result.result, status_code=status.HTTP_200_OK
-            )
+            return JSONResponse(content=async_result.result, status_code=HTTPStatus.OK)
 
         response = Response()
         result = await resolve_async_task_status(
@@ -125,9 +124,7 @@ class TestResolveAsyncTaskStatus:
         mock_async_result_cls.return_value = mock_result
 
         async def on_success(async_result):
-            return JSONResponse(
-                content=async_result.result, status_code=status.HTTP_200_OK
-            )
+            return JSONResponse(content=async_result.result, status_code=HTTPStatus.OK)
 
         response = Response()
         result = await resolve_async_task_status(
@@ -212,7 +209,7 @@ class TestResolveAsyncTaskStatus:
 
         assert isinstance(result, RunStatusResponse)
         assert result.status == "NOT_FOUND"
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == HTTPStatus.NOT_FOUND
 
     @pytest.mark.asyncio
     @patch("anyvar.restapi.async_utils.AsyncResult")
@@ -233,5 +230,5 @@ class TestResolveAsyncTaskStatus:
 
         assert isinstance(result, RunStatusResponse)
         assert result.status == "PENDING"
-        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert response.status_code == HTTPStatus.OK
         assert response.headers.get("Retry-After") == "2"

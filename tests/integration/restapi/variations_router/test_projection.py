@@ -363,7 +363,7 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
         transcript["id"],
     )
 
-    response = projected_restapi_client.get(f"/variations/[{transcript['id']}]")
+    response = projected_restapi_client.get(f"/variations/{transcript['id']}")
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"data": [transcript], "messages": []}
 
@@ -375,7 +375,7 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
             protein["id"],
         )
 
-        response = projected_restapi_client.get(f"/variations/[{protein['id']}]")
+        response = projected_restapi_client.get(f"/variations/{protein['id']}")
         assert response.status_code == HTTPStatus.OK
         assert response.json() == {"data": [protein], "messages": []}
     else:

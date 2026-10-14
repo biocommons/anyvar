@@ -5,7 +5,7 @@ import os
 from http import HTTPStatus
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Body, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, Body, HTTPException, Query, Request, Response
 from fastapi.params import Path
 from fastapi.responses import JSONResponse
 from pydantic import StrictStr
@@ -143,7 +143,7 @@ async def register_variations(
                 has_async_imports,
                 stack_info=True,
             )
-            response.status_code = status.HTTP_400_BAD_REQUEST
+            response.status_code = HTTPStatus.BAD_REQUEST
             return ErrorResponse(
                 error="Required modules and/or configurations for asynchronous variation registration are missing"
             )
@@ -175,7 +175,7 @@ async def register_variations(
             1, round(len(variations) / _expected_variations_per_second, 0)
         )
 
-        response.status_code = status.HTTP_202_ACCEPTED
+        response.status_code = HTTPStatus.ACCEPTED
         response.headers["Location"] = f"/variations/runs/{task_result.id}"
         response.headers["Retry-After"] = str(int(retry_after))
         return RunStatusResponse(
@@ -199,7 +199,7 @@ _post_variations_request_body = Body(
     "/variations",
     response_model_exclude_none=True,
     summary="Retrieve registered VRS alleles",
-    description="Provide a variation definition to be normalized and searched for in AnyVar",
+    description="Provide a list of variation definitions to be normalized and searched for in AnyVar",
 )
 def get_variation(
     request: Request,
@@ -550,7 +550,7 @@ async def get_variations_run_status(
 
     def on_success(async_result: AsyncResult) -> JSONResponse:
         result_data = async_result.result
-        return JSONResponse(content=result_data, status_code=status.HTTP_200_OK)
+        return JSONResponse(content=result_data, status_code=HTTPStatus.OK)
 
     return await resolve_async_task_status(
         run_id,

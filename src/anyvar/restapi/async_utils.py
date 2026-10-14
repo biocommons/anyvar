@@ -4,8 +4,9 @@ import asyncio
 import logging
 import os
 from collections.abc import Awaitable, Callable
+from http import HTTPStatus
 
-from fastapi import Response, status
+from fastapi import Response
 from fastapi.responses import FileResponse, JSONResponse
 
 from anyvar.restapi import has_async_imports
@@ -27,7 +28,7 @@ def check_async_enabled(
     :return: ErrorResponse if not enabled, None otherwise
     """
     if not enabled:
-        response.status_code = status.HTTP_400_BAD_REQUEST
+        response.status_code = HTTPStatus.BAD_REQUEST
         return ErrorResponse(error=error_msg)
     return None
 
@@ -49,7 +50,7 @@ if has_async_imports:
         # explicitly delete to limit chances of deadlocks in the Redis client
         del existing_result
         if existing_status != "PENDING":
-            response.status_code = status.HTTP_400_BAD_REQUEST
+            response.status_code = HTTPStatus.BAD_REQUEST
             return ErrorResponse(
                 error=f"An existing run with id {run_id} is {existing_status}. Fetch the completed run result before submitting with the same run_id."
             )
@@ -157,7 +158,7 @@ if has_async_imports:
 
         # still PENDING - unknown run id
         if async_result.status == "PENDING":
-            response.status_code = status.HTTP_404_NOT_FOUND
+            response.status_code = HTTPStatus.NOT_FOUND
             return RunStatusResponse(
                 run_id=run_id,
                 status="NOT_FOUND",
@@ -165,7 +166,7 @@ if has_async_imports:
             )
 
         # SENT or other active state - return 202
-        response.status_code = status.HTTP_202_ACCEPTED
+        response.status_code = HTTPStatus.ACCEPTED
         response.headers["Retry-After"] = "2"
         return RunStatusResponse(
             run_id=run_id,
