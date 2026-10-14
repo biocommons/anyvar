@@ -60,9 +60,12 @@ def test_put_allele(restapi_client: TestClient, alleles: dict):
 def test_put_allele_invalid_request(
     restapi_client: TestClient, definition: str, err_msg: str
 ):
-    resp = restapi_client.post("/variations", json={"definition": definition})
+    resp = restapi_client.post("/variations", json=[{"definition": definition}])
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-    assert resp.json() == {"detail": err_msg}
+
+    payload = resp.json()
+    assert len(payload) == 0
+    assert payload[0] == {"detail": err_msg}
 
 
 def test_put_variations_example(restapi_client: TestClient, alleles: dict):
@@ -141,10 +144,13 @@ def test_post_variation_registered(restapi_client: TestClient, preloaded_alleles
             continue
 
         resp = restapi_client.post(
-            "/variations", json=allele_fixture["register_params"]
+            "/variations", json=[allele_fixture["register_params"]]
         )
         assert resp.status_code == HTTPStatus.OK
-        assert resp.json() == {"data": allele_fixture["variation"], "messages": []}
+
+        payload = resp.json()
+        assert len(payload) == 1
+        assert payload[0] == {"data": allele_fixture["variation"], "messages": []}
 
 
 def test_post_variation_not_registered(
@@ -157,10 +163,13 @@ def test_post_variation_not_registered(
             continue
 
         resp = restapi_client.post(
-            "/variations", json=allele_fixture["register_params"]
+            "/variations", json=[allele_fixture["register_params"]]
         )
         assert resp.status_code == HTTPStatus.NOT_FOUND
-        assert resp.json() == {"detail": f"VRS Object {allele_id} not found"}
+
+        payload = resp.json()
+        assert len(payload) == 1
+        assert payload == {"detail": f"VRS Object {allele_id} not found"}
 
 
 @pytest.mark.parametrize(
@@ -184,19 +193,19 @@ def test_post_variation_invalid_request(
     restapi_client: TestClient, definition: str, err_msg: str
 ):
     """Test POST method with invalid requests"""
-    resp = restapi_client.post("/variations", json={"definition": definition})
+    resp = restapi_client.post("/variations", json=[{"definition": definition}])
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-    assert resp.json() == {"detail": err_msg}
+
+    payload = resp.json()
+    assert len(payload) == 1
+    assert payload[0] == {"detail": err_msg}
 
 
 def test_get_allele(restapi_client: TestClient, preloaded_alleles: dict[str, str]):
     for allele_id, allele_fixture in preloaded_alleles.items():
         resp = restapi_client.get(f"/variations/{allele_id}")
         assert resp.status_code == HTTPStatus.OK
-
-        data = resp.json()["data"]
-        assert len(data) == 1
-        assert data[0] == allele_fixture["variation"]
+        assert resp.json()["data"] == allele_fixture["variation"]
 
     bad_resp = restapi_client.get(
         "/variations/ga4gh:VA.invalid7DSM9KE3Z0LntAukLqm0K2ENn"
