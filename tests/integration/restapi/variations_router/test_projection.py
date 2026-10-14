@@ -386,7 +386,7 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
         )
 
     response = projected_restapi_client.post(
-        "/variations", json={"definition": [projection_case["spdi"]]}
+        "/variations", json=[{"definition": projection_case["spdi"]}]
     )
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"data": [genomic], "messages": []}

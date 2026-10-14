@@ -188,7 +188,7 @@ async def register_variations(
     return _register_variations(av, variations)
 
 
-POST_VARIATIONS_EXAMPLE_PAYLOAD = {"definition": "NM_000551.3:c.1A>T"}
+POST_VARIATIONS_EXAMPLE_PAYLOAD = [{"definition": "NM_000551.3:c.1A>T"}]
 _post_variations_request_body = Body(
     description='Variation description, including (at minimum) a `definition` property. Can provide optional `input_type` if the expected output representation type is known, as well as an assembly_name (e.g.,"GRCh37" or "GRCh38").',
     examples=[POST_VARIATIONS_EXAMPLE_PAYLOAD],
