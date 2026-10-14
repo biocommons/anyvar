@@ -10,10 +10,12 @@ def test_sequence_reference(restapi_client: TestClient, preloaded_alleles: dict)
     for allele in preloaded_alleles.values():
         key = allele["variation"]["location"]["sequenceReference"]["refgetAccession"]
         resp = restapi_client.get(f"/sequence_references/{key}")
+
         assert resp.status_code == HTTPStatus.OK
-        assert (
-            resp.json()["data"] == allele["variation"]["location"]["sequenceReference"]
-        )
+
+        data = resp.json()["data"]
+        assert len(data) == 1
+        assert data[0] == allele["variation"]["location"]["sequenceReference"]
 
     # invalid ID
     bad_resp = restapi_client.get("/sequence_references/not_a_real_sequence_reference")

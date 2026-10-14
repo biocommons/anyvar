@@ -10,8 +10,12 @@ def test_location(restapi_client: TestClient, preloaded_alleles: dict):
     for allele in preloaded_alleles.values():
         key = allele["variation"]["location"]["id"]
         resp = restapi_client.get(f"/sequence_locations/{key}")
+
         assert resp.status_code == HTTPStatus.OK
-        assert resp.json()["data"] == allele["variation"]["location"]
+
+        data = resp.json()["data"]
+        assert len(data) == 1
+        assert data[0] == allele["variation"]["location"]
 
     # invalid ID
     bad_resp = restapi_client.get("/sequence_locations/not_a_real_location")
