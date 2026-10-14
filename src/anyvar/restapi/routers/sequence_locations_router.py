@@ -33,4 +33,4 @@ def get_sequence_location_by_id(
     vrs_object: objects.SupportedVrsObject = get_vrs_object(
         av, vrs_object_id=vrs_id, object_type=SequenceLocation
     )
-    return GetObjectResponse(messages=[], data=[vrs_object])
+    return GetObjectResponse(messages=[], data=vrs_object)

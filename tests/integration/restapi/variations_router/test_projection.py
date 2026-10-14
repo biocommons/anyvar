@@ -523,7 +523,7 @@ def test_transcript_spdi_projection_persists_protein_mapping(projected_restapi_c
 
     response = projected_restapi_client.get(f"/variations/{protein['id']}")
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"data": protein, "messages": []}
+    assert response.json() == {"data": [protein], "messages": []}
 
 
 @pytest.mark.parametrize(
@@ -551,7 +551,11 @@ def test_spdi_projection_uses_longest_compatible_transcript(
     transcript_id = transcript_mappings[0]["dest_id"]
     transcript_response = projected_restapi_client.get(f"/variations/{transcript_id}")
     assert transcript_response.status_code == HTTPStatus.OK
-    transcript = transcript_response.json()["data"]
+
+    data = transcript_response.json()["data"]
+    assert len(data) == 1
+
+    transcript = data[0]
     assert transcript["location"]["sequenceReference"]["refgetAccession"] == _refget(
         translator, projection_case["transcript_refseq"]
     )
@@ -605,7 +609,7 @@ def test_spdi_projection_skips_cases_without_compatible_transcripts(
 
     response = projected_restapi_client.get(f"/variations/{genomic['id']}")
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"data": genomic, "messages": []}
+    assert response.json() == {"data": [genomic], "messages": []}
 
     _assert_no_forward_mapping(
         projected_restapi_client,
@@ -617,7 +621,7 @@ def test_spdi_projection_skips_cases_without_compatible_transcripts(
         "/variations", json={"definition": projection_case["spdi"]}
     )
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"data": genomic, "messages": []}
+    assert response.json() == {"data": [genomic], "messages": []}
 
 
 @pytest.mark.parametrize("utr_case", UTR_PROJECTION_CASES, ids=lambda c: c["label"])

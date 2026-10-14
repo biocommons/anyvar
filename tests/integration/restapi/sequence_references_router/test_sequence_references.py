@@ -14,8 +14,7 @@ def test_sequence_reference(restapi_client: TestClient, preloaded_alleles: dict)
         assert resp.status_code == HTTPStatus.OK
 
         data = resp.json()["data"]
-        assert len(data) == 1
-        assert data[0] == allele["variation"]["location"]["sequenceReference"]
+        assert data == allele["variation"]["location"]["sequenceReference"]
 
     # invalid ID
     bad_resp = restapi_client.get("/sequence_references/not_a_real_sequence_reference")
