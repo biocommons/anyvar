@@ -230,5 +230,5 @@ class TestResolveAsyncTaskStatus:
 
         assert isinstance(result, RunStatusResponse)
         assert result.status == "PENDING"
-        assert response.status_code == HTTPStatus.OK
+        assert response.status_code == HTTPStatus.ACCEPTED
         assert response.headers.get("Retry-After") == "2"
