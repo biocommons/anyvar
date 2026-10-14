@@ -193,7 +193,10 @@ def test_get_allele(restapi_client: TestClient, preloaded_alleles: dict[str, str
     for allele_id, allele_fixture in preloaded_alleles.items():
         resp = restapi_client.get(f"/variations/{allele_id}")
         assert resp.status_code == HTTPStatus.OK
-        assert resp.json()["data"] == allele_fixture["variation"]
+
+        data = resp.json()["data"]
+        assert len(data) == 1
+        assert data[0] == allele_fixture["variation"]
 
     bad_resp = restapi_client.get(
         "/variations/ga4gh:VA.invalid7DSM9KE3Z0LntAukLqm0K2ENn"

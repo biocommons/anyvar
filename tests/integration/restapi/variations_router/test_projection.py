@@ -3,6 +3,7 @@
 from http import HTTPStatus
 
 import pytest
+from fastapi import Response
 
 from anyvar.core import metadata
 
@@ -339,7 +340,7 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
     protein = projection_case["protein"]
     expected_messages = projection_case["messages"]
 
-    response = projected_restapi_client.put(
+    response: Response = projected_restapi_client.put(
         "/variations", json=[{"definition": projection_case["spdi"]}]
     )
     assert response.status_code == HTTPStatus.OK
@@ -362,9 +363,9 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
         transcript["id"],
     )
 
-    response = projected_restapi_client.get(f"/variations/{transcript['id']}")
+    response = projected_restapi_client.get(f"/variations/[{transcript['id']}]")
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"data": transcript, "messages": []}
+    assert response.json() == {"data": [transcript], "messages": []}
 
     if protein:
         _assert_forward_mapping(
@@ -374,9 +375,9 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
             protein["id"],
         )
 
-        response = projected_restapi_client.get(f"/variations/{protein['id']}")
+        response = projected_restapi_client.get(f"/variations/[{protein['id']}]")
         assert response.status_code == HTTPStatus.OK
-        assert response.json() == {"data": protein, "messages": []}
+        assert response.json() == {"data": [protein], "messages": []}
     else:
         _assert_no_forward_mapping(
             projected_restapi_client,
@@ -385,10 +386,10 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
         )
 
     response = projected_restapi_client.post(
-        "/variations", json={"definition": projection_case["spdi"]}
+        "/variations", json={"definition": [projection_case["spdi"]]}
     )
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"data": genomic, "messages": []}
+    assert response.json() == {"data": [genomic], "messages": []}
 
     _assert_forward_mapping(
         projected_restapi_client,
