@@ -3,7 +3,6 @@
 from http import HTTPStatus
 
 import pytest
-from fastapi import Response
 
 from anyvar.core import metadata
 
@@ -74,8 +73,7 @@ PROJECTION_CASES = [
         "clinvar_cdna": "NM_001425324.1:c.5095_5096insA",
         "clinvar_protein": "NP_001412253.1:p.Ala1699Aspfs",
         "messages": [
-            "Projection skipped: could not derive alternate protein state for "
-            "NP_000341.2"
+            "Projection skipped: could not derive alternate protein state for NP_000341.2"
         ],
         "genomic": {
             "id": "ga4gh:VA.pePyWtQvzIyNEMJhzwZz4cnRtLTT_Xr-",
@@ -120,8 +118,7 @@ PROJECTION_CASES = [
         "clinvar_cdna": "NM_022664.3:c.240_241del",
         "clinvar_protein": "NP_073155.2:p.Gln81fs",
         "messages": [
-            "Projection skipped: could not derive alternate protein state for "
-            "NP_004416.2"
+            "Projection skipped: could not derive alternate protein state for NP_004416.2"
         ],
         "genomic": {
             "id": "ga4gh:VA.mkLU2yL862kqFSvsTsB_JhSg8Cvg88BG",
@@ -194,6 +191,10 @@ NO_MANE_PROJECTION_CASES = [
             },
             "state": {"type": "LiteralSequenceExpression", "sequence": "T"},
         },
+        "messages": [
+            "Projection skipped for ga4gh:VA.CVtLdvZzDLxjKRtwT76p2cO-M7nFCuYs: no compatible transcript found at NC_000001.10:982840-982841",
+            "Projection skipped for ga4gh:VA.Qs90vys_MRPyU62F7EdL2oVWZWn8KCi7: no compatible transcript found at NC_000001.11:1047460-1047461",
+        ],
     },
     {
         "label": "intronic_minus",
@@ -217,6 +218,10 @@ NO_MANE_PROJECTION_CASES = [
             },
             "state": {"type": "LiteralSequenceExpression", "sequence": "A"},
         },
+        "messages": [
+            "Projection skipped for ga4gh:VA.34JOe7-8kxqGRV5WFHbZrp7VlJ-_INLm: no compatible transcript found at NC_000001.11:2406959-2406960",
+            "Projection skipped for ga4gh:VA.Dle08WA7nO97kyBnqArjUJxVC3v-GKUZ: no compatible transcript found at NC_000001.10:2338398-2338399",
+        ],
     },
     {
         "label": "non_mane_no_compatible",
@@ -240,6 +245,10 @@ NO_MANE_PROJECTION_CASES = [
             },
             "state": {"type": "LiteralSequenceExpression", "sequence": "A"},
         },
+        "messages": [
+            "Projection skipped for ga4gh:VA.G53FTDcF1YlzXIOMCPWzz73AqNLojIu-: no compatible transcript found at NC_000022.10:51117856-51117857",
+            "Projection skipped for ga4gh:VA.rKpaEJAGJVinPM650Tv93NEz4YNfbVp6: no compatible transcript found at NC_000022.11:50679428-50679429",
+        ],
     },
 ]
 
@@ -340,21 +349,22 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
     protein = projection_case["protein"]
     expected_messages = projection_case["messages"]
 
-    response: Response = projected_restapi_client.put(
+    response = projected_restapi_client.put(
         "/variations", json=[{"definition": projection_case["spdi"]}]
     )
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == [
-        {
-            "input_variation": {
-                "definition": projection_case["spdi"],
-                "assembly_name": "GRCh38",
-            },
-            "object": genomic,
-            "object_id": genomic["id"],
-            "messages": expected_messages,
-        }
-    ]
+
+    data = response.json()
+    assert len(data) == 1
+    assert data[0] == {
+        "input_variation": {
+            "definition": projection_case["spdi"],
+            "assembly_name": "GRCh38",
+        },
+        "object": genomic,
+        "object_id": genomic["id"],
+        "messages": expected_messages,
+    }
 
     _assert_forward_mapping(
         projected_restapi_client,
@@ -365,7 +375,7 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
 
     response = projected_restapi_client.get(f"/variations/{transcript['id']}")
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"data": [transcript], "messages": []}
+    assert response.json() == {"data": transcript, "messages": []}
 
     if protein:
         _assert_forward_mapping(
@@ -377,7 +387,7 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
 
         response = projected_restapi_client.get(f"/variations/{protein['id']}")
         assert response.status_code == HTTPStatus.OK
-        assert response.json() == {"data": [protein], "messages": []}
+        assert response.json() == {"data": protein, "messages": []}
     else:
         _assert_no_forward_mapping(
             projected_restapi_client,
@@ -389,7 +399,10 @@ def test_spdi_projection_persists_mappings(projected_restapi_client, projection_
         "/variations", json=[{"definition": projection_case["spdi"]}]
     )
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"data": [genomic], "messages": []}
+
+    data = response.json()
+    assert len(data) == 1
+    assert data[0] == {"data": genomic, "messages": []}
 
     _assert_forward_mapping(
         projected_restapi_client,
@@ -446,13 +459,16 @@ def test_grch37_genomic_input_projects_via_internal_liftover(
         "/variations", json=[{"definition": case["grch37_spdi"]}]
     )
     assert response.status_code == HTTPStatus.OK
-    body = response.json()[0]
-    assert body["messages"] == []
+
+    data = response.json()
+    assert len(data) == 1
+
+    assert data[0]["messages"] == []
 
     # The registered genomic variant is on GRCh37 -- a distinct node from the
     # GRCh38 variant, resolved through SeqRepo's GRCh37 sequence.
-    genomic = body["object"]
-    assert body["object_id"] == case["grch37_genomic_id"]
+    genomic = data[0]["object"]
+    assert data[0]["object_id"] == case["grch37_genomic_id"]
     grch37_refget = _refget(translator, case["grch37_genomic_accession"])
     assert genomic["location"]["sequenceReference"]["refgetAccession"] == grch37_refget
     assert (
@@ -495,21 +511,21 @@ def test_transcript_spdi_projection_persists_protein_mapping(projected_restapi_c
 
     response = projected_restapi_client.put("/variations", json=[{"definition": spdi}])
     assert response.status_code == HTTPStatus.OK
+
     payload = response.json()
-    assert payload == [
-        {
-            "input_variation": {
-                "definition": spdi,
-                "assembly_name": "GRCh38",
-            },
-            "object": transcript,
-            "object_id": transcript["id"],
-            "messages": [
-                "Unable to complete liftover: Could not resolve reference assembly - "
-                "accession not found in any supported assembly"
-            ],
-        }
-    ]
+    assert len(payload) == 1
+    assert payload[0] == {
+        "input_variation": {
+            "definition": spdi,
+            "assembly_name": "GRCh38",
+        },
+        "object": transcript,
+        "object_id": transcript["id"],
+        "messages": [
+            "Unable to complete liftover: Could not resolve reference assembly - "
+            "accession not found in any supported assembly"
+        ],
+    }
     assert not any(
         message.startswith("Projection") for message in payload[0]["messages"]
     )
@@ -523,7 +539,7 @@ def test_transcript_spdi_projection_persists_protein_mapping(projected_restapi_c
 
     response = projected_restapi_client.get(f"/variations/{protein['id']}")
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"data": [protein], "messages": []}
+    assert response.json() == {"data": protein, "messages": []}
 
 
 @pytest.mark.parametrize(
@@ -537,7 +553,10 @@ def test_spdi_projection_uses_longest_compatible_transcript(
         "/variations", json=[{"definition": projection_case["spdi"]}]
     )
     assert response.status_code == HTTPStatus.OK
+
     payload = response.json()
+    assert len(payload) == 1
+
     assert payload[0]["messages"] == []
 
     genomic_id = payload[0]["object_id"]
@@ -551,11 +570,7 @@ def test_spdi_projection_uses_longest_compatible_transcript(
     transcript_id = transcript_mappings[0]["dest_id"]
     transcript_response = projected_restapi_client.get(f"/variations/{transcript_id}")
     assert transcript_response.status_code == HTTPStatus.OK
-
-    data = transcript_response.json()["data"]
-    assert len(data) == 1
-
-    transcript = data[0]
+    transcript = transcript_response.json()["data"]
     assert transcript["location"]["sequenceReference"]["refgetAccession"] == _refget(
         translator, projection_case["transcript_refseq"]
     )
@@ -595,21 +610,21 @@ def test_spdi_projection_skips_cases_without_compatible_transcripts(
         "/variations", json=[{"definition": projection_case["spdi"]}]
     )
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == [
-        {
-            "input_variation": {
-                "definition": projection_case["spdi"],
-                "assembly_name": "GRCh38",
-            },
-            "object": genomic,
-            "object_id": genomic["id"],
-            "messages": [],
-        }
-    ]
+
+    payload = response.json()
+    assert len(payload) == 1
+
+    data = payload[0]
+    assert data["input_variation"] == {
+        "definition": projection_case["spdi"],
+        "assembly_name": "GRCh38",
+    }
+    assert data["object"] == genomic
+    assert sorted(data["messages"]) == sorted(projection_case["messages"])
 
     response = projected_restapi_client.get(f"/variations/{genomic['id']}")
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"data": [genomic], "messages": []}
+    assert response.json() == {"data": genomic, "messages": []}
 
     _assert_no_forward_mapping(
         projected_restapi_client,
@@ -618,10 +633,13 @@ def test_spdi_projection_skips_cases_without_compatible_transcripts(
     )
 
     response = projected_restapi_client.post(
-        "/variations", json={"definition": projection_case["spdi"]}
+        "/variations", json=[{"definition": projection_case["spdi"]}]
     )
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"data": [genomic], "messages": []}
+
+    data = response.json()
+    assert len(data) == 1
+    assert data[0] == {"data": [genomic], "messages": []}
 
 
 @pytest.mark.parametrize("utr_case", UTR_PROJECTION_CASES, ids=lambda c: c["label"])
@@ -636,13 +654,17 @@ def test_spdi_projection_persists_utr_transcript_without_protein_mapping(
 
     response = projected_restapi_client.put("/variations", json=[{"definition": spdi}])
     assert response.status_code == HTTPStatus.OK
+
     payload = response.json()
+    assert len(payload) == 1
+
+    data = payload[0]
     assert (
         f"Could not build coding variant for {expected_accession}"
-        not in payload[0]["messages"]
+        not in data["messages"]
     )
 
-    genomic_id = payload[0]["object_id"]
+    genomic_id = data["object_id"]
     mapping_response = projected_restapi_client.get(
         f"/variations/{genomic_id}/mappings?mapping_type={metadata.VariationMappingType.TRANSCRIBE_TO}"
     )
