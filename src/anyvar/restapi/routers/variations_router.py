@@ -302,7 +302,7 @@ def get_variation_by_id(
     variation: objects.SupportedVrsObject = get_vrs_object(
         av, vrs_object_id=vrs_id, object_type=objects.SupportedVrsVariation
     )
-    return GetObjectResponse(messages=[], data=variation)
+    return GetObjectResponse(messages=[], data=[variation])
 
 
 @variations_router.delete(

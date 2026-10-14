@@ -17,16 +17,16 @@ from fastapi import (
 import anyvar
 from anyvar import AnyVar
 from anyvar.restapi.auth import get_token_auth_dependency
-from anyvar.restapi.categorical_variants_router import catvar_router
-from anyvar.restapi.meta_router import meta_router
+from anyvar.restapi.routers.categorical_variants_router import catvar_router
+from anyvar.restapi.routers.meta_router import meta_router
+from anyvar.restapi.routers.sequence_locations_router import sequence_locations_router
+from anyvar.restapi.routers.sequence_references_router import sequence_references_router
+from anyvar.restapi.routers.variations_router import variations_router
+from anyvar.restapi.routers.vcf_router import vcf_router
 from anyvar.restapi.schema import (
     EndpointTag,
     ServiceInfo,
 )
-from anyvar.restapi.sequence_locations_router import sequence_locations_router
-from anyvar.restapi.sequence_references_router import sequence_references_router
-from anyvar.restapi.variations_router import variations_router
-from anyvar.restapi.vcf_router import vcf_router
 
 load_dotenv()
 _logger = logging.getLogger(__name__)
