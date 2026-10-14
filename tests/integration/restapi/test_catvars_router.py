@@ -7,7 +7,10 @@ from ga4gh.cat_vrs.models import (
     DefiningAlleleConstraint,
 )
 
-from anyvar.restapi.categorical_variants_router import _put_ca_example, _put_psq_example
+from anyvar.restapi.routers.categorical_variants_router import (
+    _put_ca_example,
+    _put_psq_example,
+)
 
 
 def test_register_psq(restapi_client: TestClient, alleles: dict):

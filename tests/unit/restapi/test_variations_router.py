@@ -70,7 +70,7 @@ VARIATION_PAYLOAD = {
 class TestPutVariationsAsync:
     @patch("anyvar.restapi.has_async_imports", False)
     @patch(
-        "anyvar.restapi.variations_router.anyvar.anyvar.has_variations_queueing_enabled",
+        "anyvar.restapi.routers.variations_router.anyvar.anyvar.has_variations_queueing_enabled",
         return_value=False,
     )
     def test_async_not_enabled(self, _mock_enabled, test_client):  # noqa: PT019
@@ -88,10 +88,10 @@ class TestPutVariationsAsync:
 
     @patch("anyvar.restapi.has_async_imports", True)
     @patch(
-        "anyvar.restapi.variations_router.anyvar.anyvar.has_variations_queueing_enabled",
+        "anyvar.restapi.routers.variations_router.anyvar.anyvar.has_variations_queueing_enabled",
         return_value=True,
     )
-    @patch("anyvar.restapi.variations_router.validate_run_id_available")
+    @patch("anyvar.restapi.routers.variations_router.validate_run_id_available")
     def test_async_duplicate_run_id(self, mock_validate, _mock_enabled, test_client):  # noqa: PT019
         """PUT /variations with run_async=true and an already-active run_id returns 400."""
 
@@ -111,13 +111,14 @@ class TestPutVariationsAsync:
 
     @patch("anyvar.restapi.has_async_imports", True)
     @patch(
-        "anyvar.restapi.variations_router.anyvar.anyvar.has_variations_queueing_enabled",
+        "anyvar.restapi.routers.variations_router.anyvar.anyvar.has_variations_queueing_enabled",
         return_value=True,
     )
     @patch(
-        "anyvar.restapi.variations_router.validate_run_id_available", return_value=None
+        "anyvar.restapi.routers.variations_router.validate_run_id_available",
+        return_value=None,
     )
-    @patch("anyvar.restapi.variations_router.celery_worker")
+    @patch("anyvar.restapi.routers.variations_router.celery_worker")
     def test_async_success(
         self,
         mock_celery,
@@ -145,13 +146,14 @@ class TestPutVariationsAsync:
 
     @patch("anyvar.restapi.has_async_imports", True)
     @patch(
-        "anyvar.restapi.variations_router.anyvar.anyvar.has_variations_queueing_enabled",
+        "anyvar.restapi.routers.variations_router.anyvar.anyvar.has_variations_queueing_enabled",
         return_value=True,
     )
     @patch(
-        "anyvar.restapi.variations_router.validate_run_id_available", return_value=None
+        "anyvar.restapi.routers.variations_router.validate_run_id_available",
+        return_value=None,
     )
-    @patch("anyvar.restapi.variations_router.celery_worker")
+    @patch("anyvar.restapi.routers.variations_router.celery_worker")
     def test_async_with_custom_run_id(
         self,
         mock_celery,
@@ -187,7 +189,7 @@ class TestPutVariationsAsync:
 
 @pytest.mark.ci_ok
 class TestPutVariationsSync:
-    @patch("anyvar.restapi.variations_router._register_variations")
+    @patch("anyvar.restapi.routers.variations_router._register_variations")
     def test_sync_returns_results(self, mock_register, test_client, sample_allele):
         """PUT /variations in sync mode returns 200 with results."""
         mock_register.return_value = [
@@ -213,7 +215,7 @@ class TestPutVariationsSync:
 
 @pytest.mark.ci_ok
 class TestPutVariation:
-    @patch("anyvar.restapi.variations_router._register_variations")
+    @patch("anyvar.restapi.routers.variations_router._register_variations")
     def test_response(self, mock_register, test_client, sample_allele):
         """PUT /variations response includes object and object_id."""
         mock_register.return_value = [
@@ -240,7 +242,7 @@ class TestPutVariation:
 class TestGetVariationsRunStatus:
     @patch("anyvar.restapi.has_async_imports", False)
     @patch(
-        "anyvar.restapi.variations_router.anyvar.anyvar.has_variations_queueing_enabled",
+        "anyvar.restapi.routers.variations_router.anyvar.anyvar.has_variations_queueing_enabled",
         return_value=False,
     )
     def test_async_not_enabled(self, _mock_enabled, test_client):  # noqa: PT019
@@ -254,10 +256,10 @@ class TestGetVariationsRunStatus:
 
     @patch("anyvar.restapi.has_async_imports", True)
     @patch(
-        "anyvar.restapi.variations_router.anyvar.anyvar.has_variations_queueing_enabled",
+        "anyvar.restapi.routers.variations_router.anyvar.anyvar.has_variations_queueing_enabled",
         return_value=True,
     )
-    @patch("anyvar.restapi.variations_router.resolve_async_task_status")
+    @patch("anyvar.restapi.routers.variations_router.resolve_async_task_status")
     def test_delegates_to_resolve_async_task_status(
         self,
         mock_resolve,

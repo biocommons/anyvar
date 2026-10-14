@@ -9,7 +9,7 @@ import pytest
 from fastapi import UploadFile
 from fastapi.testclient import TestClient
 
-from anyvar.restapi.vcf_router import write_vcf_and_count_sites
+from anyvar.restapi.routers.vcf_router import write_vcf_and_count_sites
 
 
 @pytest.fixture
