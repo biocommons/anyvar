@@ -64,8 +64,7 @@ def test_put_allele_invalid_request(
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
     payload = resp.json()
-    assert len(payload) == 0
-    assert payload[0] == {"detail": err_msg}
+    assert payload == {"detail": err_msg}
 
 
 def test_put_variations_example(restapi_client: TestClient, alleles: dict):
@@ -197,8 +196,7 @@ def test_post_variation_invalid_request(
     assert resp.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
     payload = resp.json()
-    assert len(payload) == 1
-    assert payload[0] == {"detail": err_msg}
+    assert payload == {"detail": err_msg}
 
 
 def test_get_allele(restapi_client: TestClient, preloaded_alleles: dict[str, str]):
