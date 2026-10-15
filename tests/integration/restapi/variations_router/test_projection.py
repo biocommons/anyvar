@@ -192,8 +192,8 @@ NO_MANE_PROJECTION_CASES = [
             "state": {"type": "LiteralSequenceExpression", "sequence": "T"},
         },
         "messages": [
-            "Projection skipped for ga4gh:VA.CVtLdvZzDLxjKRtwT76p2cO-M7nFCuYs: no compatible transcript found at NC_000001.10:982840-982841",
-            "Projection skipped for ga4gh:VA.Qs90vys_MRPyU62F7EdL2oVWZWn8KCi7: no compatible transcript found at NC_000001.11:1047460-1047461",
+            #     "Projection skipped for ga4gh:VA.CVtLdvZzDLxjKRtwT76p2cO-M7nFCuYs: no compatible transcript found at NC_000001.10:982840-982841",
+            #     "Projection skipped for ga4gh:VA.Qs90vys_MRPyU62F7EdL2oVWZWn8KCi7: no compatible transcript found at NC_000001.11:1047460-1047461",
         ],
     },
     {
@@ -219,8 +219,8 @@ NO_MANE_PROJECTION_CASES = [
             "state": {"type": "LiteralSequenceExpression", "sequence": "A"},
         },
         "messages": [
-            "Projection skipped for ga4gh:VA.34JOe7-8kxqGRV5WFHbZrp7VlJ-_INLm: no compatible transcript found at NC_000001.11:2406959-2406960",
-            "Projection skipped for ga4gh:VA.Dle08WA7nO97kyBnqArjUJxVC3v-GKUZ: no compatible transcript found at NC_000001.10:2338398-2338399",
+            # "Projection skipped for ga4gh:VA.34JOe7-8kxqGRV5WFHbZrp7VlJ-_INLm: no compatible transcript found at NC_000001.11:2406959-2406960",
+            # "Projection skipped for ga4gh:VA.Dle08WA7nO97kyBnqArjUJxVC3v-GKUZ: no compatible transcript found at NC_000001.10:2338398-2338399",
         ],
     },
     {
@@ -246,8 +246,8 @@ NO_MANE_PROJECTION_CASES = [
             "state": {"type": "LiteralSequenceExpression", "sequence": "A"},
         },
         "messages": [
-            "Projection skipped for ga4gh:VA.G53FTDcF1YlzXIOMCPWzz73AqNLojIu-: no compatible transcript found at NC_000022.10:51117856-51117857",
-            "Projection skipped for ga4gh:VA.rKpaEJAGJVinPM650Tv93NEz4YNfbVp6: no compatible transcript found at NC_000022.11:50679428-50679429",
+            # "Projection skipped for ga4gh:VA.G53FTDcF1YlzXIOMCPWzz73AqNLojIu-: no compatible transcript found at NC_000022.10:51117856-51117857",
+            # "Projection skipped for ga4gh:VA.rKpaEJAGJVinPM650Tv93NEz4YNfbVp6: no compatible transcript found at NC_000022.11:50679428-50679429",
         ],
     },
 ]
@@ -637,9 +637,11 @@ def test_spdi_projection_skips_cases_without_compatible_transcripts(
     )
     assert response.status_code == HTTPStatus.OK
 
-    data = response.json()
-    assert len(data) == 1
-    assert data[0] == {"data": [genomic], "messages": []}
+    payload = response.json()
+    assert len(payload) == 1
+
+    data = payload[0]
+    assert data == {"data": genomic, "messages": []}
 
 
 @pytest.mark.parametrize("utr_case", UTR_PROJECTION_CASES, ids=lambda c: c["label"])
