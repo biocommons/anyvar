@@ -6,9 +6,11 @@ import pytest
 from fastapi.testclient import TestClient
 
 from anyvar.mapping.liftover import ReferenceAssembly
+from anyvar.restapi.examples import (
+    PUT_VRS_VARIATION_EXAMPLE_PAYLOAD,
+    VARIATION_EXAMPLE_PAYLOAD,
+)
 from anyvar.restapi.schema import RegisterVariationResponse, VariationRequest
-from anyvar.restapi.variation_request import VARIATION_EXAMPLE_PAYLOAD
-from anyvar.restapi.variations_router import PUT_VRS_VARIATION_EXAMPLE_PAYLOAD
 from anyvar.storage.base import Storage
 
 

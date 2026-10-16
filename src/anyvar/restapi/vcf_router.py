@@ -28,6 +28,7 @@ from anyvar.restapi.async_utils import (
     check_async_enabled,
     validate_run_id_available,
 )
+from anyvar.restapi.examples import REFERENCE_ASSEMBLY_EXAMPLES
 from anyvar.restapi.schema import ErrorResponse, RunStatusResponse
 from anyvar.translate.base import TranslatorConnectionError
 from anyvar.vcf.ingest import (
@@ -244,6 +245,7 @@ async def annotate_vcf(
         Query(
             pattern="^(GRCh38|GRCh37)$",
             description="The reference assembly for the VCF",
+            openapi_examples=REFERENCE_ASSEMBLY_EXAMPLES,
         ),
     ] = "GRCh38",
     add_vrs_attributes: Annotated[
@@ -450,6 +452,7 @@ async def annotated_vcf(
         Query(
             pattern="^(GRCh38|GRCh37)$",
             description="The reference assembly for the VCF",
+            openapi_examples=REFERENCE_ASSEMBLY_EXAMPLES,
         ),
     ] = "GRCh38",
     run_async: Annotated[
@@ -540,7 +543,10 @@ async def get_vcf_run_status(
     response: Response,
     bg_tasks: BackgroundTasks,
     run_id: Annotated[
-        str, Path(description="The run id to retrieve the result or status for")
+        str,
+        Path(
+            description="The run_id returned by your asynchronous VCF submission",
+        ),
     ],
 ) -> RunStatusResponse | FileResponse | ErrorResponse:
     """Return the status or result of an asynchronous registration of alleles from a VCF file."""

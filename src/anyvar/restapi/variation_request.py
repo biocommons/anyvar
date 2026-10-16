@@ -8,22 +8,14 @@ from http import HTTPStatus
 from fastapi import Body, HTTPException
 
 from anyvar.core import objects
+from anyvar.restapi.examples import VARIATION_OPENAPI_EXAMPLES
 from anyvar.restapi.schema import VariationRequest
 from anyvar.translate.base import Translator
 from anyvar.translate.register import translate_variation
 
-VARIATION_EXAMPLE_PAYLOAD = {
-    "definition": "NC_000007.13:g.36561662_36561663del",
-    "input_type": "Allele",
-    "copies": 0,
-    "copy_change": "complete genomic loss",
-    "assembly_name": None,
-}
-
-
 variation_request_body = Body(
     description='Variation description, including (at minimum) a `definition` property. Can provide optional `input_type` if the expected output representation type is known, as well as an assembly_name (e.g.,"GRCh37" or "GRCh38"). If representing copy number, provide `copies` or `copy_change`.',
-    examples=[VARIATION_EXAMPLE_PAYLOAD],
+    openapi_examples=VARIATION_OPENAPI_EXAMPLES,
 )
 
 

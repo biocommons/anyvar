@@ -21,6 +21,10 @@ from pydantic import BaseModel, ConfigDict, Field, StrictStr, computed_field
 from anyvar import __version__
 from anyvar.core import metadata, objects
 from anyvar.mapping.liftover import ReferenceAssembly
+from anyvar.restapi.examples import (
+    GET_OBJECT_RESPONSE_EXAMPLES,
+    REGISTER_VARIATION_RESPONSE_EXAMPLES,
+)
 
 
 class EndpointTag(StrEnum):
@@ -252,43 +256,7 @@ class RegisterVariationResponse(BaseModel):
     """Describe response for the PUT /variation, PUT /variations, and PUT /vrs_variation endpoints"""
 
     model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "input_variation": {
-                        "definition": "NC_000007.13:g.36561662_36561663del",
-                        "input_type": "Allele",
-                        "copies": 0,
-                        "copy_change": "complete genomic loss",
-                        "assembly_name": None,
-                    },
-                    "messages": [],
-                    "object": {
-                        "id": "ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb",
-                        "type": "Allele",
-                        "digest": "d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb",
-                        "location": {
-                            "id": "ga4gh:SL.JOFKL4nL5mRUlO_xLwQ8VOD1v7mxhs3I",
-                            "type": "SequenceLocation",
-                            "digest": "JOFKL4nL5mRUlO_xLwQ8VOD1v7mxhs3I",
-                            "sequenceReference": {
-                                "type": "SequenceReference",
-                                "refgetAccession": "SQ.IW78mgV5Cqf6M24hy52hPjyyo5tCCd86",
-                            },
-                            "start": 36561661,
-                            "end": 36561663,
-                        },
-                        "state": {
-                            "type": "ReferenceLengthExpression",
-                            "length": 0,
-                            "sequence": "",
-                            "repeatSubunitLength": 2,
-                        },
-                    },
-                    "object_id": "ga4gh:VA.d6ru7RcuVO0-v3TtPFX5fZz-GLQDhMVb",
-                }
-            ]
-        }
+        json_schema_extra={"examples": REGISTER_VARIATION_RESPONSE_EXAMPLES}
     )
 
     input_variation: VariationRequest | objects.SupportedVrsVariation
@@ -301,30 +269,7 @@ class GetObjectResponse(BaseModel):
     """Describe response for the GET /variation endpoint"""
 
     model_config = ConfigDict(
-        json_schema_extra={
-            "examples": [
-                {
-                    "messages": [],
-                    "data": {
-                        "digest": "K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU",
-                        "id": "ga4gh:VA.K7akyz9PHB0wg8wBNVlWAAdvMbJUJJfU",
-                        "location": {
-                            "digest": "01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
-                            "id": "ga4gh:SL.01EH5o6V6VEyNUq68gpeTwKE7xOo-WAy",
-                            "start": 87894076,
-                            "end": 87894077,
-                            "sequenceReference": {
-                                "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
-                                "type": "SequenceReference",
-                            },
-                            "type": "SequenceLocation",
-                        },
-                        "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
-                        "type": "Allele",
-                    },
-                }
-            ]
-        }
+        json_schema_extra={"examples": GET_OBJECT_RESPONSE_EXAMPLES}
     )
 
     messages: list[StrictStr]

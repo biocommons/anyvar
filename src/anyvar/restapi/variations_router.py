@@ -18,6 +18,13 @@ from anyvar.restapi.async_utils import (
     check_async_enabled,
     validate_run_id_available,
 )
+from anyvar.restapi.examples import (
+    BULK_VARIATION_OPENAPI_EXAMPLES,
+    SEARCH_ACCESSION_EXAMPLES,
+    SEARCH_END_EXAMPLES,
+    SEARCH_START_EXAMPLES,
+    VRS_VARIATION_OPENAPI_EXAMPLES,
+)
 from anyvar.restapi.schema import (
     ErrorResponse,
     GetObjectResponse,
@@ -75,7 +82,11 @@ async def register_variations(
     request: Request,
     response: Response,
     variations: Annotated[
-        list[VariationRequest], Body(description="List of variations to register")
+        list[VariationRequest],
+        Body(
+            description="List of variations to register",
+            openapi_examples=BULK_VARIATION_OPENAPI_EXAMPLES,
+        ),
     ],
     run_async: Annotated[
         bool,
@@ -153,7 +164,10 @@ async def register_variations(
 async def get_variations_run_status(
     response: Response,
     run_id: Annotated[
-        str, Path(description="The run id to retrieve the result or status for")
+        str,
+        Path(
+            description="The run_id returned by your asynchronous variation registration request",
+        ),
     ],
 ) -> RunStatusResponse | JSONResponse | ErrorResponse:
     """Return the status or result of an asynchronous registration of variations."""
@@ -188,21 +202,6 @@ async def get_variations_run_status(
     )
 
 
-PUT_VRS_VARIATION_EXAMPLE_PAYLOAD = {
-    "location": {
-        "end": 87894077,
-        "start": 87894076,
-        "sequenceReference": {
-            "refgetAccession": "SQ.ss8r_wB0-b9r44TQTMmVTI92884QvBiB",
-            "type": "SequenceReference",
-        },
-        "type": "SequenceLocation",
-    },
-    "state": {"sequence": "T", "type": "LiteralSequenceExpression"},
-    "type": "Allele",
-}
-
-
 @variations_router.put(
     "/vrs_variation",
     summary="Register a VRS variation",
@@ -215,7 +214,7 @@ def register_vrs_variation(
         objects.SupportedVrsVariation,
         Body(
             description="Valid VRS object.",
-            examples=[PUT_VRS_VARIATION_EXAMPLE_PAYLOAD],
+            openapi_examples=VRS_VARIATION_OPENAPI_EXAMPLES,
         ),
     ],
 ) -> RegisterVariationResponse:
@@ -282,17 +281,25 @@ def search_variations(
         str,
         Query(
             ...,
-            description='Sequence accession identifier (for example: `"ga4gh:SQ.8_liLu1aycC0tPQPFmUaGXJLDs5SbPZ5"`)',
-            examples=["ga4gh:SQ.8_liLu1aycC0tPQPFmUaGXJLDs5SbPZ5"],
+            description="Sequence accession identifier",
+            openapi_examples=SEARCH_ACCESSION_EXAMPLES,
         ),
     ],
     start: Annotated[
         int,
-        Query(..., description="Start position for genomic region", examples=[2781631]),
+        Query(
+            ...,
+            description="Start position for genomic region",
+            openapi_examples=SEARCH_START_EXAMPLES,
+        ),
     ],
     end: Annotated[
         int,
-        Query(..., description="End position for genomic region", examples=[2781758]),
+        Query(
+            ...,
+            description="End position for genomic region",
+            openapi_examples=SEARCH_END_EXAMPLES,
+        ),
     ],
     page_size: int = Query(1000, ge=1, le=10000),
     cursor: str | None = Query(None, description="Opaque pagination cursor"),

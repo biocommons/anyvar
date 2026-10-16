@@ -10,6 +10,12 @@ from pydantic import StrictStr
 
 from anyvar.anyvar import AnyVar, ObjectNotFoundError
 from anyvar.core import metadata, objects
+from anyvar.restapi.examples import (
+    EXTENSION_NAME_EXAMPLES,
+    EXTENSION_OPENAPI_EXAMPLES,
+    MAPPING_OPENAPI_EXAMPLES,
+    VRS_OBJECT_ID_EXAMPLES,
+)
 from anyvar.restapi.schema import (
     AddExtensionRequest,
     AddExtensionResponse,
@@ -35,7 +41,14 @@ objects_router = APIRouter()
 )
 def get_object_by_id(
     request: Request,
-    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for object")],
+    vrs_id: Annotated[
+        StrictStr,
+        Path(
+            ...,
+            description="VRS ID for object",
+            openapi_examples=VRS_OBJECT_ID_EXAMPLES,
+        ),
+    ],
 ) -> GetObjectResponse:
     """Get registered VRS object given its VRS ID."""
     av: AnyVar = request.app.state.anyvar
@@ -52,7 +65,14 @@ def get_object_by_id(
 )
 def delete_object_by_id(
     request: Request,
-    vrs_id: Annotated[StrictStr, Path(..., description="ID of object to delete")],
+    vrs_id: Annotated[
+        StrictStr,
+        Path(
+            ...,
+            description="ID of object to delete",
+            openapi_examples=VRS_OBJECT_ID_EXAMPLES,
+        ),
+    ],
 ) -> None:
     """Delete a VRS object."""
     av: AnyVar = request.app.state.anyvar
@@ -71,13 +91,18 @@ def delete_object_by_id(
 def add_object_extension(
     request: Request,
     vrs_id: Annotated[
-        StrictStr, Path(..., description="VRS ID of variation to annotate")
+        StrictStr,
+        Path(
+            ...,
+            description="VRS ID of variation to annotate",
+            openapi_examples=VRS_OBJECT_ID_EXAMPLES,
+        ),
     ],
     extension_request: Annotated[
         AddExtensionRequest,
         Body(
             description="Extension to associate with the variation",
-            examples=[{"name": "source_dataset", "value": "gnomAD_v4.1"}],
+            openapi_examples=EXTENSION_OPENAPI_EXAMPLES,
         ),
     ],
 ) -> AddExtensionResponse:
@@ -121,8 +146,22 @@ def add_object_extension(
 )
 def get_object_extensions(
     request: Request,
-    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for VRS Object")],
-    extension_name: Annotated[StrictStr, Path(..., description="Extension name")],
+    vrs_id: Annotated[
+        StrictStr,
+        Path(
+            ...,
+            description="VRS ID for VRS Object",
+            openapi_examples=VRS_OBJECT_ID_EXAMPLES,
+        ),
+    ],
+    extension_name: Annotated[
+        StrictStr,
+        Path(
+            ...,
+            description="Extension name",
+            openapi_examples=EXTENSION_NAME_EXAMPLES,
+        ),
+    ],
 ) -> GetExtensionResponse:
     """Retrieve extensions for a VRS Object."""
     av: AnyVar = request.app.state.anyvar
@@ -145,8 +184,22 @@ def get_object_extensions(
 )
 def delete_object_extensions(
     request: Request,
-    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for VRS Object")],
-    extension_name: Annotated[StrictStr, Path(..., description="Extension name")],
+    vrs_id: Annotated[
+        StrictStr,
+        Path(
+            ...,
+            description="VRS ID for VRS Object",
+            openapi_examples=VRS_OBJECT_ID_EXAMPLES,
+        ),
+    ],
+    extension_name: Annotated[
+        StrictStr,
+        Path(
+            ...,
+            description="Extension name",
+            openapi_examples=EXTENSION_NAME_EXAMPLES,
+        ),
+    ],
 ) -> Response:
     """Delete extensions associated with a VRS object."""
     av: AnyVar = request.app.state.anyvar
@@ -167,9 +220,20 @@ def delete_object_extensions(
 )
 def add_object_mapping(
     request: Request,
-    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID")],
+    vrs_id: Annotated[
+        StrictStr,
+        Path(
+            ...,
+            description="VRS ID",
+            openapi_examples=VRS_OBJECT_ID_EXAMPLES,
+        ),
+    ],
     mapping_request: Annotated[
-        AddMappingRequest, Body(description="Mapping to associate with the VRS Object")
+        AddMappingRequest,
+        Body(
+            description="Mapping to associate with the VRS Object",
+            openapi_examples=MAPPING_OPENAPI_EXAMPLES,
+        ),
     ],
 ) -> AddMappingResponse:
     """Store a mapping for a VRS Object"""
@@ -222,7 +286,14 @@ By default, retrieve mappings of any type. Use the `mapping_type` argument to sp
 )
 def get_object_mapping(
     request: Request,
-    vrs_id: Annotated[StrictStr, Path(..., description="VRS ID for variation")],
+    vrs_id: Annotated[
+        StrictStr,
+        Path(
+            ...,
+            description="VRS ID for variation",
+            openapi_examples=VRS_OBJECT_ID_EXAMPLES,
+        ),
+    ],
     mapping_type: Annotated[
         metadata.VariationMappingType | None, Query(..., description="Mapping type")
     ] = None,
