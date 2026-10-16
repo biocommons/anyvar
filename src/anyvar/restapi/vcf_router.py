@@ -28,6 +28,7 @@ from anyvar.restapi.async_utils import (
     check_async_enabled,
     validate_run_id_available,
 )
+from anyvar.restapi.examples import REFERENCE_ASSEMBLY_EXAMPLES
 from anyvar.restapi.schema import ErrorResponse, RunStatusResponse
 from anyvar.translate.base import TranslatorConnectionError
 from anyvar.vcf.ingest import (
@@ -221,14 +222,20 @@ async def _annotate_vcf_sync(
 @vcf_router.put(
     "/vcf",
     summary="Register alleles from a VCF",
-    description="Provide a valid VCF. All reference and alternate alleles will be registered with AnyVar. The file is annotated with VRS IDs and returned.",
+    description="Provide a valid VCF. All reference and alternate alleles will be registered with AnyVar. The file is annotated with VRS IDs and returned. For example uploads, save the contents of `sample_vcf_grch38` or `sample_vcf_grch37` from the [VCF test fixtures](https://github.com/biocommons/anyvar/blob/main/tests/integration/restapi/vcf_router/test_annotate_vcf.py) as a local `.vcf` file, then select it below and choose the matching assembly.",
     response_model=None,
 )
 async def annotate_vcf(
     request: Request,
     response: Response,
     bg_tasks: BackgroundTasks,
-    vcf: Annotated[UploadFile, File(..., description="VCF to register and annotate")],
+    vcf: Annotated[
+        UploadFile,
+        File(
+            ...,
+            description="VCF to register and annotate. Select a local file, such as the sample_vcf_grch38 or sample_vcf_grch37 test fixture described above.",
+        ),
+    ],
     for_ref: Annotated[
         bool,
         Query(description="Whether to compute VRS IDs for REF alleles"),
@@ -244,6 +251,7 @@ async def annotate_vcf(
         Query(
             pattern="^(GRCh38|GRCh37)$",
             description="The reference assembly for the VCF",
+            openapi_examples=REFERENCE_ASSEMBLY_EXAMPLES,
         ),
     ] = "GRCh38",
     add_vrs_attributes: Annotated[
@@ -425,7 +433,7 @@ async def _ingest_annotated_vcf_async(
 @vcf_router.put(
     "/annotated_vcf",
     summary="Register alleles from a VCF that has already been annotated with VRS objects",
-    description="Provide a VCF that already has VRS location and state annotations. Ingest the objects into AnyVar.",
+    description="Provide a VCF that already has VRS location and state annotations. Ingest the objects into AnyVar. For an example upload, save the contents of `basic_vcf` from the [annotated VCF test fixtures](https://github.com/biocommons/anyvar/blob/main/tests/integration/restapi/vcf_router/test_ingest_vcf.py) as a local `.vcf` file, then select it below with assembly GRCh38. You can also use the output of PUT /vcf with `add_vrs_attributes=true`.",
     response_model=None,
 )
 async def annotated_vcf(
@@ -436,7 +444,7 @@ async def annotated_vcf(
         UploadFile,
         File(
             ...,
-            description="VCF that has already been annotated with VRS ID, start/stop, and state for all alleles",
+            description="VCF that has already been annotated with VRS ID, start/stop, and state for all alleles. Select a local file, such as the basic_vcf test fixture described above.",
         ),
     ],
     allow_async_write: Annotated[
@@ -450,6 +458,7 @@ async def annotated_vcf(
         Query(
             pattern="^(GRCh38|GRCh37)$",
             description="The reference assembly for the VCF",
+            openapi_examples=REFERENCE_ASSEMBLY_EXAMPLES,
         ),
     ] = "GRCh38",
     run_async: Annotated[
@@ -540,7 +549,10 @@ async def get_vcf_run_status(
     response: Response,
     bg_tasks: BackgroundTasks,
     run_id: Annotated[
-        str, Path(description="The run id to retrieve the result or status for")
+        str,
+        Path(
+            description="The run_id returned by your asynchronous VCF submission",
+        ),
     ],
 ) -> RunStatusResponse | FileResponse | ErrorResponse:
     """Return the status or result of an asynchronous registration of alleles from a VCF file."""
