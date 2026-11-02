@@ -4,7 +4,7 @@ Contributing to AnyVar
 Installing For Development
 ==========================
 
-Clone and enter the repo, use the ``devready`` Makefile target to set up a virtual environment, then activate it and install pre-commit hooks:
+Clone and enter the repo, use the ``devready`` Makefile target to set up a virtual environment, then activate it and install pre-commit hooks. This installs the ``test``, ``dev``, and ``docs`` dependency groups from the local ``pyproject.toml``; these groups are not available as PyPI extras. The Makefile uses pip's dependency-group support (pip 25.1 or newer).
 
 .. code-block:: shell
 
@@ -19,7 +19,7 @@ Testing
 
 Some configuration is required to run tests:
 
-* **Install test dependencies** - in your AnyVar environment, ensure that the ``test`` dependency group is available by running ``make testready`` in the root directory.
+* **Install test dependencies** - in your AnyVar environment, install the local ``test`` dependency group by running ``make testready`` in the root directory. This also installs the ``postgres`` and ``queueing`` PyPI extras.
 * **Configure test database** - unit and integration tests will set up a storage instance using the connection string defined by the environment variable ``ANYVAR_TEST_STORAGE_URI`` (not ``ANYVAR_STORAGE_URI``!), which defaults to ``"postgresql://postgres:postgres@localhost:5432/anyvar_test"``.
 
 .. note::
