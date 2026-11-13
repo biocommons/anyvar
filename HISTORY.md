@@ -8,7 +8,7 @@ Development accelerated in 2025, when [Alex Wagner](https://github.com/ahwagner)
 
 ## Sustaining the biocommons foundation
 
-AnyVar is the most visible layer of a larger stack. Its usefulness depends on biocommons libraries such as [hgvs](https://github.com/biocommons/hgvs), [seqrepo](https://github.com/biocommons/biocommons.seqrepo), and [UTA](https://github.com/biocommons/uta), which are maintained by a small community of volunteers and contributors from several organizations. Those libraries are harder to fund than the applications built on them, yet every service built on AnyVar inherits their reliability, or their neglect.
+AnyVar is the most visible layer of a larger stack. Its usefulness depends on biocommons libraries such as [hgvs](https://github.com/biocommons/hgvs), [seqrepo](https://github.com/biocommons/biocommons.seqrepo), [UTA](https://github.com/biocommons/uta), and [bioutils](https://github.com/biocommons/bioutils), which are maintained by a small community of volunteers and contributors from several organizations. Those libraries are harder to fund than the applications built on them, yet every service built on AnyVar inherits their reliability, or their neglect.
 
 We therefore ask that the AnyVar community treat these foundations as shared responsibilities:
 
