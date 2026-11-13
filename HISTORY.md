@@ -1,4 +1,4 @@
-> This file was merged into this repo in PR #515, before the repo was transferred to the GA4GH organization. It should stay at the root of this repo.
+> This file was merged into this repo in PR #516, before the repo was transferred to the GA4GH organization. It should stay at the root of this repo.
 
 # AnyVar History
 
